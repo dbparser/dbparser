@@ -254,6 +254,7 @@ public abstract class HeadFinder implements Serializable {
 	Language.treebank.isPreterminal(tree))
       return tree;
     if (tree.isList()) {
+      /*
       SexpList treeList = tree.list();
       int treeListLength = treeList.length();
       Symbol parent = treeList.first().symbol();
@@ -291,6 +292,29 @@ public abstract class HeadFinder implements Serializable {
 	result.add(postHead);
       }
       return result;
+      */
+      SexpList treeList = tree.list();
+      int treeListLen = treeList.length();
+
+      // first, find heads for all nodes in this subtree
+      for (int i = 1; i < treeListLen; i++)
+        addHeadInformation(treeList.get(i));
+
+      // now, modify this subtree's head child's label
+      Symbol parent = treeList.first().symbol();
+      SexpList children = new SexpList(treeListLen - 1);
+      for (int i = 1; i < treeListLen; i++)
+	children.add(treeList.getChildLabel(i));
+
+      int headIdx = findHead(tree, treeList.first().symbol(), children);
+
+      if (headIdx == 0)
+	throw new RuntimeException(getClass().getName() + ": error: " +
+				   "couldn't find head for " + tree);
+
+      Symbol oldHead = treeList.getChildLabel(headIdx);
+      treeList.setChildLabel(headIdx, Symbol.add(oldHead + "-head"));
+      return tree;
     }
     return null;
   }

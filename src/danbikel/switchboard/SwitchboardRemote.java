@@ -77,7 +77,7 @@ public interface SwitchboardRemote extends Remote {
    * file entries when creating its final output file.  The default
    * behavior is to sort.
    *
-   * @ see Switchboard#setSettings(Properties)
+   * @see Switchboard#setSettings(Properties)
    */
   public final static String sortOutput =
     "switchboard.sortOutput";
@@ -235,6 +235,20 @@ public interface SwitchboardRemote extends Remote {
    */
   public Server getServer(int clientId, int serverId)
     throws RemoteException;
+
+  /**
+   * Registers the specified consumer of processed objects with this
+   * switchboard.  It is guaranteed that the consumer's
+   * {@link Consumer#newFile(String,String)} method will be invoked
+   * before this registration method returns.  Note that it is possible
+   * that all objects from the current file could have been processed
+   * before this method returns.
+   *
+   * @param consumer the consumer to be registered
+   *
+   * @see Consumer#newFile(String,String)
+   */
+  public void registerConsumer(Consumer consumer) throws RemoteException;
 
   /**
    * Gets the next object for the specified client; returns <code>null</code>

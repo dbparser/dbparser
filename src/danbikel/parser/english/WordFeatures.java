@@ -26,7 +26,7 @@ import java.text.*;
  * no hyphenization, no inflection, <tt>&quot;graphy&quot;</tt> derivation and
  * non-numeric).
  */
-public class WordFeatures extends danbikel.parser.WordFeatures {
+public class WordFeatures extends danbikel.parser.lang.AbstractWordFeatures {
 
   private final static ParsePosition pos = new ParsePosition(0);
   private final static NumberFormat nf = NumberFormat.getNumberInstance();

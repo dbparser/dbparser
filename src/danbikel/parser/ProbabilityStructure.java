@@ -2,6 +2,7 @@ package danbikel.parser;
 
 import danbikel.lisp.*;
 import java.io.*;
+import java.lang.reflect.*;
 
 /**
  * Abstract class to represent the probability structure--the entire
@@ -35,6 +36,23 @@ import java.io.*;
  */
 public abstract class ProbabilityStructure implements Serializable {
   protected transient int topLevelCacheSize;
+
+  protected final static String defaultModelClassName =
+    Settings.get(Settings.defaultModelClass);
+  protected static Constructor defaultModelConstructor = null;
+  static {
+    try {
+      Class defaultModelClass = Class.forName(defaultModelClassName);
+      Class[] params = {ProbabilityStructure.class};
+      defaultModelConstructor = defaultModelClass.getConstructor(params);
+    }
+    catch (ClassNotFoundException cnfe) {
+      System.err.println(cnfe);
+    }
+    catch (NoSuchMethodException nsme) {
+      System.err.println(nsme);
+    }
+  }
 
   /**
    * A reusable list to enable efficient construction of <code>SexpEvent</code>
@@ -356,7 +374,27 @@ public abstract class ProbabilityStructure implements Serializable {
    * @see Model
    * @see JointModel
    */
-  public Model newModel() { return new Model(this); }
+  public Model newModel() {
+    Model newModel = null;
+    if (defaultModelConstructor == null)
+      newModel = new Model(this);
+    else {
+      try {
+        newModel =
+          (Model)defaultModelConstructor.newInstance(new Object[] {this});
+      }
+      catch (InstantiationException ie) {
+        System.err.println(ie);
+      }
+      catch (IllegalAccessException iae) {
+        System.err.println(iae);
+      }
+      catch (InvocationTargetException ite) {
+        System.err.println(ite);
+      }
+    }
+    return newModel;
+  }
 
   /**
    * Returns an array of other <code>ProbabilityStructure</code> objects
@@ -381,13 +419,6 @@ public abstract class ProbabilityStructure implements Serializable {
   abstract public int numLevels();
 
   /**
-   * Returns a distinguished level of back-off, or -1 if there is no
-   * such distinguished level (the default implementation returns -1).
-   */
-  public int specialLevel() { return -1; }
-
-
-  /**
    * Returns the level that corresponds to the prior for
    * that which is being predicted (the future); if there is no such
    * level, this method returns -1 (the default implementation returns -1).
@@ -410,6 +441,17 @@ public abstract class ProbabilityStructure implements Serializable {
    * <code>0.0</code>.
    */
   public double lambdaFudgeTerm(int backOffLevel) { return 0.0; }
+
+  /**
+   * Returns the smoothing value to be used with back-off levels whose
+   * histories never occurred in training, meaning that 1 minus this
+   * value will be the total probability mass for the smoothed estimate
+   * at the specified back-off level.  From another perspective, this
+   * method returns the confidence that the raw maximum-likelihood
+   * estimate for this back-off level should be zero given that
+   * this history was never seen during training.
+   */
+  public double lambdaPenalty(int backOffLevel) { return 0.0; }
 
   /**
    * Extracts the history context for the specified back-off level

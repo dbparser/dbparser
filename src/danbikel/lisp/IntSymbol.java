@@ -9,7 +9,7 @@ import java.io.*;
  * operator for <code>IntSymbol</code> cannot be invoked directly</b>.  Rather,
  * new symbols are created by calling {@link Symbol#add(Integer)} or {@link
  * Symbol#add(int)}.
- * 
+ *
  * @see Symbol
  * @see StringSymbol
  */
@@ -41,7 +41,7 @@ public class IntSymbol extends Symbol implements Externalizable {
   IntSymbol(Integer i) {
     symInt = i;
   }
-  
+
   /**
    * Gets a string representation of this symbol.
    *
@@ -52,7 +52,7 @@ public class IntSymbol extends Symbol implements Externalizable {
   public String toString() {
     return symInt.toString();
   }
-  
+
   /**
    * Gets the internal <code>Integer</code> object for this
    * symbol.
@@ -80,7 +80,7 @@ public class IntSymbol extends Symbol implements Externalizable {
     symInt = new Integer(in.readInt());
   }
 
-  /** 
+  /**
    * Deals with the issue of uniqueness when we are dealing with more
    * than one VM by adding the read symbol to the symbol map, if it
    * is not already there.

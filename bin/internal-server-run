@@ -1,7 +1,10 @@
 #!/bin/tcsh -f
 
-set thisScriptDir = `dirname $0`
-set parent = $thisScriptDir/..
+# check that required args are present
+if ($#argv != 2) then
+    echo "usage: <derived data file> <input file>"
+    exit 1
+endif
 
 # date and time variables, upon which $outputDir is based
 # --these will be modified when this script is time-stamped and copied
@@ -9,11 +12,13 @@ set parent = $thisScriptDir/..
 set date = `date '+%Y.%m.%d'`
 set time = `date '+%H.%M'`
 
-# check that required args are present
-if ($#argv != 2) then
-    echo "usage: <derived data file> <input file>"
-    exit 1
-endif
+set dir = `dirname $0`
+set thisScriptDir = `cd $dir  ; echo $cwd`
+set parent = `cd $thisScriptDir/.. ; echo $cwd`
+
+# prepend parent of this script's directory to a shell variable version
+# of CLASSPATH, so we use classes of this particular sandbox
+set classpath = $parent\:$CLASSPATH
 
 # the two required arguments
 # --these will be modified when this script is time-stamped and copied
@@ -25,9 +30,7 @@ set inFile = $2
 set goldFile = $inFile.gold
 
 # the all-important output directory for this experiment
-cd $parent
-set outputDir = $cwd/experiments/$date/$time
-cd -
+set outputDir = $parent/experiments/$date/$time
 
 # scripts used by this script
 set startClientScript = $thisScriptDir/start-client
@@ -80,31 +83,19 @@ endif
 # start rmiregistry on switchboard host
 $rmiregistryScript $sbHost $rmiregistryPidFile
 
-# start switchboard
-echo Starting switchboard on $sbHost
-echo "" | rsh $sbHost java -Xms100m -Xmx100m $sb \
-		danbikel.parser.StartSwitchboard \
-		-msg $sbMsgFile $inFile -o $outFile -log $logFile &
-set sbPid = $!
-
-echo Waiting for 2 seconds
-sleep 2
-
 echo "Creating pid file"
 echo "	$pidFile"
 
-echo -n "$! " > $pidFile
+/bin/rm -f $pidFile
 
 # start clients
 set sbNameRMI = "//$sbHost/Switchboard"
 foreach host ($clientHosts)
     echo Starting client on $host
-    echo "" | rsh $host $startClientScript $host $outputDir \
+    echo "" | rsh $host $startClientScript $classpath $host $outputDir \
                             -is $derivedDataFile $sbNameRMI &
     echo -n "$! " >> $pidFile
 end
-
-echo -n "$sbPid " >> $pidFile
 
 echo "Putting nodes used in this experiment into"
 echo "	$nodeFile"
@@ -127,7 +118,11 @@ if (`tail -1 $0` != "$timeStamp") then
     chmod +x $scriptFile
 endif
 
-wait
+# start switchboard
+echo Starting switchboard on $sbHost
+echo "" | rsh $sbHost java -cp $classpath -Xms100m -Xmx100m $sb \
+		danbikel.parser.StartSwitchboard \
+		-msg $sbMsgFile $inFile -o $outFile -log $logFile
 
 # finally, if gold file exists, try to score
 if (-f $goldFile) then
@@ -140,3 +135,6 @@ endif
 # kill off rmi registry proc
 echo "Killing rmiregistry"
 kill `cat $rmiregistryPidFile`
+
+echo "Killing clients, if still alive"
+kill `cat $pidFile`

@@ -1,7 +1,7 @@
 (nonterminal NT count)
 (head (headWord parent head leftSubcat rightSubcat) count)
-(mod (modHeadWord headWord modifier previousMods parent head subcat
-      verbIntervening side) count)
+(mod (modHeadWord headWord modifier previousMods previousWords parent head
+      subcat verbIntervening side) count)
 (gap (direction headWord parent head) count)
 (vocab word count)
 (pos word posList)

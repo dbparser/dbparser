@@ -41,6 +41,8 @@ public class Constants {
 
   public static final Symbol notSym = Symbol.add("not");
 
+  public static final Symbol kleeneStarSym = Symbol.add("*");
+
   /**
    * A constant to represent the logarithm of zero, equal to
    * <code>Double#NEGATIVE_INFINITY</code>.
@@ -58,5 +60,13 @@ public class Constants {
    */
   public final static Symbol booleanToSym(boolean value) {
     return (value ? Constants.trueSym : Constants.falseSym);
+  }
+
+  /**
+   * Converts the boolean value of {@link #LEFT} into {@link #leftSym}
+   * and converts the boolean value of {@link #RIGHT} into {@link #rightSym}.
+   */
+  public final static Symbol sideToSym(boolean side) {
+    return side == LEFT ? leftSym : rightSym;
   }
 }

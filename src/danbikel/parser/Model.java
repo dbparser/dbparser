@@ -1,6 +1,5 @@
 package danbikel.parser;
 
-import java.util.HashMap;
 import danbikel.util.*;
 import danbikel.lisp.*;
 import java.io.*;
@@ -31,13 +30,19 @@ public class Model implements Serializable {
   // constants
   private final static boolean useCache = true;
   private final static int minCacheSize = 1000;
+  private final static boolean doGCBetweenCanonicalizations = false;
+
+  private final static int structureMapArrSize = 1000;
 
   // data members
 
   // the prob structure to use
   private ProbabilityStructure structure;
   // the prob structures for individual clients in a multithreaded environment
-  private Map structureMap = Collections.synchronizedMap(new HashMap());
+  private ProbabilityStructure[] structureMapArr =
+    new ProbabilityStructure[structureMapArrSize];
+  private Map structureMap = new danbikel.util.HashMap();
+  private IntCounter idInt = new IntCounter();
   // some handles on info available from structure object
   private String structureClassName;
   private int numLevels;
@@ -49,13 +54,13 @@ public class Model implements Serializable {
   private boolean verbose = true;
   // for temporary storage of histories (so we don't have to copy histories
   // created by deriveHistories() to create transition objects)
-  private transient HashMap[] histories;
+  //private transient HashMap[] histories;
   private transient ProbabilityCache topLevelCache;
   private transient ProbabilityCache[] cache;
   private transient int[] cacheHits;
   private transient int[] cacheAccesses;
 
-  private Map canonicalEvents;
+  private FlexibleMap canonicalEvents;
   static int numCacheAdds = 0;
   static int numCanonicalHits = 0;
 
@@ -115,9 +120,9 @@ public class Model implements Serializable {
 
     Iterator entries = trainerCounts.entrySet().iterator();
     while (entries.hasNext()) {
-      HashMapInt.Entry entry = (HashMapInt.Entry)entries.next();
+      MapToPrimitive.Entry entry = (MapToPrimitive.Entry)entries.next();
       TrainerEvent event = (TrainerEvent)entry.getKey();
-      int count = entry.getIntValue();
+      int count = entry.getIntValue(0);
       if (!filter.pass(event))
 	continue;
 
@@ -131,14 +136,16 @@ public class Model implements Serializable {
 	System.err.println("level: " + level +
 			   "; lookup hist: " + lookupHistory);
 	*/
-
-	if (counts[level].history().containsKey(lookupHistory)) {
+        MapToPrimitive.Entry histEntry =
+          counts[level].history().getEntry(lookupHistory);
+        if (histEntry != null) {
+//	if (counts[level].history().containsKey(lookupHistory)) {
 
 	  /*
 	  System.err.println("yea! found it!");
 	  */
 
-	  Event history = (Event)histories[level].get(lookupHistory);
+	  Event history = (Event)histEntry.getKey();
 	  Event future = structure.getFuture(event, level);
 	  Transition transition = new Transition(future.copy(), history);
 	  counts[level].transition().add(transition, count);
@@ -160,29 +167,43 @@ public class Model implements Serializable {
       System.err.println("Derived transitions for " + structureClassName +
 			 " in " + time + ".");
 
-    deriveUniqueCounts();
+    deriveDiversityCounts();
 
-    deriveSpecialLevelUniqueCounts();
+    deriveSpecialLevelDiversityCounts();
 
-    histories = null;
+    //histories = null;
   }
 
   /**
    *
    */
   public double estimateLogProb(int id, TrainerEvent event) {
-    Integer idInt = new Integer(id);
-    ProbabilityStructure clientStructure =
-      (ProbabilityStructure)structureMap.get(idInt);
-    if (clientStructure == null) {
-      clientStructure = structure.copy();
-      structureMap.put(idInt, clientStructure);
+    ProbabilityStructure clientStructure = null;
+
+    if (id < structureMapArrSize) {
+      clientStructure = structureMapArr[id];
+      if (clientStructure == null)
+        structureMapArr[id] = (clientStructure = structure.copy());
+    }
+    else {
+      IntCounter localIdInt = idInt;
+      synchronized (structureMap) {
+        if (structureMap.size() > 1) {
+          localIdInt.set(id);
+          clientStructure = (ProbabilityStructure)structureMap.get(localIdInt);
+          if (clientStructure == null) {
+            clientStructure = structure.copy();
+            structureMap.put(new IntCounter(id), clientStructure);
+          }
+        }
+      }
     }
     return Math.log(estimateProb(clientStructure, event));
   }
 
-  protected double estimateProb(ProbabilityStructure structure,
+  protected double estimateProb(ProbabilityStructure probStructure,
 				TrainerEvent event) {
+    ProbabilityStructure structure = probStructure;
     if (Debug.level >= 20) {
       System.err.println(structure.getClass().getName() + "\n\t" + event);
     }
@@ -196,13 +217,15 @@ public class Model implements Serializable {
     */
     int highestCachedLevel = numLevels;
 
+    double[] lambdas = structure.lambdas;
+    double[] estimates = structure.estimates;
     structure.prevHistCount = 0;
     for (int level = 0; level < numLevels; level++) {
       if (level == specialLevel)
 	estimateSpecialLevelProb(structure, event);
 
-      Event history = structure.getHistory(event, level);
       Transition transition = structure.getTransition(event, level);
+      Event history = transition.history();
 
       // check cache here!!!!!!!!!!!!
       if (useCache) {
@@ -220,7 +243,7 @@ public class Model implements Serializable {
             System.err.println("yea! " + structure.getClass().getName() +
                                "; level=" + level);
           }
-          structure.estimates[level] = cacheProb;
+          estimates[level] = cacheProb;
           cacheHits[level]++;
           highestCachedLevel = level;
           break;
@@ -232,44 +255,54 @@ public class Model implements Serializable {
         }
       }
       CountsTrio trio = counts[level];
-      double historyCount = trio.history().count(history);
+      MapToPrimitive.Entry histEntry = trio.history().getEntry(history);
+      double historyCount = (histEntry == null ? 0 :
+                             histEntry.getIntValue(CountsTrio.hist));
       double transitionCount = trio.transition().count(transition);
-      double uniqueCount = trio.unique().count(history);
+      double diversityCount = (histEntry == null ? 0 :
+                               histEntry.getIntValue(CountsTrio.diversity));
 
-      double lambda, estimate, adjustment = 1.0;
+      double lambda, estimate; //, adjustment = 1.0;
       double fudge = structure.lambdaFudge(level);
       if (historyCount == 0) {
 	lambda = 0;
 	estimate = 0;
       }
       else {
+        /*
 	if (structure.prevHistCount <= historyCount)
 	  adjustment = 1 - structure.prevHistCount / historyCount;
-	lambda =
-	  adjustment * (historyCount / (historyCount + fudge * uniqueCount));
+        */
+	lambda = historyCount / (historyCount + fudge * diversityCount);
+	  //adjustment * (historyCount / (historyCount + fudge * diversityCount));
 	estimate = transitionCount / historyCount;
       }
 
       if (Debug.level >= 20) {
         for (int i = 0; i < level; i++)
           System.err.print("  ");
+        /*
         System.err.println(transitionCount + "    " +
-                           historyCount + "    " + uniqueCount + "    " +
+                           historyCount + "    " + diversityCount + "    " +
                            adjustment + "    " + estimate);
+        */
+        System.err.println(transitionCount + "    " +
+                           historyCount + "    " + diversityCount + "    " +
+                           + estimate);
       }
 
-      structure.lambdas[level] = lambda;
-      structure.estimates[level] = estimate;
-      structure.prevHistCount = historyCount;
+      lambdas[level] = lambda;
+      estimates[level] = estimate;
+      //structure.prevHistCount = historyCount;
     }
     double prob = 0.0;
     if (useCache) {
       prob = (highestCachedLevel == numLevels ?
-              0.0 : structure.estimates[highestCachedLevel]);
+              0.0 : estimates[highestCachedLevel]);
     }
     for (int level = highestCachedLevel - 1; level >= 0; level--) {
-      double lambda = structure.lambdas[level];
-      double estimate = structure.estimates[level];
+      double lambda = lambdas[level];
+      double estimate = estimates[level];
       prob = lambda * estimate + ((1 - lambda) * prob);
       if (useCache  && prob > Constants.logOfZero) {
         Transition transition = structure.transitions[level];
@@ -278,32 +311,41 @@ public class Model implements Serializable {
 			     level);
 	}
 
+        putInCache:
         if (!cache[level].containsKey(transition)) {
           numCacheAdds++;
-          // don't want to copy history and future if we don't have to
-          Event transHist = transition.history();
-          Event transFuture = transition.future();
-          CountsTrio trio = counts[level];
-          Event hist = (Event)canonicalEvents.get(transHist);
-          if (hist == null) {
-            hist = transHist.copy();
-            //System.err.println("no hit: " + hist);
+          Transition canonTrans = (Transition)canonicalEvents.get(transition);
+          if (canonTrans != null) {
+            cache[level].put(canonTrans, prob);
+            numCanonicalHits++;
           }
           else {
-            numCanonicalHits++;
-            //System.err.println("hit: " + hist);
+            // don't want to copy history and future if we don't have to
+            Event transHist = transition.history();
+            Event transFuture = transition.future();
+            Event hist = (Event)canonicalEvents.get(transHist);
+            if (hist == null) {
+              //break putInCache;
+              hist = transHist.copy();
+              //System.err.println("no hit: " + hist);
+            }
+            else {
+              numCanonicalHits++;
+              //System.err.println("hit: " + hist);
+            }
+            Event future = (Event)canonicalEvents.get(transFuture);
+            if (future == null) {
+              //break putInCache;
+              future = transFuture.copy();
+              //System.err.println("no hit: " + future);
+            }
+            else {
+              numCanonicalHits++;
+              //System.err.println("hit: " + future);
+            }
+            cache[level].put(new Transition(future, hist), prob);
+            //cache[level].put(transition.copy(), prob);
           }
-          Event future = (Event)canonicalEvents.get(transFuture);
-          if (future == null) {
-            future = transFuture.copy();
-            //System.err.println("no hit: " + future);
-          }
-          else {
-            numCanonicalHits++;
-            //System.err.println("hit: " + future);
-          }
-          cache[level].put(new Transition(future, hist), prob);
-          //cache[level].put(transition.copy(), prob);
         }
       }
     }
@@ -327,12 +369,15 @@ public class Model implements Serializable {
 
     // check cache here!!!!!!!!!!!!!!!!!!!!!!!
 
-    Event history = structure.getHistory(event, level);
-    Transition transition = structure.getTransition(event, level);
+    Transition structure = transition.getTransition(event, level);
+    Event history = transition.history();
     CountsTrio trio = counts[level];
-    double historyCount = trio.history().count(history);
+    MapToPrimitive.Entry histEntry = trio.history().getEntry(history);
+    double historyCount = (histEntry == null ? 0 :
+                           histEntry.getIntValue(CountsTrio.hist));
     double transitionCount = trio.transition().count(transition);
-    double uniqueCount = trio.unique().count(history);
+    double diversityCount = (histEntry == null ? 0 :
+                             histEntry.getIntValue(CountsTrio.diversity));
 
     double lambda, estimate, adjustment = 1.0;
     double fudge = structure.lambdaFudge(level);
@@ -344,7 +389,7 @@ public class Model implements Serializable {
       if (prevHistCount <= historyCount)
 	adjustment = 1 - prevHistCount / historyCount;
       lambda =
-	adjustment * (historyCount / (historyCount + fudge * uniqueCount));
+	adjustment * (historyCount / (historyCount + fudge * diversityCount));
       estimate = transitionCount / historyCount;
     }
     double backOffProb = estimateProbOld(structure,
@@ -376,8 +421,8 @@ public class Model implements Serializable {
    * <i>diversity</i> of a random variable, is used in a modified
    * version of Witten-Bell smoothing.
    */
-  protected void deriveUniqueCounts() {
-    // derive unique counts for non-special levels
+  protected void deriveDiversityCounts() {
+    // derive diversity counts for non-special levels
     Time time = null;
     if (verbose)
       time = new Time();
@@ -388,21 +433,21 @@ public class Model implements Serializable {
       Iterator it = counts[level].transition().keySet().iterator();
       while (it.hasNext()) {
 	Transition transition = (Transition)it.next();
-	counts[level].unique().add(transition.history());
+	counts[level].history().add(transition.history(), CountsTrio.diversity);
       }
     }
 
     if (verbose)
-      System.err.println("Derived unique counts for " + structureClassName +
+      System.err.println("Derived diversity counts for " + structureClassName +
 			 " in " + time + ".");
   }
 
   /**
-   * Called by {@link #deriveUniqueCounts}, this method provides a hook
-   * to counts unique transitions at the special back-off level of a model,
+   * Called by {@link #deriveDiversityCounts}, this method provides a hook
+   * to count unique transitions at the special back-off level of a model,
    * if one exists.
    */
-  protected void deriveSpecialLevelUniqueCounts() {
+  protected void deriveSpecialLevelDiversityCounts() {
   }
 
   /**
@@ -418,16 +463,16 @@ public class Model implements Serializable {
     Time time = null;
     if (verbose)
       time = new Time();
-
+    /*
     histories = new HashMap[numLevels];
     for (int level = 0; level < numLevels; level++)
       histories[level] = new HashMap();
-
+    */
     Iterator entries = trainerCounts.entrySet().iterator();
     while (entries.hasNext()) {
-      HashMapInt.Entry entry = (HashMapInt.Entry)entries.next();
+      MapToPrimitive.Entry entry = (MapToPrimitive.Entry)entries.next();
       TrainerEvent event = (TrainerEvent)entry.getKey();
-      int count = entry.getIntValue();
+      int count = entry.getIntValue(CountsTrio.hist);
       if (!filter.pass(event))
 	continue;
       // store all histories for all non-special back-off levels
@@ -435,8 +480,8 @@ public class Model implements Serializable {
 	if (level == specialLevel)
 	  continue;
 	Event history = structure.getHistory(event, level).copy();
-	counts[level].history().add(history, count);
-	histories[level].put(history, history);
+	counts[level].history().add(history, CountsTrio.hist, count);
+	//histories[level].put(history, history);
 
 	/*
 	System.err.println("level: " + level + "; history: " + history);
@@ -469,7 +514,7 @@ public class Model implements Serializable {
    * copies of event information in different event objects.
    */
   public void canonicalize() {
-    canonicalize(new HashMap());
+    canonicalize(new danbikel.util.HashMap());
   }
 
   /**
@@ -485,13 +530,13 @@ public class Model implements Serializable {
    * allows multiple <code>Model</code> objects to have their
    * events structures canonicalized with respect to each other
    */
-  public void canonicalize(Map map) {
+  public void canonicalize(FlexibleMap map) {
     canonicalEvents = map;
     int prevMapSize = map.size();
     for (int level = 0; level < numLevels; level++) {
       CountsTrio trio = counts[level];
       canonicalize(trio.history(), map);
-      canonicalize(trio.unique(), map);
+      //canonicalize(trio.unique(), map);
       canonicalize(trio.transition(), map);
     }
 
@@ -503,7 +548,7 @@ public class Model implements Serializable {
     for (int level = 0; level < numLevels; level++) {
       CountsTrio trio = counts[level];
       canonicalizeEvents(trio.history(), map);
-      canonicalizeEvents(trio.unique(), map);
+      //canonicalizeEvents(trio.unique(), map);
       canonicalizeEvents(trio.transition(), map);
     }
     int increase = map.size() - prevMapSize;
@@ -511,18 +556,25 @@ public class Model implements Serializable {
     if (verbose) {
       System.err.print("Canonicalized " + numCanonicalizableEvents +
 		       " events; map grew by " + increase + " elements to " +
-		       map.size() + " (gc ... ");
-      System.err.flush();
+		       map.size());
+      if (doGCBetweenCanonicalizations) {
+	System.err.print(" (gc ... ");
+	System.err.flush();
+      }
+      else
+	System.err.println();
     }
-    System.gc();
-    if (verbose)
-      System.err.println("done).");
+    if (doGCBetweenCanonicalizations) {
+      System.gc();
+      if (verbose)
+	System.err.println("done).");
+    }
 
     // reset for use by this method if it is called again
     numCanonicalizableEvents = 0;
   }
 
-  private void canonicalize(CountsTable table, Map map) {
+  private void canonicalize(MapToPrimitive table, Map map) {
     Iterator it = table.keySet().iterator();
     while (it.hasNext()) {
       Object histOrTrans = it.next();
@@ -540,14 +592,27 @@ public class Model implements Serializable {
     }
   }
 
-  private void canonicalizeEvents(CountsTable table, Map map) {
-    Iterator it = table.keySet().iterator();
+  private void canonicalizeEvents(MapToPrimitive table, Map map) {
+    int numKeysReplaced = 0;
+    Iterator it = table.entrySet().iterator();
     while (it.hasNext()) {
-      Object histOrTrans = it.next();
-      if (map.containsKey(histOrTrans) == false)
+      MapToPrimitive.Entry entry = (MapToPrimitive.Entry)it.next();
+      Object histOrTrans = entry.getKey();
+      Object mapHistOrTrans = map.get(histOrTrans);
+      boolean alreadyInMap = mapHistOrTrans != null;
+      if (alreadyInMap) {
+        if (entry.replaceKey(mapHistOrTrans))
+	  numKeysReplaced++;
+      }
+      else
         map.put(histOrTrans, histOrTrans);
     }
     numCanonicalizableEvents += table.size();
+    /*
+    System.err.println(structureClassName +
+		       ": No. of canonicalized Event objects: " +
+		       numKeysReplaced);
+    */
   }
 
   // accessors

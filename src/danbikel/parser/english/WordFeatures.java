@@ -4,6 +4,7 @@ import danbikel.lisp.*;
 import danbikel.parser.Settings;
 import java.util.*;
 import java.io.Serializable;
+import java.text.*;
 
 /**
  * WordFeatures are orthographic and morphological features of
@@ -26,6 +27,10 @@ import java.io.Serializable;
  * non-numeric).
  */
 public class WordFeatures extends danbikel.parser.WordFeatures {
+
+  private final static ParsePosition pos = new ParsePosition(0);
+  private final static NumberFormat nf = NumberFormat.getNumberInstance();
+
   /**
    * The property obtained from the {@link Settings} class to indicate
    * whether or not to consider underscores when creating the feature vector.
@@ -60,7 +65,7 @@ public class WordFeatures extends danbikel.parser.WordFeatures {
 
   /**
    * Returns the features of a word.
-   * 
+   *
    * @param word the word.
    * @param firstWord indicates whether <code>word</code> is the first word
    * of the sentence in which it occurs
@@ -146,13 +151,10 @@ public class WordFeatures extends danbikel.parser.WordFeatures {
   }
 
   private static boolean isNumber(String word) {
-    try {
-      Double.valueOf(word);
-      return true;
-    }
-    catch (NumberFormatException exception) {
-      return false;
-    }
+    pos.setIndex(0);
+    pos.setErrorIndex(-1);
+    nf.parse(word, pos);
+    return pos.getIndex() == word.length() && pos.getErrorIndex() == -1;
   }
 
   private static boolean sInflection(String word) {

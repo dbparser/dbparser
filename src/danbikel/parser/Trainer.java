@@ -417,8 +417,8 @@ public class Trainer implements Serializable {
 	}
       }
 
-      leftSubcat = leftSubcat.getCanonical(canonicalSubcatMap, false);
-      rightSubcat = rightSubcat.getCanonical(canonicalSubcatMap, false);
+      leftSubcat = leftSubcat.getCanonical(false, canonicalSubcatMap);
+      rightSubcat = rightSubcat.getCanonical(false, canonicalSubcatMap);
 
       HeadEvent headEvent = new HeadEvent(tree.headWord(),
 					  parent, head,
@@ -504,8 +504,8 @@ public class Trainer implements Serializable {
       Symbol modifier = currMod.label();
       verbIntervening |= prevModHadVerb;
       wordsIntervening = (modIdx > 0 ? true : headAlreadyHasMods);
-      Subcat dynamicSubcatCopy =
-	((Subcat)dynamicSubcat.copy()).getCanonical(canonicalSubcatMap, false);
+      Subcat canonicalDynamicSubcat =
+	dynamicSubcat.getCanonical(false, canonicalSubcatMap);
       // crucial to copy modifier's head word object (see comment above)
       ModifierEvent modEvent = new ModifierEvent(currMod.headWord().copy(),
 						 headWord,
@@ -513,7 +513,7 @@ public class Trainer implements Serializable {
 						 new SexpList(prevModList),
 						 parent,
 						 head,
-						 dynamicSubcatCopy,
+						 canonicalDynamicSubcat,
 						 verbIntervening,
 						 side);
       modifierEvents.add(modEvent);
@@ -526,14 +526,21 @@ public class Trainer implements Serializable {
 	if (dynamicSubcat.size() == 0)
 	  System.err.println(className + ": error: gap detected in " +
 			     tree + " but subcat list is empty!");
-	if (!dynamicSubcat.remove(gapAugmentation)) {
+	if (dynamicSubcat.contains(gapAugmentation)) {
+	  dynamicSubcat = (Subcat)dynamicSubcat.copy();
+	  dynamicSubcat.remove(gapAugmentation);
+	}
+	else {
 	  System.err.println(className + ": warning: gap detected in " +
 			     "modifier " + tree.label() + " but not present " +
 			     "in subcat list");
 	}
       }
 
-      dynamicSubcat.remove(modifier);
+      if (dynamicSubcat.contains(modifier)) {
+	dynamicSubcat = (Subcat)dynamicSubcat.copy();
+	dynamicSubcat.remove(modifier);
+      }
 
       prevModHadVerb = currMod.containsVerb();
       prevModList.remove(prevModList.length() - 1);
@@ -544,7 +551,7 @@ public class Trainer implements Serializable {
       System.err.println(className + ": warning: dynamic subcat not empty: " +
 			 dynamicSubcat);
 
-    Subcat emptySubcat = dynamicSubcat.getCanonical(canonicalSubcatMap, false);
+    Subcat emptySubcat = dynamicSubcat.getCanonical(false, canonicalSubcatMap);
 
     // transition to stop symbol
     verbIntervening |= prevModHadVerb;
@@ -845,47 +852,35 @@ public class Trainer implements Serializable {
 				   Settings.modWordModelStructureNumber,
 				   Settings.modWordModelStructureClass));
 
-      danbikel.util.HashMap canonicalEventLists = new danbikel.util.HashMap();
+      danbikel.util.HashMap canonical = new danbikel.util.HashMap();
 
       System.err.print("Deriving events for prior probability computations...");
       derivePriors();
       System.err.println("done.");
 
-      lexPriorModel.deriveCounts(priorEvents, allPass);
-      lexPriorModel.canonicalize(canonicalEventLists);
-      nonterminalPriorModel.deriveCounts(priorEvents, allPass);
-      nonterminalPriorModel.canonicalize(canonicalEventLists);
-      topNonterminalModel.deriveCounts(headEvents, topOnly);
-      topNonterminalModel.canonicalize(canonicalEventLists);
-      topLexModel.deriveCounts(headEvents, allPass);
-      topLexModel.canonicalize(canonicalEventLists);
-      headModel.deriveCounts(headEvents, nonTop);
-      headModel.canonicalize(canonicalEventLists);
-      gapModel.deriveCounts(gapEvents, allPass);
-      gapModel.canonicalize(canonicalEventLists);
-      leftSubcatModel.deriveCounts(headEvents, nonTop);
-      leftSubcatModel.canonicalize(canonicalEventLists);
-      rightSubcatModel.deriveCounts(headEvents, nonTop);
-      rightSubcatModel.canonicalize(canonicalEventLists);
-      leftModNonterminalModel.deriveCounts(modifierEvents, leftOnly);
-      leftModNonterminalModel.canonicalize(canonicalEventLists);
-      rightModNonterminalModel.deriveCounts(modifierEvents, rightOnly);
-      rightModNonterminalModel.canonicalize(canonicalEventLists);
-      leftModWordModel.deriveCounts(modifierEvents, leftOnly);
-      leftModWordModel.canonicalize(canonicalEventLists);
-      rightModWordModel.deriveCounts(modifierEvents, rightOnly);
-      rightModWordModel.canonicalize(canonicalEventLists);
+      lexPriorModel.deriveCounts(priorEvents, allPass, canonical);
+      nonterminalPriorModel.deriveCounts(priorEvents, allPass, canonical);
+      topNonterminalModel.deriveCounts(headEvents, topOnly, canonical);
+      topLexModel.deriveCounts(headEvents, allPass, canonical);
+      headModel.deriveCounts(headEvents, nonTop, canonical);
+      gapModel.deriveCounts(gapEvents, allPass, canonical);
+      leftSubcatModel.deriveCounts(headEvents, nonTop, canonical);
+      rightSubcatModel.deriveCounts(headEvents, nonTop, canonical);
+      leftModNonterminalModel.deriveCounts(modifierEvents, leftOnly, canonical);
+      rightModNonterminalModel.deriveCounts(modifierEvents, rightOnly, canonical);
+      leftModWordModel.deriveCounts(modifierEvents, leftOnly, canonical);
+      rightModWordModel.deriveCounts(modifierEvents, rightOnly, canonical);
 
       deriveSubcatMaps(leftSubcatModel.getProbStructure(),
 		       rightSubcatModel.getProbStructure(),
-                       canonicalEventLists);
+                       canonical);
 
       deriveModNonterminalMaps(leftModNonterminalModel.getProbStructure(),
                                rightModNonterminalModel.getProbStructure(),
-                               canonicalEventLists);
+                               canonical);
 
       System.err.println("Canonical events HashMap stats: " +
-                         canonicalEventLists.getStats());
+                         canonical.getStats());
 
       /*
       Iterator it = canonicalEventLists.keySet().iterator();
@@ -933,7 +928,7 @@ public class Trainer implements Serializable {
                           rightModNonterminalMap,
                           Language.training.getPrunedPreterms(),
                           Language.training.getPrunedPunctuation(),
-                          canonicalEventLists);
+                          canonical);
     }
     catch (ExceptionInInitializerError e) {
       System.err.println(className + ": problem initializing an instance of " +
@@ -981,14 +976,14 @@ public class Trainer implements Serializable {
 	leftMS.getHistory(headEvent, leftMSLastLevel).copy();
       leftContext.canonicalize(canonicalMap);
       Subcat canonicalLeftSubcat =
-	headEvent.leftSubcat().getCanonical(canonicalMap, false);
+	headEvent.leftSubcat().getCanonical(false, canonicalMap);
       addToValueSet(leftSubcatMap, leftContext, canonicalLeftSubcat);
 
       Event rightContext =
 	rightMS.getHistory(headEvent, rightMSLastLevel).copy();
       rightContext.canonicalize(canonicalMap);
       Subcat canonicalRightSubcat =
-	headEvent.rightSubcat().getCanonical(canonicalMap, false);
+	headEvent.rightSubcat().getCanonical(false, canonicalMap);
       addToValueSet(rightSubcatMap, rightContext, canonicalRightSubcat);
     }
 

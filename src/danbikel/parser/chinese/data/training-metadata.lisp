@@ -40,16 +40,16 @@
 ;;;                    indicates to search for something not in the set of
 ;;;                    nonterminals specified by <nt>+
 ;;;
-(arg-contexts (S (NP SBAR S))
-	      (VP (NP SBAR S VP))
-	      (SBAR (S))
-;	      (PP (head 1)))
-;	      (PP (head-post first PP NP WHNP ADJP ADVP S SBAR VP UCP RB RBS))))
-;	      (PP (head-post first PP NP WHNP ADJP ADVP S SBAR VP UCP)))
-              (PP (head-post first not PRN IN , : $ # CC CD DT EX FW JJ JJR JJS -LRB- LS MD NN NNP NNPS NNS PDT POS PRP PRP$ RB RBR RBS RP -RRB- SYM TO UH VB VBD VBG VBN VBP VBZ WDT WP WP$ WRB)))
-;;; a list of semantic tags on Penn Treebank nonterminals that prevent
+(arg-contexts (VP (IP CP VP))
+              (CP (IP CP))
+              (PP (NP LCP QP DP IP CP UCP))
+              (DNP (DP QP NP LCP PP ADJP UCP))
+              (DVP (DP NP QP VP ADVP UCP))
+              (LCP (NP QP DP LCP PP IP UCP))
+              (* (*-SBJ *-OBJ *-IO *-PRD)))
+;;; a list of semantic tags on treebank nonterminals that prevent
 ;;; children in the appropriate contexts from being relabeled as arguments
-(sem-tag-arg-stop-list (ADV VOC BNF DIR EXT LOC MNR TMP CLR PRP))
+(sem-tag-arg-stop-list (ADV))
 
 ;;; a list of nodes to be pruned from training data parse trees
 (prune-nodes (`` '' .))

@@ -13,12 +13,16 @@ import java.io.*;
  * A parsing client.  This class parses sentences by implementing the
  * {@link AbstractClient#process(Object)} method of its {@link
  * AbstractClient superclass}.  All top-level probabilities are
- * computed by a {@link DecoderServer} object, which is either local
+ * computed by a <code>DecoderServer</code> object, which is either local
  * or is a stub whose methods are invoked via RMI.  The actual
- * parsing is done in the {@link Decoder} class.
+ * parsing is implemented in the <code>Decoder</code> class.
+ *
+ * @see AbstractClient
+ * @see DecoderServer
+ * @see Decoder
  */
 public class Parser
-  extends AbstractClient implements ParserRemote {
+  extends AbstractClient implements ParserRemote, Runnable {
 
   // private constants
   private final static boolean debug = false;
@@ -31,6 +35,7 @@ public class Parser
   private DecoderServerRemote server;
   private SexpList sent;
   private Decoder decoder;
+  private boolean localServer = false;
 
   public Parser(String derivedDataFilename)
     throws RemoteException, IOException, ClassNotFoundException {
@@ -57,6 +62,12 @@ public class Parser
   }
 
   protected void getServer() throws RemoteException {
+    // the following check is necessary, as this method will be called
+    // by reRegister, which is called when Switchboard failure is
+    // detected by AbstractClient.processObjects
+    if (localServer)
+      return;
+
     super.getServer();
     server = (DecoderServerRemote)super.server;
   }
@@ -64,6 +75,12 @@ public class Parser
   protected void tolerateFaults(int retries,
 				int sleepTime,
 				boolean failover) {
+    // the following check is necessary, as this method will be called
+    // by reRegister, which is called when Switchboard failure is
+    // detected by AbstractClient.processObjects
+    if (localServer)
+      return;
+
     super.tolerateFaults(retries, sleepTime, failover);
     server = (DecoderServerRemote)super.server;
   }
@@ -132,9 +149,11 @@ public class Parser
   private static String derivedDataFilename = null;
   private static String inputFilename = null;
   private static String outputFilename = null;
+  private static int numClients = 1;
 
   private static final String[] usageMsg = {
-    "usage: [-internal-server <derived data file>] ",
+    "usage: [-nc <numClients> | -num-clients <numClients>]",
+    "\t[-internal-server <derived data file>] ",
     "\t[ [-sa <sentence input file> | --stand-alone <sentence input file> ",
     "\t  [-out <parse output file>] ] |",
     "\t  [switchboard binding name] ]"
@@ -173,6 +192,21 @@ public class Parser
           }
           outputFilename = args[++i];
         }
+        else if (args[i].equals("-nc") || args[i].equals("-num-clients")) {
+          if (i + 1 == args.length) {
+            System.err.println("error: " + args[i] + " requires an integer");
+            usage();
+            return false;
+          }
+          try {
+            numClients = Integer.parseInt(args[++i]);
+          }
+          catch (NumberFormatException nfe) {
+            System.err.println("error:" + args[i] + " requires an integer");
+            usage();
+            return false;
+          }
+        }
         else {
           System.err.println("unrecognized command-line switch: " + args[i]);
           usage();
@@ -181,6 +215,12 @@ public class Parser
       }
       else
         switchboardName = args[i];
+    }
+
+    if (numClients < 1) {
+      System.err.println("error: number of clients must be greater than zero");
+      usage();
+      return false;
     }
 
     if (inputFilename != null && derivedDataFilename == null) {
@@ -194,6 +234,19 @@ public class Parser
     }
 
     return true;
+  }
+
+  public void run() {
+    try {
+      processObjectsThenDie();
+    }
+    catch (RemoteException re) {
+      System.err.println(re);
+       try { die(true); }
+        catch (RemoteException re2) {
+          System.err.println("client " + id + " couldn't die! (" + re + ")");
+        }
+    }
   }
 
   /**
@@ -249,7 +302,7 @@ public class Parser
       }
     }
     else {
-      //Create and install a security manager
+      // create and install a security manager
       if (System.getSecurityManager() == null)
         System.setSecurityManager(new RMISecurityManager());
       // define fallback-default values for the following three
@@ -257,24 +310,35 @@ public class Parser
       int defaultRetries = 1, defaultRetrySleep = 1000;
       boolean defaultFailover = true;
       try {
-        parser = new Parser(Parser.getTimeout());
-        parser.register(switchboardName);
-        Settings.setSettings(parser.switchboard.getSettings());
+        DecoderServer server = null;
         if (derivedDataFilename != null)
-          parser.server = new DecoderServer(derivedDataFilename);
-        else
-          parser.getFaultTolerantServer(getRetries(defaultRetries),
-          			      getRetrySleep(defaultRetrySleep),
-  				      getFailover(defaultFailover));
-        parser.processObjectsThenDie();
-      }
-      catch (RemoteException re) {
-        System.err.println(re);
-        if (parser != null) {
-  	try { parser.die(true); }
-  	catch (RemoteException re2) {
-  	  System.err.println("couldn't die! (" + re + ")");
-  	}
+          server = new DecoderServer(derivedDataFilename);
+
+        for (int i = 0; i < numClients; i++) {
+          try {
+            parser = new Parser(Parser.getTimeout());
+            parser.register(switchboardName);
+            Settings.setSettings(parser.switchboard.getSettings());
+            if (derivedDataFilename != null) {
+              parser.server = server;
+              parser.localServer = true;
+            }
+            else
+              parser.getFaultTolerantServer(getRetries(defaultRetries),
+                                            getRetrySleep(defaultRetrySleep),
+                                            getFailover(defaultFailover));
+            new Thread(parser, "Parse Client " + parser.id).start();
+          }
+          catch (RemoteException re) {
+            System.err.println(re);
+            if (parser != null) {
+      	    try { parser.die(true); }
+              catch (RemoteException re2) {
+                System.err.println("client " + parser.id +
+                                   " couldn't die! (" + re + ")");
+              }
+            }
+          }
         }
       }
       catch (MalformedURLException mue) {

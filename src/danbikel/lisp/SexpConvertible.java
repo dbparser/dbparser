@@ -9,6 +9,9 @@ import java.io.Serializable;
 public interface SexpConvertible extends Serializable {
   /**
    * Converts this object to an S-expression.
+   *
+   * @return the S-expression that represents an instance of an implementor of
+   * this class
    */
   public Sexp toSexp();
 }

@@ -48,8 +48,10 @@ public class StringSymbol extends Symbol implements Externalizable {
   }
 
   /**
-   * Returns null, since this extension of Symbol only stores
-   * strings.
+   * Returns <code>null</code>, since this extension of <code>Symbol</code>
+   * only stores strings.
+   *
+   * @return <code>null</code>
    */
   public Integer getInteger() { return null; }
 
@@ -57,16 +59,35 @@ public class StringSymbol extends Symbol implements Externalizable {
    * Returns the key used by the internal symbol map of the class
    * <code>Symbol</code>, which, for this type of symbol, is the
    * <code>String</code> object returned by {@link #toString}.
+   *
+   * @return the object returned by {@link #toString}.
+   * <
    */
   protected Object getSymKey() { return printName; }
 
 
   // methods to comply with Externalizable interface
 
+  /**
+   * Writes this object to an <code>ObjectOutput</code> instance.
+   *
+   * @param out the object stream to which to write an object of this class
+   * @throws IOException if the underlying write operation throws an
+   * <code>IOException</code>
+   */
   public void writeExternal(ObjectOutput out) throws IOException {
     out.writeObject(printName);
   }
 
+  /**
+   * Reads this object from an <code>ObjectInput</code> instance.
+   *
+   * @param in the object stream from which to read objects of this class
+   * @throws IOException if the underlying read operation throws an
+   * <code>IOException</code>
+   * @throws ClassNotFoundException if the underlying read operation throws
+   * an <code>ClassNotFoundException</code>
+   */
   public void readExternal(ObjectInput in)
     throws IOException, ClassNotFoundException {
     printName = (String)in.readObject();
@@ -77,6 +98,12 @@ public class StringSymbol extends Symbol implements Externalizable {
    * Deals with the issue of uniqueness when we are dealing with more
    * than one VM by adding the read symbol to the symbol map, if it
    * is not already there.
+   *
+   * @return the canonical instance of the <code>StringSymbol</code> that
+   * was read from an <code>ObjectInput</code> instance
+   *
+   * @throws ObjectStreamException if there is a problem with the underlying
+   * read operation
    */
   public Object readResolve() throws ObjectStreamException {
     return Symbol.get(printName);

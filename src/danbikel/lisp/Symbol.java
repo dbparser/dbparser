@@ -86,6 +86,8 @@ abstract public class Symbol extends Sexp {
 
   /**
    * Gets the unique key for this symbol used by the internal symbol map.
+   *
+   * @return the unique key for this symbol used by the internal symbol map.
    */
   abstract protected Object getSymKey();
 
@@ -94,21 +96,29 @@ abstract public class Symbol extends Sexp {
   /**
    * Returns <code>false</code>, as no instance of a subclass of this abstract
    * base class can be a list.
+   *
+   * @return <code>false</code>, as no instance of a subclass of this abstract
+   * base class can be a list.
    */
   public final boolean isList() { return false; }
 
   /**
    * Returns <code>true</code>, as any instance of a subclass of this abstract
    * base class is a symbol.
+   *
+   * @return <code>true</code>, as any instance of a subclass of this abstract
+   * base class is a symbol.
    */
   public final boolean isSymbol() { return true; }
 
   /**
-   * Returns the unique <code>Symbol</code> whose print name is
+   * Returns the unique <code>Symbol</code> whose string key is
    * <code>str</code>.  If the symbol does not already exist in the internal
    * symbol map, it is added and returned.
    *
-   * @param str the print name of the symbol to get
+   * @param str the print name of the string symbol to get
+   * @return the unique <code>Symbol</code> whose string key is
+   * <code>str</code>.
    */
   public final static Symbol get(String str) {
     synchronized (map) {
@@ -128,17 +138,23 @@ abstract public class Symbol extends Sexp {
 
   /**
    * A synonym for {@link #get(String)}.
+   *
+   * @param str the print name of the string symbol to get
+   * @return the unique <code>Symbol</code> whose string key is
+   * <code>str</code>.
    */
   public final static Symbol add(String str) {
     return get(str);
   }
 
   /**
-   * Returns the unique <code>Symbol</code> whose integer value is
+   * Returns the unique <code>Symbol</code> whose integer value is that of
    * <code>intKey</code>.  If the symbol does not already exist in the internal
    * symbol map, it is added and returned.
    *
    * @param intKey the integer value of the symbol to get
+   * @return the unique <code>Symbol</code> whose integer value is that of
+   * <code>intKey</code>.
    */
   public final static Symbol get(Integer intKey) {
     synchronized (map) {
@@ -158,19 +174,37 @@ abstract public class Symbol extends Sexp {
 
   /**
    * A synonym for {@link #get(Integer)}.
+   *
+   * @param intKey the integer value of the symbol to get
+   * @return the unique <code>Symbol</code> whose integer value is that of
+   * <code>intKey</code>.
    */
   public final static Symbol add(Integer intKey) {
     return get(intKey);
   }
 
   /**
-   * A convenience method for {@link #add(Integer)}.
+   * A convenience method for {@link #add(Integer)}: the specified
+   * <code>int</code> is first wrapped in an <code>Integer</code> object and
+   * then added to the internal symbol map.
+   *
+   * @param intValue the integer value to be wrapped with an
+   * <code>Integer</code> and added to the symbol map
+   * @return the unique <code>Symbol</code> whose integer value is that of
+   * <code>intValue</code>.
    */
   public final static Symbol add(int intValue) {
     return add(new Integer(intValue));
   }
   /**
-   * A convenience method for {@link #get(Integer)}.
+   * A convenience method for {@link #add(Integer)}: the specified
+   * <code>int</code> is first wrapped in an <code>Integer</code> object and
+   * then added to the internal symbol map.
+   *
+   * @param intValue the integer value to be wrapped with an
+   * <code>Integer</code> and added to the symbol map
+   * @return the unique <code>Symbol</code> whose integer value is that of
+   * <code>intValue</code>.
    */
   public final static Symbol get(int intValue) {
     return get(new Integer(intValue));
@@ -192,6 +226,10 @@ abstract public class Symbol extends Sexp {
     }
   }
 
+  /**
+   * Cleans the internal symbol map by removing all symbols to which there are
+   * no hard or soft references.
+   */
   public final static void clean() {
     synchronized (map) {
       System.gc();

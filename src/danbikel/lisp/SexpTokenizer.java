@@ -45,6 +45,10 @@ public class SexpTokenizer extends WordTokenizer {
    * @param encoding the encoding of the file to be tokenized
    * @param bufSize the size of the buffer of the <code>BufferedReader</code>
    * that will be created
+   *
+   * @throws UnsupportedEncodingException if the specified encoding is not
+   * supported
+   * @throws FileNotFoundException if the specified file does not exist
    */
   public SexpTokenizer(String filename, String encoding, int bufSize)
     throws UnsupportedEncodingException, FileNotFoundException {
@@ -62,6 +66,10 @@ public class SexpTokenizer extends WordTokenizer {
    * @param bufSize the size of the buffer of the <code>BufferedReader</code>
    * that will be created
    * @param comments whether this tokenizer will recognize comments
+   *
+   * @throws UnsupportedEncodingException if the specified encoding is not
+   * supported
+   * @throws FileNotFoundException if the specified file does not exist
    */
   public SexpTokenizer(String filename, String encoding, int bufSize,
 		       boolean comments)
@@ -81,6 +89,10 @@ public class SexpTokenizer extends WordTokenizer {
    * @param encoding the encoding of the file to be tokenized
    * @param bufSize the size of the buffer of the <code>BufferedReader</code>
    * that will be created
+   *
+   * @throws UnsupportedEncodingException if the specified encoding is not
+   * supported
+   * @throws FileNotFoundException if the specified file does not exist
    */
   public SexpTokenizer(File file, String encoding, int bufSize)
     throws UnsupportedEncodingException, FileNotFoundException {
@@ -98,6 +110,10 @@ public class SexpTokenizer extends WordTokenizer {
    * @param bufSize the size of the buffer of the <code>BufferedReader</code>
    * that will be created
    * @param comments whether this tokenizer will recognize comments
+   *
+   * @throws UnsupportedEncodingException if the specified encoding is not
+   * supported
+   * @throws FileNotFoundException if the specified file does not exist
    */
   public SexpTokenizer(File file, String encoding, int bufSize,
 		       boolean comments)
@@ -118,6 +134,9 @@ public class SexpTokenizer extends WordTokenizer {
    * @param encoding the encoding of the file to be tokenized
    * @param bufSize the size of the buffer of the <code>BufferedReader</code>
    * that will be created
+   *
+   * @throws UnsupportedEncodingException if the specified encoding is not
+   * supported
    */
   public SexpTokenizer(InputStream stream, String encoding, int bufSize)
     throws UnsupportedEncodingException {
@@ -134,6 +153,9 @@ public class SexpTokenizer extends WordTokenizer {
    * @param bufSize the size of the buffer of the <code>BufferedReader</code>
    * that will be created
    * @param comments whether this tokenizer will recognize comments
+   *
+   * @throws UnsupportedEncodingException if the specified encoding is not
+   * supported
    */
   public SexpTokenizer(InputStream stream, String encoding, int bufSize,
 		       boolean comments)
@@ -144,13 +166,19 @@ public class SexpTokenizer extends WordTokenizer {
 
   /**
    * Convenience constructor, creating a <code>SexpTokenizer</code> around a
-   * <code>BufferedReader</code> around a <code>InputStreamReader</code>
+   * <code>BufferedReader</code> around an <code>InputStreamReader</code>
    * around the stream created by calling <code>url.openStream()</code>.
    * The tokenizer will recognize comment lines.
    *
    * @param url the url from which to get the stream containing S-expressions
    * @param encoding the encoding of the file to be tokenized
    * @param bufSize the size of the buffer of the <code>BufferedReader</code>
+   *
+   * @throws UnsupportedEncodingException if the specified encoding is not
+   * supported
+   * @throws IOException if the underlying call to {@link URL#openStream()}
+   * or the construction of any of the readers throws an
+   * <code>IOException</code>
    */
   public SexpTokenizer(URL url, String encoding, int bufSize)
     throws UnsupportedEncodingException, IOException {
@@ -167,6 +195,12 @@ public class SexpTokenizer extends WordTokenizer {
    * @param encoding the encoding of the file to be tokenized
    * @param bufSize the size of the buffer of the <code>BufferedReader</code>
    * @param comments whether this tokenizer will recognize comments
+   *
+   * @throws UnsupportedEncodingException if the specified encoding is not
+   * supported
+   * @throws IOException if the underlying call to {@link URL#openStream()}
+   * or the construction of any of the readers throws an
+   * <code>IOException</code>
    */
   public SexpTokenizer(URL url, String encoding, int bufSize, boolean comments)
     throws UnsupportedEncodingException, IOException {

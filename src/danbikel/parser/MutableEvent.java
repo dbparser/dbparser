@@ -30,8 +30,33 @@ public interface MutableEvent extends Event {
    *
    * @return this object
    * @exception ClassCastException if this event does not support the
-   * run-time type of the specified object */
+   * run-time type of the specified object
+   */
   public MutableEvent add(Object obj);
+
+  /**
+   * Adds the specified object of the specified type to this event.  The
+   * specified object must be of the type specified; that is, the expression
+   * <pre>
+   * this.typeIndex(obj.getClass()) == type
+   * </pre>
+   * must be <tt>true</tt>.
+   * <p>
+   * If an implementation of this interface collects components that
+   * are primitive type values, then these values should be wrapped
+   * in their corresponding wrapper classes.  For example, if an
+   * implementation of this interface accepts <code>int</code> values,
+   * they should be passed as an <code>Integer</code> objects to this method.
+   * At present, an <code>Event</code> implementation cannot be
+   * designed accept both a primitive type and its associated wrapper
+   * class' type (this is, of course, not a serious limitation).
+   *
+   * @return this object
+   * @exception ClassCastException if this event does not support the
+   * run-time type of the specified object or if the specified object
+   * is not of the specified type
+   */
+  public MutableEvent add(int type, Object obj);
 
   /**
    * Pre-allocates space for all abstract lists in this event (optional

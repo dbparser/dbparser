@@ -266,16 +266,16 @@ public abstract class Chart implements Serializable {
     if (debugPrune || debugNumPrunedItems) {
       //boolean belowThreshold = item.logProb() < (topProb - pruneFact);
       if (debugPrune){
-        if (belowThreshold)
-          System.err.println(className +
-                             ": pruning away item: " + item + " because " +
-                             "its prob " + item.logProb() +
-                             " is less than " + topProb + " - " + pruneFact +
-                             " = " + (topProb - pruneFact));
+	if (belowThreshold)
+	  System.err.println(className +
+			     ": pruning away item: " + item + " because " +
+			     "its prob " + item.logProb() +
+			     " is less than " + topProb + " - " + pruneFact +
+			     " = " + (topProb - pruneFact));
       }
       if (debugNumPrunedItems) {
-        if (belowThreshold)
-          numPrePruned++;
+	if (belowThreshold)
+	  numPrePruned++;
       }
     }
 
@@ -312,8 +312,8 @@ public abstract class Chart implements Serializable {
 			       " because its prob is less than " +
 			       lowestProbAllowed);
 	  }
-          if (debugNumPrunedItems) {
-            numPruned++;
+	  if (debugNumPrunedItems) {
+	    numPruned++;
 	  }
 	  totalItems--;
 	  it.remove();
@@ -324,21 +324,21 @@ public abstract class Chart implements Serializable {
       }
     }
     if (cellLimit > 0) {
-      cellLimit = Math.max(10, Math.min(90, 350 / (end + 1 - start)));
+      //cellLimit = Math.max(10, Math.min(90, 350 / (end + 1 - start)));
       if (end > start) { // don't do cell limiting on spans of length 1
-        int numItems = items.size();
-        if (numItems > cellLimit) { // don't create iterator if no need
-          // reset sortedArr and numSorted
-          if (numItems > sortedArr.length) {
-            int newLen = Math.max(sortedArr.length * 2, numItems);
-            sortedArr = new Item[newLen];
-          }
-          else {
-            for (int i = 0; i < numSorted; i++)
-              sortedArr[i] = null;
-          }
-          numSorted = 0;
-          Iterator itemsIt = items.keySet().iterator();
+	int numItems = items.size();
+	if (numItems > cellLimit) { // don't create iterator if no need
+	  // reset sortedArr and numSorted
+	  if (numItems > sortedArr.length) {
+	    int newLen = Math.max(sortedArr.length * 2, numItems);
+	    sortedArr = new Item[newLen];
+	  }
+	  else {
+	    for (int i = 0; i < numSorted; i++)
+	      sortedArr[i] = null;
+	  }
+	  numSorted = 0;
+	  Iterator itemsIt = items.keySet().iterator();
 	  while (itemsIt.hasNext()) {
 	    Item item = (Item)itemsIt.next();
 	    sortedArr[numSorted++] = item;
@@ -351,9 +351,9 @@ public abstract class Chart implements Serializable {
 	  for ( ; sortedIdx >= 0; sortedIdx--)
 	    reclaimItem(sortedArr[sortedIdx]);
 	  /*
-          // add all items that are eligible for limiting to sortedArr
-          Iterator itemsIt = items.keySet().iterator();
-          while (itemsIt.hasNext()) {
+	  // add all items that are eligible for limiting to sortedArr
+	  Iterator itemsIt = items.keySet().iterator();
+	  while (itemsIt.hasNext()) {
 	    Item item = (Item)itemsIt.next();
 	    if (cellLimitShouldApplyTo(item))
 	      sortedArr[numSorted++] = item;
@@ -432,92 +432,92 @@ public abstract class Chart implements Serializable {
 
       /*
       if (debug) {
-        System.err.println("got item with logProb " + itemEntry.getDoubleValue() +
-                           "; comparing to " + item.logProb());
+	System.err.println("got item with logProb " + itemEntry.getDoubleValue() +
+			   "; comparing to " + item.logProb());
       }
       */
       boolean itemExists = itemEntry != null;
       double oldItemProb =
-        itemExists ? itemEntry.getDoubleValue() : Constants.logOfZero;
+	itemExists ? itemEntry.getDoubleValue() : Constants.logOfZero;
       Item oldItem = null;
       if (!itemExists ||
-          (itemExists && itemEntry.getDoubleValue() < item.logProb())) {
-        boolean removedOldItem = false;
-        if (itemExists) {
-          // replace the key with the new item and set the new item's map
-          // value to be its logProb
-          oldItem = (Item)itemEntry.getKey();
-          boolean replaced = itemEntry.replaceKey(item);
-          if (replaced) {
-            itemEntry.set(0, item.logProb());
-            // cannot reclaim item, since caller may still have handle to it
-            oldItem.setGarbage(true);
-            // garbageItems.add(oldItem);
-            removedOldItem = true;
-            added = true;
-          }
-          else
-            System.err.println(className +
-                               ": assertion failed: couldn't replace item" +
-                               "\n\t" +
-                               "oldItem.equals(item)=" + oldItem.equals(item) +
-                               "; " +
-                               "item.equals(oldItem)=" + item.equals(oldItem) +
-                               "\n\toldItem: " + oldItem + "\n\titem: " + item);
-        }
-        else {
-          added = true;
-          items.put(item, item.logProb());
-        }
-        // if we removed an old item, there's no net gain in number of items
-        if (!removedOldItem) {
-          totalItems++;
-        }
-        // update top prob
-        if (item.logProb() > chart[start][end].topLogProb) {
-          chart[start][end].topLogProb = item.logProb();
-          chart[start][end].topItem = item;
-        }
+	  (itemExists && itemEntry.getDoubleValue() < item.logProb())) {
+	boolean removedOldItem = false;
+	if (itemExists) {
+	  // replace the key with the new item and set the new item's map
+	  // value to be its logProb
+	  oldItem = (Item)itemEntry.getKey();
+	  boolean replaced = itemEntry.replaceKey(item);
+	  if (replaced) {
+	    itemEntry.set(0, item.logProb());
+	    // cannot reclaim item, since caller may still have handle to it
+	    oldItem.setGarbage(true);
+	    // garbageItems.add(oldItem);
+	    removedOldItem = true;
+	    added = true;
+	  }
+	  else
+	    System.err.println(className +
+			       ": assertion failed: couldn't replace item" +
+			       "\n\t" +
+			       "oldItem.equals(item)=" + oldItem.equals(item) +
+			       "; " +
+			       "item.equals(oldItem)=" + item.equals(oldItem) +
+			       "\n\toldItem: " + oldItem + "\n\titem: " + item);
+	}
+	else {
+	  added = true;
+	  items.put(item, item.logProb());
+	}
+	// if we removed an old item, there's no net gain in number of items
+	if (!removedOldItem) {
+	  totalItems++;
+	}
+	// update top prob
+	if (item.logProb() > chart[start][end].topLogProb) {
+	  chart[start][end].topLogProb = item.logProb();
+	  chart[start][end].topItem = item;
+	}
       }
 
       if (debugAddToChart) {
-        if (itemExists) {
-          //double itemProb = itemEntry.getDoubleValue();
-          double itemProb = oldItemProb;
-          if (itemProb < item.logProb()) {
-            System.err.println(className + ": adding item because equivalent " +
-                               "item exists with lower prob; existing item " +
-                               "prob=" + oldItemProb +
-                               "; item to add prob=" + item.logProb());
-            System.err.println("\titem that was added(" +
-                               start + "," + end + "): " + item);
+	if (itemExists) {
+	  //double itemProb = itemEntry.getDoubleValue();
+	  double itemProb = oldItemProb;
+	  if (itemProb < item.logProb()) {
+	    System.err.println(className + ": adding item because equivalent " +
+			       "item exists with lower prob; existing item " +
+			       "prob=" + oldItemProb +
+			       "; item to add prob=" + item.logProb());
+	    System.err.println("\titem that was added(" +
+			       start + "," + end + "): " + item);
 	    System.err.println("\tequivalent lower prob item(" +
 			       start + "," + end +"): " + oldItem);
-          }
-          else if (itemProb == item.logProb()) {
-            System.err.println(className + ": not adding item because " +
-                               "equivalent item exists with " +
-                               "equal prob; prob=" + itemProb);
-            System.err.println("\titem that was to be added(" +
-                               start + "," + end + "): " + item);
+	  }
+	  else if (itemProb == item.logProb()) {
+	    System.err.println(className + ": not adding item because " +
+			       "equivalent item exists with " +
+			       "equal prob; prob=" + itemProb);
+	    System.err.println("\titem that was to be added(" +
+			       start + "," + end + "): " + item);
 	    System.err.println("\tequivalent equal-prob item(" +
 			       start + "," + end +"): " + itemEntry.getKey());
-            if (added)
-              System.err.println("bad: we set added to true when we didn't add");
-          }
-          else {
-            System.err.println(className + ": not adding item because " +
-                               "equivalent item exists with higher prob; " +
-                               "existing item prob=" + itemProb +
-                               "; item to add prob=" + item.logProb());
-            System.err.println("\titem that was to be added(" +
-                               start + "," + end + "): " + item);
+	    if (added)
+	      System.err.println("bad: we set added to true when we didn't add");
+	  }
+	  else {
+	    System.err.println(className + ": not adding item because " +
+			       "equivalent item exists with higher prob; " +
+			       "existing item prob=" + itemProb +
+			       "; item to add prob=" + item.logProb());
+	    System.err.println("\titem that was to be added(" +
+			       start + "," + end + "): " + item);
 	    System.err.println("\tequivalent higher-prob item(" +
 			       start + "," + end +"): " + itemEntry.getKey());
-            if (added)
-              System.err.println("bad: we set added to true when we didn't add");
+	    if (added)
+	      System.err.println("bad: we set added to true when we didn't add");
 	  }
-        }
+	}
       }
     }
     else {
@@ -527,8 +527,8 @@ public abstract class Chart implements Serializable {
     }
     if (debugAddToChart) {
       if (added)
-        System.err.println(className +
-                           ": added item(" + start + "," + end + "): " + item);
+	System.err.println(className +
+			   ": added item(" + start + "," + end + "): " + item);
     }
 
     return added;
@@ -625,46 +625,46 @@ public abstract class Chart implements Serializable {
     int numCells = 0, maxCellSize = 0, maxCellStart = -1, maxCellEnd = -1;
     if (debugNumPrunedItems) {
       System.err.println(className +
-                         ": number of items pre-pruned: " + numPrePruned);
+			 ": number of items pre-pruned: " + numPrePruned);
       System.err.println(className + ": number of items pruned: " + numPruned);
       System.err.println(className + ": total number of pruned items: " +
-                         (numPrePruned + numPruned));
+			 (numPrePruned + numPruned));
     }
     if (debugCellSize) {
       System.err.println(className +
-                         ": total No. of items in chart: " + totalItems);
+			 ": total No. of items in chart: " + totalItems);
     }
     if (totalItems > 0) {
       if (debugNumItemsGenerated) {
 	System.err.println(className +
-                           ": generated " + totalItemsGenerated + " for the " +
+			   ": generated " + totalItemsGenerated + " for the " +
 			   "previous sentence");
       }
       if (debugPoolUsage) {
-        System.err.println(className + ": pool has " + itemPool.size() +
-                           " items; capacity = " + itemPool.capacity() +
-                           "; reclaiming " + totalItems + " items");
+	System.err.println(className + ": pool has " + itemPool.size() +
+			   " items; capacity = " + itemPool.capacity() +
+			   "; reclaiming " + totalItems + " items");
       }
       for (int i = 0; i < size; i++) {
-        for (int j = i; j < size; j++) {
+	for (int j = i; j < size; j++) {
 	  Map map = chart[i][j].map;
-          reclaimItemCollection(map.keySet());
-          if (debugCellSize) {
-            if (map.size() > 0)
-              numCells++;
-            if (map.size() > maxCellSize) {
-              maxCellSize = map.size();
-              maxCellStart = i;
-              maxCellEnd = j;
-            }
-          }
-        }
+	  reclaimItemCollection(map.keySet());
+	  if (debugCellSize) {
+	    if (map.size() > 0)
+	      numCells++;
+	    if (map.size() > maxCellSize) {
+	      maxCellSize = map.size();
+	      maxCellStart = i;
+	      maxCellEnd = j;
+	    }
+	  }
+	}
       }
       /*
       int numGarbageItems = garbageItems.size();
       for (int i = 0; i < numGarbageItems; i++) {
-        Item item = (Item)garbageItems.get(i);
-        item.setGarbage(false); // reset this item's garbage status
+	Item item = (Item)garbageItems.get(i);
+	item.setGarbage(false); // reset this item's garbage status
       }
       itemPool.putBackAll(garbageItems);
       garbageItems.clear();
@@ -672,27 +672,27 @@ public abstract class Chart implements Serializable {
     }
     if (debugPoolUsage) {
       System.err.println(className + ": pool has " + itemPool.size() +
-                         " items; capacity = " + itemPool.capacity());
+			 " items; capacity = " + itemPool.capacity());
     }
     if (debugCellSize) {
       if (numCells > 0)
 	System.err.println(className + ": num. cells: " + numCells +
 			   "; avg. cell size: " +
-                           (totalItems / (float)numCells) +
+			   (totalItems / (float)numCells) +
 			   "; max. cell size: " + maxCellSize +
-                           "; max cell at [" + maxCellStart + "," +
-                           maxCellEnd + "]");
+			   "; max cell at [" + maxCellStart + "," +
+			   maxCellEnd + "]");
       /*
       if (maxCellStart == maxCellEnd) {
-        Iterator it = chart[maxCellStart][maxCellEnd].map.keySet().iterator();
-        while (it.hasNext())
-          System.err.println(it.next());
+	Iterator it = chart[maxCellStart][maxCellEnd].map.keySet().iterator();
+	while (it.hasNext())
+	  System.err.println(it.next());
       }
       */
     }
 
     System.err.println("num cache adds: " + Model.numCacheAdds +
-                       "; num canonical hits: " + Model.numCanonicalHits);
+		       "; num canonical hits: " + Model.numCanonicalHits);
     Model.numCacheAdds = Model.numCanonicalHits = 0;
   }
 

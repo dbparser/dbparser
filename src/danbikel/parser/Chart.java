@@ -379,7 +379,7 @@ public abstract class Chart implements Serializable {
             itemEntry.set(0, item.logProb());
             // cannot reclaim item, since caller may still have handle to it
             oldItem.setGarbage(true);
-            garbageItems.add(oldItem);
+            // garbageItems.add(oldItem);
             removedOldItem = true;
             added = true;
           }
@@ -539,6 +539,7 @@ public abstract class Chart implements Serializable {
           }
         }
       }
+      /*
       int numGarbageItems = garbageItems.size();
       for (int i = 0; i < numGarbageItems; i++) {
         Item item = (Item)garbageItems.get(i);
@@ -546,6 +547,7 @@ public abstract class Chart implements Serializable {
       }
       itemPool.putBackAll(garbageItems);
       garbageItems.clear();
+      */
     }
     if (debugPoolUsage) {
       System.err.println(className + ": pool has " + itemPool.size() +

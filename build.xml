@@ -177,7 +177,11 @@
       <include name="bin/start-rmiregistry"/>
       <include name="bin/no-cp-rmiregistry"/>
       <include name="bin/train"/>
+      <include name="bin/train-from-observed"/>
+      <include name="bin/tag-and-train"/>
       <include name="bin/wrapper"/>
+      <include name="bin/adwait2bikel.pl"/>
+      <include name="bin/bikel2adwait.pl"/>
     </patternset>
     <patternset id="deploy.files">
       <patternset refid="deploy.bin.files"/>

@@ -35,6 +35,7 @@ public class UnlexTreeConstraint implements Constraint, SexpConvertible {
       SexpList treeList = tree.list();
       int treeListLen = treeList.length();
 
+      //label = Language.treebank.getCanonical(treeList.symbolAt(0));
       label = treeList.symbolAt(0);
       start = currWordIdx.get();
       this.parent = parent;
@@ -96,7 +97,8 @@ public class UnlexTreeConstraint implements Constraint, SexpConvertible {
     // but just in case a brain-dead programmer creates a decoder that is
     // inefficient in this way, here's the code to deal with it
     if (ckyItem.isPreterminal()) {
-      satisfied = isLocallySatisfiedBy(item) && spanMatches(item);
+      if (isLocallySatisfiedBy(item) && spanMatches(item))
+        satisfied = true;
       return satisfied;
     }
 
@@ -138,7 +140,8 @@ public class UnlexTreeConstraint implements Constraint, SexpConvertible {
   public boolean hasBeenSatisfied() { return satisfied; }
 
   public boolean isLocallySatisfiedBy(Item item) {
-    return item.label() == label;
+    return (item.label() == label ||
+            Language.treebank.getCanonical((Symbol)item.label()) == label);
   }
 
   protected boolean spanMatches(Item item) {

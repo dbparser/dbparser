@@ -471,7 +471,7 @@ public class SubcatBag implements Subcat, Externalizable {
    * in this subcat bag, the returned list will contain the symbol
    * {@link Training#stopSym} augmented with the argument augmentation:
    * <pre>
-   * Symbol.get({@link Training#stopSym()}.toString()} +
+   * Symbol.get({@link Training#stopSym()}.toString() +
    *            {@link Treebank#canonicalAugDelimiter()} +
    *            {@link Training#defaultArgAugmentation()});
    * </pre>

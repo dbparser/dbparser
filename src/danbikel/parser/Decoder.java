@@ -182,7 +182,7 @@ public class Decoder implements Serializable {
     new ModifierEvent(null, null, null, SexpList.emptyList, null, null,
                       emptySubcat, false, false);
   // data members used by getPrevMods
-  protected Map canonicalPrevModLists = new HashMap();
+  protected Map canonicalPrevModLists = new danbikel.util.HashMap();
   protected SexpList prevModLookupList = new SexpList(numPrevMods);
   // data members used by joinItems
   protected Subcat lookupSubcat = Subcats.get();
@@ -262,7 +262,7 @@ public class Decoder implements Serializable {
         server.leftModNonterminalProbStructure().copy();
       this.rightModNonterminalPS =
         server.rightModNonterminalProbStructure().copy();
-      prunedPretermsPosMap = new HashMap();
+      prunedPretermsPosMap = new danbikel.util.HashMap();
       Set prunedPreterms = server.prunedPreterms();
       it = prunedPreterms.iterator();
       while (it.hasNext()) {
@@ -270,7 +270,7 @@ public class Decoder implements Serializable {
         prunedPretermsPosMap.put(word.word(), word.tag());
       }
       System.err.println("prunedPretermsPosMap: " + prunedPretermsPosMap);
-      prunedPunctuationPosMap = new HashMap();
+      prunedPunctuationPosMap = new danbikel.util.HashMap();
       Set prunedPunctuation = server.prunedPunctuation();
       it = prunedPunctuation.iterator();
       while (it.hasNext()) {
@@ -1160,6 +1160,7 @@ public class Decoder implements Serializable {
       prevMods.add(itemPrevMods.get(i));
     SexpList canonical = (SexpList)canonicalPrevModLists.get(prevMods);
     if (canonical == null) {
+      prevMods = (SexpList)prevMods.deepCopy();
       canonicalPrevModLists.put(prevMods, prevMods);
       canonical = prevMods;
     }

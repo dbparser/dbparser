@@ -32,25 +32,4 @@ public interface Shift {
 
   public boolean skip(Item item, Sexp prevMod, Sexp currMod);
   public boolean skip(Item item, Word prevWord, Word currWord);
-
-
-
-
-  public void shift(TrainerEvent event, SexpList list, Sexp sexp);
-
-  public void shift(TrainerEvent event, WordList wordList, Word word);
-
-
-  /**
-   * Returns <code>true</code> if the specified modifier label of the
-   * specified item should be skipped, as far as construction of the
-   * previous modifier list is concerned.
-   *
-   * @param item the item for which a previous modifier list is being
-   * constructed
-   * @param sexp the modifier label being considered for addition to the
-   * specified item's previous modifier list
-   */
-  public boolean skip(CKYItem item, Sexp sexp);
-  public boolean skip(CKYItem item, Word word);
 }

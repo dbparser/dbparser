@@ -1,17 +1,15 @@
 #!/bin/tcsh -f
 
 # check that required args are present
-if ($#argv != 2 && $#argv != 3) then
-    echo "usage: [host] <derived data file> <input file>"
+if ($#argv < 3) then
+    echo "usage: <settings file> <derived data file> <input file>+"
     exit 1
 endif
 
-if ($#argv == 3) then
-    shift
-endif
-
 set RSH = ssh
-set java = /usr/java/jdk1.3.1_03/bin/java
+set java = /usr/java/j2sdk1.4.1_01/bin/java
+
+set reap
 
 # date and time variables, upon which $outputDir is based
 # --these will be modified when this script is time-stamped and copied
@@ -21,26 +19,25 @@ set time = `date '+%H.%M'`
 
 #set dir = `dirname $0`
 #set scriptDir = `cd $dir  ; echo $cwd`
+# we now hard-code value of $scriptDir
 set scriptDir = ~/jbproject/dbparser/bin
 #set parent = `cd $scriptDir/.. ; echo $cwd`
-set parent = ~/jbproject/dbparser
-set classes = $parent/classes
+set parent = $scriptDir:h
+set jarFile = $parent/dbparser.jar
 
 # prepend parent of this script's directory to a shell variable version
-# of CLASSPATH, so we use classes of this particular sandbox
-set classpath = $classes\:$CLASSPATH
-
-# the two required arguments
-# --these will be modified when this script is time-stamped and copied
-# to $outputDir
-set derivedDataFile = $1
-set inFile = $2
-
-# guess that gold file is simply $inFile.gold
-set goldFile = $inFile.gold
+# of CLASSPATH, so we use jar file of this particular sandbox
+set classpath = $jarFile\:$CLASSPATH
 
 # the all-important output directory for this experiment
 set outputDir = ~/experiments/$date/$time
+
+# the three required arguments
+# --these will be modified when this script is time-stamped and copied
+# to $outputDir
+set settingsFile = $1
+set derivedDataFile = $2
+set inFiles = ($argv[3-$#argv])
 
 # scripts used by this script
 set startClientScript = $scriptDir/start-client
@@ -56,12 +53,15 @@ set scriptFile = $outputDir/$0:t
 
 # make all switchboard output files be in output directory
 set sbMsgFile = $outputDir/switchboard.messages
-set outFile = $outputDir/$inFile:t.parsed
-set logFile = $outputDir/$inFile:t.log
+set outFileDir = $outputDir
+set logFileDir = $outputDir
 
+# arguments for switchboard java process
 # set variable to indicate switchboard policy file to JVM
 set sbPolicy = "-Djava.security.policy=$parent/policy-files/switchboard.policy"
-set sbCodebase = "-Djava.rmi.server.codebase=file://$classes/"
+set sbCodebase = "-Djava.rmi.server.codebase=file://$jarFile"
+set disableHttp = "-Djava.rmi.server.disableHttp=true"
+set settingsProp = "-Dparser.settingsFile=$settingsFile"
 
 # scorer directory
 set scorerDir = $parent/scorer
@@ -116,8 +116,8 @@ set sbNameRMI = "//$sbHost/Switchboard"
 @ i = 1
 foreach host ($clientHosts)
     echo Starting client on $host
-    $RSH -n $host $startClientScript $classpath $host-$i $outputDir \
-	-is $derivedDataFile $sbNameRMI &
+    $RSH -n $host $startClientScript $java $classpath $settingsFile $host-$i \
+	$outputDir -is $derivedDataFile $sbNameRMI &
     echo -n "$! " >> $pidFile
     @ i++
 end
@@ -130,39 +130,61 @@ echo $nodes > $nodeFile
 set timeStamp = "# time-stamped script"
 if (`tail -1 $0` != "$timeStamp") then
     echo ""
+    echo "Copying settings file to experiment directory: "
+    echo "	$outputDir/$settingsFile:t"
+    cp $settingsFile $outputDir
+    set settingsFile = $outputDir/$settingsFile:t
+    echo ""
     echo "Creating time-stamped version of this shell script:"
     echo "	$scriptFile"
+    echo $inFiles > $outputDir/inFilenames
     # we need to put a backslash before every forward slash, since
     # the shell will process the sed expression before sed processes it
-    set sedInFile = `echo $inFile | sed -e 's/\//\\\//g'`
     set sedDDF = `echo $derivedDataFile | sed -e 's/\//\\\//g'`
-    set sedScriptDir = `echo $scriptDir | sed -e 's/\//\\\//g'`
+    set sedSettingsFile = `echo $settingsFile | sed -e 's/\//\\\//g'`
     sed -e "s/^\(set date = \).*/\1$date/" -e "s/^\(set time = \).*/\1$time/" \
-	-e "s/^\(set inFile = \).*/\1($sedInFile)/" \
+	-e 's/^\(set inFiles = \).*)/\1(`cat $outputDir\/inFilenames`)/' \
         -e "s/^\(set derivedDataFile = \).*/\1$sedDDF/" \
-	-e "s/^\(set scriptDir = \).*/\1$sedScriptDir/" $0 > $scriptFile
+	-e "s/^\(set settingsFile = \).*/\1$sedSettingsFile/" $0 > $scriptFile
     echo $timeStamp >> $scriptFile
     chmod +x $scriptFile
 endif
 
 # start switchboard
 echo Starting switchboard on $sbHost
+set sbCmd = ($RSH -n $sbHost $java -server -cp $classpath -Xms100m -Xmx100m \
+	     $sbPolicy "$sbCodebase" $disableHttp $settingsProp \
+	     danbikel.parser.StartSwitchboard \
+	     -msg $sbMsgFile $inFiles -o $outFileDir -log $logFileDir)
+echo -n "	"
+echo $sbCmd
 $RSH -n $sbHost $java -server -cp $classpath -Xms100m -Xmx100m \
-	$sbPolicy $sbCodebase \
+	$sbPolicy "$sbCodebase" $disableHttp $settingsProp \
 	danbikel.parser.StartSwitchboard \
-	-msg $sbMsgFile $inFile -o $outFile -log $logFile
+	-msg $sbMsgFile $inFiles -o $outFileDir -log $logFileDir
 
 # finally, if gold file exists, try to score
-if (-f $goldFile) then
-    # make sure scorer has been compiled
-    (cd $scorerDir ; make)
-    $scorerScript $goldFile $outFile > $outFile.score
+foreach file ($inFiles)
+    set goldFile = $inFiles[i].gold
+    if (-f $goldFile) then
+	# make sure scorer has been compiled
+	set outFile = $outFileDir/$inFiles[1]:t.parsed
+	if (-f $outFile) then
+	    (cd $scorerDir ; make)
+	    $scorerScript $goldFile $outFile > $outFile.score
+	endif
+    endif
+end
+
+if ($?reap) then
+    # kill off rmi registry proc
+    echo "Killing rmiregistry"
+    #kill `cat $rmiregistryPidFile`
+    $RSH $sbHost 'killall rmiregistry'
+
+    echo "Killing clients, if any are still alive"
+    #kill `cat $pidFile`
+    foreach clientHost ($clientHosts)
+	$RSH $clientHost 'killall java'
+    end
 endif
-
-# kill off rmi registry proc
-echo "Killing rmiregistry"
-#kill `cat $rmiregistryPidFile`
-$RSH $sbHost 'killall rmiregistry'
-
-echo "Killing clients, if any are still alive"
-kill `cat $pidFile`

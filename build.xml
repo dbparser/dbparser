@@ -141,7 +141,7 @@ and the Ant output directory might be "classes.ant".-->
   <target depends="archive,resource" name="package"/>
   <target depends="precompile,compile,postcompile,package" name="build"/>
   <target depends="clean,build" name="rebuild"/>
-  <target name="lnDeployReadme" unless="readme.ln.present">
+  <target name="ln_deploy_readme" unless="readme.ln.present">
     <echo message="Creating symbolic link from ${deploy.to}/README to ${deploy.to}/userguide/README"/>
     <exec dir="${deploy.to}" executable="ln">
 	  <arg value="-s"/>
@@ -162,17 +162,18 @@ and the Ant output directory might be "classes.ant".-->
     <available file="${deploy.to}/README" property="readme.ln.present"/>
     <copy todir="${deploy.to}" file="${deploy}/LICENSE"/>
   </target>
-  <target depends="rebuild,javadoc,setupDeploy,lnDeployReadme" name="deploy">
+  <target depends="rebuild,javadoc,setupDeploy,ln_deploy_readme" name="deploy">
     <!-- Can't use tar task: Ant filesets don't respect symbolic links -->
     <!--
     <tar destfile="${deploy.tar}" basedir="${deploy}" compression="gzip"
          includes="dbparser/"/>
     -->
     <exec dir="${deploy}" executable="tar">
-	  <arg value="zcvf"/>
-	  <arg value="dbparser.tgz"/>
+	  <arg value="cvf"/>
+	  <arg value="dbparser.tar"/>
 	  <arg value="dbparser"/>
     </exec>
+    <gzip src="dbparser.tar" zipfile="dbparser.tgz"/>
     <concat destfile="${deploy.install.script}">
       <filelist dir="."
 	        files="${deploy.install.header} ${deploy.tar}"/>

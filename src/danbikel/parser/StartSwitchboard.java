@@ -28,42 +28,40 @@ public class StartSwitchboard {
 
 
   private static final String[] usageMsg = {
-    "usage: [-sf <settings file> | --settings <settings file>]",
+    "usage: [-v|-help|-usage]",
+    "\t[-sf <settings file> | --settings <settings file>]",
     "\t[-p <RMI server port>] [-n <registry name URL>]",
-    "\t[-log [ <log filename>+ | <log dir> ] ]",
+    "\t[ [-log <log filename>+] | [-logdir <log dir>] ]",
     "\t[<input file or dir>+]",
-    "\t[-o [ <output file>+ | <output file dir> ] ]",
+    "\t[ [-o <output file>+] | [-odir <output file dir>] ]",
     "\t[-msg <messages output file>] [-rp] [--]",
     "where",
+    "\t-v,-help,-usage: prints this message",
     "\t<settings file> contains the settings to be used by this switchboard",
     "\t\tand all its users (clients and servers)",
     "\t<input file or dir>+ is the list of input files to process this run",
-    "\t\t(a directory in the list indicates to process all files in that",
-    "\t\tdirectory)",
+    "\t\t(a directory in the list indicates to non-recursively process",
+    "\t\tall files in that directory)",
     "\t<RMI server port> is the port on which this object accepts RMI calls",
     "\t\t(defaults to a dynamically-chosen anonymous port)",
     "\t<registry name URL> is the RMI URL to specify an rmiregistry",
     "\t\t(defauls to \"" + Switchboard.defaultBindingName + "\")",
     "\t<log filename>+ is the list of log files of incremental processing",
-    "\t\t(defaults to \"<input file>_i" + Switchboard.logFilenameSuffix + "\")",
+    "\t\t(this list is coordinated with the list of input files;",
+    "\t\tthe ith input file's log file defaults to",
+    "\t\t\"<input file>_i" + Switchboard.logFilenameSuffix + "\")",
     "\t-rp specifies to re-process sentences that were un-processed,",
     "\t\twhen recovering from a previous run",
-    "\t<output file> is the list of output file names of processed sentences",
-    "\t\t(defaults to \"<input file>_i" + outFilenameSuffix + "\")",
+    "\t<output file>+ is the list of output file names of processed sentences",
+    "\t\t(this list is coordinated with the list of input files;",
+    "\t\tthe ith input file's output file defaults to",
+    "\t\t\"<input file>_i" + outFilenameSuffix + "\")",
     "\t<messages output file> is the output file for switchboard messages",
-    "\t\t(defaults to \"directory of first <output file>\" + \"" +
+    "\t\t(defaults to",
+    "\t\t\"directory of first <output file>\" + \"" +
        Switchboard.defaultMessagesFilename + "\")",
     "\t-- ends a list of items (such as log files)"
   };
-
-  protected final static boolean containsDirectory(ArrayList filenameList) {
-    for (int i = 0; i < filenameList.size(); i++) {
-      File tmp = new File((String)filenameList.get(i));
-      if (tmp.exists() && tmp.isDirectory())
-	return true;
-    }
-    return false;
-  }
 
   protected final static String getTail(String filename) {
     int lastSepIdx = filename.lastIndexOf(File.separator) + 1;
@@ -82,11 +80,18 @@ public class StartSwitchboard {
     ArrayList outFilenames = new ArrayList();
     ArrayList logFilenames = new ArrayList();
 
+    boolean useLogDir = false;
+    boolean useOutDir = false;
+
     int currRequiredArgIdx = 0;
     for (int i = 0; i < args.length; i++) {
       if (args[i].startsWith("-")) {
 	// process flag
-	if (args[i].equals("-sf") || args[i].equals("--settings")) {
+	if (args[i].equals("-v") || args[i].equals("-help") ||
+	    args[i].equals("-usage")) {
+	  usage();
+	}
+	else if (args[i].equals("-sf") || args[i].equals("--settings")) {
 	  if (i + 1 == args.length) {
 	    System.err.println("error: no argument present after " + args[i]);
 	    usage();
@@ -123,9 +128,31 @@ public class StartSwitchboard {
 	    --i;
 	  }
 	}
+	else if (args[i].equals("-logdir")) {
+	  if (i + 1 == args.length) {
+	    System.err.println("error: no argument present after -logdir");
+	    usage();
+	  }
+	  else if (useLogDir) {
+	    System.err.println("error: cannot specify multiple log directories");
+	    usage();
+	  }
+	  else if (logFilenames.size() > 0) {
+	    System.err.println("error: cannot use -logdir with -log");
+	    usage();
+	  }
+	  else {
+	    useLogDir = true;
+	    logFilenames.add(args[++i]);
+	  }
+	}
 	else if (args[i].equals("-o")) {
 	  if (i + 1 == args.length) {
 	    System.err.println("error: no argument present after -o");
+	    usage();
+	  }
+	  else if (useOutDir) {
+	    System.err.println("error: cannot use -o with -odir");
 	    usage();
 	  }
 	  else {
@@ -134,6 +161,24 @@ public class StartSwitchboard {
 	      outFilenames.add(args[i++]);
 	    }
 	    --i;
+	  }
+	}
+	else if (args[i].equals("-odir")) {
+	  if (i + 1 == args.length) {
+	    System.err.println("error: no argument present after -odir");
+	    usage();
+	  }
+	  else if (useOutDir) {
+	    System.err.println("error: cannot specify multiple output directories");
+	    usage();
+	  }
+	  else if (outFilenames.size() > 0) {
+	    System.err.println("error: cannot use -odir with -o");
+	    usage();
+	  }
+	  else {
+	    useOutDir = true;
+	    outFilenames.add(args[++i]);
 	  }
 	}
 	else if (args[i].equals("-msg")) {
@@ -173,20 +218,6 @@ public class StartSwitchboard {
     // set required args (there is currently on one)
     inFilenameMain = requiredArgs[0];
     */
-
-    boolean useLogDir = containsDirectory(logFilenames);
-    boolean useOutDir = containsDirectory(outFilenames);
-
-    if (logFilenames.size() > 1 && useLogDir) {
-      System.err.println("error: must either specify list of files or a " +
-			 "single directory with -log option");
-      usage();
-    }
-    if (outFilenames.size() > 1 && useOutDir) {
-      System.err.println("error: must either specify list of files or a " +
-			 "single directory with -out option");
-      usage();
-    }
 
     // go through inFilenames, replacing any directories with list of files
     // within those directories
@@ -325,9 +356,9 @@ public class StartSwitchboard {
       if (inFilenameMain != null) {
 	for (int i = 0; i < numFiles; i++) {
 	  switchboard.processFile(inFilenameMain[i], outFilenameMain[i],
-				  logFilenameMain[i]);
+				  logFilenameMain[i], false);
 	}
-	switchboard.cleanup();
+	switchboard.cleanupWhenAllFilesAreDone();
       }
     }
     catch (RemoteException re) {

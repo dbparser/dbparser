@@ -46,6 +46,13 @@ public interface Constraint {
   public boolean isSatisfiedBy(Item item);
 
   /**
+   * Returns whether this constraint has been satisfied.
+   * @return <tt>true</tt> if this constraint has been satisfied,
+   * <tt>false</tt> if it has not
+   */
+  public boolean hasBeenSatisfied();
+
+  /**
    * Returns whether the specified item satisfies the local information
    * of the constraint node, regardless of its place in a tree structure
    * of constraints (optional operation).  When bottom-up parsing and
@@ -73,15 +80,16 @@ public interface Constraint {
   public boolean isViolatedBy(Item item);
 
   /**
-   * Returns whether the specified child item satisfies this constraint
+   * Returns whether the specified child item violates this constraint
    * (optional operation).  For implementations that do not implement a
    * recursive notion of constraint satisfaction, this method should simply
    * return <code>true</code> regardless of the value of the argument.
    *
    * @param childItem the child item to test
-   * @return whether the specified child item satisfies this constraint.
+   * @return <tt>true</tt> if the specified child item violates this
+   * constraint, <tt>false</tt> otherwise
    *
    * @see ConstraintSet#hasTreeStructure()
    */
-  public boolean isSatisfiedByChild(Item childItem);
+  public boolean isViolatedByChild(Item childItem);
 }

@@ -19,6 +19,7 @@ public class Decoder implements Serializable {
   private final static boolean debugSpans = false;
   private final static boolean debugInit = true;
   private final static boolean debugTop = false;
+  private final static boolean debugComplete = false;
   private final static boolean debugJoin = false;
   private final static boolean debugStops = false;
   private final static boolean debugUnaries = false;
@@ -243,6 +244,8 @@ public class Decoder implements Serializable {
       */
       this.posMap = server.posMap();
       CountsTable nonterminalTable = server.nonterminals();
+      if (Subcats.get() instanceof SubcatBag)
+        SubcatBag.setUpFastUidMap(nonterminalTable);
       nonterminals = new Symbol[nonterminalTable.size()];
       Iterator it = nonterminalTable.keySet().iterator();
       for (int i = 0; it.hasNext(); i++)
@@ -640,7 +643,7 @@ public class Decoder implements Serializable {
                              "; item.logTreeProb()=" + item.logTreeProb() +
                              "; logProb=" + logProb);
 
-        if (logProb <= Constants.logOfZero)
+        if (topLogProb <= Constants.logOfZero)
           continue;
         CKYItem newItem = chart.getNewItem();
         newItem.set(topSym, item.headWord(),
@@ -655,7 +658,7 @@ public class Decoder implements Serializable {
       chart.add(0, end, (CKYItem)toAdd.next());
   }
 
-  protected void complete(int start, int end) throws RemoteException {
+  protected void completeOld(int start, int end) throws RemoteException {
     for (int split = start; split < end; split++) {
 
       if (commaConstraintViolation(start, split, end)) {
@@ -708,36 +711,58 @@ public class Decoder implements Serializable {
     chart.prune(start, end);
   }
 
-  protected void completeOld(int start, int end) throws RemoteException {
+  protected void complete(int start, int end) throws RemoteException {
     for (int split = start; split < end; split++) {
-      Iterator leftItems = chart.get(start, split);
-      while (leftItems.hasNext()) {
-        CKYItem leftItem = (CKYItem)leftItems.next();
-        if (leftItem.stop())
-          continue;
-        // for all left modificands that have not received stop probs
-        Iterator rightItems = chart.get(split + 1, end);
-        while (rightItems.hasNext()) {
-          CKYItem rightItem = (CKYItem)rightItems.next();
-          if (rightItem.stop() == false)
-            continue;
-          // for all right modifiers that have received their stop probs
-          joinItems(leftItem, rightItem, Constants.RIGHT);
-        }
+
+      if (commaConstraintViolation(start, split, end)) {
+	if (debugCommaConstraint) {
+	  System.err.println(className +
+                             ": constraint violation at (start,split,end+1)=(" +
+			     start + "," + split + "," + (end + 1) +
+			     "); word at end+1 = " + getSentenceWord(end + 1));
+	}
+	continue;
       }
-      leftItems = chart.get(start, split);
-      while (leftItems.hasNext()) {
-        CKYItem leftItem = (CKYItem)leftItems.next();
-        if (leftItem.stop() == false)
-          continue;
-        // for all left modifiers that have received their stop probs
-        Iterator rightItems = chart.get(split + 1, end);
-        while (rightItems.hasNext()) {
-          CKYItem rightItem = (CKYItem)rightItems.next();
-          if (rightItem.stop())
-            continue;
-          // for all right modificands that have not received their stop probs
-          joinItems(rightItem, leftItem, Constants.LEFT);
+
+      boolean modifierSide;
+      for (int sideIdx = 0; sideIdx < 2; sideIdx++) {
+        modifierSide = sideIdx == 0 ? Constants.RIGHT : Constants.LEFT;
+        boolean modifyLeft = modifierSide == Constants.LEFT;
+
+        int modificandStartIdx = modifyLeft ?  split + 1 : start;
+        int modificandEndIdx =   modifyLeft ?  end :       split;
+
+        int modifierStartIdx = modifyLeft ?    start :     split + 1;
+        int modifierEndIdx =   modifyLeft ?    split :     end;
+
+        if (debugComplete && debugSpans)
+          System.err.println(className + ": modifying [" +
+                             modificandStartIdx + "," + modificandEndIdx +
+                             "]" + " with [" + modifierStartIdx + "," +
+                             modifierEndIdx + "]");
+
+        // for each possible modifier that HAS received its stop probabilities,
+        // try to find a modificand that has NOT received its stop probabilities
+        if (chart.numItems(modifierStartIdx, modifierEndIdx) > 0 &&
+            chart.numItems(modificandStartIdx, modificandEndIdx) > 0) {
+          Iterator modifierItems = chart.get(modifierStartIdx, modifierEndIdx);
+          while (modifierItems.hasNext()) {
+            CKYItem modifierItem = (CKYItem)modifierItems.next();
+            if (modifierItem.stop()) {
+              Iterator modificandItems =
+                chart.get(modificandStartIdx, modificandEndIdx);
+              while (modificandItems.hasNext()) {
+                CKYItem modificandItem = (CKYItem)modificandItems.next();
+                if (debugComplete)
+                  System.err.println(className +
+                                     ".complete: trying to modify\n\t" +
+                                     modificandItem + "\n\twith\n\t" +
+                                     modifierItem);
+                if (!modificandItem.stop())
+                  joinItems(modificandItem, modifierItem, modifierSide);
+              }
+            }
+          }
         }
       }
     }
@@ -761,12 +786,6 @@ public class Decoder implements Serializable {
   protected void joinItems(CKYItem modificand, CKYItem modifier,
                            boolean side)
   throws RemoteException {
-    /*
-    if (useCommaConstraint &&
-        commaConstraintViolation(modificand, modifier, side))
-      return;
-    */
-
     // if this side's subcat contains the the current modifier's label as one
     // of its requirements, make a copy of it and remove the requirement
     Subcat thisSideSubcat = (Subcat)modificand.subcat(side);
@@ -774,11 +793,10 @@ public class Decoder implements Serializable {
     if (thisSideSubcat.contains(modLabel)) {
       thisSideSubcat = (Subcat)thisSideSubcat.copy();
       thisSideSubcat.remove(modLabel);
+    } else if (Language.training.isArgumentFast(modLabel)) {
+      return;
     }
     Subcat oppositeSideSubcat = modificand.subcat(!side);
-
-    SLNode thisSideChildren = new SLNode(modifier, modificand.children(side));
-    SLNode oppositeSideChildren = modificand.children(!side);
 
     SexpList thisSidePrevMods = getPrevMods(modificand.prevMods(side),
                                             modificand.children(side));
@@ -813,15 +831,16 @@ public class Decoder implements Serializable {
     }
 
     double logModProb = server.logProbMod(id, modEvent, side);
-    if (logModProb <= Constants.logOfZero) {
+    if (logModProb <= Constants.logOfZero)
       return;
-    }
     double logTreeProb =
       modificand.logTreeProb() + modifier.logTreeProb() + logModProb;
     HeadEvent priorEvent = lookupPriorEvent;
     priorEvent.set(modificand.headWord(), stopSym, modificand.headLabel(),
                    emptySubcat, emptySubcat);
     double logPrior = server.logPrior(id, priorEvent);
+    if (logPrior <= Constants.logOfZero)
+      return;
     double logProb = logTreeProb + logPrior;
 
     if (debugJoin) {
@@ -843,6 +862,9 @@ public class Decoder implements Serializable {
     newItem.set((Symbol)modificand.label(), modificand.headWord(),
                 null, null, modificand.headChild(), null, null, null, null,
                 0, 0, false, false, false, logTreeProb, logProb);
+
+    SLNode thisSideChildren = new SLNode(modifier, modificand.children(side));
+    SLNode oppositeSideChildren = modificand.children(!side);
 
     newItem.setSideInfo(side,
                         thisSideSubcat, thisSideChildren,
@@ -908,7 +930,8 @@ public class Decoder implements Serializable {
       Iterator prevItems = prevItemsAdded.iterator();
       while (prevItems.hasNext()) {
         CKYItem item = (CKYItem)prevItems.next();
-        addUnaries(item, currItemsAdded);
+        if (!item.garbage())
+          addUnaries(item, currItemsAdded);
       }
 
       exchangePrevAndCurrItems();
@@ -917,7 +940,8 @@ public class Decoder implements Serializable {
       prevItems = prevItemsAdded.iterator();
       while (prevItems.hasNext()) {
         CKYItem item = (CKYItem)prevItems.next();
-        addStopProbs(item, currItemsAdded);
+        if (!item.garbage())
+          addStopProbs(item, currItemsAdded);
       }
       exchangePrevAndCurrItems();
       currItemsAdded.clear();
@@ -966,61 +990,50 @@ public class Decoder implements Serializable {
                              "; headWord=" + item.headWord());
         }
       }
-      Iterator leftSubcatIt = leftSubcats.iterator();
-      // foreach possible left subcat
-      while (leftSubcatIt.hasNext()) {
-        Subcat leftSubcat = (Subcat)leftSubcatIt.next();
-        Iterator rightSubcatIt = rightSubcats.iterator();
-        // foreach possible right subcat
-        while (rightSubcatIt.hasNext()) {
-          Subcat rightSubcat = (Subcat)rightSubcatIt.next();
+      if (leftSubcats.size() > 0 && rightSubcats.size() > 0) {
+        Iterator leftSubcatIt = leftSubcats.iterator();
+        // foreach possible left subcat
+        while (leftSubcatIt.hasNext()) {
+          Subcat leftSubcat = (Subcat)leftSubcatIt.next();
+          Iterator rightSubcatIt = rightSubcats.iterator();
+          // foreach possible right subcat
+          while (rightSubcatIt.hasNext()) {
+            Subcat rightSubcat = (Subcat)rightSubcatIt.next();
 
-          newItem.setLabel(parent);
-          newItem.setLeftSubcat(leftSubcat);
-          newItem.setRightSubcat(rightSubcat);
+            newItem.setLabel(parent);
+            newItem.setLeftSubcat(leftSubcat);
+            newItem.setRightSubcat(rightSubcat);
 
-          headEvent.setLeftSubcat(leftSubcat);
-          headEvent.setRightSubcat(rightSubcat);
+            headEvent.setLeftSubcat(leftSubcat);
+            headEvent.setRightSubcat(rightSubcat);
 
-          if (debugUnaries) {
-            if (newItem.start() == 3 && newItem.end() == 7 &&
-                parent == S && headSym == VP &&
-                newItem.headWord().word() == willSym &&
-                newItem.headWord().tag() == mdSym) {
-              System.err.println(className + ": parent: " + parent +
-                                 "; lc=" + leftSubcat.toSexp() +
-                                 "; rc=" + rightSubcat.toSexp());
-              Debug.level = 20;
+            if (debugUnaries) {
             }
-          }
-          double logTreeProb =
-            item.logTreeProb() + server.logProbHead(id, headEvent);
-          double logPrior = server.logPrior(id, priorEvent);
-          double logProb = logTreeProb + logPrior;
 
-          if (debugUnaries) {
-            if (newItem.start() == 3 && newItem.end() == 7 &&
-                parent == S && headSym == VP &&
-                newItem.headWord().word() == willSym &&
-                newItem.headWord().tag() == mdSym) {
-              System.err.println(className + ": trying to add " + newItem +
-                                 " with logTreeProb=" + logTreeProb +
-                                 "; logPrior=" + logPrior +
-                                 "; logProb=" + logProb);
-              Debug.level = 0;
+            double logProbHead = server.logProbHead(id, headEvent);
+            if (logProbHead <= Constants.logOfZero)
+              continue;
+            double logTreeProb =
+              item.logTreeProb() + logProbHead;
+            double logPrior = server.logPrior(id, priorEvent);
+            if (logPrior <= Constants.logOfZero)
+              continue;
+            double logProb = logTreeProb + logPrior;
+
+            if (debugUnaries) {
             }
+
+            if (logProb <= Constants.logOfZero)
+              continue;
+
+            newItem.setLogTreeProb(logTreeProb);
+            newItem.setLogProb(logProb);
+
+            CKYItem newItemCopy = chart.getNewItem();
+            newItemCopy.setDataFrom(newItem);
+            unaryItemsToAdd.add(newItemCopy);
           }
-
-          if (logProb <= Constants.logOfZero)
-            continue;
-
-          newItem.setLogTreeProb(logTreeProb);
-          newItem.setLogProb(logProb);
-
-          CKYItem newItemCopy = chart.getNewItem();
-          newItemCopy.setDataFrom(newItem);
-          unaryItemsToAdd.add(newItemCopy);
-        }
+        } // end foreach possible left subcat
       }
     }
     Iterator toAdd = unaryItemsToAdd.iterator();

@@ -1,15 +1,25 @@
 #!/bin/tcsh -f
 
-if ($#argv < 5) then
-    echo "usage: <minutes per job> <settings file> <em dir> <training file> <test file>"
+if ($#argv < 4) then
+    echo "usage: <minutes per job> <settings file> <training file> <test file>"
+    echo "	[<iteration dir>+]"
+    echo "where"
+    echo "	[<iteration dir>+] defaults to the glob ./[0-9][0-9]"
     exit 1
 endif
 
 set minutes = $1
 set settings = $2
-set emDir = $3
-set trainingFile = $4
-set testFile = $5
+set trainingFile = $3
+set testFile = $4
+if ($#argv == 4) then
+    # assume user wants all iteration dirs in current directory
+    set iterDirs = (./[0-9][0-9])
+else
+    set iterDirs = ($argv[5-$#argv])
+endif
+
+set trainingPrefix = $trainingFile:t:r
 
 # make sure all files/directories actually exist (except for trainingFile,
 # which is only used for its name)
@@ -18,17 +28,22 @@ if (! -f $settings) then
     exit 1
 endif
 
-if (! -d $emDir) then
-    echo "error: em directory $emDir is not a directory"
-    exit 1
-endif
+foreach dir ($iterDirs)
+    if (! -d $dir) then
+	echo "error: iteration directory $dir does not exist"
+	exit 1
+    endif
+    if (! -f $dir/$trainingPrefix.precomp.obj.gz) then
+	echo -n "error: derived data file $dir/$trainingPrefix.precomp.obj.gz "
+	echo "does not exist"
+	exit 1
+    endif
+end
 
 if (! -f $testFile) then
     echo "error: test file $testFile does not exist"
     exit 1
 endif
-
-set trainingPrefix = $trainingFile:t:r
 
 # give settings absolute path, if necessary
 set settingsDir = `dirname $settings`
@@ -36,15 +51,20 @@ set settings = `cd $settingsDir; echo $cwd`/$settings:t
 
 # give test file absolute path, if necessary
 set testDir = `dirname $testFile`
-set test = `cd $testDir; echo $cwd`/$testFile:t
+set testFile = `cd $testDir; echo $cwd`/$testFile:t
 
-# give emDir absolute path, if necessary
-set emDir = `cd $emDir; echo $cwd`
+# give each iterDir absolute path, if necessary
+set tmpIterDirs = ()
+foreach dir ($iterDirs)
+    set tmpIterDirs = ($tmpIterDirs `cd $dir; echo $cwd`)
+end
+set iterDirs = ($tmpIterDirs)
+
 
 set thisDir = `dirname $0`
 set scriptDir = `cd $thisDir ; echo $cwd`
 
-foreach dir ($emDir/[0-9][0-9])
+foreach dir ($iterDirs)
     echo "c" | cmsubmit -p 20 -t $minutes $scriptDir/wrapper \
 	$scriptDir/internal-server-run $settings \
 	$dir/$trainingPrefix.precomp.obj.gz $testFile

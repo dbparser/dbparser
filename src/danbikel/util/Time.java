@@ -51,6 +51,20 @@ public class Time {
   public long startTime() { return startTime; }
 
   /**
+   * Returns the number of milliseconds since the start time of this object.
+   * This method is simply an alias for
+   * <pre>current() - startTime()</pre>
+   */
+  public long elapsedMillis() { return current() - startTime; }
+
+  /**
+   * Returns the (floor of the) number of minutes since the start time of this
+   * object.  This method is simply an alias for
+   * <pre>elapsedMillis() / 60000</pre>.
+   */
+  public long elapsedMinutes() { return elapsedMillis() / 60000; }
+
+  /**
    * Returns a string representing the length of the specified time
    * of the form <pre>MM:SS.mmm</pre>
    * where <tt>MM</tt> is the number of minutes, <tt>SS</tt> is the nubmer

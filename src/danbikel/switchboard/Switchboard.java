@@ -260,8 +260,8 @@ public class Switchboard
 
       File logFile = new File(logName);
       if (logFile.exists()) {
-	msg = className + ": log file \"" + logName + "\"" +
-	  " exists;\n\twill attempt to recover";
+	msg = className + ": log file\n\t\"" + logName + "\"\n" +
+	  "exists; will attempt to recover";
 	log(msg);
 	recover();
       }

@@ -19,51 +19,58 @@ public class AddFakePos {
   private final static Symbol fakePos = Symbol.add("foo");
 
   // static data members
-  private static HashSet posExceptions = new HashSet();
+  private static HashSet posPrunes = new HashSet();
   static {
-    String[] exceptions = {",", ":", "``", "''", "."};
-    for (int i = 0; i < exceptions.length; i++)
-      posExceptions.add(Symbol.add(exceptions[i]));
+    String[] prunes = {",", ":", "``", "''", "."};
+    for (int i = 0; i < prunes.length; i++)
+      posPrunes.add(Symbol.add(prunes[i]));
   }
-  private static SexpList preterms = new SexpList(200);
+  private static SexpList goldPreterms = new SexpList(200);
   private static SexpList goldWords = new SexpList(200);
+  private static SexpList testPreterms = new SexpList(200);
+  private static SexpList testWords = new SexpList(200);
 
   private AddFakePos() {}
 
   private final static void usage() {
-    System.err.println("usage: <gold parse file> [- | filename]");
+    System.err.println("usage: <gold parse file> <filename> [nodes to prune]+");
     System.exit(1);
   }
 
   /**
    * Reads in parse trees either from a specified file or from standard input
    * and adds fake parts of speech to raw (un-parsed) sentences.
-   * <pre>usage: &lt;gold parse file&gt; [- | &lt;filename&gt;]</pre>
-   * where specifying <tt>-</tt> or using no arguments at all indicates to
+   * <pre>usage: &lt;gold parse file&gt; &lt;filename&gt;</pre>
+   * where specifying <tt>-</tt> for the filename indicates to
    * read the parser output from standard input.
    */
   public static void main(String[] args) {
-    InputStream in = System.in;
     InputStream goldIn = null;
-    if (args.length < 1)
+    if (args.length < 2)
       usage();
+
+    File goldFile = new File(args[0]);
+    try { goldIn = new FileInputStream(goldFile); }
+    catch (FileNotFoundException fnfe) {
+      System.err.println("error: file \"" + args[0] + "\" does not exist");
+      System.exit(1);
+    }
+    InputStream in = null;
+    if (args[1].equals("-")) {
+      in = System.in;
+    }
     else {
-      File goldFile = new File(args[0]);
-      try { goldIn = new FileInputStream(goldFile); }
+      File file = new File(args[1]);
+      try { in = new FileInputStream(file); }
       catch (FileNotFoundException fnfe) {
-	System.err.println("error: file \"" + args[0] + "\" does not exist");
+	System.err.println("error: file \"" + args[1] + "\" does not exist");
 	System.exit(1);
       }
     }
-    if (args.length > 1) {
-      if (!args[1].equals("-")) {
-	File file = new File(args[1]);
-	try { in = new FileInputStream(file); }
-	catch (FileNotFoundException fnfe) {
-	  System.err.println("error: file \"" + args[1] + "\" does not exist");
-	  System.exit(1);
-	}
-      }
+    if (args.length > 2) {
+      posPrunes.clear();
+      for (int i = 2; i < args.length; i++)
+	posPrunes.add(Symbol.add(args[i]));
     }
     BufferedReader br = new BufferedReader(new InputStreamReader(in));
     SexpTokenizer tok = null;
@@ -80,12 +87,12 @@ public class AddFakePos {
 
     Sexp curr = null, goldCurr = null;
     try {
-      while ((curr = Sexp.read(tok)) != null) {
+      for (int sentIdx = 1; (curr = Sexp.read(tok)) != null; sentIdx++) {
 	goldCurr = Sexp.read(goldTok);
 	goldCurr = Language.training().removeNullElements(goldCurr);
-	preterms.clear();
+	goldPreterms.clear();
 	goldWords.clear();
-	collectPreterms(goldCurr);
+	collectPreterms(goldCurr, goldPreterms, goldWords);
 	if (goldCurr == null) {
 	  System.err.println("error: ran out of sentences in gold file!");
 	  break;
@@ -93,6 +100,33 @@ public class AddFakePos {
 	if (curr == nullSym)
 	  curr = goldWords;
 	addFakePos(curr);
+
+	/*
+	// now munge pos tags of gold and curr if one is a "node for pruning"
+	// and the other isn't
+	curr = Language.training().removeNullElements(curr);
+	testPreterms.clear();
+	testWords.clear();
+	collectPreterms(curr, testPreterms, testWords);
+        Set mungeTagIndices = new HashSet();
+	if (testPreterms.length() == goldPreterms.length()) {
+	  int len = testPreterms.length();
+	  for (int idx = 0; idx < len; idx++) {
+	    boolean testPrune = prune(testPreterms.get(idx));
+	    boolean goldPrune = prune(goldPreterms.get(idx));
+	    if ((testPrune && !goldPrune) || (goldPrune && !testPrune))
+	      mungeTagIndices.add(new Integer(idx));
+	  }
+	  
+	}
+	else {
+	  System.err.println("error: length mismatch (gold=" +
+			     goldPreterms.length() + "|test=" +
+			     testPreterms.length() + " for sentence No. " +
+			     sentIdx);
+	}
+	*/
+
 	System.out.println(curr);
       }
     }
@@ -101,17 +135,19 @@ public class AddFakePos {
     }
   }
 
-  private static void collectPreterms(Sexp gold) {
-    if (Language.treebank().isPreterminal(gold)) {
-      preterms.add(gold);
-      Word word = Language.treebank().makeWord(gold);
-      goldWords.add(word.word());
+  private static void collectPreterms(Sexp tree,
+				      SexpList preterms,
+				      SexpList words) {
+    if (Language.treebank().isPreterminal(tree)) {
+      preterms.add(tree);
+      Word word = Language.treebank().makeWord(tree);
+      words.add(word.word());
     }
-    else if (gold.isList()) {
-      SexpList goldTree = gold.list();
-      int goldTreeLen = goldTree.length();
-      for (int i = 0; i < goldTreeLen; i++)
-	collectPreterms(goldTree.get(i));
+    else if (tree.isList()) {
+      SexpList treeList = tree.list();
+      int treeLen = treeList.length();
+      for (int i = 0; i < treeLen; i++)
+	collectPreterms(treeList.get(i), preterms, words);
     }
   }
 
@@ -121,14 +157,14 @@ public class AddFakePos {
       int sentLen = sentList.length();
       for (int i = 0; i < sentLen; i++) {
 	Sexp word = sentList.get(i);
-	SexpList preterm = preterms.listAt(i);
-	Sexp pos = isException(preterm) ? preterm.get(0) : fakePos;
+	SexpList preterm = goldPreterms.listAt(i);
+	Sexp pos = prune(preterm) ? preterm.get(0) : fakePos;
 	SexpList wordList = new SexpList(2).add(pos).add(word);
 	sentList.set(i, wordList);
       }
     }
   }
-  private final static boolean isException(SexpList preterm) {
-    return posExceptions.contains(preterm.get(0));
+  private final static boolean prune(SexpList preterm) {
+    return posPrunes.contains(preterm.get(0));
   }
 }

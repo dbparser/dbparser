@@ -193,7 +193,8 @@ public abstract class ProbabilityStructure implements Serializable {
     System.err.println(getClass().getName() + ": setting top-level cache " +
                        "size to be " + topLevelCacheSizeStr);
     */
-    return Integer.parseInt(topLevelCacheSizeStr);
+    return (topLevelCacheSizeStr == null ?
+            0 : Integer.parseInt(topLevelCacheSizeStr));
   }
 
   /**

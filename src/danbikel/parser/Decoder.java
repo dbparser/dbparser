@@ -54,6 +54,7 @@ public class Decoder implements Serializable {
   private final static boolean debugDontPostProcess = false;
   private final static boolean debugRemoveWord = false;
   private final static boolean debugRestorePrunedWords = false;
+  private final static boolean debugBeamWidening = true;
   /**
    * This debugging option should be used only when the property
    * <tt>parser.model.precomputeProbabilities</tt> was <tt>false</tt>
@@ -207,6 +208,18 @@ public class Decoder implements Serializable {
   protected int cellLimit = -1;
   /** The prune factor for the parsing chart (stored here for debugging). */
   protected double pruneFact = 0.0;
+  /**
+   * The maximum prune factor (for beam-widening).
+   *
+   * @see Settings#decoderMaxPruneFactor
+   */
+  protected double maxPruneFact = pruneFact;
+  /**
+   * The prune factor increment used when doing beam-widening.
+   *
+   * @see Settings#decoderPruneFactorIncrement
+   */
+  protected double pruneFactIncrement;
   /** The original sentence, before preprocessing. */
   protected SexpList originalSentence = new SexpList();
   /** The original tag list, before preprocessing. */
@@ -483,6 +496,13 @@ public class Decoder implements Serializable {
     if (usePruneFact) {
       pruneFact = Math.log(10) *
 		  Double.parseDouble(Settings.get(Settings.decoderPruneFactor));
+      String maxPruneFactStr = Settings.get(Settings.decoderMaxPruneFactor);
+      maxPruneFact = maxPruneFactStr == null ? pruneFact :
+                     Math.log(10) * Double.parseDouble(maxPruneFactStr);
+      String pruneFactIncrementStr =
+        Settings.get(Settings.decoderPruneFactorIncrement);
+      pruneFactIncrement = Math.log(10) *
+                           Double.parseDouble(pruneFactIncrementStr);
     }
     String useCommaConstraintStr =
       Settings.get(Settings.decoderUseCommaConstraint);
@@ -1116,24 +1136,26 @@ public class Decoder implements Serializable {
       return null;
     }
 
-    double currPruneFact = pruneFact - 2 * Math.log(10);
+    double currPruneFact = pruneFact;
 
     CKYItem topRankedItem = null;
     double prevTopLogProb = Constants.logOfZero;
+    int numSortedItems = 0;
+    CKYItem[] sortedItems = null;
 
     // BEGIN BEAM-WIDENING CODE
-    /*
-    for (int iteration = 1; topRankedItem == null && currPruneFact <= pruneFact;
-	  currPruneFact += Math.log(10), iteration++) {
-      System.err.println(className + ": trying with prune factor of " +
-                         (currPruneFact / Math.log(10)));
+    for (int iteration = 1;
+         topRankedItem == null && currPruneFact <= maxPruneFact;
+	 currPruneFact += pruneFactIncrement, iteration++) {
+      if (debugBeamWidening)
+        System.err.println(className + ": trying with prune factor of " +
+                           (currPruneFact / Math.log(10)));
       chart.setPruneFactor(currPruneFact);
       if (iteration > 1) {
         chart.clearNonPreterminals();
         for (int i = 0; i < sentLen; i++)
           addUnariesAndStopProbs(i,i);
       }
-    */
     // END BEAM-WIDENING CODE
     try {
       for (int span = 2; span <= sentLen; span++) {
@@ -1172,8 +1194,8 @@ public class Decoder implements Serializable {
     CKYItem potentialTopItem = (CKYItem)chart.getTopItem(0, sentLen - 1);
     if (potentialTopItem != null && potentialTopItem.label() == topSym)
       topRankedItem = potentialTopItem;
-    CKYItem[] sortedItems = null;
-    int numSortedItems = 0;
+    sortedItems = null;
+    numSortedItems = 0;
     if (kBest > 1 && topRankedItem != null) {
       int numSentSpanItems = chart.numItems(0, sentLen - 1);
       sortedItems = new CKYItem[numSentSpanItems];
@@ -1187,9 +1209,7 @@ public class Decoder implements Serializable {
     }
 
     // BEGIN BEAM-WIDENING CODE
-    /*
     }
-    */
     // END BEAM-WIDENING CODE
 
     if (debugTop)

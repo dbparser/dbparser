@@ -175,6 +175,10 @@ public abstract class AbstractTraining implements Training, Serializable {
    */
   protected Symbol traceTag = Symbol.add("*TRACE*");
 
+  // re-define all six of the data members below if '+' is an
+  // augmentatoin delimeter in the treebank(s) intended to be usd byte
+  // the concrete language package
+
   /** Data member returned by the accessor method of the same name. */
   private Symbol startSym = Symbol.add("+START+");
   /** Data member returned by the accessor method of the same name. */
@@ -2245,6 +2249,21 @@ public abstract class AbstractTraining implements Training, Serializable {
   }
 
   /**
+   * A hook for subclasses to have their own custom metadata types.
+   * The default version here does nothing.
+   *
+   * @param dataType the symbol representing the data type for this
+   * metadata entry
+   * @param metadataLen the length of the list of the specified
+   * metadata entry
+   * @param metadata the list of a metadata entry to be processed
+   * by a subclass, if the data type is recognized
+   */
+  protected void readMetadataHook(Symbol dataType,
+				  int metadataLen, SexpList metadata) {
+  }
+
+  /**
    * Reads metadata to fill in {@link #argContexts} and
    * {@link #semTagArgStopSet}.  Does no format
    * checking on the S-expressions of the metadata resource.
@@ -2275,7 +2294,9 @@ public abstract class AbstractTraining implements Training, Serializable {
 	  nodesToPrune.add(nodesToPruneList.get(i));
       }
       else {
-	// unrecognized data type
+	// unrecognized data type: call hook for subclass to (potentially)
+	// recognize
+	readMetadataHook(dataType, metadataLen, metadata);
       }
     }
     createArgAugmentationsList();

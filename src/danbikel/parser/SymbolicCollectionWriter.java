@@ -1,5 +1,6 @@
 package danbikel.parser;
 
+import danbikel.util.Text;
 import danbikel.lisp.*;
 import java.io.*;
 import java.util.*;
@@ -9,27 +10,26 @@ import java.util.*;
  * or a <code>Set</code> in an S-expression format.
  */
 public class SymbolicCollectionWriter implements Serializable {
+  private final static String lineSep = System.getProperty("line.separator");
+  private final static char[] zeroCharArr = new char[0];
+
+
   private SymbolicCollectionWriter() {}
 
   /**
    * Writes out the contents of the specified set in an S-expression format.
    * The S-expression will have the form
    * <pre>
-   * (name (element1
-   *        element2
-   *        ...
-   *        elementN))
+   * (name (element1 element2 elementN))
    * </pre>
    * or
    * <pre>
-   * (element1
-   *  element2
-   *  ...
-   *  elementN)
+   * (element1 element2  ... elementN)
    * </pre>
    * if the specified name is <tt>null</tt>, where <tt>element</tt><i>i</i>
-   * is the result of {@link #valueOf(obj)} for an object found in the
-   * specified set.
+   * is the result of {@link #valueOf(Object)} for an object found in the
+   * specified set, and where a single space character separates set elements.
+   *
    * @param set the set to write out to the specified character writer
    * @param name the name of the set, or <tt>null</tt> if the set is to be
    * unnamed
@@ -39,22 +39,66 @@ public class SymbolicCollectionWriter implements Serializable {
    */
   public static void writeSet(Set set, Symbol name, Writer writer)
     throws IOException {
+    writeSet(set, name, writer, " ");
+  }
+
+  /**
+   * Writes out the contents of the specified set in an S-expression format.
+   * The S-expression will have the form
+   * <pre>
+   * (name (element1 element2 elementN))
+   * </pre>
+   * or
+   * <pre>
+   * (element1 element2  ... elementN)
+   * </pre>
+   * if the specified name is <tt>null</tt>, where <tt>element</tt><i>i</i>
+   * is the result of {@link #valueOf(Object)} for an object found in the
+   * specified set.<br>
+   *
+   * @param set the set to write out to the specified character writer
+   * @param name the name of the set, or <tt>null</tt> if the set is to be
+   * unnamed
+   * @param writer the character writer to which to output the specified set
+   * as an S-expression
+   * @param sep the string to separate set elements
+   * @throws IOException if the specified writer throws an
+   * <code>IOException</code> during writing
+   * @throws IllegalArgumentException if the specified separator string
+   * does not consist entirely of whitespace characters
+   */
+  public static void writeSet(Set set, Symbol name, Writer writer, String sep)
+      throws IOException {
+    if (!Text.isAllWhitespace(sep)) {
+      String className = SymbolicCollectionWriter.class.getName();
+      throw new IllegalArgumentException(className +
+					 ": error: separator has " +
+					 "non-whitespace character");
+    }
+
     writer.write("(");
     if (name != null) {
       writer.write(name.toString());
       writer.write(" (");
     }
-    int initWhitespaceSize = (name == null ? 1 : name.toString().length() + 3);
-    char[] initWhitespaceArr = new char[initWhitespaceSize];
-    Arrays.fill(initWhitespaceArr, ' ');
+
+    char[] initWhitespaceArr = zeroCharArr;
+    // if the separator is the system-dependent line separator, then we do
+    // some nice formatting, indenting every element the same amount
+    if (sep.equals(lineSep)) {
+      int initWhitespaceSize = (name == null ? 1 : name.toString().length() + 3);
+      initWhitespaceArr = new char[initWhitespaceSize];
+      Arrays.fill(initWhitespaceArr, ' ');
+    }
     String initWhitespaceStr = new String(initWhitespaceArr);
+
     Iterator it = set.iterator();
     for (boolean first = true; it.hasNext(); first = false) {
       if (!first)
 	writer.write(initWhitespaceStr);
       writer.write(valueOf(it.next()));
       if (it.hasNext())
-	writer.write("\n");
+	writer.write(sep);
     }
     if (name != null)
       writer.write(")");

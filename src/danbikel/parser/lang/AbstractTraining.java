@@ -449,6 +449,30 @@ public abstract class AbstractTraining implements Training, Serializable {
     return isValidTree(tree) ? null : "invalid tree";
   }
 
+  public Sexp transformSubjectNTs(Sexp tree) {
+    if (treebank.isPreterminal(tree))
+      return tree;
+    if (tree.isList()) {
+      SexpList treeList = tree.list();
+      int treeListLen = treeList.length();
+
+      for (int childIdx = 1; childIdx < treeListLen; childIdx++)
+        transformSubjectNTs(treeList.get(childIdx));
+
+      Symbol parent = tree.list().first().symbol();
+      Nonterminal parsedParent =
+        Language.treebank().parseNonterminal(parent, nonterminal);
+      Symbol sbjAug = Language.treebank().subjectAugmentation();
+      if (parsedParent.augmentations.contains(sbjAug)) {
+        Symbol newParent = Symbol.add(parsedParent.base + sbjAug.toString());
+        parsedParent.base = newParent;
+        tree.list().set(0, parsedParent.toSymbol());
+      }
+    }
+    return tree;
+  }
+
+
   /**
    * Returns <code>true</code> if the specified label is a node to prune.
    */

@@ -1236,11 +1236,9 @@ public class EMDecoder extends Decoder {
     // as long as there are children and we haven't reached the numPrevMods
     // limit, set elements of prevModList, starting at index 0
     for (SLNode curr = modChildren; curr != null && i < numPrevMods; ) {
-      Symbol currMod = (curr.data() == null ? stopSym :
-			(Symbol)((EMItem)curr.data()).label());
       Symbol prevMod = (curr.next() == null ? startSym :
 			(Symbol)((EMItem)curr.next().data()).label());
-      if (!Shifter.skip(item, prevMod, currMod)) {
+      if (!Shifter.skip(item, prevMod)) {
 	prevMods.add(prevMod);
 	i++;
       }
@@ -1272,11 +1270,9 @@ public class EMDecoder extends Decoder {
     // as long as there are children and we haven't reached the numPrevWords
     // limit, set elements of wordList, starting at index 0 (i = 0, initially)
     for (SLNode curr = modChildren; curr!=null && i < numPrevWords;) {
-      Word currWord = (curr.data() == null ? stopWord :
-		       ((EMItem)curr.data()).headWord());
       Word prevWord = (curr.next() == null ? startWord :
 		       (Word)((EMItem)curr.next().data()).headWord());
-      if (!Shifter.skip(item, prevWord, currWord))
+      if (!Shifter.skip(item, prevWord))
 	wordList.set(i++, prevWord);
       curr = curr.next();
     }

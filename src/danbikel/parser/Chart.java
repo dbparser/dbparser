@@ -327,8 +327,10 @@ public abstract class Chart implements Serializable {
 	  it.remove();
 	  reclaimItem(currItem);
 	}
+	/*
 	else
 	  break;
+	*/
       }
     }
     if (cellLimit > 0) {

@@ -30,7 +30,7 @@ import java.io.*;
  * need only override {@link #getNewEntry(int,Object,HashMapPrimitive.Entry)}
  * to return an object that is a concrete subclass of
  * {@link HashMapPrimitive.Entry}.  The following is Sun's <code>HashMap</code>
- * API documentation.
+ * API documentation.<p>
  *
  * Hash table based implementation of the <tt>Map</tt> interface.  This
  * implementation provides all of the optional map operations, and permits
@@ -1324,7 +1324,7 @@ abstract public class HashMapPrimitive extends AbstractMapToPrimitive
    * It does not support the <tt>add</tt> or <tt>addAll</tt> operations.
    *
    * @return a collection view of the mappings contained in this map.
-   * @see Map.Entry
+   * @see java.util.Map.Entry
    */
   public Set entrySet() {
     if (entrySet==null) {

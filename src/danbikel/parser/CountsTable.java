@@ -9,7 +9,7 @@ import java.util.*;
  * Provides a mapping between objects and integer counts that may be
  * incremented or decremented.
  */
-public class CountsTable extends danbikel.util.HashMap {
+public class CountsTable extends danbikel.util.HashMapInt {
   /**
    * Constructs an empty <code>CountsTable</code>.
    */
@@ -40,61 +40,6 @@ public class CountsTable extends danbikel.util.HashMap {
    */
   public CountsTable(int initialCapacity, float loadFactor) {
     super(initialCapacity, loadFactor);
-  }
-
-  /**
-   * Adds the specified object to this counts table with an initial count
-   * of 1.
-   *
-   * @param o the object to add
-   */
-  public final void add(Object o) {
-    add(o, 1);
-  }
-
-  /**
-   * Adds the specified object to this counts table with the specified
-   * count.  If the object is already in this counts table, then its count
-   * is incremented by the specified count; if <code>count</code> is negative
-   * then the object's counts is decremented.
-   *
-   * @param o the object to add
-   * @param count the amount by which to increment <code>o</code>'s count
-   */
-  public final void add(Object o, int count) {
-    IntCounter counter = (IntCounter)get(o);
-    if (counter == null)
-      super.put(o, new IntCounter(count));
-    else
-      counter.increment(count);
-  }
-
-  /**
-   * Adds the specified key-value mapping to this map.  Invoking this method
-   * with a key that is not an instance of <code>IntCounter</code> will cause
-   * a runtime error.
-   *
-   * @deprecated This method has been overridden so that
-   * <code>CountsTable</code> objects may not be used as normal
-   * <code>HashMap</code> objects.
-   */
-  public Object put(Object key, Object value) {
-    if (!(value instanceof IntCounter))
-      return new IllegalArgumentException("value must be IntCounter");
-    else
-      return super.put(key, value);
-  }
-
-  /**
-   * Returns the counts of the specified object.
-   *
-   * @param o the object whose count is to be retrieved
-   * @return the count of object <code>o</code> if it exists in this
-   * counts table, or 0 if it does not exist
-   */
-  public final int count(Object o) {
-    IntCounter counter = (IntCounter)get(o);
-    return ((counter == null) ? 0 : counter.get());
   }
 
   /**

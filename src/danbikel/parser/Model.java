@@ -40,7 +40,7 @@ public class Model implements Serializable {
    * to be operating with a model trained from the same data.  In such a case,
    * the set of history contexts observed during the training run that produced
    * the smoothing parameters would be identical to the set of history contexts
-   * encountered when trainiing again on that same data.  However, there are
+   * encountered when training again on that same data.  However, there are
    * circumstances when a history context observed in the smoothing training
    * run would not be observed in the subsequent training run, such as when
    * performing EM there is, for example, a long sentence with lots of
@@ -53,19 +53,44 @@ public class Model implements Serializable {
    * iteration.
    */
   protected final static boolean warnSmoothingHasHistoryNotInTraining = false;
+  /**
+   * Indicates whether to set {@link #counts} to <code>null</code> just before
+   * writing this model object to an {@link ObjectOutputStream}.  Normally,
+   * this boolean should be <tt>true</tt>, but setting it to <tt>false</tt> can
+   * be useful for debugging purposes.
+   *
+   * @see AnalyzeDisns
+   */
+  protected final static boolean deleteCountsWhenPrecomputingProbs = false;
+  /** The boolean value of {@link Settings#precomputeProbs}, cached here
+      for convenience. */
   protected final static boolean precomputeProbs =
-    Boolean.valueOf(Settings.get(Settings.precomputeProbs)).booleanValue();
-  private final static boolean deficientEstimation;
-  static {
-    String deficientEstimationString =
-      Settings.get(Settings.collinsDeficientEstimation);
-    deficientEstimation =
-      Boolean.valueOf(deficientEstimationString).booleanValue();
-  }
+    Settings.getBoolean(Settings.precomputeProbs);
+  private final static boolean deficientEstimation =
+    Settings.getBoolean(Settings.collinsDeficientEstimation);
   protected final static boolean useCache = true;
   private final static int minCacheSize = 1000;
   private final static boolean doGCBetweenCanonicalizations = false;
-  private final static boolean saveBackOffMap = false;
+  /**
+   * If <tt>true</tt>, indicates that {@link #backOffMap} should not be set to
+   * null after probabilities have been precomputed, which means that it will
+   * be saved with this {@link Model} instance (for debugging purposes);
+   * otherwise, {@link #backOffMap} is set to <code>null</code> just after
+   * precomputation of probabilities.  Normally, the value of this boolean
+   * should be <tt>false</tt>.  The value of this boolean is only consulted
+   * when {@link Settings#precomputeProbs} is <tt>true</tt>.
+   */
+  protected final static boolean saveBackOffMap = false;
+  /**
+   * Indicates whether the {@link #histBackOffMap} should be created when
+   * precomputing probabilities and saved with this {@link Model}
+   * for debugging purposes.  Normally, the value of this boolean should be
+   * <tt>false</tt>. The value of this boolean is only consulted when
+   * {@link Settings#precomputeProbs} is <tt>true</tt>.
+   *
+   * @see AnalyzeDisns
+   */
+  protected final static boolean createHistBackOffMap = true;
 
   private final static int structureMapArrSize = 1000;
 
@@ -108,8 +133,19 @@ public class Model implements Serializable {
    * when precomputing probs (and are necessary for incremental training).
    *
    * @see #savePrecomputeData(CountsTable,Filter)
+   * @see #saveBackOffMap
    */
   protected java.util.HashMap[] backOffMap;
+  /**
+   * A set of {@link #numLevels}<code>&nbsp;-&nbsp;1</code> maps, where map
+   * <i>i</i> is a map from back-off level <i>i</i> histories to
+   * <i>i</i>&nbsp;+&nbsp;1 histories.  These maps are not necessary
+   * for precomputing probabilities, but can be useful when debugging.
+   *
+   * @see #createHistBackOffMap
+   * @see #savePrecomputeData(CountsTable,Filter)
+   */
+  protected java.util.HashMap[] histBackOffMap;
 
   // for temporary storage of histories (so we don't have to copy histories
   // created by deriveHistories() to create transition objects)
@@ -195,6 +231,12 @@ public class Model implements Serializable {
     backOffMap = new java.util.HashMap[numLevels - 1];
     for (int i = 0; i < backOffMap.length; i++) {
       backOffMap[i] = new java.util.HashMap();
+    }
+    if (createHistBackOffMap) {
+      histBackOffMap = new java.util.HashMap[numLevels - 1];
+      for (int i = 0; i < backOffMap.length; i++) {
+	histBackOffMap[i] = new java.util.HashMap();
+      }
     }
   }
 
@@ -356,7 +398,7 @@ public class Model implements Serializable {
 	}
       }
     }
-    else {
+    if (!(precomputeProbs && deleteCountsWhenPrecomputingProbs)) {
       for (int level = 0; level < numLevels; level++) {
 	BiCountsTable histories = counts[level].history();
 	Iterator it = histories.keySet().iterator();
@@ -490,6 +532,44 @@ public class Model implements Serializable {
 	lambdaEntry = precomputedLambdas[level].getEntry(history);
 	logLambda += (lambdaEntry == null ? logOneMinusLambdaPenalty[level] :
 		      lambdaEntry.getDoubleValue());
+      }
+    }
+    return Constants.logOfZero;
+  }
+
+  /**
+   * Estimates the log prob of the specified transition using precomputed
+   * probabilities and lambdas and {@link #histBackOffMap} (debugging method).
+   * <b>N.B.</b>: The history contained within the specified transition
+   * <i>must</i> have been observed during training (but not necessarily with
+   * the particular future contained in the specified transition).
+   *
+   * @param transition the transition for which to get a smoothed
+   * log-probability estimate
+   * @param atLevel the back-off level of the specified transition
+   *
+   * @see #histBackOffMap
+   * @see #createHistBackOffMap
+   */
+  protected double estimateLogProbUsingPrecomputed(Transition transition,
+						   int atLevel) {
+    MapToPrimitive.Entry transEntry = null, lambdaEntry = null;
+    double logLambda = 0.0;
+    int lastLevel = numLevels - 1;
+    for (int level = atLevel; level < numLevels; level++) {
+      transEntry = precomputedProbs[level].getEntry(transition);
+      if (transEntry != null)
+	return logLambda + transEntry.getDoubleValue();
+      else if (level < lastLevel) {
+	Event history = transition.history();
+	lambdaEntry = precomputedLambdas[level].getEntry(history);
+	logLambda += (lambdaEntry == null ? logOneMinusLambdaPenalty[level] :
+		      lambdaEntry.getDoubleValue());
+	Event backOffHist = (Event)histBackOffMap[level].get(history);
+	if (backOffHist == null)
+	  System.err.println(shortStructureClassName +
+			     ": couldn't get back-off history from " + history);
+	transition = new Transition(transition.future(), backOffHist);
       }
     }
     return Constants.logOfZero;
@@ -862,6 +942,19 @@ public class Model implements Serializable {
         currTrans = (Transition)transEntry.getKey();
         if (level > 0) {
           backOffMap[level - 1].put(oldTrans, currTrans);
+	  if (createHistBackOffMap) {
+	    // sanity check
+	    /*
+	    Event backOffHist =
+	      (Event)histBackOffMap[level - 1].get(oldTrans.history());
+	    if (backOffHist != null && !backOffHist.equals(currTrans.history()))
+	      System.err.println("UH-OH: " + oldTrans.history() + " --> " +
+				 backOffHist + " but now --> " +
+				 currTrans.history());
+	    */
+	    histBackOffMap[level - 1].put(oldTrans.history(),
+					  currTrans.history());
+	  }
 	}
       }
     }
@@ -1359,6 +1452,14 @@ public class Model implements Serializable {
   public ProbabilityStructure getProbStructure() { return structure; }
 
   /**
+   * Returns <tt>1</tt>, as this object does not contain any other,
+   internal <code>Model</code> instances.
+   */
+  public int numModels() {
+    return 1;
+  }
+
+  /**
    * Returns this model object.
    * @param idx an unused parameter, as this object does not contain any other,
    * internal <code>Model</code> instances.
@@ -1398,7 +1499,7 @@ public class Model implements Serializable {
 
   private void writeObject(java.io.ObjectOutputStream s)
     throws IOException {
-    if (precomputeProbs)
+    if (precomputeProbs && deleteCountsWhenPrecomputingProbs)
       counts = null;
     s.defaultWriteObject();
   }

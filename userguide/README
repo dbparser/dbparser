@@ -120,10 +120,10 @@ out-of-the-box, requiring a few caveats:
 
 	1. Most batch queues copy a batch script before executing it, which
 	   breaks any reliance on the $0 variable.  Accordingly, you may have
-	   to modify the script to hard-code paths for the dir variable (near
-	   the beginning of the script).  Alternatively, you can use
-	   the simple wrapper script (called, conveniently enough, "wrapper")
-	   to avoid this problem.
+	   to modify the script to hard-code paths for the scriptDir variable
+	   (near the beginning of the script).  Alternatively, you can use the
+	   simple wrapper script (called, conveniently enough, "wrapper") to
+	   avoid this problem.
 
 	2. The script uses ssh for logging into nodes, and assumes that it will
 	   not need to enter a password for doing so.  The remote shell

@@ -1,8 +1,10 @@
 package danbikel.util;
 
+import java.io.*;
 import java.util.*;
 
-public class FixedSizeArrayList extends AbstractFixedSizeList {
+public class FixedSizeArrayList
+  extends AbstractFixedSizeList implements Serializable {
   protected Object[] data;
   protected int startIdx;
 

@@ -1,8 +1,10 @@
 package danbikel.util;
 
+import java.io.*;
 import java.util.*;
 
-public class FixedSizeSingletonList extends AbstractFixedSizeList {
+public class FixedSizeSingletonList
+  extends AbstractFixedSizeList implements Serializable {
   protected Object obj;
 
   public FixedSizeSingletonList(int size) {

@@ -44,9 +44,7 @@ public interface DecoderServerRemote extends Server {
 
   public ProbabilityStructure rightSubcatProbStructure() throws RemoteException;
 
-  public ProbabilityStructure leftModNonterminalProbStructure() throws RemoteException;
-
-  public ProbabilityStructure rightModNonterminalProbStructure() throws RemoteException;
+  public ProbabilityStructure modNonterminalProbStructure() throws RemoteException;
 
   /** Returns a test probability (for debugging purposes). */
   public double testProb() throws RemoteException;
@@ -92,37 +90,9 @@ public interface DecoderServerRemote extends Server {
    */
   public double logProbTop(int id, TrainerEvent event) throws RemoteException;
 
-  /**
-   * Returns the log of the probability of generating a right modifier.
-   *
-   * @param id the unique id of the client invoking the method
-   * @param event the top-level <code>TrainerEvent</code>, containing the
-   * complete context needed to compute the requested probability
-   * @return the log of the probability of generating a new right modifier
-   */
-  public double logProbRight(int id, TrainerEvent event) throws RemoteException;
+  public double logProbMod(int id, TrainerEvent event) throws RemoteException;
 
-  public double logProbRightModNT(int id, TrainerEvent event)
-    throws RemoteException;
-
-  /**
-   * Returns the log of the probability of generating a left modifier.
-   *
-   * @param id the unique id of the client invoking the method
-   * @param event the top-level <code>TrainerEvent</code>, containing the
-   * complete context needed to compute the requested probability
-   * @return the log of the probability of generating a new left modifier
-   */
-  public double logProbLeft(int id, TrainerEvent event) throws RemoteException;
-
-  public double logProbLeftModNT(int id, TrainerEvent event)
-    throws RemoteException;
-
-  public double logProbMod(int id, TrainerEvent event, boolean side)
-    throws RemoteException;
-
-  public double logProbModNT(int id, TrainerEvent event, boolean side)
-    throws RemoteException;
+  public double logProbModNT(int id, TrainerEvent event) throws RemoteException;
 
   /**
    * Returns the log of the probability of generating a gap.

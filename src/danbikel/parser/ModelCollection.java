@@ -1,7 +1,8 @@
 package danbikel.parser;
 
+import danbikel.util.Time;
 import danbikel.lisp.*;
-import java.io.Serializable;
+import java.io.*;
 import java.util.*;
 
 /**
@@ -12,32 +13,36 @@ import java.util.*;
  * to a Java object file.
  */
 public class ModelCollection implements Serializable {
-  // data members
-  private Model lexPriorModel;
-  private Model nonterminalPriorModel;
-  private Model topNonterminalModel;
-  private Model topLexModel;
-  private Model headModel;
-  private Model gapModel;
-  private Model leftSubcatModel;
-  private Model rightSubcatModel;
-  private Model leftModNonterminalModel;
-  private Model rightModNonterminalModel;
-  private Model leftModWordModel;
-  private Model rightModWordModel;
-  private CountsTable vocabCounter;
-  private CountsTable wordFeatureCounter;
-  private CountsTable nonterminals;
-  private Map posMap;
-  private Map leftSubcatMap;
-  private Map rightSubcatMap;
-  private Map leftModNonterminalMap;
-  private Map rightModNonterminalMap;
-  private Set prunedPreterms;
-  private Set prunedPunctuation;
-  private Map canonicalEvents;
 
-  // derived data
+  // constants
+  private final static boolean verbose = true;
+
+  // data members
+  private transient Model lexPriorModel;
+  private transient Model nonterminalPriorModel;
+  private transient Model topNonterminalModel;
+  private transient Model topLexModel;
+  private transient Model headModel;
+  private transient Model gapModel;
+  private transient Model leftSubcatModel;
+  private transient Model rightSubcatModel;
+  private transient Model leftModNonterminalModel;
+  private transient Model rightModNonterminalModel;
+  private transient Model leftModWordModel;
+  private transient Model rightModWordModel;
+  private transient CountsTable vocabCounter;
+  private transient CountsTable wordFeatureCounter;
+  private transient CountsTable nonterminals;
+  private transient Map posMap;
+  private transient Map leftSubcatMap;
+  private transient Map rightSubcatMap;
+  private transient Map leftModNonterminalMap;
+  private transient Map rightModNonterminalMap;
+  private transient Set prunedPreterms;
+  private transient Set prunedPunctuation;
+  private transient Map canonicalEvents;
+
+  // derived transient data
   // maps from integers to nonterminals and nonterminals to integers
   private Map nonterminalMap;
   private Symbol[] nonterminalArr;
@@ -177,4 +182,368 @@ public class ModelCollection implements Serializable {
   public Set prunedPunctuation() { return prunedPunctuation; }
 
   public Map canonicalEvents() { return canonicalEvents; }
+
+
+  private void writeObject(java.io.ObjectOutputStream s)
+    throws IOException {
+    Time totalTime = null;
+    if (verbose)
+      totalTime = new Time();
+
+    s.defaultWriteObject();
+
+    Time tempTimer = null;
+    if (verbose)
+      tempTimer = new Time();
+
+    if (verbose) {
+      System.err.print("Writing out canonicalEvents...");
+      tempTimer.reset();
+    }
+    boolean precomputeProbs =
+      Boolean.valueOf(Settings.get(Settings.precomputeProbs)).booleanValue();
+    if (precomputeProbs)
+      canonicalEvents = null;
+    s.writeObject(canonicalEvents);
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Writing out lexPriorModel...");
+      tempTimer.reset();
+    }
+    s.writeObject(lexPriorModel);
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Writing out nonterminalPriorModel...");
+      tempTimer.reset();
+    }
+    s.writeObject(nonterminalPriorModel);
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Writing out topNonterminalModel...");
+      tempTimer.reset();
+    }
+    s.writeObject(topNonterminalModel);
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Writing out topLexModel...");
+      tempTimer.reset();
+    }
+    s.writeObject(topLexModel);
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Writing out headModel...");
+      tempTimer.reset();
+    }
+    s.writeObject(headModel);
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Writing out gapModel...");
+      tempTimer.reset();
+    }
+    s.writeObject(gapModel);
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Writing out leftSubcatModel...");
+      tempTimer.reset();
+    }
+    s.writeObject(leftSubcatModel);
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Writing out rightSubcatModel...");
+      tempTimer.reset();
+    }
+    s.writeObject(rightSubcatModel);
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Writing out leftModNonterminalModel...");
+      tempTimer.reset();
+    }
+    s.writeObject(leftModNonterminalModel);
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Writing out rightModNonterminalModel...");
+      tempTimer.reset();
+    }
+    s.writeObject(rightModNonterminalModel);
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Writing out leftModWordModel...");
+      tempTimer.reset();
+    }
+    s.writeObject(leftModWordModel);
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Writing out rightModWordModel...");
+      tempTimer.reset();
+    }
+    s.writeObject(rightModWordModel);
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Writing out vocabCounter...");
+      tempTimer.reset();
+    }
+    s.writeObject(vocabCounter);
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Writing out wordFeatureCounter...");
+      tempTimer.reset();
+    }
+    s.writeObject(wordFeatureCounter);
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Writing out nonterminals...");
+      tempTimer.reset();
+    }
+    s.writeObject(nonterminals);
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Writing out posMap...");
+      tempTimer.reset();
+    }
+    s.writeObject(posMap);
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Writing out leftSubcatMap...");
+      tempTimer.reset();
+    }
+    s.writeObject(leftSubcatMap);
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Writing out rightSubcatMap...");
+      tempTimer.reset();
+    }
+    s.writeObject(rightSubcatMap);
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Writing out leftModNonterminalMap...");
+      tempTimer.reset();
+    }
+    s.writeObject(leftModNonterminalMap);
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Writing out rightModNonterminalMap...");
+      tempTimer.reset();
+    }
+    s.writeObject(rightModNonterminalMap);
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Writing out prunedPreterms...");
+      tempTimer.reset();
+    }
+    s.writeObject(prunedPreterms);
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Writing out prunedPunctuation...");
+      tempTimer.reset();
+    }
+    s.writeObject(prunedPunctuation);
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    /*
+    if (verbose)
+      System.err.println("Total time writing out ModelCollection object: " +
+                         totalTime + ".");
+    */
+  }
+
+  private void readObject(java.io.ObjectInputStream s)
+    throws IOException, ClassNotFoundException {
+    Time totalTime = null;
+    if (verbose)
+      totalTime = new Time();
+
+    s.defaultReadObject();
+
+    Time tempTimer = null;
+    if (verbose)
+      tempTimer = new Time();
+
+    if (verbose) {
+      System.err.print("Reading canonicalEvents...");
+      tempTimer.reset();
+    }
+    canonicalEvents = (Map)s.readObject();
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Reading lexPriorModel...");
+      tempTimer.reset();
+    }
+    lexPriorModel = (Model)s.readObject();
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Reading nonterminalPriorModel...");
+      tempTimer.reset();
+    }
+    nonterminalPriorModel = (Model)s.readObject();
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Reading topNonterminalModel...");
+      tempTimer.reset();
+    }
+    topNonterminalModel = (Model)s.readObject();
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Reading topLexModel...");
+      tempTimer.reset();
+    }
+    topLexModel = (Model)s.readObject();
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Reading headModel...");
+      tempTimer.reset();
+    }
+    headModel = (Model)s.readObject();
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Reading gapModel...");
+      tempTimer.reset();
+    }
+    gapModel = (Model)s.readObject();
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Reading leftSubcatModel...");
+      tempTimer.reset();
+    }
+    leftSubcatModel = (Model)s.readObject();
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Reading rightSubcatModel...");
+      tempTimer.reset();
+    }
+    rightSubcatModel = (Model)s.readObject();
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Reading leftModNonterminalModel...");
+      tempTimer.reset();
+    }
+    leftModNonterminalModel = (Model)s.readObject();
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Reading rightModNonterminalModel...");
+      tempTimer.reset();
+    }
+    rightModNonterminalModel = (Model)s.readObject();
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Reading leftModWordModel...");
+      tempTimer.reset();
+    }
+    leftModWordModel = (Model)s.readObject();
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Reading rightModWordModel...");
+      tempTimer.reset();
+    }
+    rightModWordModel = (Model)s.readObject();
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Reading vocabCounter...");
+      tempTimer.reset();
+    }
+    vocabCounter = (CountsTable)s.readObject();
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Reading wordFeatureCounter...");
+      tempTimer.reset();
+    }
+    wordFeatureCounter = (CountsTable)s.readObject();
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Reading nonterminals...");
+      tempTimer.reset();
+    }
+    nonterminals = (CountsTable)s.readObject();
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Reading posMap...");
+      tempTimer.reset();
+    }
+    posMap = (Map)s.readObject();
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Reading leftSubcatMap...");
+      tempTimer.reset();
+    }
+    leftSubcatMap = (Map)s.readObject();
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Reading rightSubcatMap...");
+      tempTimer.reset();
+    }
+    rightSubcatMap = (Map)s.readObject();
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Reading leftModNonterminalMap...");
+      tempTimer.reset();
+    }
+    leftModNonterminalMap = (Map)s.readObject();
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Reading rightModNonterminalMap...");
+      tempTimer.reset();
+    }
+    rightModNonterminalMap = (Map)s.readObject();
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Reading prunedPreterms...");
+      tempTimer.reset();
+    }
+    prunedPreterms = (Set)s.readObject();
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Reading prunedPunctuation...");
+      tempTimer.reset();
+    }
+    prunedPunctuation = (Set)s.readObject();
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+
+    if (verbose)
+      System.err.println("Total time reading ModelCollection object: " +
+                         totalTime + ".");
+  }
 }

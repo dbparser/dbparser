@@ -14,8 +14,8 @@ endif
 #set java = java
 set java = (java -server)
 set class = danbikel.parser.Trainer
-set minHeap = 100
 set maxHeap = $1
+set minHeap = $maxHeap
 set inFile = $2
 set oFile = $inFile:r.observed
 set odFile = $inFile:r.obj

@@ -347,6 +347,14 @@ public class CKYItem extends Item implements SexpConvertible {
     }
   };
 
+  public static class KBestHack extends MappedPrevModBaseNPAware {
+    public KBestHack() {
+      super();
+    }
+    public int hashCode() { return System.identityHashCode(this); }
+    public boolean equals(Object obj) { return this == obj; }
+  };
+
   // constants
   private final static int outputPrecision = 14;
 

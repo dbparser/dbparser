@@ -1421,7 +1421,7 @@ public class Switchboard
    * <p>
    * This is a convenience method that calls {@link
    * #setSettings(Properties)}, {@link #setEncoding(String)}, {@link
-   * #export} and then <code>Nameing.rebind</code>.  By using this
+   * #export} and then <code>Naming.rebind</code>.  By using this
    * method, a class that kick-starts a switchboard need only
    * construct one, call this method and then (optionally) repeatedly
    * call <code>processFile</code> until

@@ -119,6 +119,12 @@ public class Decoder implements Serializable {
   protected CKYChart chart;
   /** The map from vocabulary items to their possible parts of speech. */
   protected Map posMap;
+  /**
+   * A cache derived from {@link posMap} that is a map of (presumably
+   * closed-class) parts of speech to random example words observed with
+   * the part of speech from which they are mapped.
+   */
+  protected Map posToExampleWordMap;
   /** The set of possible parts of speech, derived from {@link #posMap}. */
   protected Set posSet;
   /**
@@ -187,17 +193,37 @@ public class Decoder implements Serializable {
   protected boolean useLowFreqTags =
     Boolean.valueOf(Settings.get(Settings.useLowFreqTags)).booleanValue();
   /**
+   * The boolean value of the
+   * {@link Settings#decoderSubstituteWordsForClosedClassTags} setting.
+   */
+  protected boolean substituteWordsForClosedClassTags;
+  {
+    String substituteWordsForClosedClassTagsStr =
+      Settings.get(Settings.decoderSubstituteWordsForClosedClassTags);
+    substituteWordsForClosedClassTags =
+      Boolean.valueOf(substituteWordsForClosedClassTagsStr).booleanValue();
+  }
+  /**
    * The boolean value of the {@link Settings#decoderUseOnlySuppliedTags}
    * setting.
    */
-  protected boolean useOnlySuppliedTags =
-    Boolean.valueOf(Settings.get(Settings.decoderUseOnlySuppliedTags)).booleanValue();
+  protected boolean useOnlySuppliedTags;
+  {
+    String useOnlySuppliedTagsStr =
+      Settings.get(Settings.decoderUseOnlySuppliedTags);
+    useOnlySuppliedTags =
+      Boolean.valueOf(useOnlySuppliedTagsStr).booleanValue();
+  }
   /**
    * The boolean value of the {@link Settings#decoderUseHeadToParentMap}
    * setting.
    */
-  protected boolean useHeadToParentMap =
-    Boolean.valueOf(Settings.get(Settings.decoderUseHeadToParentMap)).booleanValue();
+  protected boolean useHeadToParentMap;
+  {
+    String useHeadToParentMapStr =
+      Settings.get(Settings.decoderUseHeadToParentMap);
+    useHeadToParentMap = Boolean.valueOf(useHeadToParentMapStr).booleanValue();
+  }
   /**
    * The value of {@link Training#startSym()}, cached here for efficiency
    * and convenience.
@@ -678,6 +704,36 @@ public class Decoder implements Serializable {
       conjForPruning[i] = false;
   }
 
+  /**
+   * Returns a known word that was observed with the specified part of speech
+   * tag.
+   *
+   * @param tag a part of speech tag for which an example word is to be found
+   * @return a word that was observed with the specified part of speech tag.
+   */
+  protected Symbol getExampleWordForTag(Symbol tag) {
+    // first, check cache.
+    Symbol word = (Symbol)posToExampleWordMap.get(tag);
+    if (word != null)
+      return word;
+
+    // run through posMap and find first known word that was observed with the
+    // specified tag
+    Iterator it = posMap.entrySet().iterator();
+    while (it.hasNext()) {
+      Map.Entry entry = (Map.Entry)it.next();
+      word = (Symbol)entry.getKey();
+      SexpList tags = (SexpList)entry.getValue();
+      if (tags.contains(tag)) {
+	if (downcaseWords)
+	  word = Symbol.get(word.toString().toLowerCase());
+	posToExampleWordMap.put(tag, word);
+	return word;
+      }
+    }
+    return null;
+  }
+
   protected SexpList getTagSet(SexpList tags, int wordIdx, Symbol word,
 			       boolean wordIsUnknown, Symbol origWord,
 			       HashSet tmpSet) {
@@ -773,6 +829,15 @@ public class Decoder implements Serializable {
       PriorEvent priorEvent = lookupPriorEvent;
       priorEvent.set(headWord, tag);
       double logPrior = server.logPrior(id, priorEvent);
+
+      if (substituteWordsForClosedClassTags &&
+	  numTags == 1 && wordIsUnknown && logPrior == logOfZero) {
+	Symbol exampleWord = getExampleWordForTag(tag);
+	headWord = getCanonicalWord(lookupWord.set(exampleWord, tag, features));
+	priorEvent.set(headWord, tag);
+	logPrior = server.logPrior(id, priorEvent);
+      }
+
       double logProb = logPrior; // technically, logPrior + logProbCertain
       item.set(tag, headWord,
 	       emptySubcat, emptySubcat, null, null,

@@ -10,6 +10,9 @@ import java.util.*;
  * (CKY) parsing.
  */
 public class CKYChart extends Chart {
+  // constants
+  private final static boolean collinsPruneHack = true;
+
   // constructors
 
   /**
@@ -45,7 +48,8 @@ public class CKYChart extends Chart {
     if ((currItem.leftChildren() != null || currItem.rightChildren() != null) &&
 	Language.treebank.isNP(label))
     */
-    if ((currItem.leftChildren() != null || currItem.rightChildren() != null) &&
+    if (collinsPruneHack &&
+	(currItem.leftChildren() != null || currItem.rightChildren() != null) &&
 	Language.treebank.stripAugmentation(label) ==
 	Language.treebank.NPLabel())
       return item.logProb() < topProb - pruneFact - 3;

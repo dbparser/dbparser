@@ -19,6 +19,17 @@ public class CKYItem extends Item implements SexpConvertible {
    * convenience.
    */
   protected final static Symbol baseNP = Language.treebank().baseNPLabel();
+
+  /**
+   * The value of {@link Training#topSym}, cached for efficiency and
+   * convenience.
+   */
+  protected final static Symbol topSym = Language.training().topSym();
+
+  protected final static byte containsVerbUndefined = 0;
+  protected final static byte containsVerbTrue = 1;
+  protected final static byte containsVerbFalse = -1;
+
   /**
    * The value of the property {@link Settings#numPrevMods}, cached here
    * for efficiency and convenience.
@@ -37,13 +48,20 @@ public class CKYItem extends Item implements SexpConvertible {
       super();
     }
 
+    public Symbol headLabel() {
+      if (isPreterminal())
+	return null;
+      return (headChild.label == baseNP ?
+	      headChild.headChild.label : headChild.label);
+    }
+
     public boolean equals(Object obj) {
       if (this == obj)
         return true;
       if (!(obj instanceof BaseNPAware))
         return false;
       BaseNPAware other = (BaseNPAware)obj;
-      if (stop && other.stop) {
+      if (this.label != topSym && stop && other.stop) {
         return (this.isPreterminal() == other.isPreterminal() &&
                 this.label == other.label &&
                 this.headWord.equals(other.headWord));
@@ -52,8 +70,7 @@ public class CKYItem extends Item implements SexpConvertible {
 	return (this.stop == other.stop &&
 		this.label == other.label &&
 		this.headWord.equals(other.headWord) &&
-		(this.headChild == null ||
-		 this.headChild.label == other.headChild.label) &&
+		this.headLabel() == other.headLabel() &&
 		this.leftPrevMods.equals(other.leftPrevMods) &&
                 this.rightPrevMods.equals(other.rightPrevMods) &&
 		this.prevWordsEqual(other));
@@ -65,8 +82,7 @@ public class CKYItem extends Item implements SexpConvertible {
                 this.rightVerb == other.rightVerb &&
 		this.label == other.label &&
 		this.headWord.equals(other.headWord) &&
-                (this.headChild == null ||
-		 this.headChild.label == other.headChild.label) &&
+                this.headLabel() == other.headLabel() &&
 		this.leftPrevMods.equals(other.leftPrevMods) &&
                 this.rightPrevMods.equals(other.rightPrevMods) &&
                 this.leftSubcat.equals(other.leftSubcat) &&
@@ -81,15 +97,16 @@ public class CKYItem extends Item implements SexpConvertible {
       code = (code << 2) ^ headWord.hashCode();
 
       // special case for stopped items
-      if (stop) {
+      if (label != topSym && stop) {
         code = (code << 1) | (isPreterminal() ? 1 : 0);
         return code;
       }
 
       // special case for baseNP items
       if (this.label == baseNP) {
-	if (headChild != null)
-	  code = (code << 2) ^ headChild.label().hashCode();
+	Symbol headLabel = headLabel();
+	if (headLabel != null)
+	  code = (code << 2) ^ headLabel.hashCode();
 	code = (code << 2) ^ leftPrevMods.hashCode();
 	code = (code << 2) ^ rightPrevMods.hashCode();
 	return code;
@@ -100,8 +117,9 @@ public class CKYItem extends Item implements SexpConvertible {
         code = (code << 2) ^ leftSubcat.hashCode();
       if (rightSubcat != null)
         code = (code << 2) ^ rightSubcat.hashCode();
-      if (headChild != null)
-        code = (code << 2) ^ headChild.label().hashCode();
+      Symbol headLabel = headLabel();
+      if (headLabel != null)
+        code = (code << 2) ^ headLabel.hashCode();
       code = (code << 2) ^ leftPrevMods.hashCode();
       code = (code << 2) ^ rightPrevMods.hashCode();
       int booleanCode = 0;
@@ -136,7 +154,7 @@ public class CKYItem extends Item implements SexpConvertible {
       if (!(obj instanceof PrevModIsStart))
 	return false;
       PrevModIsStart other = (PrevModIsStart)obj;
-      if (stop && other.stop) {
+      if (this.label != topSym && stop && other.stop) {
 	return (this.isPreterminal() == other.isPreterminal() &&
 		this.label == other.label &&
 		this.headWord.equals(other.headWord));
@@ -148,8 +166,7 @@ public class CKYItem extends Item implements SexpConvertible {
 		this.rightVerb == other.rightVerb &&
 		this.label == other.label &&
                 this.headWord.equals(other.headWord) &&
-		(this.headChild == null ||
-		 this.headChild.label == other.headChild.label) &&
+		this.headLabel() == other.headLabel() &&
 		this.leftPrevModIsStart() == other.leftPrevModIsStart() &&
 		this.rightPrevModIsStart() == other.rightPrevModIsStart() &&
 		this.leftSubcat.equals(other.leftSubcat) &&
@@ -175,7 +192,7 @@ public class CKYItem extends Item implements SexpConvertible {
       code = (code << 2) ^ headWord.hashCode();
 
       // special case for stopped items
-      if (stop) {
+      if (label != topSym && stop) {
 	code = (code << 1) | (isPreterminal() ? 1 : 0);
 	return code;
       }
@@ -185,8 +202,8 @@ public class CKYItem extends Item implements SexpConvertible {
 	code = (code << 2) ^ leftSubcat.hashCode();
       if (rightSubcat != null)
 	code = (code << 2) ^ rightSubcat.hashCode();
-      if (headChild != null)
-	code = (code << 2) ^ headChild.label().hashCode();
+      if (headLabel() != null)
+	code = (code << 2) ^ headLabel().hashCode();
       int booleanCode = 0;
       booleanCode = (booleanCode << 1) | (leftPrevModIsStart() ? 1 : 0);
       booleanCode = (booleanCode << 1) | (rightPrevModIsStart() ? 1 : 0);
@@ -205,6 +222,16 @@ public class CKYItem extends Item implements SexpConvertible {
     public MappedPrevModBaseNPAware() {
       super();
     }
+
+    /*
+    public Symbol headLabel() {
+      if (isPreterminal())
+	return null;
+      return (headChild.label == baseNP ?
+	      headChild.headChild.label : headChild.label);
+    }
+    */
+
     /**
      * Returns <code>true</code> if and only if the specified object is
      * also an instance of a <code>CKYItem</code> and all elements of
@@ -218,7 +245,7 @@ public class CKYItem extends Item implements SexpConvertible {
       if (!(obj instanceof MappedPrevModBaseNPAware))
 	return false;
       MappedPrevModBaseNPAware other = (MappedPrevModBaseNPAware)obj;
-      if (stop && other.stop) {
+      if (this.label != topSym && stop && other.stop) {
 	return (this.isPreterminal() == other.isPreterminal() &&
 		this.label == other.label &&
 		this.headWord.equals(other.headWord));
@@ -227,8 +254,7 @@ public class CKYItem extends Item implements SexpConvertible {
 	return (this.stop == other.stop &&
 		this.label == other.label &&
 		this.headWord.equals(other.headWord) &&
-		(this.headChild == null ||
-		 this.headChild.label == other.headChild.label) &&
+		this.headLabel() == other.headLabel() &&
 		this.leftPrevMods.equals(other.leftPrevMods) &&
 		this.rightPrevMods.equals(other.rightPrevMods) &&
 		this.prevWordsEqual(other));
@@ -240,8 +266,7 @@ public class CKYItem extends Item implements SexpConvertible {
 		this.rightVerb == other.rightVerb &&
 		this.label == other.label &&
 		this.headWord.equals(other.headWord) &&
-		(this.headChild == null ||
-		 this.headChild.label == other.headChild.label) &&
+		this.headLabel() == other.headLabel() &&
 		this.mappedPrevModsEqual(other) &&
 		this.leftSubcat.equals(other.leftSubcat) &&
 		this.rightSubcat.equals(other.rightSubcat));
@@ -268,14 +293,16 @@ public class CKYItem extends Item implements SexpConvertible {
       code = (code << 2) ^ headWord.hashCode();
 
       // special case for stopped items
-      if (stop) {
+      if (label != topSym && stop) {
 	code = (code << 1) | (isPreterminal() ? 1 : 0);
 	return code;
       }
+
       // special case for baseNP items
       if (this.label == baseNP) {
-	if (headChild != null)
-	  code = (code << 2) ^ headChild.label().hashCode();
+	Symbol headLabel = headLabel();
+	if (headLabel != null)
+	  code = (code << 2) ^ headLabel.hashCode();
 	code = (code << 2) ^ leftPrevMods.hashCode();
 	code = (code << 2) ^ rightPrevMods.hashCode();
 	return code;
@@ -286,8 +313,9 @@ public class CKYItem extends Item implements SexpConvertible {
 	code = (code << 2) ^ leftSubcat.hashCode();
       if (rightSubcat != null)
 	code = (code << 2) ^ rightSubcat.hashCode();
-      if (headChild != null)
-	code = (code << 2) ^ headChild.label().hashCode();
+      Symbol headLabel = headLabel();
+      if (headLabel != null)
+	code = (code << 2) ^ headLabel.hashCode();
       Symbol mappedLeftPrevMod = Collins.mapPrevMod(leftPrevMods.symbolAt(0));
       Symbol mappedRightPrevMod = Collins.mapPrevMod(rightPrevMods.symbolAt(0));
       code = (code << 2) ^ mappedLeftPrevMod.hashCode();
@@ -362,6 +390,9 @@ public class CKYItem extends Item implements SexpConvertible {
   /** The index of the last word of the span covered by this item. */
   protected int end;
 
+  /** The constraint associated with this chart item. */
+  protected Constraint constraint;
+
   /** The boolean indicating whether a verb intervenes between the head child
       and the currently-generated left-modifying child. */
   protected boolean leftVerb;
@@ -381,6 +412,8 @@ public class CKYItem extends Item implements SexpConvertible {
    * <code>Chart.add</code> may have a handle onto this item).
    */
   protected boolean garbage = false;
+
+  protected byte containsVerb = containsVerbUndefined;
 
   // constructors
 
@@ -491,6 +524,12 @@ public class CKYItem extends Item implements SexpConvertible {
     this.leftVerb = leftVerb;
     this.rightVerb = rightVerb;
     this.stop = stop;
+    containsVerb = containsVerbUndefined;
+  }
+
+  public Constraint getConstraint() { return constraint; }
+  public void setConstraint(Constraint constraint) {
+    this.constraint = constraint;
   }
 
   /** Returns the symbol that is the label of this chart item. */
@@ -538,7 +577,7 @@ public class CKYItem extends Item implements SexpConvertible {
 
   public Symbol headLabel() {
     if (isPreterminal())
-      throw new UnsupportedOperationException();
+      return null;
     return headChild.label;
   }
 
@@ -558,8 +597,24 @@ public class CKYItem extends Item implements SexpConvertible {
     return side == Constants.LEFT ? leftVerb : rightVerb;
   }
 
+  /*
   public boolean containsVerb() {
     return leftVerb || rightVerb || Language.treebank.isVerbTag(headWord.tag());
+  }
+  */
+
+  public boolean containsVerb() {
+    if (containsVerb == containsVerbUndefined)
+      containsVerb =
+	containsVerbRecursive() ? containsVerbTrue : containsVerbFalse;
+    return containsVerb == containsVerbTrue;
+  }
+
+  protected boolean containsVerbRecursive() {
+    return (this.label == baseNP ? false :
+	    (leftVerb || rightVerb ||
+	     (Language.treebank.isVerbTag(headWord.tag()) ||
+	      (headChild != null && headChild.containsVerb()))));
   }
 
   public int edgeIndex(boolean side) {
@@ -630,6 +685,7 @@ public class CKYItem extends Item implements SexpConvertible {
       this.leftVerb = verb;
     else
       this.rightVerb = verb;
+    containsVerb = containsVerbUndefined;
   }
 
   public void setSideInfo(boolean side,
@@ -665,7 +721,7 @@ public class CKYItem extends Item implements SexpConvertible {
     if (!(obj instanceof CKYItem))
       return false;
     CKYItem other = (CKYItem)obj;
-    if (stop && other.stop) {
+    if (this.label != topSym && stop && other.stop) {
       return (this.isPreterminal() == other.isPreterminal() &&
               this.label == other.label &&
               this.headWord.equals(other.headWord));
@@ -677,8 +733,7 @@ public class CKYItem extends Item implements SexpConvertible {
               this.rightVerb == other.rightVerb &&
    	      this.label == other.label &&
               this.headWord.equals(other.headWord) &&
-              (this.headChild == null ||
-  	       this.headChild.label == other.headChild.label) &&
+              this.headLabel() == other.headLabel() &&
   	      this.leftPrevMods.equals(other.leftPrevMods) &&
               this.rightPrevMods.equals(other.rightPrevMods) &&
               this.leftSubcat.equals(other.leftSubcat) &&
@@ -717,7 +772,7 @@ public class CKYItem extends Item implements SexpConvertible {
   public int hashCode() {
     int code = label.hashCode();
     code = (code << 2) ^ headWord.hashCode();
-    if (stop) {
+    if (label != topSym && stop) {
       code = (code << 1) | (isPreterminal() ? 1 : 0);
       return code;
     }
@@ -725,8 +780,9 @@ public class CKYItem extends Item implements SexpConvertible {
       code = (code << 2) ^ leftSubcat.hashCode();
     if (rightSubcat != null)
       code = (code << 2) ^ rightSubcat.hashCode();
-    if (headChild != null)
-      code = (code << 2) ^ headChild.label().hashCode();
+    Symbol headLabel = headLabel();
+    if (headLabel != null)
+      code = (code << 2) ^ headLabel.hashCode();
     code = (code << 2) ^ leftPrevMods.hashCode();
     code = (code << 2) ^ rightPrevMods.hashCode();
     int booleanCode = 0;
@@ -768,6 +824,7 @@ public class CKYItem extends Item implements SexpConvertible {
       "; lc=" + leftSubcat.toSexp() + "; rc=" + rightSubcat.toSexp() +
       "; leftPrev=" + leftPrevMods + "; rightPrev=" + rightPrevMods +
       "; lv=" + shortBool(leftVerb) + "; rv=" + shortBool(rightVerb) +
+      "; hasVerb=" + shortContainsVerb(containsVerb) +
       "; stop=" + shortBool(stop) +
       "\t; tree=" + doubleNF.format(logTreeProb) +
       "; prior=" + doubleNF.format(logPrior) +
@@ -777,6 +834,11 @@ public class CKYItem extends Item implements SexpConvertible {
 
   private final static String shortBool(boolean bool) {
     return bool ? "t" : "f";
+  }
+
+  private final static String shortContainsVerb(byte containsVerbValue) {
+    return (containsVerbValue == containsVerbUndefined ? "undef" :
+	    (containsVerbValue == containsVerbTrue ? "t" : "f"));
   }
 
   /**
@@ -806,6 +868,7 @@ public class CKYItem extends Item implements SexpConvertible {
     this.logTreeProb = other.logTreeProb;
     this.logProb = other.logProb;
     this.logPrior = other.logPrior;
+    containsVerb = containsVerbUndefined;
     return this;
   }
 

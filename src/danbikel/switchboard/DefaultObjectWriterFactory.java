@@ -33,10 +33,6 @@ class DefaultObjectWriterFactory implements ObjectWriterFactory {
 
     FileOutputStream os = new FileOutputStream(filename, append);
 
-    boolean noHeader = append && !emptyFile;
-
-    return (noHeader ?
-	    (ObjectWriter)new DefaultNoHeaderObjectWriter(os, bufSize) :
-	    (ObjectWriter)new DefaultObjectWriter(os, bufSize));
+    return get(os, encoding, bufSize, append, emptyFile);
   }
 }

@@ -34,6 +34,7 @@ public class SubcatList extends SexpList implements Subcat, Externalizable {
   }
 
   public MutableEvent add(Object obj) { return add((Symbol)obj); }
+  public MutableEvent add(int type, Object obj) { return add((Symbol)obj); }
 
   /**
    * A method to check if the specified requirement is valid. For this
@@ -66,7 +67,7 @@ public class SubcatList extends SexpList implements Subcat, Externalizable {
    */
   public Subcat add(Symbol requirement) {
     if (validRequirement(requirement))
-      add(0, Language.training.removeGapAugmentation(requirement));
+      super.add(0, Language.training.removeGapAugmentation(requirement));
     return this;
   }
 

@@ -11,14 +11,40 @@ import java.util.*;
 public class SymbolicCollectionWriter implements Serializable {
   private SymbolicCollectionWriter() {}
 
+  /**
+   * Writes out the contents of the specified set in an S-expression format.
+   * The S-expression will have the form
+   * <pre>
+   * (name (element1
+   *        element2
+   *        ...
+   *        elementN))
+   * </pre>
+   * or
+   * <pre>
+   * (element1
+   *  element2
+   *  ...
+   *  elementN)
+   * </pre>
+   * if the specified name is <tt>null</tt>, where <tt>element</tt><i>i</i>
+   * is the result of {@link #valueOf(obj)} for an object found in the
+   * specified set.
+   * @param set the set to write out to the specified character writer
+   * @param name the name of the set, or <tt>null</tt> if the set is to be
+   * unnamed
+   * @param writer the character writer to which to output the specified set
+   * as an S-expression
+   * @throws IOException
+   */
   public static void writeSet(Set set, Symbol name, Writer writer)
     throws IOException {
     writer.write("(");
     if (name != null) {
       writer.write(name.toString());
-      writer.write(" ");
+      writer.write(" (");
     }
-    int initWhitespaceSize = (name == null ? 1 : name.toString().length() + 2);
+    int initWhitespaceSize = (name == null ? 1 : name.toString().length() + 3);
     char[] initWhitespaceArr = new char[initWhitespaceSize];
     Arrays.fill(initWhitespaceArr, ' ');
     String initWhitespaceStr = new String(initWhitespaceArr);
@@ -30,6 +56,8 @@ public class SymbolicCollectionWriter implements Serializable {
       if (it.hasNext())
 	writer.write("\n");
     }
+    if (name != null)
+      writer.write(")");
     writer.write(")\n");
   }
 

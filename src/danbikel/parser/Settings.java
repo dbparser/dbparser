@@ -69,7 +69,7 @@ public class Settings implements Serializable {
   private final static String className = Settings.class.getName();
 
   /** The official name of this program. */
-  public final static String progName = "WordNet Parser";
+  public final static String progName = "Parsing Engine";
   /** The official version of this program. */
   public final static String version = "0.9.6";
   /**

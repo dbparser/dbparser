@@ -691,10 +691,9 @@ mkdir ~/.db-parser
 \layout LyX-Code
 
 cp <parser home>/settings/collins.properties ~/.db-parser/settings
-\layout Standard
+\layout Subsection
 
-\SpecialChar ~
-
+Training
 \layout Standard
 
 The Java class used for training is 
@@ -724,6 +723,104 @@ You can see its full usage by executing
 \layout LyX-Code
 
 java danbikel.parser.Trainer -help
+\layout Subsection*
+
+A note on the 
+\family typewriter 
+<observed file>
+\layout Standard
+
+The 
+\family typewriter 
+<observed file>
+\family default 
+ is a human-readable file consisting of the top-level events and counts
+ from which all other events and counts may be derived.
+ As such, training may be performed in two steps, outputting an 
+\family typewriter 
+<observed file>
+\family default 
+ and then reading that file in to produce a 
+\family typewriter 
+<derived data file>
+\family default 
+:
+\layout LyX-Code
+
+java -Xms400m -Xmx400m -Dparser.settingsFile=<settings> 
+\backslash 
+
+\newline 
+        danbikel.parser.Trainer -i <training file> 
+\backslash 
+
+\newline 
+        -o <observed file>
+\newline 
+
+\newline 
+java -Xms400m -Xmx400m -Dparser.settingsFile=<settings> 
+\backslash 
+
+\newline 
+        danbikel.parser.Trainer -it -l <observed file> 
+\backslash 
+
+\newline 
+        -od <derived data file>
+\layout Standard
+
+Note the use of the 
+\family typewriter 
+-it
+\family default 
+ option in the second of the two commands.
+ This indicates to derive counts incrementally from an 
+\family typewriter 
+<observed file>
+\family default 
+, and reduces the RAM footprint considerably (all the heap sizes in this
+ section are applicable when training on the standard Penn Treebank WSJ
+ training set, Sections 02--21).
+\layout Standard
+
+For the curious, incremental training is performed by iteratively reading
+ top-level events and counts from the 
+\family typewriter 
+<observed file>
+\family default 
+ one 
+\begin_inset Quotes eld
+\end_inset 
+
+chunk
+\begin_inset Quotes erd
+\end_inset 
+
+ at a time, additively deriving events and counts after each such 
+\begin_inset Quotes eld
+\end_inset 
+
+chunk
+\begin_inset Quotes erd
+\end_inset 
+
+ read.
+ The number of top-level events read in at each increment is determined
+ via the
+\layout LyX-Code
+
+parser.trainer.maxEventChunkSize
+\layout Standard
+
+setting, the default value for which is 
+\family typewriter 
+500000
+\family default 
+.
+\layout Subsection
+
+Parsing
 \layout Standard
 
 The Java class used for parsing is 
@@ -753,6 +850,9 @@ You can see its full usage by executing
 \layout LyX-Code
 
 java danbikel.parser.Parser -help
+\layout Subsection
+
+Switchboard
 \layout Standard
 
 The Java class used for starting the switchboard, which is the central component

@@ -103,11 +103,17 @@ public class InterpolatedKnesserNeyModel extends Model {
       System.err.println("Optimal discount is " + optimalDiscountEstimate);
     }
 
+    /*
     if (precomputeProbs)
       precomputeProbs(trainerCounts, filter);
+    */
+   if (precomputeProbs)
+     savePrecomputeData(trainerCounts, filter);
 
+    /*
     if (structure.doCleanup())
       cleanup();
+    */
   }
 
   protected double estimateProb(ProbabilityStructure probStructure,
@@ -251,6 +257,100 @@ public class InterpolatedKnesserNeyModel extends Model {
     return prob;
   }
 
+  public void precomputeProbs() {
+    if (!precomputeProbs)
+      return;
+    Time time = null;
+    if (verbose)
+      time = new Time();
+    // go through all transitions at each level of counts array, grabbing
+    // histories and getting to next level via backOffMap
+
+    Transition[] transitions = new Transition[numLevels];
+    Event[] histories = new Event[numLevels];
+
+    int lastLevel = numLevels - 1;
+
+    Iterator topLevelTrans = counts[0].transition().entrySet().iterator();
+    while (topLevelTrans.hasNext()) {
+      MapToPrimitive.Entry transEntry =
+	(MapToPrimitive.Entry)topLevelTrans.next();
+      double[] lambdas = structure.lambdas;
+      double[] estimates = structure.estimates;
+      for (int level = 0; level < numLevels; level++) {
+	double discount = level == lastLevel ? 0 : optimalDiscountEstimate;
+	Transition currTrans = (Transition)transEntry.getKey();
+	Event history = currTrans.history();
+	MapToPrimitive.Entry histEntry =
+	  (MapToPrimitive.Entry)counts[level].history().getEntry(history);
+
+	if (histEntry == null)
+	  System.err.println("yikes! something is very wrong");
+
+	transitions[level] = currTrans;
+	histories[level] = (Event)histEntry.getKey();
+	
+	double historyCount = histEntry.getDoubleValue(CountsTrio.hist);
+	double transitionCount = transEntry.getDoubleValue();
+	double diversityCount = histEntry.getDoubleValue(CountsTrio.diversity);
+
+	double fudge = lambdaFudge[level];
+	double fudgeTerm = lambdaFudgeTerm[level];
+	double lambda = diversityCount * discount / historyCount;
+	if (useSmoothingParams) {
+	  MapToPrimitive.Entry smoothingParamEntry =
+	    smoothingParams[level].getEntry(history);
+	  if (smoothingParamEntry != null)
+	    lambda = smoothingParamEntry.getDoubleValue();
+	  else
+	    System.err.println("uh-oh: couldn't get smoothing param entry " +
+			       "for " + history);
+	}
+	double estimate = (transitionCount - discount) / historyCount;
+	lambdas[level] = lambda;
+	estimates[level] = estimate;
+
+	if (level < lastLevel) {
+	  Transition nextLevelTrans  =
+	    (Transition)backOffMap[level].get(currTrans);
+	  transEntry = counts[level + 1].transition().getEntry(nextLevelTrans);
+	}
+      }
+      double prob = 0.0;
+      for (int level = lastLevel; level >= 0; level--) {
+	double lambda = lambdas[level];
+	double estimate = estimates[level];
+	prob = estimate + lambda * prob;
+	if (transitions[level] != null)
+	  precomputedProbs[level].put(transitions[level], Math.log(prob));
+	if (level < lastLevel && histories[level] != null)
+	  precomputedLambdas[level].put(histories[level], Math.log(lambda));
+	if (saveSmoothingParams)
+	  smoothingParams[level].put(histories[level], lambda);
+      }
+    }
+    backOffMap = null; // no longer needed!
+    if (verbose)
+      System.err.println("Precomputed probabilities for " +
+			 structureClassName + " in " + time + ".");
+    if (structure.doCleanup())
+      cleanup();
+  }
+
+  /**
+   * Precomputes probabilities for the specified event, using the specified
+   * arrays as temporary storage during this method invocation.
+   *
+   * @param event the <code>TrainerEvent</code> object from which probabilities
+   * are to be precomputed
+   * @param transitions temporary storage to be used during an invocation
+   * of this method
+   * @param histories temporary storage to be used during an invocation
+   * of this method
+   *
+   * @deprecated This method is called by {@link
+   * #precomputeProbs(CountsTable,Filter)}, which is also deprecated.
+   */
   protected void precomputeProbs(TrainerEvent event,
                                  Transition[] transitions, Event[] histories) {
     double[] lambdas = structure.lambdas;

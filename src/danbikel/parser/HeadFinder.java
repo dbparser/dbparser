@@ -40,14 +40,21 @@ public interface HeadFinder {
   public int findHead(Sexp tree, Symbol lhs, SexpList rhs);
 
   /**
-   * Perform head-finding in <code>tree</code>, adding nodes to indicates
-   * groups of nonterminals that are premodifiers and postmodifiers of a
-   * parent's head child, as well as a new node to indicate the sole head
-   * child.  The new nodes added will have labels consisting of the parent
-   * nonterminal concatenated with one of the three possible suffixes.
+   * Perform head-finding in <code>tree</code>, augmenting nodes that
+   * are the head child of their parent by appending {@link #headSuffix()}.
    * This method is useful for head-finding debugging.
    *
    * @return a reference to the modified <code>tree</code> object
    */
   public Sexp addHeadInformation(Sexp tree);
+
+  /**
+   * The suffix to append to nodes that are the head children of their
+   * respective parents when marking heads via
+   * {@link #addHeadInformation(Sexp)}.
+   *
+   * @return the string that is to be appended to the print name of nodes
+   * that are the head children of their respective parents
+   */
+  public String headSuffix();
 }

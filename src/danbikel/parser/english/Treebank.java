@@ -50,7 +50,7 @@ public class Treebank extends danbikel.parser.Treebank {
 
   private static Symbol[][] canonicalLabelMapData = {
     {baseNP, NP},
-    {subjectlessS, S}
+    {subjectlessS, S},
   };
   private static HashMap canonicalLabelMap =
     new HashMap(canonicalLabelMapData.length);
@@ -228,6 +228,15 @@ public class Treebank extends danbikel.parser.Treebank {
     Symbol strippedLabel = stripAugmentation(label);
     Symbol mapEntry = (Symbol)canonicalLabelMap.get(strippedLabel);
     return ((mapEntry == null) ? strippedLabel : mapEntry);
+  }
+
+  public final Symbol getCanonical(Symbol label, boolean stripAugmentations) {
+    if (stripAugmentations)
+      return getCanonical(label);
+    else {
+      Symbol mapEntry = (Symbol)canonicalLabelMap.get(label);
+      return (mapEntry == null ? label : mapEntry);
+    }
   }
 
   /**

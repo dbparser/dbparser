@@ -223,8 +223,8 @@ public class Decoder implements Serializable {
         nonterminals[i] = (Symbol)it.next();
       this.leftSubcatMap = server.leftSubcatMap();
       this.rightSubcatMap = server.rightSubcatMap();
-      this.leftSubcatPS = server.leftSubcatProbStructure();
-      this.rightSubcatPS = server.rightSubcatProbStructure();
+      this.leftSubcatPS = server.leftSubcatProbStructure().copy();
+      this.rightSubcatPS = server.rightSubcatProbStructure().copy();
       prunedPretermsPosMap = new HashMap();
       Set prunedPreterms = server.prunedPreterms();
       it = prunedPreterms.iterator();

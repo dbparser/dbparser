@@ -62,32 +62,16 @@ public class SubcatBag implements Subcat, Externalizable {
     Symbol argAugmentation = Language.training.argAugmentation();
     char delimChar = Language.treebank.canonicalAugDelimiter();
 
-    Map argContexts = Language.training.argContexts();
-    Iterator args = argContexts.values().iterator();
     int uid = gapIdx; // depends on gapIdx being equal to firstRealUid
     // kind of a hack: put an entry for gaps (which are "requirements"
     // that can be thrown into subcats);
     // note that uid of gap is firstRealUid (see comment inside remove method)
     symbolsToInts.put(gapAugmentation, new Integer(uid++));
+
+    Iterator args = Language.training.argNonterminals().iterator();
     while (args.hasNext()) {
-      SexpList argList = (SexpList)args.next();
-      Symbol first = argList.symbolAt(0);
-      if (first != headSym && first != headPreSym && first != headPostSym) {
-	int argListLen = argList.length();
-	for (int i = 0; i < argListLen; i++) {
-          Symbol argLabel = argList.symbolAt(i);
-          Nonterminal parsedArgLabel = treebank.parseNonterminal(argLabel);
-          // if this is not an arg label indicating to look for a semantic tag
-	  if (parsedArgLabel.base != Constants.kleeneStarSym &&
-              symbolsToInts.containsKey(argLabel) == false) {
-            /*
-            argLabel =
-              Symbol.get(argLabel.toString() + delimChar + argAugmentation);
-            */
-	    symbolsToInts.put(argLabel, new Integer(uid++));
-	  }
-	}
-      }
+      Symbol argLabel = (Symbol)args.next();
+      symbolsToInts.put(argLabel, new Integer(uid++));
     }
     numUids = uid;
 
@@ -260,7 +244,7 @@ public class SubcatBag implements Subcat, Externalizable {
     // which is used for gap requirements, or equal to miscIdx) and if it's not
     // marked as an argument, return false
     if ((uid == miscIdx || uid > firstRealUid) &&
-        !Language.training.isArgumentFast(requirement))
+	!Language.training.isArgumentFast(requirement))
       return false;
 
     return counts[uid] > 0;
@@ -322,9 +306,10 @@ public class SubcatBag implements Subcat, Externalizable {
     SubcatBag other = (SubcatBag)obj;
     if (counts.length != other.counts.length)
       return false;
-    for (int i = counts.length - 1; i >= 0; i--)
+    int len = counts.length;
+    for (int i = 0; i < len; i++)
       if (counts[i] != other.counts[i])
-        return false;
+	return false;
     return true;
   }
 
@@ -508,6 +493,6 @@ public class SubcatBag implements Subcat, Externalizable {
   public void become(Subcat other) {
     SubcatBag otherBag = (SubcatBag)other;
     System.arraycopy(otherBag.counts, 0, this.counts, 0,
-                     otherBag.counts.length);
+		     otherBag.counts.length);
   }
 }

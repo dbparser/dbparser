@@ -81,6 +81,7 @@ public class ModWordModelStructure2 extends ProbabilityStructure {
       hist.add(prevModWord.word());
       hist.add(prevModWord.tag());
       break;
+      /*
     case 1:
       // for p(w_i | M(t)_i, P, M(t)_i-1)
       hist.add(Language.training.removeGapAugmentation(modEvent.modifier()));
@@ -88,6 +89,14 @@ public class ModWordModelStructure2 extends ProbabilityStructure {
       hist.add(Language.training.removeGapAugmentation(modEvent.parent()));
       hist.add(prevModLabel);
       hist.add(prevModWord.tag());
+      break;
+      */
+    case 1:
+      // for p(w_i | M(t)_i, P, M_i-1)
+      hist.add(Language.training.removeGapAugmentation(modEvent.modifier()));
+      hist.add(modEvent.modHeadWord().tag());
+      hist.add(Language.training.removeGapAugmentation(modEvent.parent()));
+      hist.add(prevModLabel);
       break;
     case 2:
       // for p(w_i | t_i)

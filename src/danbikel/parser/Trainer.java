@@ -618,9 +618,9 @@ public class Trainer implements Serializable {
 
     Iterator it = events.entrySet().iterator();
     while (it.hasNext()) {
-      Map.Entry entry = (Map.Entry)it.next();
+      HashMapInt.Entry entry = (HashMapInt.Entry)it.next();
       TrainerEvent event = (TrainerEvent)entry.getKey();
-      IntCounter count = (IntCounter)entry.getValue();
+      int count = entry.getIntValue();
       boolean eventModified = alterLowFrequencyWords(tempEvents, event, count);
       if (eventModified) {
 	numModifiedEvents++;
@@ -654,7 +654,7 @@ public class Trainer implements Serializable {
    */
   private final boolean alterLowFrequencyWords(CountsTable tempEvents,
 					       TrainerEvent event,
-					       IntCounter count) {
+					       int count) {
 
     boolean headLowFreq = isLowFrequencyWord(event.headWord());
     boolean modHeadLowFreq = isLowFrequencyWord(event.modHeadWord());
@@ -681,7 +681,7 @@ public class Trainer implements Serializable {
 	modHeadWord.setOriginalWord(null);
 	wordFeatureTypes.add(modHeadWord.word());
       }
-      tempEvents.add(event, count.get());
+      tempEvents.add(event, count);
       return true;
     }
     return false;
@@ -838,7 +838,7 @@ public class Trainer implements Serializable {
 				   Settings.modWordModelStructureNumber,
 				   Settings.modWordModelStructureClass));
 
-      HashMap canonicalEventLists = new HashMap();
+      danbikel.util.HashMap canonicalEventLists = new danbikel.util.HashMap();
 
       System.err.print("Deriving events for prior probability computations...");
       derivePriors();
@@ -872,7 +872,24 @@ public class Trainer implements Serializable {
       deriveSubcatMaps(leftSubcatModel.getProbStructure(),
 		       rightSubcatModel.getProbStructure());
 
-      canonicalEventLists = null;
+      System.err.println("Canonical events HashMap stats: " +
+                         canonicalEventLists.getStats());
+
+      /*
+      Iterator it = canonicalEventLists.keySet().iterator();
+      while (it.hasNext()) {
+        Object canonObj = it.next();
+        System.err.print("canonical event: " + canonObj);
+        if (canonObj instanceof Sexp) {
+          it.remove();
+          System.err.println("...removed");
+        }
+        else
+          System.err.println();
+      }
+      */
+
+      //canonicalEventLists = null;
       /*
       System.err.print("gc ... ");
       System.err.flush();
@@ -898,7 +915,8 @@ public class Trainer implements Serializable {
 			  leftSubcatMap,
 			  rightSubcatMap,
                           Language.training.getPrunedPreterms(),
-                          Language.training.getPrunedPunctuation());
+                          Language.training.getPrunedPunctuation(),
+                          canonicalEventLists);
     }
     catch (ExceptionInInitializerError e) {
       System.err.println(className + ": problem initializing an instance of " +
@@ -1016,25 +1034,25 @@ public class Trainer implements Serializable {
 
     Iterator it = headEvents.entrySet().iterator();
     while (it.hasNext()) {
-      Map.Entry entry = (Map.Entry)it.next();
+      HashMapInt.Entry entry = (HashMapInt.Entry)it.next();
       HeadEvent event = (HeadEvent)entry.getKey();
-      IntCounter count = (IntCounter)entry.getValue();
+      int count = entry.getIntValue();
       if (isRealWord(event.headWord())) {
 	priorEvents.add(new HeadEvent(event.headWord(), stopSym, event.head(),
 				      emptySubcat, emptySubcat),
-			count.get());
+			count);
       }
     }
     it = modifierEvents.entrySet().iterator();
     while (it.hasNext()) {
-      Map.Entry entry = (Map.Entry)it.next();
+      HashMapInt.Entry entry = (HashMapInt.Entry)it.next();
       ModifierEvent event = (ModifierEvent)entry.getKey();
-      IntCounter count = (IntCounter)entry.getValue();
+      int count = entry.getIntValue();
       if (isRealWord(event.modHeadWord())) {
 	priorEvents.add(new HeadEvent(event.modHeadWord(), stopSym,
 				      event.modifier(),
 				      emptySubcat, emptySubcat),
-			count.get());
+			count);
       }
     }
   }

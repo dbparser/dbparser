@@ -6,7 +6,7 @@ public class TopLexModelStructure1 extends ProbabilityStructure {
   }
 
   public int maxEventComponents() { return 3; }
-  public int numLevels() { return 2; }
+  public int numLevels() { return 3; }
 
   public Event getHistory(TrainerEvent trainerEvent, int backOffLevel) {
     HeadEvent headEvent = (HeadEvent)trainerEvent;
@@ -24,6 +24,9 @@ public class TopLexModelStructure1 extends ProbabilityStructure {
       history.add(headEvent.headWord().tag());
       history.add(Language.treebank.getCanonical(headEvent.head()));
       break;
+    case 2:
+      // for p(w | t)
+      history.add(headEvent.headWord().tag());
     }
     return history;
   }

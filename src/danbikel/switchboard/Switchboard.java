@@ -572,27 +572,31 @@ public class Switchboard
 	doesn't respond, it is considered dead. */
     public void run() {
       int retries = keepAliveMaxRetries;
-      int numTries = retries + 1;
+      int numTriesRemaining = retries + 1;
       SwitchboardUser user = userData.switchboardUser();
       boolean returned = true;
 
+      Exception lastExceptionThrown = null;
       while (!Thread.currentThread().interrupted() &&
-	     userData.alive && numTries > 0) {
+	     userData.alive && numTriesRemaining > 0) {
 	try {
 	  userData.alive = user.alive();
 	  returned = true;
-	  numTries = retries + 1;  // alive method returned, so reset numTries
+	  numTriesRemaining = retries + 1;  // alive method returned, so reset
 	  try { Thread.sleep(keepAliveInterval); }
 	  catch (InterruptedException ie) {}
 	}
 	catch (RemoteException re) {
-	  numTries--;
+	  numTriesRemaining--;
+          lastExceptionThrown = re;
 	  returned = false;
 	}
       } // end while (stop trying to find out if alive and assume dead)
 
       if (verbose)
-	logSwitchboardUserDeath(userData, returned);
+	logSwitchboardUserDeath(userData, returned,
+                                (retries + 1 - numTriesRemaining),
+                                lastExceptionThrown);
       userData.cleanup();
     }
   }
@@ -2080,15 +2084,20 @@ public class Switchboard
 
 
   private void logSwitchboardUserDeath(SwitchboardUserData data,
-				       boolean natural) {
+				       boolean natural,
+                                       int numTriesMade,
+                                       Exception lastExceptionThrown) {
     synchronized (msgs) {
       msgs.print(data.toString());
       msgs.print(" has died ");
       if (natural) {
 	msgs.println("naturally");
       }
-      else
-	msgs.println("an unnatural death");
+      else {
+	msgs.println("an unnatural death: made " + numTriesMade + " contact " +
+                     "attempts (last exception thrown: " +
+                     lastExceptionThrown + ")");
+      }
     }
   }
 

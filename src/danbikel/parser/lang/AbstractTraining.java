@@ -60,6 +60,17 @@ public abstract class AbstractTraining implements Training, Serializable {
    * Static set for storing argument nonterminals.
    */
   protected static Set argNonterminals = null;
+  protected final static Symbol argContextsSym = Symbol.add("arg-contexts");
+  protected final static Symbol semTagArgStopListSym =
+    Symbol.add("sem-tag-arg-stop-list");
+  protected final static Symbol nodesToPruneSym = Symbol.add("prune-nodes");
+  /**
+   * The prefix of the property of the metadata reçsource required by the
+   * default constructor of concrete subclasses.  The value of this constant
+   * is <code>&quot;parser.training.metadata.&quot;</code>.
+   */
+  protected final static String metadataPropertyPrefix =
+    "parser.training.metadata.";
 
   public void setUpFastArgMap(CountsTable nonterminals) {
     staticSetUpFastArgMap(nonterminals);
@@ -435,12 +446,15 @@ public abstract class AbstractTraining implements Training, Serializable {
    * definition of tree validity should be done with care, as the default
    * implementations of the tree-processing methods in this class require trees
    * that correspond to the definition of validity implemented by this method.
+   * This method also ensures that not all words or preterminals in the tree
+   * are to be pruned.
    *
    * @param tree the parse tree to check for validity
+   * @see #isAllNodesToPrune(Sexp)
    * @see Treebank#isPreterminal(Sexp)
    */
   public boolean isValidTree(Sexp tree) {
-    return isValidTreeInternal(tree);
+    return isValidTreeInternal(tree) && !isAllNodesToPrune(tree);
   }
 
   boolean isValidTreeInternal(Sexp tree) {
@@ -460,6 +474,45 @@ public abstract class AbstractTraining implements Training, Serializable {
 	  return false;
     }
     return true;
+  }
+
+  /**
+   * Returns whether all words or preterminals of this tree are to be pruned.
+   * For example, if the part-of-speech tag "." is a {@linkplain #nodesToPrune
+   * node to prune} and the word "rubbish" is a {@linkplain #wordsToPrune
+   * word to prune} and the specified tree is <tt>(S (NN rubbish) (. .))</tt>
+   * then this method will return <tt>true</tt>.  If <tt>S</tt>
+   * is a {@linkplain #nodesToPrune node to prune}, then this method
+   * will return <tt>true</tt> for the tree <tt>(S (NN rubbish) (. .))</tt>.
+   *
+   * @param tree the tree to inspect
+   * @return whether all nodes of this tree are to be pruned.
+   *
+   * @see #prune(Sexp)
+   */
+  public boolean isAllNodesToPrune(Sexp tree) {
+    boolean retval = true;
+    if (treebank.isPreterminal(tree)) {
+      SexpList curr = tree.list();
+      retval = (nodesToPrune.contains(curr.get(0)) ||
+                wordsToPrune.contains(curr.get(1)));
+    }
+    else if (tree.isList()) {
+      SexpList treeList = tree.list();
+      Symbol rootLabel = treeList.symbolAt(0);
+      if (nodesToPrune.contains(rootLabel)) {
+        retval = true;
+      }
+      else {
+        for (int i = 1; i < treeList.length(); i++) {
+          SexpList curr = treeList.listAt(i);
+          retval &= isAllNodesToPrune(curr);
+          if (retval == false)
+            break;
+        }
+      }
+    }
+    return retval;
   }
 
   /**
@@ -620,7 +673,7 @@ public abstract class AbstractTraining implements Training, Serializable {
       for (int patternIdx = 0; patternIdx < allCandidatePatterns.length();
 	   patternIdx++) {
 	SexpList candidatePatterns = allCandidatePatterns.listAt(patternIdx);
-      
+
 	Symbol headChild = (headIdx == 0 ? null :
 			    treeList.get(headIdx).list().first().symbol());
 
@@ -2189,5 +2242,61 @@ public abstract class AbstractTraining implements Training, Serializable {
     catch (IOException ioe) {
       System.err.println(ioe);
     }
+  }
+
+  /**
+   * Reads metadata to fill in {@link #argContexts} and
+   * {@link #semTagArgStopSet}.  Does no format
+   * checking on the S-expressions of the metadata resource.
+   *
+   * @param metadataTok tokenizer for stream of S-expressions containing
+   * metadata for this class
+   */
+  protected void readMetadata(SexpTokenizer metadataTok) throws IOException {
+    Sexp metadataSexp = null;
+    while ((metadataSexp = Sexp.read(metadataTok)) != null) {
+      SexpList metadata = metadataSexp.list();
+      int metadataLen = metadata.length();
+      Symbol dataType = metadata.first().symbol();
+      if (dataType == argContextsSym) {
+	for (int i = 1; i < metadataLen; i++) {
+	  SexpList context = metadata.get(i).list();
+	  argContexts.put(context.get(0), context.get(1));
+	}
+      }
+      else if (dataType == semTagArgStopListSym) {
+	SexpList semTagArgStopList = metadata.get(1).list();
+	for (int i = 0; i < semTagArgStopList.length(); i++)
+	  semTagArgStopSet.add(semTagArgStopList.get(i));
+      }
+      else if (dataType == nodesToPruneSym) {
+	SexpList nodesToPruneList = metadata.get(1).list();
+	for (int i = 0; i < nodesToPruneList.length(); i++)
+	  nodesToPrune.add(nodesToPruneList.get(i));
+      }
+      else {
+	// unrecognized data type
+      }
+    }
+    createArgAugmentationsList();
+  }
+
+  /** Debugging method to print the metadata used by this class. */
+  public void printMetadata() {
+    Iterator argContextsIt = argContexts.keySet().iterator();
+    while (argContextsIt.hasNext()) {
+      Sexp parent = (Sexp)argContextsIt.next();
+      System.err.println("parent: " + parent + "\t" +
+			 "children: " + argContexts.get(parent));
+    }
+    Iterator argStopSetIt = semTagArgStopSet.iterator();
+    System.err.print("(");
+    if (argStopSetIt.hasNext())
+      System.err.print(argStopSetIt.next());
+    while (argStopSetIt.hasNext()) {
+      System.err.print(' ');
+      System.err.print(argStopSetIt.next());
+    }
+    System.err.println(")");
   }
 }

@@ -115,6 +115,17 @@ public class JointModel extends Model {
   }
 
   /**
+   * Precomputes probabilities and smoothing values for this <code>Model</code>
+   * and for all internal <code>Model</code> instances.
+   */
+  public void precomputeProbs() {
+    super.precomputeProbs();
+    for (int i = 0; i < numOtherModels; i++) {
+      otherModels[i].precomputeProbs();
+    }
+  }
+
+  /**
    * Estimates a conditional probability in log-space from the specified
    * maximal-context trainer event.  The estimate will use sub-contexts of
    * the specified trainer event.  The estimate returned will be the sum

@@ -594,37 +594,6 @@ public class Trainer implements Serializable {
     unknownWords = null; // it has served its purpose
   }
 
-  private void updateVocab(Set unknownWords) {
-    // first, remove all low-frequency words from vocabCounter, if
-    // keepAllWords is false
-    if (keepAllWords == false) {
-      Iterator unknowns = unknownWords.iterator();
-      while (unknowns.hasNext())
-	vocabCounter.remove(unknowns.next());
-    }
-
-    // next, for each low-frequency word, look it up in originalWordCounter
-    // to get all the counts of its original, mixed-case ocurrences and index
-    // values, so as to add the appropriate feature vectors (and counts)
-    // to the word feature (unknown vocab) counter
-    Iterator unknowns = unknownWords.iterator();
-    while (unknowns.hasNext()) {
-      Symbol word = (Symbol)unknowns.next();
-      CountsTable valueCounts = (CountsTable)originalWordCounter.get(word);
-      Iterator values = valueCounts.keySet().iterator();
-      while (values.hasNext()) {
-	SymbolPair pair = (SymbolPair)values.next();
-	Symbol origWord = pair.first();
-	int index = pair.second().getInteger().intValue();
-	int count = valueCounts.count(pair);
-	wordFeatureCounter.add(wordFeatures.features(origWord, index == 0),
-				count);
-      }
-    }
-
-    originalWordCounter = null; // it has served its purpose
-  }
-
   private int alterLowFrequencyWords(CountsTable events) {
     CountsTable tempEvents = new CountsTable();
 
@@ -707,6 +676,37 @@ public class Trainer implements Serializable {
 	    vocabCounter.count(word.word()) < unknownWordThreshold);
   }
 
+
+  private void updateVocab(Set unknownWords) {
+    // first, remove all low-frequency words from vocabCounter, if
+    // keepAllWords is false
+    if (keepAllWords == false) {
+      Iterator unknowns = unknownWords.iterator();
+      while (unknowns.hasNext())
+	vocabCounter.remove(unknowns.next());
+    }
+
+    // next, for each low-frequency word, look it up in originalWordCounter
+    // to get all the counts of its original, mixed-case ocurrences and index
+    // values, so as to add the appropriate feature vectors (and counts)
+    // to the word feature (unknown vocab) counter
+    Iterator unknowns = unknownWords.iterator();
+    while (unknowns.hasNext()) {
+      Symbol word = (Symbol)unknowns.next();
+      CountsTable valueCounts = (CountsTable)originalWordCounter.get(word);
+      Iterator values = valueCounts.keySet().iterator();
+      while (values.hasNext()) {
+	SymbolPair pair = (SymbolPair)values.next();
+	Symbol origWord = pair.first();
+	int index = pair.second().getInteger().intValue();
+	int count = valueCounts.count(pair);
+	wordFeatureCounter.add(wordFeatures.features(origWord, index == 0),
+				count);
+      }
+    }
+
+    originalWordCounter = null; // it has served its purpose
+  }
 
   public void createPosMap() {
     createPosMap(headEvents);
@@ -852,7 +852,7 @@ public class Trainer implements Serializable {
 				   Settings.modWordModelStructureNumber,
 				   Settings.modWordModelStructureClass));
 
-      danbikel.util.HashMap canonical = new danbikel.util.HashMap();
+      danbikel.util.HashMap canonical = new danbikel.util.HashMap(1003, 1.5f);
 
       System.err.print("Deriving events for prior probability computations...");
       derivePriors();
@@ -1105,9 +1105,8 @@ public class Trainer implements Serializable {
       HeadEvent event = (HeadEvent)entry.getKey();
       int count = entry.getIntValue();
       if (isRealWord(event.headWord())) {
-	priorEvents.add(new HeadEvent(event.headWord(), stopSym, event.head(),
-				      emptySubcat, emptySubcat),
-			count);
+	priorEvents.add(new PriorEvent(event.headWord(), event.head()),
+                        count);
       }
     }
     it = modifierEvents.entrySet().iterator();
@@ -1116,9 +1115,7 @@ public class Trainer implements Serializable {
       ModifierEvent event = (ModifierEvent)entry.getKey();
       int count = entry.getIntValue();
       if (isRealWord(event.modHeadWord())) {
-	priorEvents.add(new HeadEvent(event.modHeadWord(), stopSym,
-				      event.modifier(),
-				      emptySubcat, emptySubcat),
+	priorEvents.add(new PriorEvent(event.modHeadWord(), event.modifier()),
 			count);
       }
     }

@@ -381,13 +381,18 @@ public class ModifierEvent implements TrainerEvent, Cloneable {
 			     side);
   }
 
+  public TrainerEvent shallowCopy() {
+    return new ModifierEvent(modHeadWord, headWord, modifier,
+                             previousMods, previousWords, parent, head,
+                             subcat, prevPunc, prevConj, isConjPConj,
+                             verbIntervening, headAdjacent, side);
+  }
+
   private void readObject(ObjectInputStream in)
   throws IOException, ClassNotFoundException {
     in.defaultReadObject();
-    System.err.println("reading a ModifierEvent!");
   }
   private void writeObject(ObjectOutputStream out) throws IOException {
     out.defaultWriteObject();
-    System.err.println("outputting a ModifierEvent!");
   }
 }

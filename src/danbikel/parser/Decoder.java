@@ -16,7 +16,7 @@ public class Decoder implements Serializable {
   private final static boolean debug = false;
   private final static boolean debugSpans = false;
   private final static boolean debugInit = true;
-  private final static boolean debugTop = true;
+  private final static boolean debugTop = false;
   private final static boolean debugJoin = false;
   private final static boolean debugStops = false;
   private final static boolean debugUnaries = false;

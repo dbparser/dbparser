@@ -5,7 +5,8 @@ import danbikel.lisp.*;
 import danbikel.switchboard.*;
 import danbikel.parser.util.*;
 import java.util.*;
-import java.net.MalformedURLException;
+import java.net.*;
+import java.security.*;
 import java.rmi.*;
 import java.rmi.server.*;
 import java.io.*;
@@ -669,6 +670,7 @@ public class Parser
       }
     }
     else {
+      setPolicyFile(Settings.getSettings());
       // create and install a security manager
       if (System.getSecurityManager() == null)
 	System.setSecurityManager(new RMISecurityManager());

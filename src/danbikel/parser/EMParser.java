@@ -286,6 +286,7 @@ public class EMParser extends Parser {
       }
     }
     else {
+      setPolicyFile(Settings.getSettings());
       // create and install a security manager
       if (System.getSecurityManager() == null)
 	System.setSecurityManager(new RMISecurityManager());

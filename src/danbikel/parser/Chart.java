@@ -155,7 +155,8 @@ public abstract class Chart implements Serializable {
   protected boolean toPrune(int start, int end, Item item) {
     double topProb = chart[start][end].topLogProb;
     if (debug) {
-      System.err.println("pruning away item: " + item + " because " +
+      System.err.println(className +
+                         ": pruning away item: " + item + " because " +
                          "its prob " + item.logProb() +
                          " is less than " + topProb + " - " + pruneFact +
                          " = " + (topProb - pruneFact));
@@ -175,7 +176,7 @@ public abstract class Chart implements Serializable {
 	CKYItem currItem = (CKYItem)it.next();
 	if (currItem.logProb() < lowestProbAllowed) {
 	  if (debug) {
-	    System.err.println("pruning away item: " + currItem +
+	    System.err.println(className + ": pruning away item: " + currItem +
 			       " because its prob is less than " +
 			       lowestProbAllowed);
 	  }
@@ -339,15 +340,17 @@ public abstract class Chart implements Serializable {
   protected void reclaimItemsInChart() {
     int numCells = 0, maxCellSize = 0;
     if (debugCellSize) {
-      System.err.println("total No. of items in chart: " + totalItems);
+      System.err.println(className +
+                         ": total No. of items in chart: " + totalItems);
     }
     if (totalItems > 0) {
       if (debugNumItemsGenerated) {
-	System.err.println("generated " + totalItemsGenerated + " for the " +
+	System.err.println(className +
+                           ": generated " + totalItemsGenerated + " for the " +
 			   "previous sentence");
       }
       if (debugPoolUsage) {
-        System.err.println("pool has " + itemPool.size() +
+        System.err.println(className + ": pool has " + itemPool.size() +
                            " items; capacity = " + itemPool.capacity() +
                            "; reclaiming " + totalItems + " items");
       }
@@ -365,12 +368,12 @@ public abstract class Chart implements Serializable {
       }
     }
     if (debugPoolUsage) {
-      System.err.println("pool has " + itemPool.size() + " items; capacity = " +
-                         itemPool.capacity());
+      System.err.println(className + ": pool has " + itemPool.size() +
+                         " items; capacity = " + itemPool.capacity());
     }
     if (debugCellSize) {
       if (numCells > 0)
-	System.err.println("num. cells: " + numCells +
+	System.err.println(className + ": num. cells: " + numCells +
 			   "; avg. cell size: " +
                            (totalItems / (float)numCells) +
 			   "; max. cell size: " + maxCellSize);

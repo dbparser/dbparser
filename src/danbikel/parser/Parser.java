@@ -22,6 +22,8 @@ public class Parser
 
   // private constants
   private final static boolean debug = false;
+  private final static String className = Parser.class.getName();
+
   // public constants
   public final static String outputFilenameSuffix = ".parsed";
 
@@ -70,7 +72,7 @@ public class Parser
   private SexpList test(SexpList sent) throws RemoteException {
     double prob = server.testProb();
     if (debug)
-      System.err.println("server returned prob. of " + prob);
+      System.err.println(className + ": server returned prob. of " + prob);
     return sent;
   }
 
@@ -283,6 +285,6 @@ public class Parser
       }
     }
     if (debug)
-      System.err.println("main ending!");
+      System.err.println(className + ": main ending!");
   }
 }

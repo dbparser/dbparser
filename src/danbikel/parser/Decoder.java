@@ -508,12 +508,12 @@ public class Decoder implements Serializable {
     initialize(sentence, tags);
     for (int span = 2; span <= sentLen; span++) {
       if (debugSpans)
-        System.err.println("span: " + span);
+        System.err.println(className + ": span: " + span);
       int split = sentLen - span + 1;
       for (int start = 0; start < split; start++) {
         int end = start + span - 1;
         if (debugSpans)
-          System.err.println("start: " + start + "; end: " + end);
+          System.err.println(className + ": start: " + start + "; end: " + end);
         complete(start, end);
       }
     }
@@ -536,7 +536,8 @@ public class Decoder implements Serializable {
 
     if (debugOutputChart) {
       try {
-        System.err.println("outputting chart to Java object file " +
+        System.err.println(className +
+                           ": outputting chart to Java object file " +
                            "\"chart.obj\"");
         BufferedOutputStream bos =
           new BufferedOutputStream(new FileOutputStream("chart.obj"),
@@ -573,7 +574,8 @@ public class Decoder implements Serializable {
         double logProb = item.logTreeProb() + topLogProb;
 
         if (debugTop)
-          System.err.println("item=" + item + "; topLogProb=" + topLogProb +
+          System.err.println(className +
+                             ": item=" + item + "; topLogProb=" + topLogProb +
                              "; item.logTreeProb()=" + item.logTreeProb() +
                              "; logProb=" + logProb);
 
@@ -597,7 +599,8 @@ public class Decoder implements Serializable {
 
       if (commaConstraintViolation(start, split, end)) {
 	if (debugCommaConstraint) {
-	  System.err.println("constraint violation at (start,split,end+1)=(" +
+	  System.err.println(className +
+                             ": constraint violation at (start,split,end+1)=(" +
 			     start + "," + split + "," + (end + 1) +
 			     "); word at end+1 = " + getSentenceWord(end + 1));
 	}
@@ -729,7 +732,8 @@ public class Decoder implements Serializable {
     if (debugJoin) {
       if (modificand.headWord().tag() == mdSym &&
           modificand.headWord().word() == willSym) {
-        System.err.println("trying to join modificand " + modificand +
+        System.err.println(className +
+                           ": trying to join modificand " + modificand +
                            " to modifier " + modifier  + "; logModProb: " +
                            logModProb + "; logPrior: " + logPrior +
                            "; logProb: " + logProb);
@@ -804,7 +808,8 @@ public class Decoder implements Serializable {
       currItemsAdded.clear();
     }
     if (debugUnariesAndStopProbs) {
-      System.err.println("added unaries and stop probs " + i + " times");
+      System.err.println(className +
+                         ": added unaries and stop probs " + i + " times");
     }
   }
 
@@ -841,7 +846,8 @@ public class Decoder implements Serializable {
       if (debugUnaries) {
         if (newItem.start() == 3 && newItem.end() == 7 &&
             parent == S && headSym == VP) {
-          System.err.println("parent=" + parent + "; head=" + headSym +
+          System.err.println(className +
+                             ": parent=" + parent + "; head=" + headSym +
                              "; headWord=" + item.headWord());
         }
       }
@@ -866,7 +872,7 @@ public class Decoder implements Serializable {
                 parent == S && headSym == VP &&
                 newItem.headWord().word() == willSym &&
                 newItem.headWord().tag() == mdSym) {
-              System.err.println("parent: " + parent +
+              System.err.println(className + ": parent: " + parent +
                                  "; lc=" + leftSubcat.toSexp() +
                                  "; rc=" + rightSubcat.toSexp());
               Debug.level = 20;
@@ -882,7 +888,7 @@ public class Decoder implements Serializable {
                 parent == S && headSym == VP &&
                 newItem.headWord().word() == willSym &&
                 newItem.headWord().tag() == mdSym) {
-              System.err.println("trying to add " + newItem +
+              System.err.println(className + ": trying to add " + newItem +
                                  " with logTreeProb=" + logTreeProb +
                                  "; logPrior=" + logPrior +
                                  "; logProb=" + logProb);
@@ -947,8 +953,8 @@ public class Decoder implements Serializable {
     if (debugStops) {
       if (item.start() == 3 && item.end() == 7 && item.label() == VP) {
         Debug.level = 20;
-        System.err.println("leftMod for stop prob.: " + leftMod);
-        System.err.println("rightMod for stop prob.: " + rightMod);
+        System.err.println(className + ": leftMod for stop prob.: " + leftMod);
+        System.err.println(className + ": rightMod for stop prob.: " +rightMod);
       }
     }
 
@@ -969,8 +975,8 @@ public class Decoder implements Serializable {
 
     if (debugStops) {
       if (item.start() == 3 && item.end() == 7 && item.label() == VP) {
-        System.err.println("prior event: " + priorEvent);
-        System.err.println("leftLogProb: " + leftLogProb + "; " +
+        System.err.println(className + ": prior event: " + priorEvent);
+        System.err.println(className + ": leftLogProb: " + leftLogProb + "; " +
                            "rightLogProb: " + rightLogProb + "; " +
                            "logTreeProb: " + logTreeProb + "; " +
                            "logPrior: " + logPrior + "; " +
@@ -1090,7 +1096,8 @@ public class Decoder implements Serializable {
         if (!(rightEdgeIdx == lastWordIdx ||
               treebank.isComma(getSentenceWord(rightEdgeIdx + 1)))) {
           if (debugCommaConstraint) {
-            System.err.println("found comma constraint violation for " +
+            System.err.println(className +
+                               ": found comma constraint violation for " +
                                "modificand\n\t" + modificand +
                                "\n\tand modifier " + modifier + "\n\ton " +
                                (side == Constants.LEFT ? "left" : "right"));
@@ -1106,7 +1113,8 @@ public class Decoder implements Serializable {
     // next, check (pathological) case where head child is comma
     if (treebank.isComma(modificand.headWord().word())) {
       if (debugCommaConstraint) {
-        System.err.println("yikes: a constituent in chart has comma as head " +
+        System.err.println(className +
+                           ": yikes: a constituent in chart has comma as head " +
                            modificand);
       }
       return false;
@@ -1180,7 +1188,8 @@ public class Decoder implements Serializable {
     if (item.leftChildren() != null && item.rightChildren() != null &&
         treebank.isComma(item.headWord().word())) {
       if (debugCommaConstraint) {
-        System.err.println("yikes: a constituent in chart has comma as head" +
+        System.err.println(className +
+                           ": yikes: a constituent in chart has comma as head" +
                            item);
       }
       return false;

@@ -39,8 +39,7 @@ public class ModelCollection implements Serializable {
   private transient Map posMap;
   private transient Map leftSubcatMap;
   private transient Map rightSubcatMap;
-  private transient Map leftModNonterminalMap;
-  private transient Map rightModNonterminalMap;
+  private transient Map modNonterminalMap;
   private transient Set prunedPreterms;
   private transient Set prunedPunctuation;
   private transient FlexibleMap canonicalEvents;
@@ -106,8 +105,7 @@ public class ModelCollection implements Serializable {
 		  Map posMap,
 		  Map leftSubcatMap,
 		  Map rightSubcatMap,
-                  Map leftModNonterminalMap,
-                  Map rightModNonterminalMap,
+                  Map modNonterminalMap,
                   Set prunedPreterms,
                   Set prunedPunctuation,
                   FlexibleMap canonicalEvents) {
@@ -127,8 +125,7 @@ public class ModelCollection implements Serializable {
     this.posMap = posMap;
     this.leftSubcatMap = leftSubcatMap;
     this.rightSubcatMap = rightSubcatMap;
-    this.leftModNonterminalMap = leftModNonterminalMap;
-    this.rightModNonterminalMap = rightModNonterminalMap;
+    this.modNonterminalMap = modNonterminalMap;
     this.prunedPreterms = prunedPreterms;
     this.prunedPunctuation = prunedPunctuation;
 
@@ -169,8 +166,7 @@ public class ModelCollection implements Serializable {
   public Map posMap() { return posMap; }
   public Map leftSubcatMap() { return leftSubcatMap; }
   public Map rightSubcatMap() { return rightSubcatMap; }
-  public Map leftModNonterminalMap() { return leftModNonterminalMap; }
-  public Map rightModNonterminalMap() { return rightModNonterminalMap; }
+  public Map modNonterminalMap() { return modNonterminalMap; }
   public Set prunedPreterms() { return prunedPreterms; }
   public Set prunedPunctuation() { return prunedPunctuation; }
 
@@ -324,17 +320,10 @@ public class ModelCollection implements Serializable {
     if (verbose)
       System.err.println("done (" + tempTimer + ").");
     if (verbose) {
-      System.err.print("Writing out leftModNonterminalMap...");
+      System.err.print("Writing out modNonterminalMap...");
       tempTimer.reset();
     }
-    s.writeObject(leftModNonterminalMap);
-    if (verbose)
-      System.err.println("done (" + tempTimer + ").");
-    if (verbose) {
-      System.err.print("Writing out rightModNonterminalMap...");
-      tempTimer.reset();
-    }
-    s.writeObject(rightModNonterminalMap);
+    s.writeObject(modNonterminalMap);
     if (verbose)
       System.err.println("done (" + tempTimer + ").");
     if (verbose) {
@@ -500,17 +489,10 @@ public class ModelCollection implements Serializable {
     if (verbose)
       System.err.println("done (" + tempTimer + ").");
     if (verbose) {
-      System.err.print("Reading leftModNonterminalMap...");
+      System.err.print("Reading modNonterminalMap...");
       tempTimer.reset();
     }
-    leftModNonterminalMap = (Map)s.readObject();
-    if (verbose)
-      System.err.println("done (" + tempTimer + ").");
-    if (verbose) {
-      System.err.print("Reading rightModNonterminalMap...");
-      tempTimer.reset();
-    }
-    rightModNonterminalMap = (Map)s.readObject();
+    modNonterminalMap = (Map)s.readObject();
     if (verbose)
       System.err.println("done (" + tempTimer + ").");
     if (verbose) {

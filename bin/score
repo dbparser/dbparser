@@ -19,6 +19,7 @@ endif
 set dir = `dirname $0`
 set scriptDir = `cd $dir  ; echo $cwd`
 set scorerDir = `cd $scriptDir/../scorer; echo $cwd`
+set addFakePos = $scriptDir/addFakePos
 
 set scorer = $scorerDir/evalb
 set paramFile = $scorerDir/COLLINS.prm
@@ -29,5 +30,13 @@ if ($argv[1] == "-p") then
     set argv = ($argv[3-$#argv])
 endif
 
+set goldFile = $argv[1]
+set parserFile = $argv[2]
+set scorableFile = $parserFile.scorable
+
+# add fake parts of speech to unparsed sentences and stick output into
+# .scorable file
+$addFakePos $goldFile $parserFile > $scorableFile
+
 # finally, call scorer
-exec $scorer -p $paramFile $argv
+exec $scorer -p $paramFile $goldFile $scorableFile

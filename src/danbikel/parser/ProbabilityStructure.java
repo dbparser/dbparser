@@ -122,6 +122,10 @@ public abstract class ProbabilityStructure implements Serializable {
    * @see Model#estimateLogProb(int,TrainerEvent)
    */
   public double[] lambdas;
+
+  public int[] historyHashCodes;
+  public int[] transitionHashCodes;
+
   /**
    * A temporary value used in the computation of top-level probabilities,
    * used in the computation of lambdas.
@@ -165,6 +169,8 @@ public abstract class ProbabilityStructure implements Serializable {
 
     estimates = new double[numLevels()];
     lambdas = new double[numLevels()];
+    historyHashCodes = new int[numLevels()];
+    transitionHashCodes = new int[numLevels()];
 
     topLevelCacheSize = getTopLevelCacheSize();
   }

@@ -234,8 +234,14 @@ public class WordTokenizer {
     // string; as soon as a character differs, we reset our match index,
     // lineSepMatchIdx, back to zero.  if we reach the length of the line
     // separator string, then we've just read a newline, and so we increase
-    // lineno and reset lineSepMatchIdx
-    if (ch == lineSep[lineSepMatchIdx]) {
+    // lineno and reset lineSepMatchIdx;
+    // alternatively, a newline character also delimits lines (the "default"
+    // line separator, as it were)
+    if (ch == '\n') {
+      lineno++;
+      lineSepMatchIdx = 0;
+    }
+    else if (ch == lineSep[lineSepMatchIdx]) {
       lineSepMatchIdx++;
       if (lineSepMatchIdx == lineSepLength) {
 	lineno++;

@@ -112,6 +112,12 @@ public class Decoder implements Serializable {
   protected int sentLen;
   protected int maxSentLen =
     Integer.parseInt(Settings.get(Settings.maxSentLen));
+  /**
+   * The maximum number of top-scoring parses for the various
+   * <code>parse</code> methods to return.
+   */
+  protected int kBest =
+    Math.max(1, Integer.parseInt(Settings.get(Settings.kBest)));
   /** The timer (used when Settings.maxParseTime is greater than zero) */
   protected final int maxParseTime =
     Integer.parseInt(Settings.get(Settings.maxParseTime));
@@ -1028,30 +1034,49 @@ public class Decoder implements Serializable {
       return null;
     }
 
+    double currPruneFact = pruneFact - 2 * Math.log(10);
+
+    CKYItem topRankedItem = null;
+    double prevTopLogProb = Constants.logOfZero;
+
+    // BEGIN BEAM-WIDENING CODE
+    /*
+    for (int iteration = 1; topRankedItem == null && currPruneFact <= pruneFact;
+	  currPruneFact += Math.log(10), iteration++) {
+      System.err.println(className + ": trying with prune factor of " +
+                         (currPruneFact / Math.log(10)));
+      chart.setPruneFactor(currPruneFact);
+      if (iteration > 1) {
+        chart.clearNonPreterminals();
+        for (int i = 0; i < sentLen; i++)
+          addUnariesAndStopProbs(i,i);
+      }
+    */
+    // END BEAM-WIDENING CODE
     try {
       for (int span = 2; span <= sentLen; span++) {
-	if (debugSpans)
-	  System.err.println(className + ": span: " + span);
-	int split = sentLen - span + 1;
-	for (int start = 0; start < split; start++) {
-	  int end = start + span - 1;
-	  if (debugSpans)
-	    System.err.println(className + ": start: " + start +
-			       "; end: " + end);
-	  complete(start, end);
-	}
+        if (debugSpans)
+          System.err.println(className + ": span: " + span);
+        int split = sentLen - span + 1;
+        for (int start = 0; start < split; start++) {
+          int end = start + span - 1;
+          if (debugSpans)
+            System.err.println(className + ": start: " + start +
+                               "; end: " + end);
+          complete(start, end);
+        }
       }
     }
     catch (TimeoutException te) {
       if (debugMaxParseTime) {
-	System.err.println(te.getMessage());
+        System.err.println(te.getMessage());
       }
     }
-    double prevTopLogProb = chart.getTopLogProb(0, sentLen - 1);
+    prevTopLogProb = chart.getTopLogProb(0, sentLen - 1);
     if (debugTop)
       System.err.println(className + ": highest probability item for " +
-			 "sentence-length span (0," + (sentLen - 1) + "): " +
-			 prevTopLogProb);
+                         "sentence-length span (0," + (sentLen - 1) + "): " +
+                         prevTopLogProb);
     chart.resetTopLogProb(0, sentLen - 1);
     addTopUnaries(sentLen - 1);
 
@@ -1062,10 +1087,28 @@ public class Decoder implements Serializable {
     // we look through all items that cover the entire sentence and get
     // the highest-ranked item whose label is topSym (NO WE DO NOT, since
     // we reset the top-ranked item just before adding top unaries)
-    CKYItem topRankedItem = null;
     CKYItem potentialTopItem = (CKYItem)chart.getTopItem(0, sentLen - 1);
     if (potentialTopItem != null && potentialTopItem.label() == topSym)
       topRankedItem = potentialTopItem;
+    CKYItem[] sortedItems = null;
+    int numSortedItems = 0;
+    if (kBest > 1 && topRankedItem != null) {
+      int numSentSpanItems = chart.numItems(0, sentLen - 1);
+      sortedItems = new CKYItem[numSentSpanItems];
+      Iterator sentSpanIt = chart.get(0, sentLen - 1);
+      while (sentSpanIt.hasNext()) {
+	CKYItem item = (CKYItem)sentSpanIt.next();
+	if (item.label() == topSym)
+	  sortedItems[numSortedItems++] = item;
+      }
+      Arrays.sort(sortedItems, 0, numSortedItems);
+    }
+
+    // BEGIN BEAM-WIDENING CODE
+    /*
+    }
+    */
+    // END BEAM-WIDENING CODE
 
     if (debugTop)
       System.err.println(className + ": top-ranked +TOP+ item: " +
@@ -1160,10 +1203,21 @@ public class Decoder implements Serializable {
       sentence.addAll(originalSentence); // restore original sentence
       return null;
     }
-    else {
+    else if (kBest == 1) {
       Sexp tree = topRankedItem.headChild().toSexp();
       postProcess(tree);
       return tree;
+    }
+    else {
+      SexpList treeList = new SexpList();
+      int counter = 0;
+      for (int itemIdx = numSortedItems - 1;
+	   itemIdx >= 0 && counter < kBest; counter++, itemIdx--) {
+	Sexp tree = sortedItems[itemIdx].headChild().toSexp();
+	postProcess(tree);
+	treeList.add(tree);
+      }
+      return treeList;
     }
   }
 

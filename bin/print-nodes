@@ -1,3 +1,0 @@
-#!/bin/tcsh -f
-
-busage | grep $USER | grep -v eip15 | grep -v eip20 | gawk '{print $1}' | tr '\012' ' '

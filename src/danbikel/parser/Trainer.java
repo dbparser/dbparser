@@ -72,16 +72,6 @@ public class Trainer implements Serializable {
     packagePrefix + "ModNonterminalModelStructure";
   private final static String modWordModelStructureClassnamePrefix =
     packagePrefix + "ModWordModelStructure";
-  // fallback defaults (used in constructor)
-  private final static int defaultUnknownWordThreshold = 3;
-  private final static int defaultReportingInterval = 100;
-  private final static int defaultNumPrevMods = 1;
-
-  // constant used in initialization of numeric property values
-  private final static Object[][] numericProperties =
-  {{Settings.unknownWordThreshold, new Integer(defaultUnknownWordThreshold)},
-   {Settings.trainerReportingInterval, new Integer(defaultReportingInterval)},
-   {Settings.numPrevMods, new Integer(defaultNumPrevMods)}};
 
   // types of events gathered by the trainer (provided as public constants
   // so that users can interpret human-readable trainer output file
@@ -137,6 +127,7 @@ public class Trainer implements Serializable {
 
   // settings
   private int unknownWordThreshold;
+  private int countThreshold;
   private int reportingInterval;
   private int numPrevMods;
   private boolean keepAllWords;
@@ -216,32 +207,19 @@ public class Trainer implements Serializable {
    * via the {@link #main} method of this class.
    *
    * @see Settings#unknownWordThreshold
+   * @see Settings#countThreshold
    * @see Settings#trainerReportingInterval
    * @see Settings#numPrevMods
    */
   public Trainer() {
-    int[] numericPropertyValues = new int[numericProperties.length];
-
-    for (int i = 0; i < numericProperties.length; i++) {
-      try {
-	numericPropertyValues[i] =
-	  Integer.parseInt(Settings.get((String)numericProperties[i][0]));
-      }
-      catch (NumberFormatException nfe) {
-	System.err.println(className + ": warning: property " +
-			   numericProperties[i][0] + " was not a parsable " +
-			   "number\n\t" + nfe + "\n\tsetting value to "+
-			   "fallback default: " + numericProperties[i][1]);
-	numericPropertyValues[i] =
-	  ((Integer)numericProperties[i][1]).intValue();
-      }
-    }
-
-    // coordinate the setting of these data members with the order of the
-    // numericProperties array
-    unknownWordThreshold = numericPropertyValues[0];
-    reportingInterval = numericPropertyValues[1];
-    numPrevMods = numericPropertyValues[2];
+    unknownWordThreshold =
+      Integer.parseInt(Settings.get(Settings.unknownWordThreshold));
+    countThreshold =
+      Integer.parseInt(Settings.get(Settings.countThreshold));
+    reportingInterval =
+      Integer.parseInt(Settings.get(Settings.trainerReportingInterval));
+    numPrevMods =
+      Integer.parseInt(Settings.get(Settings.numPrevMods));
 
     String keepAllWordsStr = Settings.get(Settings.keepAllWords);
     keepAllWords = Boolean.valueOf(keepAllWordsStr).booleanValue();
@@ -858,18 +836,21 @@ public class Trainer implements Serializable {
       derivePriors();
       System.err.println("done.");
 
-      lexPriorModel.deriveCounts(priorEvents, allPass, canonical);
-      nonterminalPriorModel.deriveCounts(priorEvents, allPass, canonical);
-      topNonterminalModel.deriveCounts(headEvents, topOnly, canonical);
-      topLexModel.deriveCounts(headEvents, allPass, canonical);
-      headModel.deriveCounts(headEvents, nonTop, canonical);
-      gapModel.deriveCounts(gapEvents, allPass, canonical);
-      leftSubcatModel.deriveCounts(headEvents, nonTop, canonical);
-      rightSubcatModel.deriveCounts(headEvents, nonTop, canonical);
-      leftModNonterminalModel.deriveCounts(modifierEvents, leftOnly, canonical);
-      rightModNonterminalModel.deriveCounts(modifierEvents, rightOnly, canonical);
-      leftModWordModel.deriveCounts(modifierEvents, leftOnly, canonical);
-      rightModWordModel.deriveCounts(modifierEvents, rightOnly, canonical);
+      int th = countThreshold;
+      lexPriorModel.deriveCounts(priorEvents, allPass, th, canonical);
+      nonterminalPriorModel.deriveCounts(priorEvents, allPass, th, canonical);
+      topNonterminalModel.deriveCounts(headEvents, topOnly, th, canonical);
+      topLexModel.deriveCounts(headEvents, allPass, th, canonical);
+      headModel.deriveCounts(headEvents, nonTop, th, canonical);
+      gapModel.deriveCounts(gapEvents, allPass, th, canonical);
+      leftSubcatModel.deriveCounts(headEvents, nonTop, th, canonical);
+      rightSubcatModel.deriveCounts(headEvents, nonTop, th, canonical);
+      leftModNonterminalModel.deriveCounts(modifierEvents, leftOnly, th,
+                                           canonical);
+      rightModNonterminalModel.deriveCounts(modifierEvents, rightOnly, th,
+                                            canonical);
+      leftModWordModel.deriveCounts(modifierEvents, leftOnly, th, canonical);
+      rightModWordModel.deriveCounts(modifierEvents, rightOnly, th, canonical);
 
       deriveSubcatMaps(leftSubcatModel.getProbStructure(),
 		       rightSubcatModel.getProbStructure(),

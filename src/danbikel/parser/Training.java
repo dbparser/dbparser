@@ -51,8 +51,8 @@ public interface Training {
   public Sexp preProcess(Sexp tree);
 
   /**
-   * Invoked by the {@linkplain Decoder decoder} as the first step in
-   * preprocessing (prior to the invocation of {@link #preProcessTest}).
+   * Invoked by the {@linkplain danbikel.parser.Decoder decoder} as the first
+   * step in preprocessing (prior to the invocation of {@link #preProcessTest}).
    * Returns whether the specified word should be removed from the sentence
    * before parsing.
    *

@@ -249,7 +249,7 @@ public abstract class AbstractTreebank implements Treebank, Serializable {
   /**
    * Returns whether the specified label is for a base NP.  The default
    * implementation here simply tests for object equality between the
-   * specified label and the label returned by {@#baseNPLabel}.  If
+   * specified label and the label returned by {@link #baseNPLabel}.  If
    * a particular language package can have various types of base NP labels
    * (such as those bearing node augmentations), then this method
    * should be overridden.

@@ -29,7 +29,7 @@ public abstract class Chart implements Serializable {
   /**
    * Contains all information and items covering a particular span.
    */
-  protected final static class Entry {
+  protected final static class Entry implements Serializable {
     Map map;
     double topLogProb;
 

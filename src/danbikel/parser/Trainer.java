@@ -46,7 +46,6 @@ import java.util.HashMap;
  * @see ProbabilityStructure
  */
 public class Trainer implements Serializable {
-
   // constants
   //static boolean secretFlag;
 
@@ -1258,7 +1257,7 @@ public class Trainer implements Serializable {
     derivePriors();
     System.err.println("done.");
 
-    Language.training().setUpFastArgMap(nonterminals);
+    //Language.training().setUpFastArgMap(nonterminals);
 
     deriveModelCounts(derivedCountThreshold, canonical);
 

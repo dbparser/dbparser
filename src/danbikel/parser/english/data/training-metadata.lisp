@@ -13,7 +13,11 @@
 ;;;                    parent is <parent>, they are candidates for being
 ;;;                    relabeled as arguments
 ;;;
-;;; <nt>           ::= a nonterminal label (a symbol)
+;;; <nt>           ::= a nonterminal label (a symbol), or a match pattern
+;;;                    containing Kleene star, such as * or *-A, where the
+;;;                    former matches any nonterminal symbol, and the latter
+;;;                    matches any nonteminal symbol bearing the "-A"
+;;;                    augmentation
 ;;;
 ;;; <head-list>    ::= (head <integer>) |
 ;;;                    (head-pre <search-set>) |

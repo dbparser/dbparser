@@ -131,8 +131,8 @@ and the Ant output directory might be "classes.ant".-->
              packagenames="danbikel.util,danbikel.util.proxy"
 	     protected="true"
 	     use="true"
-	     windowtitle="Dan Bikel&#8217;s Utility Packages"
-	     doctitle="Dan Bikel&#8217;s Utility Packages"
+	     windowtitle="Dan Bikel's Utility Packages"
+	     doctitle="Dan Bikel&amp;rsquo;s Utility Packages"
 	     header="Utility Packages"
 	     bottom="Author: &lt;a href=&quot;http://www.cis.upenn.edu/~dbikel/&quot;&gt;Dan Bikel.&lt;/a&gt;"
 	     additionalparam="-breakiterator">
@@ -145,9 +145,9 @@ and the Ant output directory might be "classes.ant".-->
              protected="true"
 	     use="true"
 	     overview="${src}/overview.html"
-	     windowtitle="Dan Bikel&#8217;s Parser"
-	     doctitle="Dan Bikel&#8217;s Parser"
-	     header="Parser"
+	     windowtitle="Dan Bikel's Parsing Engine"
+	     doctitle="Dan Bikel&amp;rsquo;s Parsing Engine"
+	     header="Parsing Engine"
 	     bottom="Author: &lt;a href=&quot;http://www.cis.upenn.edu/~dbikel/&quot;&gt;Dan Bikel.&lt;/a&gt;"
 	     additionalparam="-breakiterator">
       <link href="http://java.sun.com/j2se/1.4.2/docs/api"/>

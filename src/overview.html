@@ -1,0 +1,34 @@
+<html>
+<body>
+<p>
+This collection of packages provides a framework for an extensible statistical
+parsing engine.  Unlike previous approaches, the framework encapsulates all
+language- and Treebank-specific information in a separate module to be
+specified at run-time, providing a great deal of language-independence.
+</p>
+<p>
+<b>A quick note on <i>extensible</i> versus <i>portable</i></b>:
+This parser is <i>extensible</i> to new Treebanks and/or langauges, as opposed
+to being <i>portable</i>.  The difference lies in what the developer must do to
+allow the parsing engine to work with a new Treebank and/or language, as well
+as whether the changes are recognized at compile-time or run-time.  A
+<i>portable</i> engine implies that the developer would need to make changes to
+the engine itself to make sure that it can work in the new domain, and then
+recompile the entire engine to get a language- or Treebank-specific version.
+This <i>extensible</i> engine, on the other hand, requires only that the
+developer provide an additional set of classes&mdash;a <i>language
+package</i>&mdash;to be loaded at run-time, without having to touch the source
+code of the engine itself or re-compile it.  Other ways in which this framework
+is extensible include, but are not limited to,
+<ul>
+<li> the ability to specify different top-level and back-off dependencies for
+the various parameter classes to be used,
+<li> the ability to specify new parameter classes within the existing
+head-driven framework and
+<li> the ability to specify richer types of lexical information, such as the
+lexico-semantic information available in the <a
+href="http://www.cogsci.princeton.edu/~wn">WordNet</a> database.
+</ul>
+</p>
+</body>
+</html>

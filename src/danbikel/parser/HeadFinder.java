@@ -2,7 +2,6 @@ package danbikel.parser;
 
 import java.io.*;
 import java.util.HashMap;
-import java.util.HashSet;
 import danbikel.lisp.*;
 
 public abstract class HeadFinder implements Serializable {
@@ -144,7 +143,7 @@ public abstract class HeadFinder implements Serializable {
    * @see Settings#headFinderWarnDefaultRule
    */
   protected int defaultFindHead(Symbol lhs, SexpList rhs) {
-    HeadFindInstruction[] instructions = 
+    HeadFindInstruction[] instructions =
       (HeadFindInstruction[])headFindInstructions.get(lhs);
 
     if (instructions == null) {

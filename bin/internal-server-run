@@ -92,11 +92,12 @@ set java = $JAVA_HOME/bin/java
 
 set reap
 
-# date and time variables, upon which $outputDir is based
+# date, time and jobUID variables, upon which $outputDir is based
 # --these will be modified when this script is time-stamped and copied
 # to $outputDir
 set date = `date '+%Y.%m.%d'`
 set time = `date '+%H.%M'`
+set jobUID = $JOBID
 
 set dir = `dirname $0`
 set scriptDir = `cd $dir  ; echo $cwd`
@@ -106,13 +107,10 @@ set jarFile = $parent/dbparser.jar
 
 # prepend parent of this script's directory to a shell variable version
 # of CLASSPATH, so we use jar file of this particular sandbox
-set classpath = $jarFile
-if ($?CLASSPATH) then
-    set classpath = $jarFile\:$CLASSPATH
-endif
+set classpath = $jarFile\:$CLASSPATH
 
 # the all-important output directory for this experiment
-set outputDir = ~/experiments/$date/$time
+set outputDir = ~/experiments/$date/$time-$jobUID
 
 # the three required arguments
 # --these will be modified when this script is time-stamped and copied
@@ -225,6 +223,7 @@ if (`tail -1 $0` != "$timeStamp") then
     set sedSettingsFile = `echo $settingsFile | sed -e 's/\//\\\//g'`
     sed -e "s/^\(set scriptDir = \).*/\1$sedScriptDir/" \
 	-e "s/^\(set date = \).*/\1$date/" -e "s/^\(set time = \).*/\1$time/" \
+	-e "s/^\(set jobUID = \).*/\1$jobUID/" \
 	-e 's/^\(set inFiles = \).*)/\1(`cat $outputDir\/inFilenames`)/' \
         -e "s/^\(set derivedDataFile = \).*/\1$sedDDF/" \
 	-e "s/^\(set settingsFile = \).*/\1$sedSettingsFile/" $0 > $scriptFile

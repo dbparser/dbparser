@@ -34,19 +34,18 @@ public class Shifter {
     }
   }
 
-  public static void shift(TrainerEvent event, SexpList list,
-		    Sexp prevMod, Sexp currMod) {
-    shifter.shift(event, list, prevMod, currMod);
+  public static void shift(TrainerEvent event, SexpList list, Sexp prevMod) {
+    shifter.shift(event, list, prevMod);
   }
   public static void shift(TrainerEvent event, WordList wordList,
-		    Word prevWord, Word currWord) {
-    shifter.shift(event, wordList, prevWord, currWord);
+			   Word prevWord) {
+    shifter.shift(event, wordList, prevWord);
   }
 
-  public static boolean skip(CKYItem item, Sexp prevMod, Sexp currMod) {
-    return shifter.skip(item, prevMod, currMod);
+  public static boolean skip(CKYItem item, Sexp prevMod) {
+    return shifter.skip(item, prevMod);
   }
-  public static boolean skip(CKYItem item, Word prevWord, Word currWord) {
-    return shifter.skip(item, prevWord, currWord);
+  public static boolean skip(CKYItem item, Word prevWord) {
+    return shifter.skip(item, prevWord);
   }
 }

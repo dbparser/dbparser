@@ -16,19 +16,17 @@ public class DefaultShifter implements Shift {
   /** Default constructor. */
   public DefaultShifter() {}
 
-  public void shift(TrainerEvent event, SexpList list,
-		    Sexp prevMod, Sexp currMod) {
+  public void shift(TrainerEvent event, SexpList list, Sexp prevMod) {
     list.remove(list.length() - 1);
     list.add(0, prevMod);
   }
-  public void shift(TrainerEvent event, WordList wordList,
-		    Word prevWord, Word currWord) {
+  public void shift(TrainerEvent event, WordList wordList, Word prevWord) {
     wordList.shift(prevWord);
   }
-  public boolean skip(Item item, Sexp prevMod, Sexp currMod) {
+  public boolean skip(Item item, Sexp prevMod) {
     return false;
   }
-  public boolean skip(Item item, Word prevWord, Word currWord) {
+  public boolean skip(Item item, Word prevWord) {
     return false;
   }
 }

@@ -71,15 +71,20 @@ if ($?linkOutputFiles && $?copyOutputFiles) then
     goto usage
 endif
 
-if ($?linkOutputFiles) then
-    echo -n "Putting links to output files in "
-else if ($?copyOutputFiles) then
-    echo -n "Copying output files to "
-endif
-if ($?copyOutputDir) then
-    echo "$copyOutputDir"
-else
-    echo "respective input files' directories"
+if ($?linkOutputFiles || $?copyOutputFiles) then
+    if ($?linkOutputFiles) then
+	echo -n "Putting links to output files in "
+    else if ($?copyOutputFiles) then
+	echo -n "Copying output files to "
+    endif
+    if ($?copyOutputDir) then
+	echo "$copyOutputDir"
+    else
+	echo "respective input files' directories"
+    endif
+else if ($?copyOutputDir) then
+    echo "error: cannot use -o option without using either -ln or -cp"
+    goto usage
 endif
 
 set RSH = ssh

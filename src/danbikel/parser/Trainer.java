@@ -434,6 +434,30 @@ public class Trainer implements Serializable {
   }
 
   /**
+   * Creates and returns a new start list.  A start list is a list of length
+   * equal to the value of <tt>Settings.get(Settings.numPrevMods)</tt>, where
+   * every element is the symbol <code>Language.training.startSym()</code>.
+   * This is the appropriate initial list of previously "generated" modidifers
+   * when beginning the Markov process of generating modifiers.
+   *
+   * @return a new list of start symbols
+   *
+   * @see Training#startSym()
+   */
+  public static SexpList newStartList() {
+    int numPrevMods = Integer.parseInt(Settings.get(Settings.numPrevMods));
+    return newStartList(numPrevMods);
+  }
+
+  private static final SexpList newStartList(int numPrevMods) {
+    SexpList startList = new SexpList(numPrevMods);
+    int startListLen = startList.length();
+    for (int i = 0; i < startListLen; i++)
+      startList.add(Language.training.startSym());
+    return startList;
+  }
+
+  /**
    * Note the O(n) operation performed on the prevModList.
    */
   private void collectModifierStats(HeadTreeNode tree,
@@ -451,9 +475,7 @@ public class Trainer implements Serializable {
     Iterator mods = (side == Constants.LEFT ?
 		     tree.preMods().iterator() : tree.postMods().iterator());
 
-    SexpList prevModList = new SexpList(numPrevMods);
-    for (int i = 0; i < numPrevMods; i++)
-      prevModList.add(startSym);
+    SexpList prevModList = newStartList(numPrevMods);
     Subcat dynamicSubcat = (Subcat)subcat.copy();
     // if there's a gap to generate, add as requirement to end of subcat list
     if (gapIdx != -1)

@@ -23,6 +23,7 @@ import java.io.*;
  * concurrent access via <code>synchronized</code> blocks).
  *
  * @see Model
+ * @see JointModel
  * @see Trainer
  */
 public abstract class ProbabilityStructure implements Serializable {
@@ -198,22 +199,54 @@ public abstract class ProbabilityStructure implements Serializable {
       Settings.get(getClass().getName() + ".topLevelCacheSize");
     /*
     System.err.println(getClass().getName() + ": setting top-level cache " +
-                       "size to be " + topLevelCacheSizeStr);
+		       "size to be " + topLevelCacheSizeStr);
     */
     return (topLevelCacheSizeStr == null ?
-            0 : Integer.parseInt(topLevelCacheSizeStr));
+	    0 : Integer.parseInt(topLevelCacheSizeStr));
   }
 
   /**
    * Allows subclasses to specify the maximum number of event components,
    * so that the constructor of this class may pre-allocate space in its
    * internal, reusable <code>MutableEvent</code> objects (used for efficient
-   * event construction).  The default implementation simply returns 0.
+   * event construction).  The default implementation simply returns 1.
    *
-   * @return 0 (subclasses should override this method)
+   * @return 1 (subclasses should override this method)
    * @see MutableEvent#ensureCapacity
    */
-  protected int maxEventComponents() { return 0; }
+  protected int maxEventComponents() { return 1; }
+
+  /**
+   * Returns a newly-constructed <code>Model</code> object for this
+   * probability structure. The default implementation here returns
+   * an instance of <code>Model</code>.  If a concrete
+   * <code>ProbabilityStructure</code> class overrides
+   * {@link #jointModel()}, it should use this method to return an
+   * instance of a class that is suitable for handling multiple
+   * <code>ProbabilityStructure</code> objects, such as {@link JointModel}.
+   *
+   * @see #jointModel()
+   * @see Model
+   * @see JointModel
+   */
+  public Model newModel() { return new Model(this); }
+
+  /**
+   * Returns an array of other <code>ProbabilityStructure</code> objects
+   * for use in a <code>JointModel</code> instance, or <code>null</code>
+   * if this probability structure should not be composed with a
+   * <code>JointModel</code> instance.  This default implementation returns
+   * <code>null</code>.
+   *
+   * @return an array of other <code>ProbabilityStructure</code>
+   * objects, or <code>null</code> if this probability structure should
+   * not be composed with a <code>JointModel</code> instance
+   *
+   * @see JointModel
+   */
+  public ProbabilityStructure[] jointModel() {
+    return null;
+  }
 
   /**
    * Returns the number of back-off levels.
@@ -299,7 +332,7 @@ public abstract class ProbabilityStructure implements Serializable {
   }
 
   Transition getTransition(TrainerEvent trainerEvent, Event history,
-                           int backOffLevel) {
+			   int backOffLevel) {
     Transition transition = transitions[backOffLevel];
     transition.setHistory(history);
     transition.setFuture(getFuture(trainerEvent, backOffLevel));
@@ -309,14 +342,14 @@ public abstract class ProbabilityStructure implements Serializable {
   /**
    * Indicates whether the <code>Model</code> class needs to invoke
    * its cleanup method at the end of its {@link
-   * Model#deriveCounts(CountsTable,Filter,int,FlexibleMap)
+   * Model#deriveCounts(CountsTable,Filter,double,FlexibleMap)
    * deriveCounts} method.  The default implementation here returns
    * <code>false</code>.
    *
    * @see #removeHistory(int,Event)
    * @see #removeFuture(int,Event)
    * @see #removeTransition(int,Transition)
-   * @see Model#deriveCounts(CountsTable,Filter,int,FlexibleMap)
+   * @see Model#deriveCounts(CountsTable,Filter,double,FlexibleMap)
    * @see Model#cleanup()
    */
   public boolean doCleanup() {
@@ -325,7 +358,7 @@ public abstract class ProbabilityStructure implements Serializable {
 
   /**
    * Indicates that {@link Model#cleanup()}, which is invoked at the end
-   * of {@link Model#deriveCounts(CountsTable,Filter,int,FlexibleMap)
+   * of {@link Model#deriveCounts(CountsTable,Filter,double,FlexibleMap)
    * Model.deriveCounts},
    * can safely remove the specified event from the <code>Model</code>
    * object's internal counts tables, as the event is not applicable
@@ -333,7 +366,7 @@ public abstract class ProbabilityStructure implements Serializable {
    * <p>
    * The default implementation simply returns <code>false</code>.
    *
-   * @see Model#deriveCounts(CountsTable,Filter,int,FlexibleMap)
+   * @see Model#deriveCounts(CountsTable,Filter,double,FlexibleMap)
    * @see Model#cleanup()
    */
   public boolean removeHistory(int backOffLevel, Event history) {
@@ -341,14 +374,14 @@ public abstract class ProbabilityStructure implements Serializable {
   }
   /**
    * Indicates that {@link Model#cleanup()}, which is invoked at the end
-   * of {@link Model#deriveCounts(CountsTable,Filter,int,FlexibleMap)},
+   * of {@link Model#deriveCounts(CountsTable,Filter,double,FlexibleMap)},
    * can safely remove the specified event from the <code>Model</code>
    * object's internal counts tables, as the event is not applicable
    * to any of the probabilities for which the model will produce an estimate.
    * <p>
    * The default implementation simply returns <code>false</code>.
    *
-   * @see Model#deriveCounts(CountsTable,Filter,int,FlexibleMap)
+   * @see Model#deriveCounts(CountsTable,Filter,double,FlexibleMap)
    * @see Model#cleanup()
    */
   public boolean removeFuture(int backOffLevel, Event future) {
@@ -358,9 +391,9 @@ public abstract class ProbabilityStructure implements Serializable {
    * Returns <code>true</code> if the specified transition contains
    * either a history or future for which {@link
    * #removeHistory(int,Event)} or {@link #removeFuture(int,Event)}
-   * return <code>true</code>, respectively.
+   * returns <code>true</code>, respectively.
    *
-   * @see Model#deriveCounts(CountsTable,Filter,int,FlexibleMap)
+   * @see Model#deriveCounts(CountsTable,Filter,double,FlexibleMap)
    * @see Model#cleanup()
    */
   public boolean removeTransition(int backOffLevel, Transition transition) {

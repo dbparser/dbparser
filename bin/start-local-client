@@ -1,0 +1,43 @@
+#!/bin/tcsh -f
+
+if ($#argv < 3) then
+    echo "usage: <class> <settings file> <input file>"
+    exit 1
+endif
+
+set class = $1
+set settingsFile = $2
+set inputFile = $3
+set args = ($argv[4-$#argv])
+
+set logDir = /tmp
+set logFile = $logDir/parser.log
+set pidFile = $logDir/parser-pid
+set settingsProp = "-Dparser.settingsFile=$settingsFile"
+
+set mem = (-Xms800m -Xmx800m)
+
+set parent = `dirname $0`/..
+set classes = $parent/classes
+
+set clientPolicy = "-Djava.security.policy=$parent/policy-files/all.policy"
+set clientCodebase = -Djava.rmi.server.codebase="file://$classes/ file://"
+set disableHttp = "-Djava.rmi.server.disableHttp=true"
+set disableFailover = "-Dparser.switchboardUser.client.serverFailover=false"
+set disableRetries = "-Dparser.switchboardUser.client.serverMaxRetries=0"
+set dontTolerateFaults = ($disableFailover $disableRetries)
+set useLocalProbCache = "-Dparser.decoder.useLocalProbabilityCache=true"
+
+# start the parser
+echo log file is $logFile
+echo pid file is $pidFile
+
+set command = (java -server $mem $settingsProp $clientPolicy $disableHttp \
+	       $dontTolerateFaults $useLocalProbCache \
+	       $class --no-sb-settings -in $inputFile $args)
+
+echo $command > $logFile
+
+$command >>& $logFile &
+
+echo $! > $pidFile

@@ -184,7 +184,7 @@ and the Ant output directory might be "classes.ant".-->
     <available file="${deploy.to}/README" property="readme.ln.present"/>
     <copy todir="${deploy.to}" file="${deploy}/LICENSE"/>
   </target>
-  <target depends="rebuild,javadoc,setupDeploy,ln_deploy_readme" name="deploy">
+  <target depends="rebuild,javadoc,setupDeploy,ln_deploy_readme,create_install_header" name="deploy">
     <!-- Can't use tar task: Ant filesets don't respect symbolic links -->
     <!--
     <tar destfile="${deploy.tar}" basedir="${deploy}" compression="gzip"

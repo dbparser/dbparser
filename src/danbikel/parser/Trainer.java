@@ -349,6 +349,8 @@ public class Trainer implements Serializable {
     System.err.println("done.");
 
     //countUniqueBigrams();
+
+    //outputCollins();
   }
 
   private void downcaseWords(HeadTreeNode tree) {
@@ -1645,5 +1647,25 @@ public class Trainer implements Serializable {
     System.err.println("num unique bigrams " +
 		       "(including traces, start and stop words): " +
 		       bigramSet.size());
+  }
+
+  private void outputCollins() {
+    System.err.println("Outputting Collins-format head events.");
+    outputCollins(headEvents);
+    System.err.println("Outputting Collins-format modifier events.");
+    outputCollins(modifierEvents);
+  }
+
+  private void outputCollins(CountsTable eventCounts) {
+    Iterator modEvents = eventCounts.entrySet().iterator();
+    while (modEvents.hasNext()) {
+      MapToPrimitive.Entry entry = (MapToPrimitive.Entry)modEvents.next();
+      TrainerEvent event = (TrainerEvent)entry.getKey();
+      int count = entry.getIntValue();
+      String collinsStr =
+        danbikel.parser.util.TrainerEventToCollins.trainerEventToCollins(event);
+      for (int i = 0; i < count; i++)
+        System.out.println(collinsStr);
+    }
   }
 }

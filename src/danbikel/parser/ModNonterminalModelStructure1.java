@@ -20,7 +20,7 @@ public class ModNonterminalModelStructure1 extends ProbabilityStructure {
     super();
   }
 
-  public int maxEventComponents() { return 7; }
+  public int maxEventComponents() { return 8; }
   public int numLevels() { return 3; }
 
   public Event getHistory(TrainerEvent trainerEvent, int backOffLevel) {
@@ -28,12 +28,15 @@ public class ModNonterminalModelStructure1 extends ProbabilityStructure {
 
     MutableEvent hist = historiesWithSubcats[backOffLevel];
 
+    Symbol side = Constants.sideToSym(modEvent.side());
+
     hist.clear();
     Symbol verbInterveningSym =
       Constants.booleanToSym(modEvent.verbIntervening());
     switch (backOffLevel) {
     case 0:
-      // for p(M(t)_i | P, H, w, t, verbIntervening, (M_i-1,...,M_i-k), subcat)
+      // for p(M(t)_i | P, H, w, t, verbIntervening, (M_i-1,...,M_i-k), subcat,
+      //                side)
       hist.add(0, Language.training.removeGapAugmentation(modEvent.parent()));
       hist.add(0, Language.training.removeGapAugmentation(modEvent.head()));
       hist.add(0, modEvent.headWord().word());
@@ -41,18 +44,20 @@ public class ModNonterminalModelStructure1 extends ProbabilityStructure {
       hist.add(0, verbInterveningSym);
       hist.add(0, Language.training.removeGapAugmentation(modEvent.previousMods()));
       hist.add(1, modEvent.subcat());
+      hist.add(0, side);
       break;
     case 1:
-      // for p(M(t)_i | P, H, t, verbIntervening, M_i-1, subcat)
+      // for p(M(t)_i | P, H, t, verbIntervening, M_i-1, subcat, side)
       hist.add(0, Language.training.removeGapAugmentation(modEvent.parent()));
       hist.add(0, Language.training.removeGapAugmentation(modEvent.head()));
       hist.add(0, modEvent.headWord().tag());
       hist.add(0, verbInterveningSym);
       hist.add(0, Language.training.removeGapAugmentation(modEvent.previousMods().get(0)));
       hist.add(1, modEvent.subcat());
+      hist.add(0, side);
       break;
     case 2:
-      // for p(M(t)_i | P, H, verbIntervening, M_i-1 == +START+, subcat)
+      // for p(M(t)_i | P, H, verbIntervening, M_i-1 == +START+, subcat, side)
       Symbol prevModIsStartSym =
 	Constants.booleanToSym(modEvent.previousMods().get(0) == startSym);
       hist.add(0, Language.training.removeGapAugmentation(modEvent.parent()));
@@ -60,6 +65,7 @@ public class ModNonterminalModelStructure1 extends ProbabilityStructure {
       hist.add(0, verbInterveningSym);
       hist.add(0, prevModIsStartSym);
       hist.add(1, modEvent.subcat());
+      hist.add(0, side);
       break;
     }
     return hist;

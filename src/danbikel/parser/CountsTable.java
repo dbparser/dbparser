@@ -1,6 +1,5 @@
 package danbikel.parser;
 
-import java.util.HashMap;
 import danbikel.util.*;
 import danbikel.lisp.*;
 import java.io.*;
@@ -10,7 +9,7 @@ import java.util.*;
  * Provides a mapping between objects and integer counts that may be
  * incremented or decremented.
  */
-public class CountsTable extends HashMap {
+public class CountsTable extends danbikel.util.HashMap {
   /**
    * Constructs an empty <code>CountsTable</code>.
    */
@@ -49,7 +48,7 @@ public class CountsTable extends HashMap {
    *
    * @param o the object to add
    */
-  public final synchronized void add(Object o) {
+  public final void add(Object o) {
     add(o, 1);
   }
 
@@ -62,7 +61,7 @@ public class CountsTable extends HashMap {
    * @param o the object to add
    * @param count the amount by which to increment <code>o</code>'s count
    */
-  public final synchronized void add(Object o, int count) {
+  public final void add(Object o, int count) {
     IntCounter counter = (IntCounter)get(o);
     if (counter == null)
       super.put(o, new IntCounter(count));
@@ -72,17 +71,16 @@ public class CountsTable extends HashMap {
 
   /**
    * Adds the specified key-value mapping to this map.  Invoking this method
-   * will cause a runtime error, as <code>value</code> is expected to
-   * be of a type that is only used internally by this class.
+   * with a key that is not an instance of <code>IntCounter</code> will cause
+   * a runtime error.
    *
-   * @exception ClassCastException if this method is invoked
    * @deprecated This method has been overridden so that
    * <code>CountsTable</code> objects may not be used as normal
    * <code>HashMap</code> objects.
    */
   public Object put(Object key, Object value) {
     if (!(value instanceof IntCounter))
-      return null;
+      return new IllegalArgumentException("value must be IntCounter");
     else
       return super.put(key, value);
   }
@@ -94,7 +92,7 @@ public class CountsTable extends HashMap {
    * @return the count of object <code>o</code> if it exists in this
    * counts table, or 0 if it does not exist
    */
-  public final synchronized int count(Object o) {
+  public final int count(Object o) {
     IntCounter counter = (IntCounter)get(o);
     return ((counter == null) ? 0 : counter.get());
   }
@@ -112,7 +110,7 @@ public class CountsTable extends HashMap {
       writer.write(" ");
       writer.write(String.valueOf(o));
       writer.write(" ");
-      writer.write(String.valueOf(count(o)));
+      writer.write(count(o));
       writer.write(")\n");
     }
   }

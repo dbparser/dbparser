@@ -7,6 +7,7 @@ public class ModWordModelStructure2 extends ProbabilityStructure {
   private Symbol startSym = Language.training().startSym();
   private Word startWord = Language.training().startWord();
   private Symbol baseNP = Language.treebank().baseNPLabel();
+  private Symbol topSym = Language.training().topSym();
 
   public ModWordModelStructure2() {
     super();
@@ -132,33 +133,23 @@ public class ModWordModelStructure2 extends ProbabilityStructure {
   public boolean doCleanup() { return true; }
 
   /**
-   * The trainer passes <code>ModifierEvent</code> objects
-   * representing modifiers on both sides of the head, even though
-   * there are separate models for each side.  This allows the final
-   * back-off level, p(w | t), to use information gathered from both
-   * sides.  However, it means that after all counts have been
-   * derived, there are twice as many entries in the counts tables for
-   * the back-off levels 0 and 1, since the model for, say, the left
-   * side will have stored counts for the right side as well (the
-   * counts are stored separately by explicitly including a "side"
-   * field in the events being counted).  This method allows for the
-   * removal of these "unnecessary" counts, which will never be used
-   * when decoding.
+   * In order to gather statistics for words that appear as the head of
+   * the entire sentence when estimating p(w | t), the trainer "fakes" a
+   * modifier event, as though the root node of the observed tree was seen
+   * to modify the magical +TOP+ node.  For back-off levels 0 and 1, we
+   * will never use the derived counts whose history contexts contain +TOP+.
+   * This method allows for the removal of these "unnecessary" counts,
+   * which will never be used when decoding.
    */
   public boolean removeHistory(int backOffLevel, Event history) {
-    // this method assumes the "side" field will be the last element
-    // of the events in which it is included (at levels 0 and 1)
-    // N.B.: Right now, both levels 0 and 1 of both the regular and the
-    // baseNP models have a side field as their final element; if this
-    // changes, however, it will be necessary to check the parent
-    // field to see if the specified history is that for a baseNP
-    // and do a special baseNP case
-    Symbol side = (Symbol)additionalData;
+    // this method assumes the parent component of histories for
+    // back-off levels 0 and 1 will be at index 2.  IF THIS CHANGES,
+    // this method will need to change accordingly.
     switch (backOffLevel) {
     case 0:
-      return history.get(0, history.numComponents(0) - 1) != side;
+      return history.get(0, 2) == topSym;
     case 1:
-      return history.get(0, history.numComponents(0) - 1) != side;
+      return history.get(0, 2) == topSym;
     case 2:
       return false;
     }

@@ -32,6 +32,10 @@ public class Model implements Serializable {
   // constants
   private final static boolean verboseDebug = false;
   /**
+   * The value of this constant determines whether {@link
+   * #estimateProb(ProbabilityStructure,TrainerEvent)} emits a warning when it
+   * encounters a history for which there is a saved smoothing parameter but
+   * was not an observed history as far as the current model is concerned.
    * When using smoothing parameters from another training run, it is typical
    * to be operating with a model trained from the same data.  In such a case,
    * the set of history contexts observed during the training run that produced
@@ -45,11 +49,7 @@ public class Model implements Serializable {
    * underflow warning and not emit any expected events for that sentence.  If
    * a history context was only observed in the one or more sentences that have
    * underflow problems in a particular EM iteration, then it will effectively
-   * not be observed in that iteration.  The value of this constant determines
-   * whether {@link #estimateProb(ProbabilityStructure,TrainerEvent)} emits a
-   * warning when it encounters a history for which there is a saved smoothing
-   * parameter but was not an observed history as far as the current model
-   * is concerned.
+   * not be observed in that iteration.
    */
   protected final static boolean warnSmoothingHasHistoryNotInTraining = false;
   protected final static boolean precomputeProbs =

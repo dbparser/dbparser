@@ -1143,9 +1143,13 @@ public class Decoder implements Serializable {
     int numSortedItems = 0;
     CKYItem[] sortedItems = null;
 
+    // take care of round-off error, making sure we reach maxPruneFact
+    // in loop
+    double pruneFactLimit = maxPruneFact + pruneFactIncrement / 2;
+
     // BEGIN BEAM-WIDENING CODE
     for (int iteration = 1;
-         topRankedItem == null && currPruneFact <= maxPruneFact;
+         topRankedItem == null && currPruneFact <= pruneFactLimit;
 	 currPruneFact += pruneFactIncrement, iteration++) {
       if (debugBeamWidening)
         System.err.println(className + ": trying with prune factor of " +
@@ -2092,11 +2096,9 @@ public class Decoder implements Serializable {
     // as long as there are children and we haven't reached the numPrevMods
     // limit, set elements of prevModList, starting at index 0
     for (SLNode curr = modChildren; curr != null && i < numPrevMods; ) {
-      Symbol currMod = (curr.data() == null ? stopSym :
-			(Symbol)((CKYItem)curr.data()).label());
       Symbol prevMod = (curr.next() == null ? startSym :
 			(Symbol)((CKYItem)curr.next().data()).label());
-      if (!Shifter.skip(item, prevMod, currMod)) {
+      if (!Shifter.skip(item, prevMod)) {
 	prevMods.add(prevMod);
 	i++;
       }
@@ -2127,11 +2129,9 @@ public class Decoder implements Serializable {
     // as long as there are children and we haven't reached the numPrevWords
     // limit, set elements of wordList, starting at index 0 (i = 0, initially)
     for (SLNode curr = modChildren; curr!=null && i < numPrevWords;) {
-      Word currWord = (curr.data() == null ? stopWord :
-		       ((CKYItem)curr.data()).headWord());
       Word prevWord = (curr.next() == null ? startWord :
 		       (Word)((CKYItem)curr.next().data()).headWord());
-      if (!Shifter.skip(item, prevWord, currWord))
+      if (!Shifter.skip(item, prevWord))
 	wordList.set(i++, prevWord);
       curr = curr.next();
     }

@@ -2,6 +2,7 @@ package danbikel.parser;
 
 import danbikel.lisp.*;
 import java.io.Serializable;
+import java.util.*;
 
 /**
  * A class to represent the head generation event implicit in the models
@@ -39,7 +40,7 @@ public class HeadEvent implements TrainerEvent, Cloneable {
    * construct this <code>HeadEvent</code> object
    */
   public HeadEvent(Sexp sexp) {
-    this(new Word(sexp.list().get(0)),
+    this(Words.get(sexp.list().get(0)),
 	 sexp.list().symbolAt(1),
 	 sexp.list().symbolAt(2),
 	 sexp.list().listAt(3),
@@ -59,7 +60,7 @@ public class HeadEvent implements TrainerEvent, Cloneable {
   public HeadEvent(Word headWord, Symbol parent, Symbol head,
 		   SexpList leftSubcat, SexpList rightSubcat) {
     this(headWord, parent, head,
-         Subcats.get(leftSubcat), Subcats.get(rightSubcat));
+	 Subcats.get(leftSubcat), Subcats.get(rightSubcat));
   }
 
   public HeadEvent(Word headWord, Symbol parent, Symbol head,
@@ -67,6 +68,21 @@ public class HeadEvent implements TrainerEvent, Cloneable {
     set(headWord, parent, head, leftSubcat, rightSubcat);
   }
 
+  void canonicalize(Map map) {
+    headWord  = (Word)getCanonical(map, headWord);
+    leftSubcat = (Subcat)getCanonical(map, leftSubcat);
+    rightSubcat = (Subcat)getCanonical(map, rightSubcat);
+  }
+
+  Object getCanonical(Map map, Object obj) {
+    Object mapObj = map.get(obj);
+    if (mapObj == null) {
+      map.put(obj, obj);
+      return obj;
+    }
+    else
+      return mapObj;
+  }
 
   // accessors
   /** Returns the head word of this head event. */
@@ -88,13 +104,13 @@ public class HeadEvent implements TrainerEvent, Cloneable {
 
   // mutators
 
-  void setHeadWord(Word headWord) { this.headWord = headWord; }
+  public void setHeadWord(Word headWord) { this.headWord = headWord; }
   void setParent(Symbol parent) { this.parent = parent; }
   void setHead(Symbol head) { this.head = head; }
   void setLeftSubcat(Subcat leftSubcat) { this.leftSubcat = leftSubcat; }
   void setRightSubcat(Subcat rightSubcat) { this.rightSubcat = rightSubcat; }
   void set(Word headWord, Symbol parent, Symbol head,
-           Subcat leftSubcat, Subcat rightSubcat) {
+	   Subcat leftSubcat, Subcat rightSubcat) {
     this.headWord = headWord;
     this.parent = parent;
     this.head = head;

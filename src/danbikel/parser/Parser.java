@@ -3,7 +3,7 @@ package danbikel.parser;
 import danbikel.util.*;
 import danbikel.lisp.*;
 import danbikel.switchboard.*;
-import java.util.Random;
+import java.util.*;
 import java.net.MalformedURLException;
 import java.rmi.*;
 import java.rmi.server.*;
@@ -144,6 +144,20 @@ public class Parser
     return (propStr == null) ? defaultValue : Integer.parseInt(propStr);
   }
 
+  public void run() {
+    try {
+      processObjectsThenDie();
+    }
+    catch (RemoteException re) {
+      System.err.println(re);
+       try { die(true); }
+        catch (RemoteException re2) {
+          System.err.println("client " + id + " couldn't die! (" + re + ")");
+        }
+    }
+  }
+
+
   // main stuff
   private static String switchboardName = Switchboard.defaultBindingName;
   private static String derivedDataFilename = null;
@@ -236,16 +250,21 @@ public class Parser
     return true;
   }
 
-  public void run() {
-    try {
-      processObjectsThenDie();
-    }
-    catch (RemoteException re) {
-      System.err.println(re);
-       try { die(true); }
-        catch (RemoteException re2) {
-          System.err.println("client " + id + " couldn't die! (" + re + ")");
-        }
+  private static void checkSettings(Properties sbSettings) {
+    Iterator it = sbSettings.entrySet().iterator();
+    while (it.hasNext()) {
+      Map.Entry entry = (Map.Entry)it.next();
+      String sbProp = (String)entry.getKey();
+      String sbVal = (String)entry.getValue();
+      String localVal = Settings.get(sbProp);
+      if (sbVal.equals(localVal) == false) {
+        System.err.println(className + ": warning: value of property \"" +
+                           sbProp + "\" is\n\t\t\"" + localVal + "\"\n\t" +
+                           "in settings " +
+                           "obtained from \"" +
+                           derivedDataFilename + "\" but is\n\t\t\"" + sbVal +
+                           "\"\n\tin settings obtained from switchboard");
+      }
     }
   }
 
@@ -318,7 +337,10 @@ public class Parser
           try {
             parser = new Parser(Parser.getTimeout());
             parser.register(switchboardName);
-            Settings.setSettings(parser.switchboard.getSettings());
+            Properties sbSettings = parser.switchboard.getSettings();
+            if (derivedDataFilename != null)
+              checkSettings(sbSettings);
+            Settings.setSettings(sbSettings);
             if (derivedDataFilename != null) {
               parser.server = server;
               parser.localServer = true;

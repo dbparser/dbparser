@@ -93,13 +93,12 @@ import java.io.*;
  * @see     Object#hashCode()
  * @see     Collection
  * @see	    Map
- * @see	    TreeMap
  * @see	    Hashtable
  * @since 1.2
  */
 
 public class HashMap extends AbstractMap
-  implements Map, Cloneable, java.io.Serializable {
+  implements FlexibleMap, Cloneable, java.io.Serializable {
   /**
    * The hash table data.
    */
@@ -284,6 +283,17 @@ public class HashMap extends AbstractMap
 	if (e.key==null)
 	  return e.value;
     }
+
+    return null;
+  }
+
+  public Object get(Object key, int hashCode) {
+    Entry tab[] = table;
+
+    int index = (hashCode & 0x7FFFFFFF) % tab.length;
+    for (Entry e = tab[index]; e != null; e = e.next)
+      if ((e.hash == hashCode) && key.equals(e.key))
+        return e.value;
 
     return null;
   }
@@ -1077,11 +1087,11 @@ public class HashMap extends AbstractMap
     }
   }
 
-  protected int capacity() {
+  public int getCapacity() {
     return table.length;
   }
 
-  float loadFactor() {
+  public float getLoadFactor() {
     return loadFactor;
   }
 
@@ -1098,8 +1108,8 @@ public class HashMap extends AbstractMap
       if (numItemsInBucket > 0)
         numNonZeroBuckets++;
     }
-    return "size: " + size() + "; load factor: " + loadFactor() +
-      ";\n\tNo. of buckets: " + capacity() +
+    return "size: " + size() + "; load factor: " + getLoadFactor() +
+      ";\n\tNo. of buckets: " + getCapacity() +
       " (max.: " + maxBucketSize +
       "; avg.: " + (size() / (float)numNonZeroBuckets) +
       "; non-zero: " + numNonZeroBuckets + ")";

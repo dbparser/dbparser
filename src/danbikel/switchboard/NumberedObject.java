@@ -72,7 +72,7 @@ public class NumberedObject implements Comparable, Serializable {
    * positive integer if the underlying object's number is greater
    * than that of the specified <code>NumberedObject</code>
    *
-   * @thorws ClassCastException if the specified object is not an instace of
+   * @throws ClassCastException if the specified object is not an instace of
    * <code>NumberedObject</code>
    */
   public int compareTo(Object obj) {
@@ -102,9 +102,10 @@ public class NumberedObject implements Comparable, Serializable {
    *
    * @see TextObjectWriter
    * @see Switchboard
-   * @see Switchboard#Switchboard(String,int,boolean,
-   *      ObjectReaderFactory,ObjectReaderFactory,
-   *      ObjectWriterFactory,ObjectWriterFactory)
+   * @see Switchboard#Switchboard(String,int,
+   *                              boolean,
+   *                              ObjectReaderFactory,ObjectReaderFactory,
+   *                              ObjectWriterFactory,ObjectWriterFactory)
    *      Switchboard.Switchboard(...)
    */
   public String toString() {

@@ -14,6 +14,9 @@ import java.io.Serializable;
  * @see Subcat
  */
 public class Subcats implements Serializable {
+  private static final String className = Subcats.class.getName();
+
+
   private Subcats() {}
 
   private static SubcatFactory factory;
@@ -24,14 +27,14 @@ public class Subcats implements Serializable {
 	factory = (SubcatFactory)Class.forName(subcatFactStr).newInstance();
       }
       catch (Exception e) {
-	System.err.println(Subcats.class.getName() + ": error creating " +
+	System.err.println(className + ": error creating " +
 			   "instance of " + subcatFactStr + ":\n\t" + e +
 			   "\n\tusing SubcatBagFactory instead");
 	factory = new SubcatBagFactory();
       }
     }
     else {
-      System.err.println(Subcats.class.getName() + ": error: the property " +
+      System.err.println(className + ": error: the property " +
 			 Settings.subcatFactoryClass + " was not set;\n\t" +
 			 "using SubcatBagFactory");
       factory = new SubcatBagFactory();

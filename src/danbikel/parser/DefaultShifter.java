@@ -6,9 +6,9 @@ import danbikel.lisp.*;
 /**
  * A default implementation of the {@link Shift} interface that simply shifts
  * every modifier or word, skipping nothing.  That is, the {@link
- * #shift(TrainerEvent,SexpList,Sexp,Sexp)} method shifts the specified
+ * #shift(TrainerEvent,SexpList,Sexp)} method shifts the specified
  * previous modifier into the specified previous modifier list, the {@link
- * #shift(TrainerEvent,WordList,Word,Word)} method shifts the specified word
+ * #shift(TrainerEvent,WordList,Word)} method shifts the specified word
  * into the specified previous word list and the two skip methods both return
  * false regardless of the values of their arguments.
  */

@@ -42,14 +42,22 @@ public abstract class AbstractSwitchboardUser
       sockets.  The value of this constant is <tt>120000</tt>. */
   protected static final int defaultTimeout = 120000;
 
+
+  /**
+   * The value to specify for switchboard users to try indefinitely to
+   * re-acquire the switchboard when first starting up or in the event
+   * of a switchboard crash.
+   */
+  protected static final int infiniteTries = -1;
+
   /**
    * The fallback-default maximum number of times to try contacting
-   * the switchboard after it goes down.  The current value of this
-   * constant is <tt>0</tt>.
+   * the switchboard after it goes down or when registering for the first time.
+   * The current value of this constant is {@link #infiniteTries}.
    *
    * @see #maxSwitchboardTries
    */
-  protected static final int defaultMaxSwitchboardTries = 0;
+  protected static final int defaultMaxSwitchboardTries = infiniteTries;
 
   // inner classes
 
@@ -158,8 +166,8 @@ public abstract class AbstractSwitchboardUser
 
   /** The maximum number of times the {@link #getSwitchboard} method will
       try to get a new <code>Switchboard</code> when the current instance
-      has gone down.  A value of <code>0</code> indicates an infinite
-      number of tries. */
+      has gone down or when registering for the first time.  A value of
+      {@link #infiniteTries} indicates an infinite number of tries. */
   protected int maxSwitchboardTries = defaultMaxSwitchboardTries;
 
   /** The unique ID of this switchboard user, assigned by the switchboard. */
@@ -261,9 +269,9 @@ public abstract class AbstractSwitchboardUser
     throws MalformedURLException {
     switchboardName = name;
     int tries = maxSwitchboardTries;
-    boolean infiniteTries = tries == 0;
+    boolean tryInfinitely = tries == infiniteTries;
     boolean success = false;
-    for (int i = 0; !success && (infiniteTries || i < tries); i++) {
+    for (int i = 0; !success && (tryInfinitely || i < tries); i++) {
       if (timeToDie)
 	break;
       try {

@@ -198,19 +198,21 @@ public abstract class HeadFinder implements Serializable {
     for (int i = 1; i < treeListLength; i++)
       children.add(treeList.getChildLabel(i));
 
-    return findHead(treeList.first().symbol(), children);
+    return findHead(tree, treeList.first().symbol(), children);
   }
 
   /**
    * Finds the head for the grammar production <code>lhs -> rhs</code>.  This
    * method may destructively modify <code>rhs</code>.
+   * @param tree the original subtree in which to find the head child, or
+   * <code>null</code> if the subtree is not available
    * @param lhs the nonterminal label that is the left-hand side of a grammar
    * production
    * @param rhs a list of symbols that is the right-hand side of a grammar
    * production
    * @return the 1-based index of the head child in <code>rhs</code>
    */
-  public abstract int findHead(Symbol lhs, SexpList rhs);
+  public abstract int findHead(Sexp tree, Symbol lhs, SexpList rhs);
 
   /**
    * Perform head-finding in <code>tree</code>, adding nodes to indicates
@@ -226,10 +228,10 @@ public abstract class HeadFinder implements Serializable {
    * @see #preHeadSuffix
    * @see #postHeadSuffix */
   public Sexp addHeadInformation(Sexp tree) {
-    if (tree instanceof Symbol ||
+    if (tree.isSymbol() ||
 	Language.treebank.isPreterminal(tree))
       return tree;
-    if (tree instanceof SexpList) {
+    if (tree.isList()) {
       SexpList treeList = tree.list();
       int treeListLength = treeList.length();
       Symbol parent = treeList.first().symbol();
@@ -240,7 +242,7 @@ public abstract class HeadFinder implements Serializable {
       for (int i = 1; i < treeListLength; i++)
 	children.add(treeList.getChildLabel(i));
 
-      int headIdx = findHead(treeList.first().symbol(), children);
+      int headIdx = findHead(tree, treeList.first().symbol(), children);
 
       if (headIdx == 0)
 	throw new RuntimeException(getClass().getName() + ": error: " +

@@ -135,6 +135,15 @@ public class Text {
     }
     return -1;
   }
+
+  public final static boolean isAllWhitespace(String s) {
+    int sLen = s.length();
+    for (int i = 0; i < sLen; i++)
+      if (!Character.isWhitespace(s.charAt(i)))
+	return false;
+    return true;
+  }
+
   /**
    * Returns <code>true</code> if <code>s</code> is composed only of
    * characters for which {@link Character#isDigit} returns <code>true</code>;

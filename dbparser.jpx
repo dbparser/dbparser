@@ -9,11 +9,12 @@
   <property category="com.gillmerderge.jbuilder.wizard.javadoc.standard.StandardDocletOptions" name="footer" value="" />
   <property category="com.gillmerderge.jbuilder.wizard.javadoc.standard.StandardDocletOptions" name="header" value="WordNet Parser" />
   <property category="com.gillmerderge.jbuilder.wizard.javadoc.standard.StandardDocletOptions" name="links" value="http://java.sun.com/products/jdk/1.3/docs/api" />
+  <property category="com.gillmerderge.jbuilder.wizard.javadoc.standard.StandardDocletOptions" name="use" value="true" />
   <property category="com.gillmerderge.jbuilder.wizard.javadoc.standard.StandardDocletOptions" name="windowTitle" value="WordNet Parser" />
   <property category="idl" name="ProcessIDL" value="false" />
   <property category="runtime.0" name="RunnableType" value="com.borland.jbuilder.runtime.ApplicationRunner" />
-  <property category="runtime.0" name="application.class" value="danbikel.parser.Trainer" />
-  <property category="runtime.0" name="application.parameters" value="-i /scratch2/wsj-2.mrg -o /tmp/flehbar" />
+  <property category="runtime.0" name="application.class" value="danbikel.parser.Parser" />
+  <property category="runtime.0" name="application.parameters" value="-is /scratch2/wsj-2.obj -sa /scratch2/wsj-0.1-10" />
   <property category="runtime.0" name="application.vmparameters" value="-server -Xms100m -Xmx300m" />
   <property category="runtime.0" name="appserver.ejbJarsSaved" value="1" />
   <property category="runtime.0" name="appserver.parameters" value="-jts -jns -jss -jdb" />
@@ -30,7 +31,7 @@
   <property category="sys" name="CompanyLabel" value="Company:" />
   <property category="sys" name="Copyright" value="Copyright (c) 2001" />
   <property category="sys" name="CopyrightLabel" value="Copyright:" />
-  <property category="sys" name="DefaultPackage" value="danbikel.parser.util" />
+  <property category="sys" name="DefaultPackage" value="danbikel.util" />
   <property category="sys" name="Description" value="" />
   <property category="sys" name="DescriptionLabel" value="Description:" />
   <property category="sys" name="DocPath" value="doc" />

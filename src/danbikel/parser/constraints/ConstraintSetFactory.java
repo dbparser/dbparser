@@ -1,5 +1,7 @@
 package danbikel.parser.constraints;
 
+import danbikel.parser.Settings;
+
 /**
  * Specification for a <code>ConstraintSet</code> object factory, to be used by
  * the <code>ConstraintSets</code> static factory class.

@@ -1,22 +1,29 @@
-(let ((curr-file (file-truename (car file-name-history))))
-  (string-match ".*/src/" curr-file)
-  (setq src-root-dir (substring curr-file 0 (1- (match-end 0))))
-  (setq sandbox-dir (file-truename (concat src-root-dir "/.."))))
 
-(setq relative-src-dirs '("danbikel/lisp"
-			  "danbikel/parser"
-			  "danbikel/parser/english"
-			  "danbikel/parser/util"
-			  "danbikel/switchboard"
-			  "danbikel/util"
-			  "danbikel/util/proxy"))
+(defvar absolute-src-dirs nil)
 
-(setq wn-src-dir '("~/wn/src/danbikel/wordnet"))
+;; only set absolute-src-dirs once per execution of this emacs
+(if (null absolute-src-dirs)
+    (progn
+      (message "Executing stuff!")
+      (let ((curr-file (file-truename (car file-name-history))))
+	(string-match ".*/src/" curr-file)
+	(setq src-root-dir (substring curr-file 0 (1- (match-end 0))))
+	(setq sandbox-dir (file-truename (concat src-root-dir "/.."))))
 
-(setq absolute-src-dirs
-      (append (mapcar '(lambda (arg) (concat src-root-dir "/" arg))
-				relative-src-dirs)
-	      wn-src-dir))
+      (setq relative-src-dirs '("danbikel/lisp"
+				"danbikel/parser"
+				"danbikel/parser/english"
+				"danbikel/parser/util"
+				"danbikel/switchboard"
+				"danbikel/util"
+				"danbikel/util/proxy"))
+
+      (setq wn-src-dir '("~/wn/src/danbikel/wordnet"))
+
+      (setq absolute-src-dirs
+	    (append (mapcar '(lambda (arg) (concat src-root-dir "/" arg))
+			    relative-src-dirs)
+		    wn-src-dir))))
 
 (setq
  jde-global-classpath (list (concat src-root-dir path-separator

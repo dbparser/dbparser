@@ -26,7 +26,7 @@ package danbikel.util;
  * exception if the argument is anything other than <tt>0</tt>, as specified
  * in the API documentation for that method).
  */
-public interface MapToPrimitive extends FlexibleMap {
+public interface MapToPrimitive extends java.util.Map {
 
   /**
    * Interface that provides methods for all the possible primitive

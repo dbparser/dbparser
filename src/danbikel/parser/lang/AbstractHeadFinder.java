@@ -3,7 +3,7 @@ package danbikel.parser.lang;
 import danbikel.lisp.*;
 import danbikel.parser.*;
 import java.io.*;
-import java.util.HashMap;
+import java.util.*;
 
 /**
  * Provides a default abstract implementation of the {@link HeadFinder}
@@ -108,8 +108,8 @@ public abstract class AbstractHeadFinder implements HeadFinder, Serializable {
   }
 
   // data members
-  private static Nonterminal nt1 = new Nonterminal();
-  private static Nonterminal nt2 = new Nonterminal();
+  private Nonterminal nt1 = new Nonterminal();
+  private Nonterminal nt2 = new Nonterminal();
 
   /**
    * The map of parent nonterminals to their arrays of
@@ -122,8 +122,8 @@ public abstract class AbstractHeadFinder implements HeadFinder, Serializable {
   protected HashMap headFindInstructions = new HashMap();
 
   protected boolean warnDefaultRule =
-  Boolean.valueOf(Settings.get(Settings.headFinderWarnDefaultRule)).
-  booleanValue();
+    Boolean.valueOf(Settings.get(Settings.headFinderWarnDefaultRule)).
+    booleanValue();
 
   /**
    * Constructs a head-finding object, getting the name of the head
@@ -435,7 +435,7 @@ public abstract class AbstractHeadFinder implements HeadFinder, Serializable {
    * the set of nonterminals contained in <code>matchTags</code> when scanning
    * from left to right, or -1 if there is no such matching nonterminal
    */
-  protected static final int scanLeftToRight(SexpList rhs, Symbol[] matchTags) {
+  protected int scanLeftToRight(SexpList rhs, Symbol[] matchTags) {
     for (int i = 0; i < rhs.size(); i++) {
       Symbol tag = (Symbol)rhs.get(i);
       if (tagMatches(tag, matchTags))
@@ -456,7 +456,7 @@ public abstract class AbstractHeadFinder implements HeadFinder, Serializable {
    * the set of nonterminals contained in <code>matchTags</code> when scanning
    * from right to left, or -1 if there is no such matching nonterminal
    */
-  protected static final int scanRightToLeft(SexpList rhs, Symbol[] matchTags) {
+  protected int scanRightToLeft(SexpList rhs, Symbol[] matchTags) {
     for (int i = rhs.size() - 1; i >= 0; i--) {
       Symbol tag = (Symbol)rhs.get(i);
       if (tagMatches(tag, matchTags))
@@ -478,12 +478,11 @@ public abstract class AbstractHeadFinder implements HeadFinder, Serializable {
    * in the set of nonterminals contained in <code>matchTags</code>, or -1
    * if there is no such matching nonterminal
    */
-  protected static final int scan(boolean direction,
-				  SexpList rhs, Symbol[] matchTags) {
+  protected int scan(boolean direction, SexpList rhs, Symbol[] matchTags) {
     if (direction == LEFT)
-      return AbstractHeadFinder.scanLeftToRight(rhs, matchTags);
+      return scanLeftToRight(rhs, matchTags);
     else
-      return AbstractHeadFinder.scanRightToLeft(rhs, matchTags);
+      return scanRightToLeft(rhs, matchTags);
   }
 
   /**
@@ -494,19 +493,19 @@ public abstract class AbstractHeadFinder implements HeadFinder, Serializable {
    * @param tag the tag to match
    * @param matchTags an array of symbols
    */
-  protected static final boolean tagMatches(Symbol tag, Symbol matchTags[]) {
+  protected boolean tagMatches(Symbol tag, Symbol matchTags[]) {
     Nonterminal tagNT = null;
     for (int j = 0; j < matchTags.length; j++) {
       if (tag == matchTags[j])
-	return true;
+        return true;
       else {
-	// let's see if the current match tag subsumes the tag in question
-	if (tagNT == null)
-	  tagNT = Language.treebank().parseNonterminal(tag, nt1);
-	Nonterminal matchTagNT =
-	  Language.treebank().parseNonterminal(matchTags[j], nt2);
-	if (matchTagNT.subsumes(tagNT))
-	  return true;
+        // let's see if the current match tag subsumes the tag in question
+        if (tagNT == null)
+          tagNT = Language.treebank().parseNonterminal(tag, nt1);
+        Nonterminal matchTagNT =
+          Language.treebank().parseNonterminal(matchTags[j], nt2);
+        if (matchTagNT.subsumes(tagNT))
+          return true;
       }
     }
     return false;

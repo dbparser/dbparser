@@ -18,6 +18,8 @@ public class SLNode implements Serializable {
   private Object data;
   private SLNode next;
 
+  public SLNode() {}
+
   /**
    * Constructs a new <code>SLNode</code> with the specified data object
    * and <code>next</code> node.
@@ -44,6 +46,12 @@ public class SLNode implements Serializable {
   public SLNode next() { return next; }
 
   // mutators
+
+  public SLNode set(Object data, SLNode next) {
+    this.data = data;
+    this.next = next;
+    return this;
+  }
 
   public SLNode setData(Object data) {
     this.data = data;
@@ -144,6 +152,7 @@ public class SLNode implements Serializable {
    * Returns the hash code for this singly-linked list, using the same
    * algorithm specified by {@link List#hashCode()}.
    */
+  /*
   public int hashCode() {
     int code = 0;
     SLNode curr = this;
@@ -153,6 +162,7 @@ public class SLNode implements Serializable {
     }
     return code;
   }
+  */
 
   /**
    * Returns <code>true</code> if the specified object is also an instance
@@ -161,6 +171,7 @@ public class SLNode implements Serializable {
    * those two lists have data objects that are pairwise-equal; otherwise,
    * this method returns <code>false</code>.
    */
+  /*
   public boolean equals(Object obj) {
     if (!(obj instanceof SLNode))
       return false;
@@ -177,4 +188,5 @@ public class SLNode implements Serializable {
     }
     return curr == null && other == null;
   }
+  */
 }

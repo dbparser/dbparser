@@ -27,17 +27,17 @@ public class TrainerEventToCollins {
       Symbol requirement = (Symbol)it.next();
       if (requirement == npArg)
 	nps++;
-      else if (requirement == sbarArg)
-	sbars++;
       else if (requirement == sArg)
 	ss++;
+      else if (requirement == sbarArg)
+	sbars++;
       else if (requirement == vpArg)
 	vps++;
       else if (requirement == miscArg)
 	miscs++;
     }
     StringBuffer sb = new StringBuffer(withGap ? 6 : 5);
-    sb.append(nps).append(sbars).append(ss).append(vps).append(miscs);
+    sb.append(nps).append(ss).append(sbars).append(vps).append(miscs);
     if (withGap)
       sb.append("0");
     return sb.toString();
@@ -47,7 +47,8 @@ public class TrainerEventToCollins {
     StringBuffer sb = new StringBuffer(80);
     sb.append("2 ");
     Word modHeadWord = modEvent.modHeadWord();
-    if (modHeadWord.tag() == stopSym) {
+    boolean modIsStop = modHeadWord.tag() == stopSym;
+    if (modIsStop) {
       sb.append("#STOP# #STOP# ");
     }
     else {
@@ -55,7 +56,15 @@ public class TrainerEventToCollins {
       sb.append(modHeadWord.tag()).append(" ");
     }
 
-    boolean prevModIsStart = modEvent.previousMods().symbolAt(0) == startSym;
+    Symbol prevMod = modEvent.previousMods().symbolAt(0);
+    boolean prevModIsStart = false, prevModIsPunc = false, prevModIsCC = false;
+    if (prevMod == startSym)
+      prevModIsStart = true;
+    else if (Language.treebank().isPunctuation(prevMod))
+      prevModIsPunc = true;
+    else if (Language.treebank().isConjunction(prevMod))
+      prevModIsCC = true;
+
     boolean parentIsBaseNP = modEvent.parent() == baseNP;
 
     Word headWord = modEvent.headWord();
@@ -64,7 +73,8 @@ public class TrainerEventToCollins {
 
     sb.append(headWord.word()).append(" ");
     sb.append(headWord.tag()).append(" ");
-    sb.append(modEvent.modifier()).append(" ");
+    String modifier = modIsStop ? "#STOP#" : modEvent.modifier().toString();
+    sb.append(modifier).append(" ");
     sb.append(modEvent.parent()).append(" ");
 
     Symbol head = modEvent.head();
@@ -76,9 +86,19 @@ public class TrainerEventToCollins {
 
     // append distance triple
     sb.append(modEvent.side() == Constants.LEFT ? "1" : "0");
+    // mike doesn't consider CC's or punctuation to be words when calculating
+    // head-adjacency, so we can either approximate it by detecting whether
+    // previous mod is either start or punc or CC, or just know that our
+    // head-adjacency will always be different
+    /*
+    boolean adjacent = parentIsBaseNP ||
+                       prevModIsStart || prevModIsPunc || prevModIsCC;
+    */
     boolean adjacent = parentIsBaseNP || prevModIsStart;
     sb.append(adjacent ? "1" : "0");
-    sb.append(modEvent.verbIntervening() ? "1" : "0");
+    boolean verbIntervening =
+      parentIsBaseNP ? false : modEvent.verbIntervening();
+    sb.append(verbIntervening ? "1" : "0");
 
     // don't even try to spit out coordination and punctuation information
 

@@ -52,6 +52,8 @@ public class Decoder implements Serializable {
   private final static String debugChartFilenamePrefix = "chart";
   private final static boolean debugCommaConstraint = false;
   private final static boolean debugDontPostProcess = false;
+  private final static boolean debugRemoveWord = false;
+  private final static boolean debugRestorePrunedWords = false;
   /**
    * This debugging option should be used only when the property
    * <tt>parser.model.precomputeProbabilities</tt> was <tt>false</tt>
@@ -90,6 +92,22 @@ public class Decoder implements Serializable {
   protected final static double logProbCertain = Constants.logProbCertain;
 
   protected final static Subcat[] zeroSubcatArr = new Subcat[0];
+
+  protected final static PrintWriter err;
+  static {
+    Writer osw = null;
+    try {
+      osw = new OutputStreamWriter(System.err, Language.encoding());
+    }
+    catch (UnsupportedEncodingException uee) {
+      System.err.println(className +
+                         ": couldn't create error writer with encoding " +
+                         Language.encoding() +
+                         "; using default encoding instead");
+      osw = new OutputStreamWriter(System.err);
+    }
+    err = new PrintWriter(osw, true);
+  }
 
   /**
    * A list containing only {@link Training#startSym()}, which is the
@@ -253,11 +271,6 @@ public class Decoder implements Serializable {
    * and convenience.
    */
   protected Symbol topSym = Language.training.topSym();
-  /**
-   * The value of {@link Treebank#baseNPLabel()}, cached here for efficiency
-   * and convenience.
-   */
-  protected Symbol baseNP = Language.treebank.baseNPLabel();
   /** The value of the setting {@link Settings#numPrevMods}. */
   protected int numPrevMods =
     Integer.parseInt(Settings.get(Settings.numPrevMods));
@@ -561,10 +574,17 @@ public class Decoder implements Serializable {
    * @param i the index of the word to be removed
    */
   protected void removeWord(SexpList sentence, SexpList tags, int i) {
+    if (debugRemoveWord)
+      err.print(className + ": removing word " + i + " " + sentence.get(i));
     sentence.remove(i);
     originalWords.remove(i);
-    if (tags != null)
+    if (tags != null) {
+      if (debugRemoveWord)
+        err.println(" with tag " + tags.get(i));
       tags.remove(i);
+    }
+    if (debugRemoveWord)
+      err.println();
   }
 
   protected void preProcess(SexpList sentence, SexpList tags)
@@ -588,11 +608,11 @@ public class Decoder implements Serializable {
 		     Symbol.get(sentence.get(i).toString().toLowerCase()) :
 		     sentence.symbolAt(i));
       Symbol tag = tags == null ? null : tags.listAt(i).first().symbol();
-      if (tag != null ? prunedPretermsPosSet.contains(tag) :
-			(prunedPretermsPosMap.containsKey(word) &&
-			 !word.toString().equals("'"))) {
+      if (Language.training().removeWord(word, tag, i, sentence,
+					 tags, originalTags,
+					 prunedPretermsPosSet,
+					 prunedPretermsPosMap))
 	removeWord(sentence, tags, i);
-      }
     }
 
     SexpList convertedSentence = server.convertUnknownWords(sentence);
@@ -703,6 +723,9 @@ public class Decoder implements Serializable {
 	originalTags == null ?
 	newWord : originalTags.listAt(wordIdx).first().symbol();
       Word newWordObj = Words.get(newWord, newTag);
+      if (debugRestorePrunedWords)
+	System.err.println(className + ": restoring pruned word " + newWordObj +
+			   " at index " + wordIdx);
       tree.list().add(Language.treebank().constructPreterminal(newWordObj));
       wordIdx++;
     }
@@ -724,6 +747,9 @@ public class Decoder implements Serializable {
 	      originalTags == null ?
 	      newWord : originalTags.listAt(wordIdx).first().symbol();
 	    Word newWordObj = Words.get(newWord, newTag);
+	    if (debugRestorePrunedWords)
+	      System.err.println(className + ": restoring pruned word " +
+				 newWordObj + " at index " + wordIdx);
 	    // add new word as left-sibling of current word
 	    treeList.add(i, treebank.constructPreterminal(newWordObj));
 	    i++;
@@ -1362,7 +1388,8 @@ public class Decoder implements Serializable {
 		chart.get(modificandStartIdx, modificandEndIdx);
 	      while (modificandItems.hasNext()) {
 		CKYItem modificandItem = (CKYItem)modificandItems.next();
-		if (!modificandItem.stop() && modificandItem.label()==baseNP) {
+		if (!modificandItem.stop() &&
+		    Language.treebank.isBaseNP((Symbol)modificandItem.label())){
 		  if (debugComplete)
 		    System.err.println(className +
 				       ".complete: trying to modify\n\t" +
@@ -1516,10 +1543,10 @@ public class Decoder implements Serializable {
     boolean debugFlag = false;
     if (debugJoin) {
       Symbol modificandLabel = (Symbol)modificand.label();
-      boolean modificandLabelP = modificandLabel == S;
+      boolean modificandLabelP = modificandLabel == NPA;
       boolean modLabelP = modLabel == CC;
-      debugFlag = (modificandLabelP && side == Constants.LEFT &&
-		   modificand.start() <= 35 && modificand.end() == 38);
+      debugFlag = (side == Constants.LEFT &&
+		   modificand.start() == 27 && modificand.end() == 27);
       /*
       if (debugFlag)
 	Debug.level = 21;
@@ -1618,19 +1645,35 @@ public class Decoder implements Serializable {
   private boolean futurePossibleSimple(ModifierEvent modEvent, boolean side,
                                    boolean debug) {
     // first try simpleModNonterminalMap
-    parentHeadSideLookupList.set(0, modEvent.parent());
-    parentHeadSideLookupList.set(1, modEvent.head());
+    Symbol arglessParent =
+      Language.training().removeArgAugmentation(modEvent.parent());
+    Symbol gaplessHead =
+      (Symbol)Language.training().removeGapAugmentation(modEvent.head());
+    parentHeadSideLookupList.set(0, arglessParent);
+    parentHeadSideLookupList.set(1, gaplessHead);
     parentHeadSideLookupList.set(2, Constants.sideToSym(side));
 
     Set possiblePartiallyLexedMods =
       (Set)simpleModNonterminalMap.get(parentHeadSideLookupList);
-    if (possiblePartiallyLexedMods == null)
+    if (possiblePartiallyLexedMods == null) {
+      if (debug)
+        System.err.println(className + ".futurePossible: simplified history " +
+                           "context " + parentHeadSideLookupList +
+                           " not seen in training");
       return false;
+    }
     else {
       partiallyLexedModLookupList.set(0, modEvent.modifier());
       partiallyLexedModLookupList.set(1, modEvent.modHeadWord().tag());
 
-      return possiblePartiallyLexedMods.contains(partiallyLexedModLookupList);
+      boolean retval =
+        possiblePartiallyLexedMods.contains(partiallyLexedModLookupList);
+      if (debug && retval == false)
+        System.err.println(className + ".futurePossible: future " +
+                           partiallyLexedModLookupList + " not seen with " +
+                           "simplified history context " +
+                           parentHeadSideLookupList + " in training");
+      return retval;
     }
   }
 

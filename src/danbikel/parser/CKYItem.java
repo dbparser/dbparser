@@ -15,6 +15,10 @@ import java.text.*;
  */
 public class CKYItem extends Item implements SexpConvertible {
 
+  /**
+   * The value of the {@link Settings#decoderOutputHeadLexicalizedLabels}
+   * setting.
+   */
   protected final static boolean outputLexLabels =
   Boolean.valueOf(Settings.get(Settings.decoderOutputHeadLexicalizedLabels)).booleanValue();
 
@@ -904,11 +908,32 @@ public class CKYItem extends Item implements SexpConvertible {
     return code ^ booleanCode;
   }
 
+  /**
+   * Returns the S-expression representation of the tree rooted at this
+   * chart item.
+   *
+   * @return the S-expression representation of the tree rooted at this
+   * chart item.
+   *
+   * @see #toSexpInternal(boolean)
+   */
   public Sexp toSexp() {
     return toSexpInternal(false);
   }
 
-  private Sexp toSexpInternal(boolean isHeadChild) {
+  /**
+   * Returns the S-expression representation of the tree rooted at this
+   * chart item (helper method invoked by {@link #toSexp()}).
+   *
+   * @param isHeadChild indicates whether the caller of this method is the
+   * head child of its parent
+   *
+   * @return the S-expression representation of the tree rooted at this
+   * chart item.
+   *
+   * @see #outputLexLabels
+   */
+  protected Sexp toSexpInternal(boolean isHeadChild) {
     if (isPreterminal()) {
       Sexp preterm = Language.treebank.constructPreterminal(headWord);
       if (outputLexLabels) {
@@ -941,13 +966,16 @@ public class CKYItem extends Item implements SexpConvertible {
   }
 
   /**
-   * Helper method used by {@link #toSexpInternal()}, to provide a layer of
-   * abstraction so that the label can include, e.g., head information.
+   * Helper method used by {@link #toSexpInternal(boolean)}, to provide a
+   * layer of abstraction so that the label can include, e.g., head
+   * information.
    *
    * @return the (possibly head-lexicalized) root label of the derivation of
    * this item
+   *
+   * @see #outputLexLabels
    */
-  private Symbol getLabel(Symbol label, boolean isHeadChild) {
+  protected Symbol getLabel(Symbol label, boolean isHeadChild) {
     if (outputLexLabels) {
       Nonterminal nt = Language.treebank.parseNonterminal(label);
       String newLabel =

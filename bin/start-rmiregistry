@@ -9,7 +9,7 @@ endif
 set host = $1
 set pidOutputFile = $2
 
-echo Start rmiregistry on $host
+echo Starting rmiregistry on $host
 $RSH -n $host 'unsetenv CLASSPATH ; rmiregistry' &
 set registryPid = $!
 

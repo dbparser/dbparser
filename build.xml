@@ -39,7 +39,8 @@ and the Ant output directory might be "classes.ant".-->
     <include name="settings/**"/>
     <exclude name="settings/broken*"/>
     <include name="doc/**"/>
-    <include name="userguide/**"/>
+    <include name="userguide/README"/>
+    <include name="userguide/guide.pdf"/>
     <include name="policy-files/**"/>
     <include name="scorer/**"/>
   </patternset>

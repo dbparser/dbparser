@@ -169,6 +169,11 @@ public class Decoder implements Serializable {
    * nonterminal generation model to possible modifying nonterminal labels.
    */
   protected Map modNonterminalMap;
+  /**
+   * A map from unlexicalized parent-head-side triples to all possible
+   * partially-lexicalized modifying nonterminals.
+   */
+  protected Map simpleModNonterminalMap;
   /** The modifying nonterminal generation model structure. */
   protected ProbabilityStructure modNonterminalPS;
   /** The last level of back-off in the modifying nonterminal generation
@@ -221,6 +226,8 @@ public class Decoder implements Serializable {
    */
   protected boolean useHeadToParentMap =
     Settings.getBoolean(Settings.decoderUseHeadToParentMap);
+  protected boolean useSimpleModNonterminalMap =
+    Settings.getBoolean(Settings.useSimpleModNonterminalMap);
   /**
    * The value of {@link Training#startSym()}, cached here for efficiency
    * and convenience.
@@ -317,6 +324,11 @@ public class Decoder implements Serializable {
     WordListFactory.newList(numPrevMods);
   // data members used by joinItems
   protected Subcat lookupSubcat = Subcats.get();
+  // data members used by futurePossible (when using simpleModNonterminalMap)
+  protected SexpList parentHeadSideLookupList =
+    new SexpList(3).add(null).add(null).add(null);
+  protected SexpList partiallyLexedModLookupList =
+    new SexpList(2).add(null).add(null);
   // values for comma constraint-finding
   protected boolean useCommaConstraint;
   protected boolean[] commaForPruning;
@@ -417,6 +429,7 @@ public class Decoder implements Serializable {
       this.leftSubcatPS = server.leftSubcatProbStructure().copy();
       this.rightSubcatPS = server.rightSubcatProbStructure().copy();
       this.modNonterminalMap = server.modNonterminalMap();
+      this.simpleModNonterminalMap = server.simpleModNonterminalMap();
       this.modNonterminalPS = server.modNonterminalProbStructure().copy();
       prunedPretermsPosMap = new danbikel.util.HashMap();
       prunedPretermsPosSet = new HashSet();
@@ -565,7 +578,7 @@ public class Decoder implements Serializable {
       originalTags = new SexpList(tags);
     else
       originalTags = null;
-    
+
     originalWords.clear();
     originalWords.addAll(sentence);
 
@@ -1596,7 +1609,33 @@ public class Decoder implements Serializable {
   }
 
   private boolean futurePossible(ModifierEvent modEvent, boolean side,
-				 boolean debug) {
+                                 boolean debug) {
+    if (useSimpleModNonterminalMap)
+      return futurePossibleSimple(modEvent, side, debug);
+    else
+      return futurePossibleComplex(modEvent, side, debug);
+  }
+  private boolean futurePossibleSimple(ModifierEvent modEvent, boolean side,
+                                   boolean debug) {
+    // first try simpleModNonterminalMap
+    parentHeadSideLookupList.set(0, modEvent.parent());
+    parentHeadSideLookupList.set(1, modEvent.head());
+    parentHeadSideLookupList.set(2, Constants.sideToSym(side));
+
+    Set possiblePartiallyLexedMods =
+      (Set)simpleModNonterminalMap.get(parentHeadSideLookupList);
+    if (possiblePartiallyLexedMods == null)
+      return false;
+    else {
+      partiallyLexedModLookupList.set(0, modEvent.modifier());
+      partiallyLexedModLookupList.set(1, modEvent.modHeadWord().tag());
+
+      return possiblePartiallyLexedMods.contains(partiallyLexedModLookupList);
+    }
+  }
+
+  private boolean futurePossibleComplex(ModifierEvent modEvent, boolean side,
+                                        boolean debug) {
     ProbabilityStructure modPS = modNonterminalPS;
     int lastLevel = modNonterminalPSLastLevel;
     Event historyContext = modPS.getHistory(modEvent, lastLevel);

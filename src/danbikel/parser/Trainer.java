@@ -2001,7 +2001,10 @@ public class Trainer implements Serializable {
 
   // main method stuff
 
-  private final static String[] usageMsg = {
+  /**
+   * The usage for the main method of this class.
+   */
+  protected final static String[] usageMsg = {
     "usage: [-help] [-sf <settings file> | --settings <settings file>]",
     "\t[-it | --incremental-training]",
     "\t[-l <input file> [-l <trainer event input file>] ]",
@@ -2060,35 +2063,7 @@ public class Trainer implements Serializable {
 
 
   /**
-   * Takes arguments according to the following usage:
-   * <pre>
-   * usage: [-help] [-sf &lt;settings file&gt; | --settings &lt;settings file&gt;]
-   * [-l &lt;input file&gt;]
-   * [-scan &lt;derived data scan file&gt;]
-   * [-i &lt;training file&gt;] [-o &lt;output file&gt;]
-   * [-od &lt;derived data output file&gt;] [-ld &lt;derived data input file&gt;]
-   * [ --strip-outer-parens | --dont-strip-outer-parens | -auto ]
-   * where
-   * -help prints this usage message
-   * &lt;settings file&gt; is an optionally-specified settings file
-   * &lt;training file&gt; is a Treebank file containing training parse trees
-   * &lt;output file&gt; is the events output file (use "-" for stdout)
-   * &lt;input file&gt; is an &lt;output file&gt; from a previous run to load
-   * &lt;derived data {scan,input,output} file&gt; are Java object files
-   *         containing information about and all derived counts from a
-   *         training run
-   * -scan indicates to scan the first few informational objects of
-   *         &lt;derived data scan file&gt; and print them out to stderr
-   * -od indicates to derive counts from observations from &lt;training file&gt;
-   *         and output them to &lt;derived data output file&gt;
-   * -ld indicates to load derived counts from &lt;derived data input file&gt;
-   * --strip-outer-parens indicates to strip the outer parens off training
-   *         trees (appropriate for Treebank II-style annotated parse trees)
-   * --dont-strip-outer-parens indicates not to strip the outer parens off
-   *         training parse trees
-   * -auto indicates to determine automatically whether to strip outer
-   *         parens off training parse trees (default)
-   * </pre>
+   * Takes arguments according to the usage as specified in {@link #usageMsg}.
    */
   public static void main(String[] args) {
     boolean stripOuterParens = false, auto = true;

@@ -10,9 +10,6 @@ import java.util.*;
  * (CKY) parsing.
  */
 public class CKYChart extends Chart {
-  // data members (in addition to protected members of superclass)
-
-
   // constructors
 
   /**
@@ -36,6 +33,24 @@ public class CKYChart extends Chart {
 
   public CKYChart(int size, int cellLimit, double pruneFact) {
     super(size, cellLimit, pruneFact);
+  }
+
+  protected boolean outsideBeam(Item item, double topProb) {
+    CKYItem currItem = (CKYItem)item;
+    Symbol label = (Symbol)currItem.label();
+    if (currItem.isPreterminal())
+      return false;
+    // if this is an NP or NP-A with more than one child, then we use wider beam
+    /*
+    if ((currItem.leftChildren() != null || currItem.rightChildren() != null) &&
+	Language.treebank.isNP(label))
+    */
+    if ((currItem.leftChildren() != null || currItem.rightChildren() != null) &&
+	Language.treebank.stripAugmentation(label) ==
+	Language.treebank.NPLabel())
+      return item.logProb() < topProb - pruneFact - 3;
+    else
+      return item.logProb() < topProb - pruneFact;
   }
 
   protected void setUpItemPool() {

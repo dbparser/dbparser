@@ -14,6 +14,7 @@ public class Decoder implements Serializable {
   // debugging constants
   // debugging code will be optimized away when the following booleans are false
   private final static boolean debug = false;
+  private final static boolean debugSentenceSize = true;
   private final static boolean debugSpans = false;
   private final static boolean debugInit = true;
   private final static boolean debugTop = false;
@@ -166,6 +167,10 @@ public class Decoder implements Serializable {
   // values for comma constraint-finding
   protected SLNode headNode = new SLNode(null, null);
   protected boolean useCommaConstraint;
+
+  // data members used when debugSentenceSize is true
+  private float avgSentLen = 0.0f;
+  private int numSents = 0;
 
   /**
    * Constructs a new decoder that will use the specified
@@ -509,6 +514,15 @@ public class Decoder implements Serializable {
     throws RemoteException {
     chart.setSizeAndClear(sentence.length());
     initialize(sentence, tags);
+    if (debugSentenceSize) {
+      System.err.println(className + ": sentence length: " + sentLen +
+                         " word" + (sentLen > 1 ? "s" : ""));
+      numSents++;
+      float avgLen =
+        ((numSents - 1)/(float)numSents) * avgSentLen +
+        (float)sentLen / numSents;
+      System.err.println(className + ": cummulative avg. length: " + avgLen);
+    }
     for (int span = 2; span <= sentLen; span++) {
       if (debugSpans)
         System.err.println(className + ": span: " + span);

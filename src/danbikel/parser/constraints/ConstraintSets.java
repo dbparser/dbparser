@@ -26,12 +26,22 @@ public class ConstraintSets {
     if (constraintSetFactStr != null) {
       try {
 	Class constraintSetFactClass = Class.forName(constraintSetFactStr);
-	factory = (ConstraintSetFactory)constraintSetFactClass.newInstance();
+	if (ConstraintSetFactory.class.isAssignableFrom(constraintSetFactClass))
+	  factory = (ConstraintSetFactory)constraintSetFactClass.newInstance();
+	else {
+	  System.err.println(className + ": error: user-specified constraint " +
+			     "set factory class " +
+			     constraintSetFactStr +
+			     " does not specify a class assignable to " +
+			     ConstraintSetFactory.class.getName());
+	  throw new Exception();
+	}
       }
       catch (Exception e) {
 	System.err.println(className + ": error creating " +
-			   "instance of " + constraintSetFactStr + ":\n\t" + e +
-			   "\n\tusing UnlexTreeConstraintSetFactory instead");
+			   "instance of " + constraintSetFactStr + ":");
+	e.printStackTrace();
+	System.err.println("\n\tusing UnlexTreeConstraintSetFactory instead");
 	factory = new UnlexTreeConstraintSetFactory();
       }
     }

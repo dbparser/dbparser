@@ -127,6 +127,7 @@ danbikel.parser.CLASSES =	$(MODEL_STRUCTURE_CLASSES) \
 				$(OBJDIR)/Nonterminal.class \
 				$(OBJDIR)/Parser.class \
 				$(OBJDIR)/ParserRemote.class \
+				$(OBJDIR)/PriorEvent.class \
 				$(OBJDIR)/ProbabilityCache.class \
 				$(OBJDIR)/ProbabilityStructure.class \
 				$(OBJDIR)/Settings.class \

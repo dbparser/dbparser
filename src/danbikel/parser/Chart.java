@@ -1,7 +1,7 @@
 package danbikel.parser;
 
 import danbikel.lisp.*;
-import danbikel.util.ObjectPool;
+import danbikel.util.*;
 import java.util.*;
 import java.io.Serializable;
 
@@ -32,11 +32,11 @@ public abstract class Chart implements Serializable {
    * Contains all information and items covering a particular span.
    */
   protected final static class Entry implements Serializable {
-    Map map;
+    MapToPrimitive map;
     double topLogProb;
 
     Entry() {
-      map = new HashMap();
+      map = new HashMapDouble();
       topLogProb = Constants.logOfZero;
     }
     void clear() {
@@ -56,14 +56,62 @@ public abstract class Chart implements Serializable {
    * @see Chart.Entry
    */
   protected Entry[][] chart;
-  /** The current size of the chart. */
+  /**
+   * The current size of the chart. This value should always be equal
+   * to or greater than the length of the parsed sentence.
+   *
+   * @see #setSizeAndClear(int)
+   */
   protected int size;
+  /**
+   * The maximum number of items allowed in a cell (span) of this chart.
+   *
+   * @see Settings#decoderUseCellLimit
+   */
   protected int cellLimit = -1;
+  /**
+   * The natural log of the prune factor for this chart.  If items have a log
+   * probability that is lower than the top-ranked item's log probability
+   * minus this prune factor, they are pruned away.
+   */
   protected double pruneFact = 0.0;
+  /**
+   * The total number of items added to this chart for a particular sentence
+   * (between calls to {@link #clear()}).
+   */
   protected int totalItems = 0;
+  /**
+   * The pool of chart items, to be used by the decoder instead of constructing
+   * new chart items while decoding.
+   */
   protected transient ObjectPool itemPool;
+  /**
+   * A list of garbage items.
+   *
+   * @see #add(int,int,Item)
+   */
+  protected transient ArrayList garbageItems;
+  /**
+   * The total number of items generated, that is, the total number of items
+   * that a decoder <i>attempts</i> to add to this chart (used for debugging).
+   */
   protected int totalItemsGenerated = 0;
+  /**
+   * The total number of items pruned during the parse of a particular
+   * sentence.  Typically, after all items have been added for a particular
+   * span, a decoder will invoke the {@link #prune(int,int)} method for
+   * that span.  The value of this data member after parsing is complete
+   * will reflect the total number of items pruned via calls to this method.
+   *
+   * @see #prune(int,int)
+   */
   protected int numPruned = 0;
+  /**
+   * The total number of items pre-pruned for a particular sentence, via
+   * calls to the {@link #toPrune(int,int,Item)} method.
+   *
+   * @see #toPrune(int,int,Item)
+   */
   protected int numPrePruned = 0;
 
   /**
@@ -86,12 +134,33 @@ public abstract class Chart implements Serializable {
     chart = new Entry[size][size];
     this.size = size;
     setUpItemPool();
+    garbageItems = new ArrayList();
   }
 
+  /**
+   * Constructs a new chart with a default initial chart size, and with
+   * the specified cell limit and prune factor.
+   *
+   * @param cellLimit the limit to the number of items per cell
+   * @param pruneFact that log of the prune factor
+   *
+   * @see #cellLimit
+   * @see #pruneFact
+   */
   protected Chart(int cellLimit, double pruneFact) {
     this(defaultChartSize, cellLimit, pruneFact);
   }
 
+  /**
+   * Constructs a new chart with the specified initial chart size, cell limit
+   * and prune factor.
+   *
+   * @param cellLimit the limit to the number of items per cell
+   * @param pruneFact that log of the prune factor
+   *
+   * @see #cellLimit
+   * @see #pruneFact
+   */
   protected Chart(int size, int cellLimit, double pruneFact) {
     this(size);
     this.cellLimit = cellLimit;
@@ -180,8 +249,19 @@ public abstract class Chart implements Serializable {
     return item.logProb() < (topProb - pruneFact);
   }
 
+  /**
+   * Prunes away items in the specified span that are either below the
+   * probability threshold of the top-ranked item for that span, or
+   * are outside the cell limit, if one has been specified.
+   *
+   * @param start the start of the span in which to prune chart items
+   * @param end the end of the span in which to prune chart items
+   *
+   * @see #cellLimit
+   * @see #pruneFact
+   */
   public void prune(int start, int end) {
-    Map items = chart[start][end].map;
+    MapToPrimitive items = chart[start][end].map;
     if (pruneFact > 0.0) {
       // remove the lowest probability elements until the lowest one
       // left is within pruneFact of highest
@@ -233,6 +313,26 @@ public abstract class Chart implements Serializable {
 
   /**
    * Adds the specified item covering the specified span to this chart.
+   * <p>
+   * <b>Caution</b>: By convention, the caller is responsible for reclaiming
+   * unadded chart items (via {@link #reclaimItem(Item)}).  However, in the
+   * case where an old item is removed from the chart because a new,
+   * equivalent item has a greater probability, this method does not
+   * immediately reclaim the old item, but rather marks it as "garbage",
+   * via its {@link Item#setGarbage(boolean) setGarbage} method.  This
+   * behvaior is to prevent the following case. Suppose that the behavior
+   * of this method <i>were</i> to reclaim such "booted" chart items
+   * immediately.  Imagine that the caller is attempting to add a
+   * collection of chart items, and that an item in that collection was
+   * added, but then was removed due to a subsequent, equivalent item in
+   * the same collection having greater probability.  In this case, the
+   * caller would have no way to know that the previous item in its
+   * collection had been silently reclaimed, so that if it operated over
+   * that collection <i>again</i>, there would be a garbage item that, as
+   * far as it knew, had been added and was still in the chart.  By
+   * marking such "booted" items as garbage instead of immediately
+   * reclaiming them, callers can check for items' garbage status when
+   * they repeatedly operate over collections of "added" items.
    *
    * @param start the index of the first word in the span covered by
    * <code>item</code>
@@ -251,32 +351,45 @@ public abstract class Chart implements Serializable {
 
     boolean added = false;
 
-    Map items = chart[start][end].map;
+    MapToPrimitive items = chart[start][end].map;
 
     if (!toPrune(start, end, item)) {
       // see if equal (technically, equivalent) item already exists
       // but has a lower probability, replace it with current item
-      // N.B.: replacement *must* be implemented by a remove followed by a
-      // put, so that item, which is a new equivalent, higher-probability
-      // object, is guaranteed to be in the Map
-      Double itemProb = (Double)items.get(item);
+      MapToPrimitive.Entry itemEntry = items.getEntry(item);
 
       /*
       if (debug) {
-        System.err.println("got item with logProb " + itemProb +
+        System.err.println("got item with logProb " + itemEntry.getDoubleValue() +
                            "; comparing to " + item.logProb());
       }
       */
-      boolean itemExists = itemProb != null;
+      boolean itemExists = itemEntry != null;
+      double oldItemProb =
+        itemExists ? itemEntry.getDoubleValue() : Constants.logOfZero;
       if (!itemExists ||
-          (itemExists && itemProb.doubleValue() < item.logProb())) {
+          (itemExists && itemEntry.getDoubleValue() < item.logProb())) {
         boolean removedOldItem = false;
-        if (itemExists) { // would be great if we could reclaim, but can't
-          items.remove(item);  // crucial!  (see comment above)
-          removedOldItem = true;
+        if (itemExists) {
+          // replace the key with the new item and set the new item's map
+          // value to be its logProb
+          Item oldItem = (Item)itemEntry.getKey();
+          boolean replaced = itemEntry.replaceKey(item);
+          if (replaced) {
+            itemEntry.set(0, item.logProb());
+            // cannot reclaim item, since caller may still have handle to it
+            oldItem.setGarbage(true);
+            garbageItems.add(oldItem);
+            removedOldItem = true;
+            added = true;
+          }
+          else
+            System.err.println("assertion failed: couldn't replace item");
         }
-        added = true;
-	items.put(item, new Double(item.logProb()));
+        else {
+          added = true;
+          items.put(item, item.logProb());
+        }
         // if we removed an old item, there's no net gain in number of items
         if (!removedOldItem) {
           totalItems++;
@@ -288,18 +401,22 @@ public abstract class Chart implements Serializable {
 
       if (debugAddToChart) {
         if (itemExists) {
-          if (itemProb.doubleValue() < item.logProb()) {
+          //double itemProb = itemEntry.getDoubleValue();
+          double itemProb = oldItemProb;
+          if (itemProb < item.logProb()) {
             System.err.println(className + ": adding item because equivalent " +
                                "item exists with lower prob; existing item " +
-                               "prob=" + itemProb +
+                               "prob=" + oldItemProb +
                                "; item to add prob=" + item.logProb());
           }
-          else if (itemProb.doubleValue() == item.logProb()) {
+          else if (itemProb == item.logProb()) {
             System.err.println(className + ": not adding item because " +
                                "equivalent item exists with " +
                                "equal prob; prob=" + itemProb);
             System.err.println("\titem that was to be added(" +
                                start + "," + end + "): " + item);
+            if (added)
+              System.err.println("bad: we set added to true when we didn't add");
           }
           else {
             System.err.println(className + ": not adding item because " +
@@ -308,6 +425,8 @@ public abstract class Chart implements Serializable {
                                "; item to add prob=" + item.logProb());
             System.err.println("\titem that was to be added(" +
                                start + "," + end + "): " + item);
+            if (added)
+              System.err.println("bad: we set added to true when we didn't add");
           }
         }
       }
@@ -334,6 +453,18 @@ public abstract class Chart implements Serializable {
   }
 
   /**
+   * Returns the number of chart items covering the specified span.
+   *
+   * @param start the start of the span for which to retrieve the number of
+   * items
+   * @param end the end of the span for which to retrieve the number of items
+   * @return the number of items in this chart covering the specified span
+   */
+  public int numItems(int start, int end) {
+    return chart[start][end].map.size();
+  }
+
+  /**
    * Returns an iterator over all chart items (having all labels) covering
    * the specified span.  The iterator returned is for read-only access, and
    * thus an <code>UnsupportedOperationException</code> will be thrown if
@@ -347,6 +478,10 @@ public abstract class Chart implements Serializable {
     return chart[start][end].map.keySet().iterator();
   }
 
+  /**
+   * Reclaims this chart item.  This method returns the specified item
+   * to the object pool of available items.
+   */
   protected void reclaimItem(Item item) {
     itemPool.putBack(item);
   }
@@ -360,6 +495,11 @@ public abstract class Chart implements Serializable {
     reclaimItemsInChart();
   }
 
+  /**
+   * Reclaims all items currently in the chart, as well as garbage items
+   * generated during parsing (see {@link #add(int,int,Item)} for a
+   * discussion of garbage items).
+   */
   protected void reclaimItemsInChart() {
     int numCells = 0, maxCellSize = 0, maxCellStart = -1, maxCellEnd = -1;
     if (debugNumPrunedItems) {
@@ -387,7 +527,7 @@ public abstract class Chart implements Serializable {
       for (int i = 0; i < size; i++) {
         for (int j = i; j < size; j++) {
 	  Map map = chart[i][j].map;
-	  itemPool.putBackAll(map.keySet());
+          reclaimItemCollection(map.keySet());
           if (debugCellSize) {
             if (map.size() > 0)
               numCells++;
@@ -399,6 +539,13 @@ public abstract class Chart implements Serializable {
           }
         }
       }
+      int numGarbageItems = garbageItems.size();
+      for (int i = 0; i < numGarbageItems; i++) {
+        Item item = (Item)garbageItems.get(i);
+        item.setGarbage(false); // reset this item's garbage status
+      }
+      itemPool.putBackAll(garbageItems);
+      garbageItems.clear();
     }
     if (debugPoolUsage) {
       System.err.println(className + ": pool has " + itemPool.size() +
@@ -427,7 +574,14 @@ public abstract class Chart implements Serializable {
   }
 
   /**
-   * Sets up the item object pools.
+   * A hook called by {@link #reclaimItemsInChart()} to allow subclasses
+   * to reclaim each span's collection of chart items.
+   */
+  protected abstract void reclaimItemCollection(Collection c);
+
+  /**
+   * Sets up the item object pools.  This allows subclasses to specify
+   * the type of item to be held in the object pool.
    */
   protected abstract void setUpItemPool();
 }

@@ -18,6 +18,7 @@ and the Ant output directory might be "classes.ant".-->
     <include name="bin/score"/>
     <include name="bin/start-client"/>
     <include name="bin/start-rmiregistry"/>
+    <include name="bin/no-cp-rmiregistry"/>
     <include name="bin/train"/>
     <include name="bin/wrapper"/>
   </patternset>		   
@@ -177,6 +178,7 @@ and the Ant output directory might be "classes.ant".-->
     </exec>
   </target>
   <target name="setup_deploy">
+    <delete dir="${deploy.to}"/>
     <mkdir dir="${deploy.to}"/>
     <copy todir="${deploy.to}" file="dbparser.jar"/>
     <copy todir="${deploy.to}">

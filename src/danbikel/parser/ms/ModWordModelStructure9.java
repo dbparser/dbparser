@@ -27,6 +27,8 @@ public class ModWordModelStructure9 extends ProbabilityStructure {
       // for p(w_i | t_i)
       hist.add(modEvent.modHeadWord().tag());
       break;
+    }
+
     return hist;
   }
 

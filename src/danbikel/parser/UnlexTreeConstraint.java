@@ -10,19 +10,21 @@ import java.util.*;
  * to only pursue theories consistent with that unlexicalized tree.
  */
 public class UnlexTreeConstraint implements Constraint, SexpConvertible {
-  private UnlexTreeConstraint parent;
-  private List children;
-  private Symbol label;
-  private int start;
-  private int end;
-  private boolean satisfied;
+  protected UnlexTreeConstraint parent;
+  protected List children;
+  protected Symbol label;
+  protected int start;
+  protected int end;
+  protected boolean satisfied;
 
   public UnlexTreeConstraint(Sexp tree) {
     this(null, tree, new IntCounter(0));
   }
 
-  private UnlexTreeConstraint(UnlexTreeConstraint parent,
-                              Sexp tree, IntCounter currWordIdx) {
+  protected UnlexTreeConstraint() {}
+
+  protected UnlexTreeConstraint(UnlexTreeConstraint parent,
+				Sexp tree, IntCounter currWordIdx) {
     if (Language.treebank.isPreterminal(tree)) {
       this.parent = parent;
       children = Collections.EMPTY_LIST;
@@ -41,8 +43,8 @@ public class UnlexTreeConstraint implements Constraint, SexpConvertible {
       this.parent = parent;
       children = new ArrayList(treeListLen - 1);
       for (int i = 1; i < treeListLen; i++) {
-        Sexp child = treeList.get(i);
-        children.add(new UnlexTreeConstraint(this, child, currWordIdx));
+	Sexp child = treeList.get(i);
+	children.add(new UnlexTreeConstraint(this, child, currWordIdx));
       }
       end = currWordIdx.get() - 1;
     }
@@ -52,7 +54,7 @@ public class UnlexTreeConstraint implements Constraint, SexpConvertible {
 
   public boolean isViolatedByChild(Item childItem) {
     return !(childItem.getConstraint().getParent() == this &&
-             children.contains(childItem.getConstraint()));
+	     children.contains(childItem.getConstraint()));
   }
 
   public Constraint getParent() { return parent; }
@@ -65,6 +67,16 @@ public class UnlexTreeConstraint implements Constraint, SexpConvertible {
     throw new UnsupportedOperationException();
   }
 
+  protected boolean isSatisfiedByPreterminal(CKYItem item) {
+    //if (isLocallySatisfiedBy(item) && spanMatches(item)) {
+    if (true) {
+      satisfied = true;
+      return true;
+    }
+    else
+      return false;
+  }
+
   /**
    * Returns <code>true</code> if this constraint is satisfied by its local
    * information and either
@@ -75,14 +87,15 @@ public class UnlexTreeConstraint implements Constraint, SexpConvertible {
    * </ul>
    * More formally, let us define the term <i>nuclear family</i> of a node
    * in a tree to refer to the node itself and its (immediately dominated)
-   * sequence of children.  Given that chart items form a tree structure,
-   * let us also define an <i>item-induced constraint tree</i> as the tree
-   * of constraints induced by mapping the nodes of a tree of chart items
-   * to their assigned constraints.  Let <tt>c</tt> be the nuclear family
-   * of this constraint and let <tt>t</tt> be the nuclear family of the
-   * item-induced constraint tree of the specified item.  This method
-   * returns <code>true</code> if this constraint is satisfied by its local
-   * information and if <tt>c</tt> is identical to <tt>t</tt>.
+   * sequence of children.  Given that chart items that have received their
+   * stop probabilities form a tree structure, let us also define an
+   * <i>item-induced constraint tree</i> as the tree of constraints induced
+   * by mapping the nodes of a tree of stopped chart items to their assigned
+   * constraints.  Let <tt>c</tt> be the nuclear family of this constraint
+   * and let <tt>t</tt> be the nuclear family of the item-induced constraint
+   * tree of the specified item.  This method returns <code>true</code> if
+   * this constraint is satisfied by its local information and if <tt>c</tt>
+   * is identical to <tt>t</tt>.
    *
    * @param item the item to test for satisfaction by this constraint
    * @return whether this constraint is satisfied the specified item
@@ -97,9 +110,7 @@ public class UnlexTreeConstraint implements Constraint, SexpConvertible {
     // but just in case a brain-dead programmer creates a decoder that is
     // inefficient in this way, here's the code to deal with it
     if (ckyItem.isPreterminal()) {
-      if (isLocallySatisfiedBy(item) && spanMatches(item))
-        satisfied = true;
-      return satisfied;
+      return isSatisfiedByPreterminal(ckyItem);
     }
 
     if (!isLocallySatisfiedBy(item) || !spanMatches(item))
@@ -114,11 +125,11 @@ public class UnlexTreeConstraint implements Constraint, SexpConvertible {
     // first, check left children
     int constraintIdx = 0;
     for (SLNode curr = ckyItem.children(Constants.LEFT);
-         curr != null && constraintIdx < children.size();
-         curr = curr.next(), constraintIdx++) {
+	 curr != null && constraintIdx < children.size();
+	 curr = curr.next(), constraintIdx++) {
       Constraint currConstraint = ((CKYItem)curr.data()).getConstraint();
       if (currConstraint != children.get(constraintIdx))
-        return false;
+	return false;
     }
     // now, check head child
     int headChildIdx = numLeftChildren;
@@ -127,11 +138,11 @@ public class UnlexTreeConstraint implements Constraint, SexpConvertible {
     // finally, check right children
     constraintIdx = children.size() - 1;
     for (SLNode curr = ckyItem.children(Constants.RIGHT);
-         curr != null && constraintIdx >= 0;
-         curr = curr.next(), constraintIdx--) {
+	 curr != null && constraintIdx >= 0;
+	 curr = curr.next(), constraintIdx--) {
       Constraint currConstraint = ((CKYItem)curr.data()).getConstraint();
       if (currConstraint != children.get(constraintIdx))
-        return false;
+	return false;
     }
     satisfied = true;
     return true;
@@ -141,7 +152,7 @@ public class UnlexTreeConstraint implements Constraint, SexpConvertible {
 
   public boolean isLocallySatisfiedBy(Item item) {
     return (item.label() == label ||
-            Language.treebank.getCanonical((Symbol)item.label()) == label);
+	    Language.treebank.getCanonical((Symbol)item.label()) == label);
   }
 
   protected boolean spanMatches(Item item) {
@@ -163,7 +174,7 @@ public class UnlexTreeConstraint implements Constraint, SexpConvertible {
 
   public String toString() {
     return "label=" + label + ", span=(" + start + "," + end +
-           "), parentLabel=" +
-           (parent == null ? "null" : parent.label.toString());
+	   "), parentLabel=" +
+	   (parent == null ? "null" : parent.label.toString());
   }
 }

@@ -111,12 +111,16 @@ public class Model implements Serializable {
    * @param filter used to filter out <code>TrainerEvent</code> objects
    * whose derived counts should not be derived for this model
    */
-  public void deriveCounts(CountsTable trainerCounts, Filter filter) {
-    deriveHistories(trainerCounts, filter);
+  public void deriveCounts(CountsTable trainerCounts, Filter filter,
+                           FlexibleMap canonical) {
+    canonicalEvents = canonical;
+    deriveHistories(trainerCounts, filter, canonical);
 
     Time time = null;
     if (verbose)
       time = new Time();
+
+    Transition trans = new Transition(null, null);
 
     Iterator entries = trainerCounts.entrySet().iterator();
     while (entries.hasNext()) {
@@ -132,29 +136,14 @@ public class Model implements Serializable {
 	  continue;
 	Event lookupHistory = structure.getHistory(event, level);
 
-	/*
-	System.err.println("level: " + level +
-			   "; lookup hist: " + lookupHistory);
-	*/
         MapToPrimitive.Entry histEntry =
           counts[level].history().getEntry(lookupHistory);
         if (histEntry != null) {
-//	if (counts[level].history().containsKey(lookupHistory)) {
-
-	  /*
-	  System.err.println("yea! found it!");
-	  */
-
-	  Event history = (Event)histEntry.getKey();
-	  Event future = structure.getFuture(event, level);
-	  Transition transition = new Transition(future.copy(), history);
-	  counts[level].transition().add(transition, count);
-
-	  /*
-	  System.err.println("level: " + level +
-			     "; transition: " + transition +
-			     "; count: " + count.get());
-	  */
+	  Event history = (Event)histEntry.getKey(); // already canonical!
+          Event future = structure.getFuture(event, level);
+          trans.setFuture(canonicalizeEvent(future, canonical));
+          trans.setHistory(history);
+	  counts[level].transition().add(getCanonical(trans, canonical), count);
 	}
       }
 
@@ -170,8 +159,40 @@ public class Model implements Serializable {
     deriveDiversityCounts();
 
     deriveSpecialLevelDiversityCounts();
+  }
 
-    //histories = null;
+  /**
+   * This method first canonicalizes the information in the specified event
+   * (a Sexp or a Subcat and a Sexp), then it returns a canonical version
+   * of the event itself, copying it into the map if necessary.
+   */
+  private final static Event canonicalizeEvent(Event event,
+                                               FlexibleMap canonical) {
+    Event canonicalEvent = (Event)canonical.get(event);
+    if (canonicalEvent == null) {
+      canonicalEvent = event.copy();
+      canonicalEvent.canonicalize(canonical);
+      canonical.put(canonicalEvent, canonicalEvent);
+    }
+    return canonicalEvent;
+  }
+
+  /**
+   * This method assumes trans already contains a canonical history and a
+   * canonical future.  If an equivalent transition is found in the canonical
+   * map, it is returned; otherwise, a new Transition object is created
+   * with the canonical future and canonical history contained in the specified
+   * transition, and that new Transition object is added to the canonical map
+   * and returned.
+   */
+  private final static Transition getCanonical(Transition trans,
+                                               FlexibleMap canonical) {
+    Transition canonicalTrans = (Transition)canonical.get(trans);
+    if (canonicalTrans == null) {
+      canonicalTrans = new Transition(trans.future(), trans.history());
+      canonical.put(canonicalTrans, canonicalTrans);
+    }
+    return canonicalTrans;
   }
 
   /**
@@ -369,7 +390,7 @@ public class Model implements Serializable {
 
     // check cache here!!!!!!!!!!!!!!!!!!!!!!!
 
-    Transition structure = transition.getTransition(event, level);
+    Transition transition = structure.getTransition(event, level);
     Event history = transition.history();
     CountsTrio trio = counts[level];
     MapToPrimitive.Entry histEntry = trio.history().getEntry(history);
@@ -414,7 +435,7 @@ public class Model implements Serializable {
 
   /**
    * Called by
-   * {@link #deriveCounts(CountsTable,Filter)}, for each
+   * {@link #deriveCounts(CountsTable,Filter,FlexibleMap)}, for each
    * type of transition observed, this method derives the number of
    * unique transitions from the history context to the possible
    * futures.  This number of unique transitions, called the
@@ -451,7 +472,7 @@ public class Model implements Serializable {
   }
 
   /**
-   * Called by {@link #deriveCounts(CountsTable,Filter)},
+   * Called by {@link #deriveCounts(CountsTable,Filter,FlexibleMap)},
    * this method provides a hook to count transition(s) for the special
    * level of back-off of the model, if one exists.
    */
@@ -459,7 +480,8 @@ public class Model implements Serializable {
 					       int count) {
   }
 
-  private void deriveHistories(CountsTable trainerCounts, Filter filter) {
+  private void deriveHistories(CountsTable trainerCounts, Filter filter,
+                               FlexibleMap canonical) {
     Time time = null;
     if (verbose)
       time = new Time();
@@ -479,7 +501,8 @@ public class Model implements Serializable {
       for (int level = 0; level < numLevels; level++) {
 	if (level == specialLevel)
 	  continue;
-	Event history = structure.getHistory(event, level).copy();
+	Event history = structure.getHistory(event, level);
+        history = canonicalizeEvent(history, canonical);
 	counts[level].history().add(history, CountsTrio.hist, count);
 	//histories[level].put(history, history);
 
@@ -634,13 +657,13 @@ public class Model implements Serializable {
   /**
    * Causes this class to be verbose in its output to <code>System.err</code>
    * during the invocation of its methods, such as
-   * {@link #deriveCounts(CountsTable,Filter)}.
+   * {@link #deriveCounts(CountsTable,Filter,FlexibleMap)}.
    */
   public void beVerbose() { verbose = true;}
   /**
    * Causes this class not to output anything to <code>System.err</code>
    * during the invocation of its methods, such as
-   * {@link #deriveCounts(CountsTable,Filter)}.
+   * {@link #deriveCounts(CountsTable,Filter,FlexibleMap)}.
    */
   public void beQuiet() { verbose = false; }
 

@@ -130,6 +130,8 @@ public abstract class Treebank implements Serializable {
    */
   public abstract Symbol getCanonical(Symbol label);
 
+  public abstract Symbol getCanonical(Symbol label, boolean stripAugmentations);
+
   /**
    * Returns <code>true</code> is the specified nonterminal label represents a
    * sentence in the current language's Treebank.  This method is intended to

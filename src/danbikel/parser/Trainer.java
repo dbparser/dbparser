@@ -1,12 +1,14 @@
 package danbikel.parser;
 
-import java.io.*;
-import java.util.*;
-import java.util.HashMap;
-
 import danbikel.lisp.*;
 import danbikel.util.*;
 import danbikel.util.AbstractMapToPrimitive.*;
+
+import java.io.*;
+import java.util.*;
+import java.util.zip.*;
+import java.util.HashMap;
+
 
 /**
  * Derives all counts necessary to compute the probabilities for this parser,
@@ -1957,9 +1959,11 @@ public class Trainer implements Serializable {
 				   String trainingInputFilename,
 				   String trainingOutputFilename)
     throws FileNotFoundException, IOException {
-    FileOutputStream fos = new FileOutputStream(objectOutputFilename);
+    OutputStream os = new FileOutputStream(objectOutputFilename);
+    if (objectOutputFilename.endsWith(".gz"))
+      os = new GZIPOutputStream(os);
     int bufSize = Constants.defaultFileBufsize;
-    BufferedOutputStream bos = new BufferedOutputStream(fos, bufSize);
+    BufferedOutputStream bos = new BufferedOutputStream(os, bufSize);
     ObjectOutputStream oos = new ObjectOutputStream(bos);
     writeModelCollection(oos,
 			 trainingInputFilename, trainingOutputFilename);
@@ -1983,9 +1987,11 @@ public class Trainer implements Serializable {
 
   public static ModelCollection loadModelCollection(String objectInputFilename)
     throws ClassNotFoundException, IOException, OptionalDataException {
-    FileInputStream fi = new FileInputStream(objectInputFilename);
+    InputStream is = new FileInputStream(objectInputFilename);
+    if (objectInputFilename.endsWith(".gz"))
+      is = new GZIPInputStream(is);
     int bufSize = Constants.defaultFileBufsize * 10;
-    BufferedInputStream bfi = new BufferedInputStream(fi, bufSize);
+    BufferedInputStream bfi = new BufferedInputStream(is, bufSize);
     ObjectInputStream ois = new ObjectInputStream(bfi);
     System.err.println("\nLoading derived counts from object file \"" +
 		       objectInputFilename + "\":");
@@ -2007,9 +2013,11 @@ public class Trainer implements Serializable {
   public static void scanModelCollectionObjectFile(String scanObjectFilename,
 						   OutputStream os)
     throws ClassNotFoundException, IOException, OptionalDataException {
-    FileInputStream fis = new FileInputStream(scanObjectFilename);
+    InputStream is = new FileInputStream(scanObjectFilename);
+    if (scanObjectFilename.endsWith(".gz"))
+      is = new GZIPInputStream(is);
     int bufSize = Constants.defaultFileBufsize;
-    BufferedInputStream bis = new BufferedInputStream(fis, bufSize);
+    BufferedInputStream bis = new BufferedInputStream(is, bufSize);
     ObjectInputStream ois = new ObjectInputStream(bis);
     System.err.println("\nInformation from object file \"" +
 		       scanObjectFilename + "\":");
@@ -2274,6 +2282,8 @@ public class Trainer implements Serializable {
 	OutputStream os =
 	  (outputFilename.equals("-") ?
 	   (OutputStream)System.out : new FileOutputStream(outputFilename));
+	if (outputFilename.endsWith(".gz"))
+	  os = new GZIPOutputStream(os);
 	Writer writer = new BufferedWriter(new OutputStreamWriter(os, encoding),
 					   Constants.defaultFileBufsize);
 	System.err.println("Writing observations to output file \"" +

@@ -100,12 +100,6 @@ public abstract class Chart implements Serializable {
    */
   protected transient ObjectPool itemPool;
   /**
-   * A list of garbage items.
-   *
-   * @see #add(int,int,Item)
-   */
-  protected transient ArrayList garbageItems;
-  /**
    * The total number of items generated, that is, the total number of items
    * that a decoder <i>attempts</i> to add to this chart (used for debugging).
    */
@@ -158,7 +152,6 @@ public abstract class Chart implements Serializable {
       throw new IllegalArgumentException();
     setSize(size);
     setUpItemPool();
-    garbageItems = new ArrayList();
   }
 
   /**
@@ -466,7 +459,6 @@ public abstract class Chart implements Serializable {
 	    itemEntry.set(0, item.logProb());
 	    // cannot reclaim item, since caller may still have handle to it
 	    oldItem.setGarbage(true);
-	    // garbageItems.add(oldItem);
 	    removedOldItem = true;
 	    added = true;
 	  }
@@ -649,9 +641,7 @@ public abstract class Chart implements Serializable {
   }
 
   /**
-   * Reclaims all items currently in the chart, as well as garbage items
-   * generated during parsing (see {@link #add(int,int,Item)} for a
-   * discussion of garbage items).
+   * Reclaims all items currently in the chart.
    */
   protected void reclaimItemsInChart() {
     int numCells = 0, maxCellSize = 0, maxCellStart = -1, maxCellEnd = -1;
@@ -692,15 +682,6 @@ public abstract class Chart implements Serializable {
 	  }
 	}
       }
-      /*
-      int numGarbageItems = garbageItems.size();
-      for (int i = 0; i < numGarbageItems; i++) {
-	Item item = (Item)garbageItems.get(i);
-	item.setGarbage(false); // reset this item's garbage status
-      }
-      itemPool.putBackAll(garbageItems);
-      garbageItems.clear();
-      */
     }
     if (debugPoolUsage) {
       System.err.println(className + ": pool has " + itemPool.size() +

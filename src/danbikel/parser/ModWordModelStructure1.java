@@ -10,11 +10,14 @@ public class ModWordModelStructure1 extends ProbabilityStructure {
     super();
   }
 
-  public int maxEventComponents() { return 9; }
+  public int maxEventComponents() { return 10; }
   public int numLevels() { return 3; }
 
   public Event getHistory(TrainerEvent trainerEvent, int backOffLevel) {
     ModifierEvent modEvent = (ModifierEvent)trainerEvent;
+
+    Symbol side = Constants.sideToSym(modEvent.side());
+
     MutableEvent hist = historiesWithSubcats[backOffLevel];
     hist.clear();
     Symbol verbInterveningSym =
@@ -22,7 +25,7 @@ public class ModWordModelStructure1 extends ProbabilityStructure {
     switch (backOffLevel) {
     case 0:
       // for p(w_i | M(t)_i, P, H, w, t, verbIntervening, (M_i-1,...,M_i-k),
-      //             subcat)
+      //             subcat, side)
       hist.add(0, Language.training.removeGapAugmentation(modEvent.modifier()));
       hist.add(0, modEvent.modHeadWord().tag());
       hist.add(0, Language.training.removeGapAugmentation(modEvent.parent()));
@@ -32,9 +35,11 @@ public class ModWordModelStructure1 extends ProbabilityStructure {
       hist.add(0, verbInterveningSym);
       hist.add(0, Language.training.removeGapAugmentation(modEvent.previousMods()));
       hist.add(1, modEvent.subcat());
+      hist.add(0, side);
       break;
     case 1:
-      // for p(w_i | M(t)_i, P, H, t, verbIntervening, M_i-1 == +START+, subcat)
+      // for p(w_i | M(t)_i, P, H, t, verbIntervening, M_i-1 == +START+, subcat,
+      //             side)
       Symbol prevModIsStartSym =
 	Constants.booleanToSym(modEvent.previousMods().get(0) == startSym);
       hist.add(0, Language.training.removeGapAugmentation(modEvent.modifier()));
@@ -45,6 +50,7 @@ public class ModWordModelStructure1 extends ProbabilityStructure {
       hist.add(0, verbInterveningSym);
       hist.add(0, prevModIsStartSym);
       hist.add(1, modEvent.subcat());
+      hist.add(0, side);
       break;
     case 2:
       // for p(w_i | t_i)

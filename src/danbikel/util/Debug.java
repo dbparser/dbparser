@@ -1,6 +1,6 @@
 package danbikel.util;
 
-import bsh.Interpreter;
+//import bsh.Interpreter;
 import java.io.*;
 import java.util.*;
 
@@ -48,11 +48,12 @@ public class Debug implements Serializable {
     for (int i = 0; st.hasMoreTokens(); i++)
       arr[i] = st.nextToken();
   }
-
+/*
   public static void main(String[] args) {
     Interpreter i = new Interpreter();
     try {
       i.eval("server(" + args[0] + ")");
     } catch (bsh.EvalError e) { System.err.println(e); }
   }
+*/
 }

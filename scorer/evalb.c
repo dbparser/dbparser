@@ -766,7 +766,7 @@ calc_result()
 	return;
     }
 
-/*
+#ifndef DC
     for(i=0;i<wn1;i++){
 	if(word_comp(terminal1[i].word,terminal2[i].word)==0){
 	    Error("Words unmatch (%s|%s)\n",terminal1[i].word,
@@ -775,7 +775,7 @@ calc_result()
 	    return;
 	}
     }
-*/
+#endif
 
 
     /* massage the data */

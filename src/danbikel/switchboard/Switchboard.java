@@ -244,16 +244,17 @@ public class Switchboard
 
       // if clobber is false and output file exists, then file processing is
       // effectively done (because it was done in a prior run)
-      File outFile = new File(outName);
-      if (clobber == false && outFile.exists()) {
-	moreObjects = false;
-	String msg = className + ": existence of output file \"" + outName +
-	  "\" with noclobber on:\n\t\"" + inName + "\" assumed to have " +
-	  "been completed in previous run";
-	log(msg);
-	return;
+      if (outName != null) {
+	File outFile = new File(outName);
+	if (clobber == false && outFile.exists()) {
+	  moreObjects = false;
+	  String msg = className + ": existence of output file \"" + outName +
+	    "\" with noclobber on:\n\t\"" + inName + "\" assumed to have " +
+	    "been completed in previous run";
+	  log(msg);
+	  return;
+	}
       }
-
 
       String msg = className + ": opening input file \"" + inName + "\" " +
 	"(ID number " + id + ")";
@@ -264,29 +265,35 @@ public class Switchboard
       boolean autoFlush = true;
       boolean append = true;
 
-      File logFile = new File(logName);
-      if (logFile.exists()) {
-	msg = className + ": log file\n\t\"" + logName + "\"\n\t" +
-	  "exists; will attempt to recover";
-	log(msg);
-	recover();
+      File logFile = null;
+      if (logName != null) {
+	logFile = new File(logName);
+	if (logFile.exists()) {
+	  msg = className + ": log file\n\t\"" + logName + "\"\n\t" +
+	    "exists; will attempt to recover";
+	  log(msg);
+	  recover();
+	}
       }
 
       //if (clobber && done()) {
       if (done()) {
-	msg = className + ": processing completed in previous run; creating " +
-	  "output file";
+	msg = className + ": processing completed in previous run" +
+	      (outName == null ? "" : "; creating output file");
 	log(msg);
-	dumpOutput();
+	if (logName != null && outName != null)
+	  dumpOutput();
       }
       else {
-	msg = className + ": appending to log file \"" + logName + "\"";
-	log(msg);
+	if (logName != null) {
+	  msg = className + ": appending to log file \"" + logName + "\"";
+	  log(msg);
 
-	boolean emptyFile = logFile.length() == 0;
-	OutputStream logOS = new FileOutputStream(logName, append);
-	log = numObjWriterFactory.get(logOS, encoding, bufSize,
-				      append, emptyFile);
+	  boolean emptyFile = logFile.length() == 0;
+	  OutputStream logOS = new FileOutputStream(logName, append);
+	  log = numObjWriterFactory.get(logOS, encoding, bufSize,
+					append, emptyFile);
+	}
       }
     }
 
@@ -294,6 +301,15 @@ public class Switchboard
     // both file names and streams, including both an output *and*
     // an input stream for the log file, since it will have to be read
     // in when dumping processed objects to the output file
+
+    /**
+     * Simply tells consumer the names of the file it is about to be consuming,
+     * along with the name of the output file, via its
+     * {@link Consumer#newFile(String,String)} method.
+     */
+    void registerConsumer(Consumer c) {
+      c.newFile(inName, outName);
+    }
 
     /**
      * Gets the next numbered object from the input file or stream.
@@ -327,8 +343,17 @@ public class Switchboard
       }
     }
 
-    void writeToLog(NumberedObject numObj) {
-      synchronized (log) {
+    synchronized void writeToLog(NumberedObject numObj) {
+      synchronized (consumers) {
+	if (consumers.size() > 0) {
+	  Iterator it = consumers.iterator();
+	  while (it.hasNext()) {
+	    Consumer c = (Consumer)it.next();
+	    c.consume(numObj);
+	  }
+	}
+      }
+      if (logName != null) {
 	try {
 	  log.writeObject(numObj);
 	}
@@ -336,17 +361,19 @@ public class Switchboard
 	  logFailure("putObject: error writing " + numObj + " to log file! (" +
 		     ioe + ")");
 	}
-	numObjectsProcessed++;
-	numObjectsProcessedThisRun++;
       }
+      numObjectsProcessed++;
+      numObjectsProcessedThisRun++;
     }
 
     /**
-     * Notify any thread waiting on this object if object processing is done.
+     * Notifies any thread waiting on this object if object processing is done,
+     * and notifies all consumers that object processing is done.
      */
     synchronized void notifyIfDone() {
-      if (this.done())
+      if (this.done()) {
 	this.notifyAll();
+      }
     }
 
     /** Returns <code>true</code> when object processing is done. */
@@ -385,15 +412,15 @@ public class Switchboard
 	ObjectReader numObjReader =
 	  numObjReaderFactory.get(logName, encoding, bufSize);
 
-        TreeSet allObjects = null;
-        if (sortOutput) {
-       	  allObjects = new TreeSet();
-          Object curr = null;
-          while ((curr = numObjReader.readObject()) != null) {
-            NumberedObject currNumObj = (NumberedObject)curr;
-            allObjects.add(currNumObj);
-          }
-        }
+	TreeSet allObjects = null;
+	if (sortOutput) {
+	  allObjects = new TreeSet();
+	  Object curr = null;
+	  while ((curr = numObjReader.readObject()) != null) {
+	    NumberedObject currNumObj = (NumberedObject)curr;
+	    allObjects.add(currNumObj);
+	  }
+	}
 
 	try {
 	  out = objWriterFactory.get(outName, encoding, bufSize, false);
@@ -408,21 +435,21 @@ public class Switchboard
 	  return;
 	}
 
-        if (sortOutput) {
-          Iterator it = allObjects.iterator();
-          while (it.hasNext()) {
-            NumberedObject numObj = (NumberedObject)it.next();
-            out.writeObject(numObj.get());
-          }
-        }
-        else {
-          // write out objects in the order in which they appear in log file
-          Object curr = null;
-          while ((curr = numObjReader.readObject()) != null) {
-            NumberedObject currNumObj = (NumberedObject)curr;
-            out.writeObject(currNumObj.get());
-          }
-        }
+	if (sortOutput) {
+	  Iterator it = allObjects.iterator();
+	  while (it.hasNext()) {
+	    NumberedObject numObj = (NumberedObject)it.next();
+	    out.writeObject(numObj.get());
+	  }
+	}
+	else {
+	  // write out objects in the order in which they appear in log file
+	  Object curr = null;
+	  while ((curr = numObjReader.readObject()) != null) {
+	    NumberedObject currNumObj = (NumberedObject)curr;
+	    out.writeObject(currNumObj.get());
+	  }
+	}
 	out.close();
       }
       catch (IOException ioe) {
@@ -607,15 +634,17 @@ public class Switchboard
 	}
 	catch (RemoteException re) {
 	  numTriesRemaining--;
-          lastExceptionThrown = re;
+	  lastExceptionThrown = re;
 	  returned = false;
+	  try { Thread.sleep(keepAliveInterval); }
+	  catch (InterruptedException ie) {}
 	}
       } // end while (stop trying to find out if alive and assume dead)
 
       if (verbose)
 	logSwitchboardUserDeath(userData, returned,
-                                (retries + 1 - numTriesRemaining),
-                                lastExceptionThrown);
+				(retries + 1 - numTriesRemaining),
+				lastExceptionThrown);
       userData.cleanup();
     }
   }
@@ -825,6 +854,8 @@ public class Switchboard
   private PrintWriter msgs;       // message output
   private int bufSize = defaultBufSize;
   private boolean verbose = true; // whether to print extensive messages
+  private List consumers = new ArrayList();
+
 
   // global state of object processing
   /** Stack of objects to be processed. */
@@ -1409,6 +1440,7 @@ public class Switchboard
 		 (System.currentTimeMillis() / 1000));
 
     tsf = new TimeoutSocketFactory(0, 0);
+    //dumpers.setDaemon(true);
   }
 
   // constructor helper
@@ -1495,9 +1527,12 @@ public class Switchboard
    * UnicastRemoteObject.exportObject}.
    */
   public void export() throws RemoteException {
+    /*
     UnicastRemoteObject.exportObject(this, port,
 				     (RMIClientSocketFactory)tsf,
 				     (RMIServerSocketFactory)tsf);
+    */
+    UnicastRemoteObject.exportObject(this, port);
   }
 
   // I/O methods
@@ -1591,8 +1626,9 @@ public class Switchboard
    * @param outFilename the name of the output file to be created
    * @param logFilename the name of the log file (which is used to
    * keep track of incremental work during input file processing)
-   * @param wait indicates whether this method should return immediately
-   * or wait until object processing is complete
+   * @param wait if <code>true</code>, indicates whether this method
+   * should wait until object processing is complete or, if
+   * <code>false</code>, return immediately
    */
   public void processFile(String inFilename, String outFilename,
 			  String logFilename, boolean wait) {
@@ -1601,9 +1637,19 @@ public class Switchboard
       try {
 	currFile =
 	  new IOData(nextFileId++, inFilename, outFilename, logFilename);
+	synchronized (consumers) {
+	  if (consumers.size() > 0) {
+	    Iterator it = consumers.iterator();
+	    while (it.hasNext()) {
+	      Consumer c = (Consumer)it.next();
+	      currFile.registerConsumer(c);
+	    }
+	  }
+	}
 	// start dumper thread if the input file does not appear to have
 	// been previously processed and output to the output file
-	if (currFile.done() == false) {
+	if (logFilename != null && outFilename != null &&
+	    currFile.done() == false) {
 	  dumper = new Thread(dumpers,
 			      currFile,
 			      "Dumper (file " + currFile.id + ")");
@@ -1703,7 +1749,7 @@ public class Switchboard
     if (settings != null) {
       String sortOutputStr = settings.getProperty(SwitchboardRemote.sortOutput);
       if (sortOutputStr != null)
-        sortOutput = Boolean.valueOf(sortOutputStr).booleanValue();
+	sortOutput = Boolean.valueOf(sortOutputStr).booleanValue();
     }
   }
 
@@ -1924,7 +1970,46 @@ public class Switchboard
     if (timer == null)
       timer = new Time();
 
+    if (currFile.done()) {
+      synchronized (consumers) {
+	if (consumers.size() > 0) {
+	  Iterator it = consumers.iterator();
+	  while (it.hasNext()) {
+	    Consumer c = (Consumer)it.next();
+	    c.processingComplete(currFile.inName, currFile.outName);
+	  }
+	}
+      }
+    }
+
     return numObj;
+  }
+
+  /**
+   * Registers the specified consumer of processed objects with this
+   * switchboard.  It is guaranteed that the consumer's
+   * {@link Consumer#newFile(String,String)} method will be invoked
+   * before this registration method returns.  Note that it is possible
+   * that all objects from the current file could have been processed
+   * before this method returns.  In order to guarantee that one or more
+   * consumers post-process all objects of a particular input file,
+   * the consumers should be registered, via this method, <i>before</i>
+   * files are processed via one of the <code>processFile</code> methods.
+   *
+   * @param consumer the consumer to be registered
+   *
+   * @see Consumer#newFile(String,String)
+   * @see #processFile(String)
+   * @see #processFile(String,String)
+   * @see #processFile(String,String,String)
+   * @see #processFile(String,String,String,boolean)
+   */
+  public void registerConsumer(Consumer consumer) {
+    synchronized (consumers) {
+      consumers.add(consumer);
+    }
+    if (currFile != null)
+      currFile.registerConsumer(consumer);
   }
 
   public void putObject(int clientId,
@@ -1949,7 +2034,7 @@ public class Switchboard
       }
     }
 
-    currFile.writeToLog(obj); // synchronized on the currFile's log object
+    currFile.writeToLog(obj);
 
     synchronized (msgs) {
       int numClients = clients.size();
@@ -2115,8 +2200,8 @@ public class Switchboard
 
   private void logSwitchboardUserDeath(SwitchboardUserData data,
 				       boolean natural,
-                                       int numTriesMade,
-                                       Exception lastExceptionThrown) {
+				       int numTriesMade,
+				       Exception lastExceptionThrown) {
     synchronized (msgs) {
       msgs.print(data.toString());
       msgs.print(" has died ");
@@ -2125,8 +2210,8 @@ public class Switchboard
       }
       else {
 	msgs.println("an unnatural death: made " + numTriesMade + " contact " +
-                     "attempts (last exception thrown: " +
-                     lastExceptionThrown + ")");
+		     "attempts (last exception thrown: " +
+		     lastExceptionThrown + ")");
       }
     }
   }

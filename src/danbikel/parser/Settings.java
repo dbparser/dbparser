@@ -250,7 +250,7 @@ public class Settings implements Serializable {
     "parser.headfinder.warnDefaultRule";
 
   /**
-   * The property to specify the threshold at which words are
+   * The property to specify the threshold below which words are
    * considered unknown by the trainer. The value of this property
    * must be (the string representation of) an integer.
    * <p>
@@ -261,6 +261,19 @@ public class Settings implements Serializable {
    */
   public final static String unknownWordThreshold =
     "parser.trainer.unknownWordThreshold";
+
+  /**
+   * The property to specify the threshold below which <code>TrainerEvent</code>
+   * objects are discarded by the trainer.  The value of this property
+   * must be (the string representation of) an integer.
+   * <p>
+   * The value of this constant is
+   * <code>"parser.trainer.countThreshold"</code>.
+   *
+   * @see Trainer
+   */
+  public final static String countThreshold =
+    "parser.trainer.countThreshold";
 
   /**
    * The property to specify the interval (in number of sentences) at which the

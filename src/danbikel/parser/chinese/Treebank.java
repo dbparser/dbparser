@@ -38,6 +38,7 @@ public class Treebank extends danbikel.parser.lang.AbstractTreebank {
   static final Symbol baseNP = Symbol.add(NP + "B");
   static final Symbol subjectlessS = Symbol.add(S + "G");
   static final Symbol subjectAugmentation = Symbol.add("SBJ");
+  static final Symbol sbjNP = Symbol.add(NP + subjectAugmentation.toString());
 
   // other basic nodes
   static final Symbol WHNP = Symbol.add("WHNP");
@@ -64,7 +65,7 @@ public class Treebank extends danbikel.parser.lang.AbstractTreebank {
   static {
     for (int i = 0; i < canonicalLabelMapData.length; i++)
       canonicalLabelMap.put(canonicalLabelMapData[i][0],
-			    canonicalLabelMapData[i][1]);
+                            canonicalLabelMapData[i][1]);
   }
 
   private static String[] puncToRaiseElements = {"PU"};
@@ -167,7 +168,9 @@ public class Treebank extends danbikel.parser.lang.AbstractTreebank {
    * @see Training#addBaseNPs(Sexp)
    */
   public boolean isNP(Symbol label) {
-    return getCanonical(label) == NP;
+    Symbol canonical = getCanonical(label);
+    //return canonical == NP || canonical == sbjNP;
+    return canonical == NP;
   }
 
   /**

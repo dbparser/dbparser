@@ -146,7 +146,7 @@ and the Ant output directory might be "classes.ant".-->
     <exec executable="perl"
           outputproperty="install.script.linecount">
       <arg value="-e"/>
-      <arg value="while (&lt;&gt;) {} $lines=$.+1;print &quot;$lines\n&quot;;"/>
+      <arg value="while (&lt;&gt;) {} $lines=$.+1;print $lines;"/>
       <arg value="${deploy}/LICENSE"/>
       <arg value="${deploy}/install-header-template"/>
     </exec>

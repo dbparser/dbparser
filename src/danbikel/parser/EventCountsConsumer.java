@@ -5,7 +5,7 @@ import danbikel.switchboard.*;
 import java.io.*;
 import java.util.*;
 
-class EventCountsConsumer implements Consumer, Runnable {
+public class EventCountsConsumer implements Consumer, Runnable {
   // constants
   private final static String className = Consumer.class.getName();
   /** The default writing interval for this consumer. */

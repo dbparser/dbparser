@@ -1,8 +1,8 @@
 package danbikel.util;
 
 /**
- * Specifies useful/necessary diagnostic and lookup methods that the HashMap
- * API lacks.
+ * Specifies useful/necessary diagnostic and lookup methods that the Map
+ * and HashMap APIs lack.
  */
 public interface FlexibleMap extends java.util.Map {
 

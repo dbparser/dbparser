@@ -18,8 +18,8 @@ package danbikel.util;
  * for each key, then it would create map entries that extended
  * <code>AbstractPrimitiveMapEntry</code> and that overrode only the
  * {@link MapToPrimitive.Entry#numBytes()},
- * {@link MapToPrimitiveEntry#getByteValue()} and
- * {@link MapToPrimitiveEntry#getByteValue(int)} methods.  The
+ * {@link MapToPrimitive.Entry#getByteValue()} and
+ * {@link MapToPrimitive.Entry#getByteValue(int)} methods.  The
  * <code>MapToPrimitive.Entry#numBytes()</code> method would simply return
  * <tt>1</tt>, and the other two methods would return the byte value
  * (the implementation of <code>getByteValue(int)</code> should throw an

@@ -36,6 +36,7 @@ set outputDir = $parent/experiments/$date/$time
 set startClientScript = $scriptDir/start-client
 set printNodesScript = $scriptDir/print-nodes
 set rmiregistryScript = $scriptDir/start-rmiregistry
+set scorerScript = $scriptDir/score
 
 # bookkeeping output files (pid files, node file script file)
 set pidFile = $outputDir/pids
@@ -48,14 +49,12 @@ set sbMsgFile = $outputDir/switchboard.messages
 set outFile = $outputDir/$inFile:t.parsed
 set logFile = $outputDir/$inFile:t.log
 
-# scoring variables
-set scorerDir = $parent/scorer
-set scorer = $scorerDir/evalb
-set scorerParam = $scorerDir/COLLINS.prm
-
 # set variable to indicate switchboard policy file to JVM
 set sbPolicy = "-Djava.security.policy=$parent/policy-files/switchboard.policy"
 set sbCodebase = "-Djava.rmi.server.codebase=file://$parent/"
+
+# scorer directory
+set scorerDir = $parent/scorer
 
 set nodes = `$printNodesScript`
 
@@ -129,13 +128,9 @@ echo "" | rsh $sbHost java -cp $classpath -Xms100m -Xmx100m \
 
 # finally, if gold file exists, try to score
 if (-f $goldFile) then
-    echo ""
-    echo "Adding fake parts of speech to $outFile"
-    java -cp $classpath danbikel.parser.util.AddFakePos \
-	$goldFile $outFile > $outFile.scorable
     # make sure scorer has been compiled
     (cd $scorerDir ; make)
-    $scorer -p $scorerParam $goldFile $outFile.scorable > $outFile.score
+    $scorerScript $goldFile $outFile > $outFile.score
 endif
 
 # kill off rmi registry proc

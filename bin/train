@@ -1,0 +1,31 @@
+#!/bin/tcsh -f
+
+goto afterUsage
+usage:
+    echo "usage: <max. heap size in megabytes> <parse tree input file>"
+    exit 1
+
+afterUsage:
+
+if ($#argv < 2) then
+   goto usage
+endif
+
+#set java = java
+set java = (java -server)
+set class = danbikel.parser.Trainer
+set minHeap = 100
+set maxHeap = $1
+set inFile = $2
+set oFile = $inFile:r.observed
+set odFile = $inFile:r.obj
+
+set command = ($java -Xms$minHeap\m -Xmx$maxHeap\m $class \
+	       -i $inFile -o $oFile -od $odFile)
+
+echo ""
+echo Executing command
+echo "\t"$command
+echo ""
+
+$command

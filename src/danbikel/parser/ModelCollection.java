@@ -31,6 +31,8 @@ public class ModelCollection implements Serializable {
   private Map posMap;
   private Map leftSubcatMap;
   private Map rightSubcatMap;
+  private Map leftModNonterminalMap;
+  private Map rightModNonterminalMap;
   private Set prunedPreterms;
   private Set prunedPunctuation;
   private Map canonicalEvents;
@@ -102,6 +104,8 @@ public class ModelCollection implements Serializable {
 		  Map posMap,
 		  Map leftSubcatMap,
 		  Map rightSubcatMap,
+                  Map leftModNonterminalMap,
+                  Map rightModNonterminalMap,
                   Set prunedPreterms,
                   Set prunedPunctuation,
                   Map canonicalEvents) {
@@ -123,6 +127,8 @@ public class ModelCollection implements Serializable {
     this.posMap = posMap;
     this.leftSubcatMap = leftSubcatMap;
     this.rightSubcatMap = rightSubcatMap;
+    this.leftModNonterminalMap = leftModNonterminalMap;
+    this.rightModNonterminalMap = rightModNonterminalMap;
     this.prunedPreterms = prunedPreterms;
     this.prunedPunctuation = prunedPunctuation;
 
@@ -165,6 +171,8 @@ public class ModelCollection implements Serializable {
   public Map posMap() { return posMap; }
   public Map leftSubcatMap() { return leftSubcatMap; }
   public Map rightSubcatMap() { return rightSubcatMap; }
+  public Map leftModNonterminalMap() { return leftModNonterminalMap; }
+  public Map rightModNonterminalMap() { return rightModNonterminalMap; }
   public Set prunedPreterms() { return prunedPreterms; }
   public Set prunedPunctuation() { return prunedPunctuation; }
 

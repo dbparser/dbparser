@@ -225,6 +225,9 @@ public class Treebank extends danbikel.parser.Treebank {
    * augmentations have been undone and stripped
    */
   public final Symbol getCanonical(Symbol label) {
+    for (int i = 0; i < nonterminalExceptionSet.length; i++)
+      if (label == nonterminalExceptionSet[i])
+        return label;
     Symbol strippedLabel = stripAugmentation(label);
     Symbol mapEntry = (Symbol)canonicalLabelMap.get(strippedLabel);
     return ((mapEntry == null) ? strippedLabel : mapEntry);

@@ -2098,27 +2098,33 @@ public abstract class AbstractTraining implements Training, Serializable {
 	filename == null ? System.in : new FileInputStream(filename);
       SexpTokenizer tok = new SexpTokenizer(in, Language.encoding(),
 					    Constants.defaultFileBufsize);
+      OutputStreamWriter errosw =
+	new OutputStreamWriter(System.err, Language.encoding());
+      PrintWriter err = new PrintWriter(new BufferedWriter(errosw), true);
+      OutputStreamWriter osw =
+	new OutputStreamWriter(System.out, Language.encoding());
+      PrintWriter out = new PrintWriter(new BufferedWriter(osw), true);
       int line = tok.lineno();
       Training training = (Training)Language.training();
       curr = null;
       for (treeNum = 1; (curr = Sexp.read(tok)) != null; treeNum++) {
 	if (curr.isList()) {
 	  // automatically determine whether to strip outer parens
-	  Sexp tree = curr.list().get(0);
-	  if (tree.isSymbol())
-	    tree = curr;
-	  //System.err.println("tree No. " + treeNum);
+	  Sexp tree = curr;
+	  if (curr.list().length() == 1 && curr.list().get(0).isList())
+	    tree = tree.list().get(0);
+	  //err.println("tree No. " + treeNum);
 	  String skipStr = training.skip(tree);
 	  if (skipStr == null) {
-	    System.out.println(training.preProcess(tree));
+	    out.println(training.preProcess(tree));
 	  }
 	  else if (!quiet)
-	    System.err.println("tree No. " + treeNum + " from line " + line +
-			       " invalid: " + skipStr + "\n\t" + tree);
+	    err.println("tree No. " + treeNum + " from line " + line +
+			" invalid: " + skipStr + "\n\t" + tree);
 	}
 	else if (!quiet)
-	  System.err.println("S-expression No. " + treeNum + " from line " +
-			     line + ": not list: " + curr);
+	  err.println("S-expression No. " + treeNum + " from line " +
+		      line + ": not list: " + curr);
 	line = tok.lineno();
       }
     }

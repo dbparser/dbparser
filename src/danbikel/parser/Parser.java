@@ -3,6 +3,7 @@ package danbikel.parser;
 import danbikel.util.*;
 import danbikel.lisp.*;
 import danbikel.switchboard.*;
+import danbikel.parser.util.*;
 import java.util.*;
 import java.net.MalformedURLException;
 import java.rmi.*;
@@ -101,7 +102,8 @@ public class Parser
     else if (sent.isAllSymbols())
       return decoder.parse(sent);
     else if (Language.training.isValidTree(sent)) {
-      return decoder.parse(getWordsFromTree(sent), null,
+      return decoder.parse(getWordsFromTree(sent),
+                           getTagListsFromTree(sent),
                            ConstraintSets.get(sent));
     }
     else {
@@ -156,6 +158,11 @@ public class Parser
         getWordsFromTree(wordList, treeList.get(i));
     }
     return wordList;
+  }
+
+  private SexpList getTagListsFromTree(Sexp tree) {
+    Sexp taggedSentence = Util.collectTaggedWords(tree);
+    return getTagLists(taggedSentence.list());
   }
 
   private SexpList getTagLists(SexpList sent) {

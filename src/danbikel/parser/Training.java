@@ -34,6 +34,13 @@ public abstract class Training implements Serializable {
   protected static final String addGapInfoProperty =
     "parser.training.addgapinfo";
 
+  /**
+   * Converts the string value of the property {@link #addGapInfoProperty}
+   * to a boolean, using <code>Boolean.valueOf</code>.
+   */
+  protected static final boolean addGapInfo =
+    Boolean.valueOf(Settings.get(addGapInfoProperty)).booleanValue();
+
   // data members
 
   private Nonterminal nonterminal = new Nonterminal();
@@ -200,6 +207,9 @@ public abstract class Training implements Serializable {
 
   // data member used by hasGap
   private ArrayList hasGapIndexStack = new ArrayList();
+
+  // data member used by isArgumentFast
+  //private Map isArgMap = Collections.synchronizedMap(new HashMap());
 
   /**
    * Default constructor for this abstract base class; sets {@link
@@ -485,7 +495,17 @@ public abstract class Training implements Serializable {
    * to occur, but is possible.
    */
   public boolean isArgumentFast(Symbol label) {
-    return (label.toString().indexOf(canonicalDelimPlusArgAug, 1) != -1);
+    /*
+    Boolean isArgBool = (Boolean)isArgMap.get(label);
+    if (isArgBool == null) {
+      boolean isArg =
+        label.toString().indexOf(canonicalDelimPlusArgAug, 1) != -1;
+      isArgBool = isArg ? Boolean.TRUE : Boolean.FALSE;
+      isArgMap.put(label, isArgBool);
+    }
+    return isArgBool == Boolean.TRUE;
+    */
+    return label.toString().indexOf(canonicalDelimPlusArgAug, 1) != -1;
   }
 
   /**
@@ -506,8 +526,7 @@ public abstract class Training implements Serializable {
    * @see #hasGap(Sexp, Sexp, ArrayList)
    */
   public Sexp addGapInformation(Sexp tree) {
-    if (Boolean.valueOf(Settings.get(addGapInfoProperty)).booleanValue() ==
-	false)
+    if (!addGapInfo)
       return tree;
     hasGapIndexStack.clear();
     hasGap(tree, tree, hasGapIndexStack);
@@ -1257,6 +1276,8 @@ public abstract class Training implements Serializable {
    * @return a symbol or list of symbols with no gap augmentations
    */
   public Sexp removeGapAugmentation(Sexp sexp) {
+    if (!addGapInfo)
+      return sexp;
     if (sexp.isSymbol())
       return symRemoveGapAugmentation(sexp.symbol());
     else

@@ -416,6 +416,30 @@ public class Settings implements Serializable {
     "parser.headfinder.warnDefaultRule";
 
   /**
+   * The property to specify a probability that the method
+   * {@link
+   * danbikel.parser.lang.AbstractHeadFinder#defaultFindHead(Symbol,SexpList)}
+   * should return a randomly-selected head-child index.  The value of
+   * this property should be (the string representation of) a <tt>double</tt>
+   * (conversion is performed by the method <code>Double.parseDouble</code>).
+   * <br>
+   * <b>N.B.</b>: Head-finding for <tt>NP</tt>s that are not <tt>NPB</tt>s is
+   * unaffected by this setting, meaning that heuristics are
+   * <i><b>always</b></i> used to find heads within non-<tt>NPB</tt> noun
+   * phrases.  This is so that {@link Training#addBaseNPs(Sexp)} will always
+   * produce consistent results.  The issue is that adding base <tt>NP</tt>s
+   * normally relies on head finding (see {@link
+   * danbikel.parser.lang.AbstractTraining#needToAddNormalNPLevel(Sexp,int,Sexp)}).
+   * <p>
+   * The value of this constant is
+   * <code>&quot;parser.headfinder.randomProb&quot;</code>.
+   *
+   * @see danbikel.parser.lang.AbstractTraining#needToAddNormalNPLevel(Sexp,int,Sexp)
+   */
+  public final static String headFinderRandomProb =
+    "parser.headfinder.randomProb";
+
+  /**
    * Property to specify whether <tt>Training.addGapInformation(Sexp)</tt>
    * threads gap information or simply leaves the training trees untouched.
    * The value of this property should be (the string representation of)

@@ -11,7 +11,8 @@ import java.util.*;
  */
 public class CKYChart extends Chart {
   // constants
-  private final static boolean collinsPruneHack = true;
+  private final static boolean collinsNPPruneHack =
+    Boolean.valueOf(Settings.get(Settings.collinsNPPruneHack)).booleanValue();
 
   // constructors
 
@@ -48,7 +49,7 @@ public class CKYChart extends Chart {
     if ((currItem.leftChildren() != null || currItem.rightChildren() != null) &&
 	Language.treebank.isNP(label))
     */
-    if (collinsPruneHack &&
+    if (collinsNPPruneHack &&
 	(currItem.leftChildren() != null || currItem.rightChildren() != null) &&
 	Language.treebank.stripAugmentation(label) ==
 	Language.treebank.NPLabel())

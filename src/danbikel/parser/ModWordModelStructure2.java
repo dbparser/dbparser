@@ -131,6 +131,12 @@ public class ModWordModelStructure2 extends ProbabilityStructure {
     return future;
   }
 
+  /*
+  public double lambdaPenalty(int backOffLevel) {
+    return backOffLevel >= 1 ? 0.99 : 0.0;
+  }
+  */
+
   public boolean doCleanup() { return true; }
 
   /**

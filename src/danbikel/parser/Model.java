@@ -70,7 +70,7 @@ public class Model implements Serializable {
   private transient int[] cacheHits;
   private transient int[] cacheAccesses;
 
-  private FlexibleMap canonicalEvents;
+  private transient FlexibleMap canonicalEvents;
   static int numCacheAdds = 0;
   static int numCanonicalHits = 0;
 
@@ -123,6 +123,10 @@ public class Model implements Serializable {
     }
   }
 
+  void setCanonicalEvents(FlexibleMap canonical) {
+    canonicalEvents = canonical;
+  }
+
   /**
    * Derives all counts from the specified counts table, using the
    * probability structure specified in the constructor.
@@ -134,7 +138,7 @@ public class Model implements Serializable {
    */
   public void deriveCounts(CountsTable trainerCounts, Filter filter,
                            FlexibleMap canonical) {
-    canonicalEvents = canonical;
+    setCanonicalEvents(canonical);
     deriveHistories(trainerCounts, filter, canonical);
 
     Time time = null;
@@ -598,7 +602,6 @@ public class Model implements Serializable {
       precomputeProbs(event, transitions, histories);
     }
     counts = null;
-    canonicalEvents = null;
     if (verbose)
       System.err.println("Precomputed probabilities and lambdas in " + time +
                          ".");
@@ -682,7 +685,7 @@ public class Model implements Serializable {
    * events structures canonicalized with respect to each other
    */
   public void canonicalize(FlexibleMap map) {
-    canonicalEvents = map;
+    setCanonicalEvents(map);
     int prevMapSize = map.size();
     for (int level = 0; level < numLevels; level++) {
       CountsTrio trio = counts[level];

@@ -110,18 +110,18 @@ public class Training extends danbikel.parser.Training {
     Iterator argContextsIt = argContexts.keySet().iterator();
     while (argContextsIt.hasNext()) {
       Sexp parent = (Sexp)argContextsIt.next();
-      System.out.println("parent: " + parent + "\t" +
+      System.err.println("parent: " + parent + "\t" +
 			 "children: " + argContexts.get(parent));
     }
     Iterator argStopSetIt = semTagArgStopSet.iterator();
-    System.out.print("(");
+    System.err.print("(");
     if (argStopSetIt.hasNext())
-      System.out.print(argStopSetIt.next());
+      System.err.print(argStopSetIt.next());
     while (argStopSetIt.hasNext()) {
-      System.out.print(' ');
-      System.out.print(argStopSetIt.next());
+      System.err.print(' ');
+      System.err.print(argStopSetIt.next());
     }
-    System.out.println(")");
+    System.err.println(")");
   }
 
   /**
@@ -158,7 +158,7 @@ public class Training extends danbikel.parser.Training {
 	  treebank.stripAugmentation(headChildLabel) == sg) {
 	// this is a subjectless sentence, because it is an S that is
 	// a coordinated phrase and whose head is a subjectless
-	// sentence	
+	// sentence
 	Nonterminal parsedParent = treebank.parseNonterminal(parent,
 							     nonterminal);
 	parsedParent.base = treebank.subjectlessSentenceLabel();
@@ -263,7 +263,7 @@ public class Training extends danbikel.parser.Training {
 
   /** Test driver for this class. */
   public static void main(String[] args) {
-    String filename = null;      
+    String filename = null;
     boolean raisePunc = false, idArgs = false, subjectlessS = false;
     boolean stripAug = false, addBaseNPs = false;
 

@@ -77,6 +77,7 @@ public class HeadFinder extends danbikel.parser.HeadFinder {
     if (defaultHeadIdx >= 2 &&
 	treebank.isConjunction(rhs.get(defaultHeadIdx - 1).symbol())) {
       // first, try to find same label farther back
+      /*
       int firstOccurrenceIdx = rhs.indexOf(rhs.get(defaultHeadIdx));
       if (firstOccurrenceIdx < defaultHeadIdx) {
         defaultHead = firstOccurrenceIdx + 1;
@@ -85,6 +86,7 @@ public class HeadFinder extends danbikel.parser.HeadFinder {
       // symbol to the left of the default head, set default head to be that;
       // otherwise, leave default head where it is
       else {
+      */
         for (int i = defaultHeadIdx - 2; i >= 0; i--) {
           Symbol curr = rhs.symbolAt(i);
           if (!treebank.isPunctuation(curr) && !treebank.isConjunction(curr)) {
@@ -92,7 +94,7 @@ public class HeadFinder extends danbikel.parser.HeadFinder {
             break;
           }
         }
-      }
+      //}
       //defaultHead -= 2;
     }
 

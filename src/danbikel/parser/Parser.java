@@ -94,7 +94,52 @@ public class Parser
   }
 
   public Sexp parse(SexpList sent) throws RemoteException {
-    return decoder.parse(sent);
+    if (sentContainsWordsAndTags(sent))
+      return decoder.parse(getWords(sent), getTagLists(sent));
+    else if (sent.isAllSymbols())
+      return decoder.parse(sent);
+    else {
+      System.err.println(className + ": error: sentence \"" + sent +
+                         "\" has a bad format:\n\tmust either be all symbols " +
+                         "or a list of lists of the form (<word> (<tag>*))");
+      return null;
+    }
+  }
+
+  private boolean sentContainsWordsAndTags(SexpList sent) {
+    int size = sent.size();
+    for (int i = 0; i < size; i++) {
+      if (!wordTagList(sent.get(i)))
+        return false;
+    }
+    return true;
+  }
+
+  private boolean wordTagList(Sexp sexp) {
+    if (sexp.isSymbol())
+      return false;
+    SexpList list = sexp.list();
+    // this is a word-tag list is the first element is a symbol (the word)
+    // and the second element is a list containing all symbols (the list
+    // of possible tags)
+    return (list.size() == 2 && list.get(0).isSymbol() &&
+            list.get(1).isList() && list.get(1).list().isAllSymbols());
+  }
+
+  private SexpList getWords(SexpList sent) {
+    int size = sent.size();
+    SexpList wordList = new SexpList(size);
+    for (int i = 0; i < size; i++)
+      wordList.add(sent.get(i).list().get(0));
+    return wordList;
+  }
+
+  private SexpList getTagLists(SexpList sent) {
+    int size = sent.size();
+    SexpList tagLists = new SexpList(size);
+    for (int i = 0; i < size; i++)
+      tagLists.add(sent.get(i).list().get(1));
+    return tagLists;
   }
 
   protected Object process(Object obj) throws RemoteException {

@@ -55,6 +55,8 @@ public class SubcatBag implements Subcat, Externalizable {
   private static Symbol[] symbols;
   static {
     Symbol headSym = Language.training.headSym();
+    Symbol headPreSym = Language.training.headPreSym();
+    Symbol headPostSym = Language.training.headPostSym();
     Symbol gapAugmentation = Language.training.gapAugmentation();
     Symbol argAugmentation = Language.training.argAugmentation();
     char delimChar = Language.treebank.canonicalAugDelimiter();
@@ -68,7 +70,8 @@ public class SubcatBag implements Subcat, Externalizable {
     symbolsToInts.put(gapAugmentation, new Integer(uid++));
     while (args.hasNext()) {
       SexpList argList = (SexpList)args.next();
-      if (argList.first().symbol() != headSym) {
+      Symbol first = argList.symbolAt(0);
+      if (first != headSym && first != headPreSym && first != headPostSym) {
 	int argListLen = argList.length();
 	for (int i = 0; i < argListLen; i++) {
           Symbol argLabel = argList.symbolAt(i);

@@ -106,7 +106,7 @@ public class Model implements Serializable {
     Settings.getDouble(Settings.modelPruningThreshold);
 
   protected final static boolean printPrunedEvents = true;
-  protected final static boolean printUnprunedEvents = false;
+  protected final static boolean printUnprunedEvents = true;
 
   private final static int structureMapArrSize = 1000;
 
@@ -1134,6 +1134,21 @@ public class Model implements Serializable {
     if (!doPruning || numLevels < 2)
       return;
 
+    // set up PrintWriter for printing log of pruned and unpruned events
+    PrintWriter log = null;
+    if (printPrunedEvents || printUnprunedEvents) {
+      String prunedFilename = structureClassName + ".prune-log";
+      String enc = Language.encoding();
+      try {
+	OutputStream os = new FileOutputStream(prunedFilename);
+	OutputStreamWriter prunedosw = new OutputStreamWriter(os, enc);
+	log = new PrintWriter(prunedosw);
+      }
+      catch (Exception e) {
+	System.err.println(e);
+      }
+    }
+
     int toZeroIdx = AnalyzeDisns.toZeroIdx;
     int toPrevIdx = AnalyzeDisns.toPrevIdx;
 
@@ -1156,11 +1171,21 @@ public class Model implements Serializable {
     int totalHistPruned = 0;
 
     int lastLevel = numLevels - 1;
+    /*
     Iterator it = precomputedProbs[0].keySet().iterator();
     while (it.hasNext()) {
       Transition trans = (Transition)it.next();
       Event hist = trans.history();
+    */
+    Set historiesExamined = new HashSet();
+    Iterator it = precomputedLambdas[0].keySet().iterator();
+    while (it.hasNext()) {
+      Event hist = (Event)it.next();
       for (int level = 0; level < lastLevel; level++) {
+	if (historiesExamined.contains(hist))
+	  break; // we've already explored this portion of the back-off tree
+	else
+	  historiesExamined.add(hist);
 	Event backOffHist = (Event)histBackOffMap[level].get(hist);
         // if js divergence from backOffHist's disn to hist's disn is
         // less than 10% of entropy of hist's entropy, then prune hist
@@ -1169,24 +1194,28 @@ public class Model implements Serializable {
 	if (jsToPrev / histEntropy < pruningThreshold) {
 	  historiesToPrune[level].add(hist);
 	  if (printPrunedEvents)
-	    System.err.println(structureClassName + ": pruning " + hist +
-			       " at level " + level + " because " +
-			       jsToPrev + " / " + histEntropy +
-			       " = " + (jsToPrev / histEntropy) + " < " +
-			       pruningThreshold);
+	    log.println("pruning " + hist + " at level " + level + " because " +
+			jsToPrev + " / " + histEntropy + " = " +
+			(jsToPrev / histEntropy) + " < " + pruningThreshold);
 	}
 	else {
 	  if (printUnprunedEvents)
-	    System.err.println(structureClassName + ": did not prune " + hist +
-			       " at level " + level + " because " +
-			       jsToPrev + " / " + histEntropy +
-			       " = " + (jsToPrev / histEntropy) + " >= " +
-			       pruningThreshold);
+	    log.println("did not prune " + hist + " at level " + level +
+			" because " + jsToPrev + " / " + histEntropy + " = " +
+			(jsToPrev / histEntropy) + " >= " + pruningThreshold);
 	  break; // if curr hist is kept, don't try to prune coarser versions
 	}
 	hist = backOffHist;
       }
     }
+    // the number of histories examined will generally be less than
+    // total number of pruneable (non-lastLevel) histories, because of
+    // break statement above
+    double totalHistExamined = historiesExamined.size();
+    historiesExamined = null;
+
+    log.flush();
+    log.close();
 
     // now that we've collected all histories to be pruned, actually do the
     // pruning
@@ -1226,10 +1255,13 @@ public class Model implements Serializable {
 
     if (verbose) {
       double histPercent = 100 * (totalHistPruned / (double)totalHist);
+      double possibleHistPercent = 100 * (totalHistPruned / totalHistExamined);
       double transPercent = 100 * (totalTransPruned / (double)totalTrans);
       System.err.println(structureClassName + ": pruned " + totalHistPruned +
 			 " of " + totalHist + " histories (" +
-			 doubleNF.format(histPercent) + "%) and " +
+			 doubleNF.format(histPercent) + "%) and of " +
+			 (int)totalHistExamined + " pruneable histories (" +
+			 doubleNF.format(possibleHistPercent) + "%) and " +
 			 totalTransPruned + " of " + totalTrans +
 			 " transitions (" + doubleNF.format(transPercent) +
 			 "%) in " + time + ".");

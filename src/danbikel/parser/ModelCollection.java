@@ -20,6 +20,7 @@ public class ModelCollection implements Serializable {
 
   // constants
   private final static boolean verbose = true;
+  private final static boolean callGCAfterReadingObject = false;
 
   // data members
   private transient Model lexPriorModel;
@@ -572,5 +573,12 @@ public class ModelCollection implements Serializable {
     if (verbose)
       System.err.println("Total time reading ModelCollection object: " +
                          totalTime + ".");
+    if (callGCAfterReadingObject) {
+      if (verbose)
+	System.err.print("gc...");
+      System.gc();
+      if (verbose)
+	System.err.println("done");
+    }
   }
 }

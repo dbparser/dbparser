@@ -14,14 +14,15 @@
   <property category="idl" name="ProcessIDL" value="false" />
   <property category="runtime.0" name="RunnableType" value="com.borland.jbuilder.runtime.ApplicationRunner" />
   <property category="runtime.0" name="application.class" value="danbikel.parser.Parser" />
-  <property category="runtime.0" name="application.parameters" value="-is /scratch2/wsj-2.obj -sa /scratch2/wsj-0.1-10" />
-  <property category="runtime.0" name="application.vmparameters" value="-server -Xms100m -Xmx300m" />
+  <property category="runtime.0" name="application.parameters" value="-is /scratch2/wsj-02-21.no-probs.obj -sa /scratch2/wsj-2.1887" />
+  <property category="runtime.0" name="application.vmparameters" value="-server -Xms500m -Xmx500m" />
   <property category="runtime.0" name="appserver.ejbJarsSaved" value="1" />
   <property category="runtime.0" name="appserver.parameters" value="-jts -jns -jss -jdb" />
   <property category="runtime.0" name="appserver.servername" value="ejbcontainer" />
   <property category="runtime.0" name="appserver.vmparameters" value="" />
   <property category="runtime.0" name="jsprunner.docbase" value="." />
   <property category="runtime.0" name="jsprunner.jspfile" value="../../../pkg/jbuilder4/bin" />
+  <property category="runtime.0" name="jsprunner.launchuri" value="/../../../pkg/jbuilder4/bin" />
   <property category="sys" name="AuthorLabel" value="@author" />
   <property category="sys" name="BackupPath" value="bak" />
   <property category="sys" name="BeansInstantiate" value="false" />
@@ -39,7 +40,7 @@
   <property category="sys" name="EventStyle" value="1" />
   <property category="sys" name="ExcludeClassEnabled" value="0" />
   <property category="sys" name="InstanceVisibility" value="0" />
-  <property category="sys" name="JDK" value="java 1.3.1-rc2-b23" />
+  <property category="sys" name="JDK" value="java 1.3.1-b24" />
   <property category="sys" name="LastTag" value="0" />
   <property category="sys" name="Libraries" value="beanshell" />
   <property category="sys" name="MakeStable" value="0" />
@@ -68,7 +69,6 @@
   <property category="team" name="ignorePath.0" value="classes" />
   <property category="team" name="ignorePath.1" value="classes" />
   <node type="Folder" name="Additional Settings">
-    <property category="sys" name="SettingsFolder" value="1" />
     <file path="src/danbikel/switchboard/AbstractSwitchboardUser.java">
       <property category="generated" name="JavaSoft.rmic.0" value="danbikel/switchboard/AbstractSwitchboardUser_Stub.java" />
       <property category="idl" name="GenerateRMI" value="true" />

@@ -23,6 +23,8 @@ public class Word implements Serializable, Cloneable, SexpConvertible {
   protected Symbol tag;
   protected Symbol features;
 
+  protected Word() {}
+
   /**
    * Creates a new Word object with the specified word and part of speech.
    *
@@ -40,6 +42,15 @@ public class Word implements Serializable, Cloneable, SexpConvertible {
   }
 
   public Word(Sexp s) {
+    checkSexp(s);
+    SexpList sexp = s.list();
+    int sexpLen = sexp.length();
+    word = sexp.symbolAt(0);
+    tag = sexp.symbolAt(1);
+    features = (sexpLen >= 3 ? sexp.symbolAt(2) : null);
+  }
+
+  protected void checkSexp(Sexp s) {
     if (s.isList() == false)
       throw new IllegalArgumentException(className +
 					 ": S-expression passed to " +
@@ -54,9 +65,6 @@ public class Word implements Serializable, Cloneable, SexpConvertible {
 	throw new IllegalArgumentException(className +
 					   ": non-Symbol element to Sexp");
 
-    word = sexp.symbolAt(0);
-    tag = sexp.symbolAt(1);
-    features = (sexpLen == 3 ? sexp.symbolAt(2) : null);
   }
 
   /**
@@ -120,7 +128,7 @@ public class Word implements Serializable, Cloneable, SexpConvertible {
   /**
    * Determines whether two Word objects are equal.
    *
-   * @param obj2 the Word object to compare with.
+   * @param obj the Word object to compare with.
    */
   public boolean equals(Object obj) {
     if (this == obj)
@@ -171,6 +179,8 @@ public class Word implements Serializable, Cloneable, SexpConvertible {
   }
 
   public Sexp toSexp() {
-    return new SexpList(2).add(word()).add(tag());
+    return (features == null ?
+	    new SexpList(2).add(word()).add(tag()) :
+	    new SexpList(3).add(word()).add(tag()).add(features()));
   }
 }

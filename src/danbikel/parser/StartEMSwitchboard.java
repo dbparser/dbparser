@@ -14,6 +14,7 @@ public class StartEMSwitchboard {
   // static data (filled in by processArgs)
   private static int portMain = 0;  // anonymous port is default
   private static String[] requiredArgs = new String[1];
+  private static String settingsFile = null;
   // currently, the only required arg is inFilenameMain
   private static String inFilenameMain = null;
   private static String outFilenameMain = null;
@@ -24,10 +25,13 @@ public class StartEMSwitchboard {
 
 
   private static final String[] usageMsg = {
-    "usage: [-p <RMI server port>] [-n <registry name URL>]",
+    "usage: [-sf <settings file> | --settings <settings file>]",
+    "\t[-p <RMI server port>] [-n <registry name URL>]",
     "\t[-log <log filename>] [-rp] <input file> [-o <output file>]",
     "\t[-msg <messages output file>]",
     "where",
+    "\t<settings file> contains the settings to be used by this switchboard",
+    "\t\tand all its users (clients and servers)",
     "\t<input file> is the input file to process this run (required)",
     "\t<RMI server port> is the port on which this object accepts RMI calls",
     "\t\t(defaults to a dynamically-chosen anonymous port)",
@@ -55,7 +59,15 @@ public class StartEMSwitchboard {
     for (int i = 0; i < args.length; i++) {
       if (args[i].startsWith("-")) {
 	// process flag
-	if (args[i].equals("-p")) {
+	if (args[i].equals("-sf") || args[i].equals("--settings")) {
+	  if (i + 1 == args.length) {
+	    System.err.println("error: no argument present after " + args[i]);
+	    usage();
+	  }
+	  else
+	    settingsFile = args[++i];
+	}
+	else if (args[i].equals("-p")) {
 	  if (i + 1 == args.length) {
 	    System.err.println("error: no argument present after -p");
 	    usage();
@@ -127,9 +139,9 @@ public class StartEMSwitchboard {
       File outFile = new File(outFilenameMain);
       String outFileParent = outFile.getParent();
       if (outFileParent == null)
-        outFileParent = "";
+	outFileParent = "";
       else
-        outFileParent += File.separator;
+	outFileParent += File.separator;
       msgFilenameMain = outFileParent + Switchboard.defaultMessagesFilename;
     }
   }
@@ -142,6 +154,14 @@ public class StartEMSwitchboard {
    * @see SexpNumberedObjectReaderFactory
    */
   public static void main(String[] args) {
+    // uncomment the following for debugging under JBuilder
+    /*
+    String codebase = "file:///local/home/dbikel/jbproject/dbparser/classes/";
+    System.setProperty("java.rmi.server.codebase", codebase);
+    String policy =
+      "/local/home/dbikel/jbproject/dbparser/policy-files/switchboard.policy";
+    System.setProperty("java.security.policy", policy);
+    */
     processArgs(args);
     //Create and install a security manager
     if (System.getSecurityManager() == null)
@@ -149,18 +169,24 @@ public class StartEMSwitchboard {
     try {
       ObjectReaderFactory orf =
 	new SexpObjectReaderFactory();
+      /*
       ObjectReaderFactory norf =
 	Switchboard.getDefaultNumberedObjectReaderFactory();
       ObjectWriterFactory owf =
 	new EventCountsWriterFactory();
       ObjectWriterFactory nowf =
-        Switchboard.getDefaultNumberedObjectWriterFactory();
+	Switchboard.getDefaultNumberedObjectWriterFactory();
+      */
+
+      if (settingsFile != null)
+	Settings.load(settingsFile);
+
 
       Switchboard switchboard = new Switchboard(msgFilenameMain,
 						portMain,
 						reProcessMain,
-						orf, norf,
-						owf, nowf,
+						orf, null,
+						null, null,
 						bindingName);
 
       // events are too large to be sorted in memory, as is done by the current
@@ -169,7 +195,12 @@ public class StartEMSwitchboard {
       Settings.set(SwitchboardRemote.sortOutput, "false");
 
       switchboard.bind(Settings.getSettings(), Language.encoding());
-      switchboard.processFile(inFilenameMain, outFilenameMain, logFilenameMain);
+      //switchboard.processFile(inFilenameMain, outFilenameMain, logFilenameMain);
+      EventCountsConsumer consumer = new EventCountsConsumer(true, true);
+      consumer.useCountThreshold();
+      switchboard.registerConsumer(consumer);
+      // we don't pass in the name of the log file, even if one is specified!!!
+      switchboard.processFile(inFilenameMain, outFilenameMain, null);
       switchboard.cleanup();
     }
     catch (RemoteException re) {
@@ -177,6 +208,9 @@ public class StartEMSwitchboard {
     }
     catch (MalformedURLException mue) {
       System.err.println(mue);
+    }
+    catch (IOException ioe) {
+      System.err.println(ioe);
     }
   }
 }

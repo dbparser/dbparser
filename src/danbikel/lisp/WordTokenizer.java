@@ -63,7 +63,8 @@ public class WordTokenizer {
   // merely shares the StringBuffer's internal char array with the
   // newly-created String object; furthermore, as long as the capacity
   // of the StringBuffer is not exceeded, future append operations will
-  // not cause any copying to occur this is really a low-level hack, since
+  // not cause any copying to occur
+  // this is really a low-level hack, since
   // it is dependent on Sun's implementation of String and StringBuffer;
   // however, it is the only way to avoid an array copy for every single
   // token, since we to create a String object for each token
@@ -180,7 +181,7 @@ public class WordTokenizer {
 	  buf.append((char)lastChar);
 	  lastChar = readChar();
 	}
-	sval = buf.toString().substring(tokenStartIdx, buf.length());
+	sval = buf.substring(tokenStartIdx, buf.length());
       }
     }
     return ttype;

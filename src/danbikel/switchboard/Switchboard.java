@@ -274,7 +274,7 @@ public class Switchboard
 	dumpOutput();
       }
       else {
-	msg = className + ": opening log file \"" + logName + "\"";
+	msg = className + ": appending to log file \"" + logName + "\"";
 	log(msg);
 
 	boolean emptyFile = logFile.length() == 0;

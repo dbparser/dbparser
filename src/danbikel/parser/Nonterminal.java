@@ -40,6 +40,24 @@ public class Nonterminal implements Serializable {
     this.index = index;
   }
 
+  public boolean subsumes(Nonterminal other) {
+    Symbol thisCanonicalBase = Language.treebank.getCanonical(base);
+    Symbol otherCanonicalBase = Language.treebank.getCanonical(other.base);
+    if (thisCanonicalBase != Constants.kleeneStarSym &&
+	thisCanonicalBase != otherCanonicalBase)
+      return false;
+    // now check that each augmentation in this nonterminal exists as an
+    // augmentation in the other nonterminal
+    int thisAugLen = augmentations.length();
+    for (int i = 0; i < thisAugLen; i++) {
+      Sexp thisAug = augmentations.get(i);
+      if (!Language.treebank.isAugDelim(thisAug) &&
+	  !other.augmentations.contains(thisAug))
+	return false;
+    }
+    return true;
+  }
+
   /**
    * Returns a string representation of the nonterminal, identical the
    * original nonterminal that was parsed to create this object.

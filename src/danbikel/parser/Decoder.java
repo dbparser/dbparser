@@ -26,6 +26,7 @@ public class Decoder implements Serializable {
   private final static boolean debugStops = false;
   private final static boolean debugUnaries = false;
   private final static boolean debugUnariesAndStopProbs = false;
+  private final static boolean debugConstraints = false;
   private final static boolean debugAnalyzeChart = false;
   private final static String debugGoldFilenameProperty =
     "parser.debug.goldFilename";
@@ -48,6 +49,8 @@ public class Decoder implements Serializable {
   private final static Symbol PRN = Symbol.add("PRN");
   private final static Symbol RRB = Symbol.add("-RRB-");
   private final static Symbol NP = Symbol.add("NP");
+  private final static Symbol NPA = Symbol.add("NP-A");
+  private final static Symbol RRC = Symbol.add("RRC");
   private final static Symbol VP = Symbol.add("VP");
   private final static Symbol CC = Symbol.add("CC");
   private final static Symbol comma = Symbol.add(",");
@@ -239,6 +242,32 @@ public class Decoder implements Serializable {
   protected boolean keepAllWords =
     Boolean.valueOf(Settings.get(Settings.keepAllWords)).booleanValue();
 
+  /**
+   * Caches the ConstraintSet, if any, for the current sentence.
+   */
+  protected ConstraintSet constraints = null;
+  /**
+   * Caches the value of {@link ConstraintSet#findAtLeastOneSatisfying()},
+   * if there are constraints for the current sentence; otherwise, this
+   * data member will be set to <tt>false</tt>.
+   *
+   * @see #constraints
+   */
+  protected boolean findAtLeastOneSatisfyingConstraint = false;
+  /**
+   * Caches whether or not the ConstraintSet for the current sentence
+   * requires a tree that is isomorphic to the tree of constraints.
+   * Specifically, this data member will be set to <tt>true</tt> if the
+   * {@link ConstraintSet#findAtLeastOneSatisfying} and
+   * {@link ConstraintSet#hasTreeStructure} methods of the current
+   * sentence's constraint set both return <tt>true</tt>.
+   * If there is no constraint set for the current sentence, this data
+   * member is set to <tt>false</tt>.
+   *
+   * @see #constraints
+   */
+  protected boolean isomorphicTreeConstraints = false;
+
   // data members used when debugSentenceSize is true
   private float avgSentLen = 0.0f;
   private int numSents = 0;
@@ -330,6 +359,9 @@ public class Decoder implements Serializable {
 
     chart = new CKYChart(cellLimit, pruneFact);
 
+    if (!usePruneFact)
+      chart.dontDoPruning();
+
     if (debugAnalyzeChart) {
       String goldFilename = Settings.get(debugGoldFilenameProperty);
       if (goldFilename != null) {
@@ -342,18 +374,6 @@ public class Decoder implements Serializable {
 	}
       }
     }
-  }
-
-  /**
-   * Initializes the chart for parsing the specified sentence.  Specifically,
-   * this method will add a chart item for each possible part of speech for
-   * each word.
-   *
-   * @param sentence the sentence to parse, which must be a list containing
-   * only symbols as its elements
-   */
-  protected void initialize(SexpList sentence) throws RemoteException {
-    initialize(sentence, null);
   }
 
   protected boolean isPuncRaiseWord(Sexp word) {
@@ -495,6 +515,18 @@ public class Decoder implements Serializable {
   }
 
   /**
+   * Initializes the chart for parsing the specified sentence.  Specifically,
+   * this method will add a chart item for each possible part of speech for
+   * each word.
+   *
+   * @param sentence the sentence to parse, which must be a list containing
+   * only symbols as its elements
+   */
+  protected void initialize(SexpList sentence) throws RemoteException {
+    initialize(sentence, null);
+  }
+
+  /**
    * Initializes the chart for parsing the specified sentence, using the
    * specified coordinated list of part-of-speech tags when assigning parts
    * of speech to unknown words.
@@ -596,6 +628,22 @@ public class Decoder implements Serializable {
                  i, i,
                  false, false, true,
                  0.0, logPrior, logProb);
+
+        if (findAtLeastOneSatisfyingConstraint) {
+          Constraint constraint = constraints.constraintSatisfying(item);
+          if (constraint != null) {
+            if (debugConstraints)
+              System.err.println("assigning satisfied constraint " +
+                                 constraint + " to item " + item);
+            item.setConstraint(constraint);
+          }
+          else {
+            if (debugConstraints)
+              System.err.println("constraint " + constraint +
+                                 " is NOT satisfied by item " + item);
+            continue;
+          }
+        }
         chart.add(i, i, item);
       } // end for each tag
       addUnariesAndStopProbs(i, i);
@@ -639,6 +687,20 @@ public class Decoder implements Serializable {
 			   maxSentLen + ")");
       return null;
     }
+
+    if (constraints == null) {
+      findAtLeastOneSatisfyingConstraint = isomorphicTreeConstraints = false;
+    }
+    else {
+      this.constraints = constraints;
+      findAtLeastOneSatisfyingConstraint =
+        constraints.findAtLeastOneSatisfying();
+      isomorphicTreeConstraints =
+        findAtLeastOneSatisfyingConstraint && constraints.hasTreeStructure();
+      if (debugConstraints)
+        System.err.println(className + ": constraints: " + constraints);
+    }
+
     chart.setSizeAndClear(sentence.length());
     initialize(sentence, tags);
     if (debugSentenceSize) {
@@ -663,6 +725,10 @@ public class Decoder implements Serializable {
     }
 
     double prevTopLogProb = chart.getTopLogProb(0, sentLen - 1);
+    if (debugTop)
+      System.err.println(className + ": highest probability item for " +
+                         "sentence-length span (0," + (sentLen - 1) + "): " +
+                         prevTopLogProb);
     chart.resetTopLogProb(0, sentLen - 1);
     addTopUnaries(sentLen - 1);
 
@@ -677,6 +743,21 @@ public class Decoder implements Serializable {
     CKYItem potentialTopItem = (CKYItem)chart.getTopItem(0, sentLen - 1);
     if (potentialTopItem != null && potentialTopItem.label() == topSym)
       topRankedItem = potentialTopItem;
+
+    if (debugTop)
+      System.err.println(className + ": top-ranked +TOP+ item: " +
+                         topRankedItem);
+
+
+    if (debugConstraints) {
+      Iterator it = constraints.iterator();
+      while (it.hasNext()) {
+        Constraint c = (Constraint)it.next();
+        System.err.println(className + ": constraint " + c + " has" +
+                           (c.hasBeenSatisfied() ? " " : " NOT ") +
+                           "been satisfied");
+      }
+    }
 
     /*
     if (topRankedItem == null) {
@@ -764,11 +845,6 @@ public class Decoder implements Serializable {
   }
 
   protected void addTopUnaries(int end) throws RemoteException {
-    if (debugTop)
-      System.err.println(className + ": highest probability item for " +
-                         "sentence-length span (0," + end + "): " +
-                         chart.getTopLogProb(0, end));
-
     topProbItemsToAdd.clear();
     Iterator sentSpanItems = chart.get(0, end);
     while (sentSpanItems.hasNext()) {
@@ -946,6 +1022,17 @@ public class Decoder implements Serializable {
 	Language.training.isArgumentFast(modLabel))
       return;
 
+    if (isomorphicTreeConstraints) {
+      if (modificand.getConstraint().isViolatedByChild(modifier)) {
+        if (debugConstraints)
+          System.err.println("constraint " + modificand.getConstraint() +
+                             " violated by child item(" +
+                            modifier.start() + "," + modifier.end() + "): " +
+                            modifier);
+        return;
+      }
+    }
+
     /*
     SexpList thisSidePrevMods = getPrevMods(modificand,
 					    modificand.prevMods(side),
@@ -983,17 +1070,11 @@ public class Decoder implements Serializable {
     boolean debugFlag = false;
     if (debugJoin) {
       Symbol modificandLabel = (Symbol)modificand.label();
-      boolean modificandLabelP = modificandLabel == baseNP;
-      boolean modLabelP = true;
-      /*
-      boolean modLabelP =
-	modLabel == comma || modLabel == CC || modLabel == S || modLabel == VP;
-      */
-      debugFlag = (modificandLabelP && modLabelP && side == Constants.LEFT &&
-		   ((modificand.start() == 3 && modificand.end() == 5 &&
-		     modifier.start() == 2 && modifier.end() == 2) ||
-		    (modificand.start() == 2 && modificand.end() == 5 &&
-		     modifier.start() == 1 && modifier.end() == 1)));
+      boolean modificandLabelP = modificandLabel == NPA;
+      boolean modLabelP = modLabel == RRC;
+      debugFlag = (modificandLabelP && modLabelP && side == Constants.RIGHT &&
+		   ((modificand.start() == 0 && modificand.end() == 3 &&
+		     modifier.start() == 4 && modifier.end() == 10)));
     }
 
     if (!futurePossible(modEvent, side, debugFlag))
@@ -1048,6 +1129,13 @@ public class Decoder implements Serializable {
                         oppositeSideSubcat, oppositeSideChildren,
                         oppositeSidePrevMods, oppositeSideEdgeIndex,
                         oppositeSideContainsVerb);
+
+    if (isomorphicTreeConstraints) {
+      if (debugConstraints)
+        System.err.println("assigning partially-satisfied constraint " +
+                           modificand.getConstraint() + " to " + newItem);
+      newItem.setConstraint(modificand.getConstraint());
+    }
 
     boolean added = chart.add(lowerIndex, higherIndex, newItem);
     if (!added)
@@ -1202,6 +1290,36 @@ public class Decoder implements Serializable {
             if (debugUnaries) {
             }
 
+            if (isomorphicTreeConstraints) {
+              // get head child's constraint's parent and check that it is
+              // locally satisfied by newItem
+              if (item.getConstraint() == null) {
+                System.err.println("uh-oh: no constraint for item " + item);
+              }
+              Constraint headChildParent = item.getConstraint().getParent();
+              if (headChildParent != null &&
+                  headChildParent.isLocallySatisfiedBy(newItem)) {
+                if (debugConstraints)
+                  System.err.println("assigning locally-satisfied constraint " +
+                                     headChildParent + " to " + newItem);
+                newItem.setConstraint(headChildParent);
+              }
+              else {
+                if (debugConstraints)
+                  System.err.println("constraint " + headChildParent +
+                                     " is not locally satisfied by item " +
+                                     newItem);
+                continue;
+              }
+            }
+            else if (findAtLeastOneSatisfyingConstraint) {
+              Constraint constraint = constraints.constraintSatisfying(newItem);
+              if (constraint == null)
+                continue;
+              else
+                newItem.setConstraint(constraint);
+            }
+
 	    double logProbLeftSubcat =
 	      (numLeftSubcats == 1 ? 0.0 :
 	       server.logProbLeftSubcat(id, headEvent));
@@ -1299,6 +1417,15 @@ public class Decoder implements Serializable {
     if (debugStops) {
     }
 
+    if (isomorphicTreeConstraints) {
+      if (!item.getConstraint().isSatisfiedBy(item)) {
+        if (debugConstraints)
+          System.err.println("constraint " + item.getConstraint() +
+                             " is not satisfied by item " + item);
+        return itemsAdded;
+      }
+    }
+
     double leftLogProb = server.logProbMod(id, leftMod);
     if (leftLogProb <= Constants.logOfZero)
       return itemsAdded;
@@ -1329,6 +1456,13 @@ public class Decoder implements Serializable {
                 item.leftPrevMods(), item.rightPrevMods(),
                 item.start(), item.end(), item.leftVerb(),
                 item.rightVerb(), true, logTreeProb, logPrior, logProb);
+
+    if (isomorphicTreeConstraints) {
+      if (debugConstraints)
+        System.err.println("assigning satisfied constraint " +
+                           item.getConstraint() + " to " + newItem);
+      newItem.setConstraint(item.getConstraint());
+    }
 
     boolean added = chart.add(item.start(), item.end(), newItem);
     if (added)

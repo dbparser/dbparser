@@ -133,24 +133,16 @@ public class ModNonterminalModelStructure2 extends ProbabilityStructure {
    * In order to gather statistics for words that appear as the head of
    * the entire sentence when estimating p(w | t), the trainer "fakes" a
    * modifier event, as though the root node of the observed tree was seen
-   * to modify the magical +TOP+ node.  For back-off levels 0 and 1, we
-   * will never use the derived counts whose history contexts contain +TOP+.
-   * This method allows for the removal of these "unnecessary" counts,
-   * which will never be used when decoding.
+   * to modify the magical +TOP+ node.  We will never use the derived counts
+   * whose history contexts contain +TOP+.  This method allows for the
+   * removal of these "unnecessary" counts, which will never be used
+   * when decoding.
    */
   public boolean removeHistory(int backOffLevel, Event history) {
     // this method assumes the parent component of histories for
-    // back-off levels 0 and 1 will be at index 0.  IF THIS CHANGES,
+    // all back-off levels will be at index 0.  IF THIS CHANGES,
     // this method will need to change accordingly.
-    switch (backOffLevel) {
-    case 0:
-      return history.get(0, 0) == topSym;
-    case 1:
-      return history.get(0, 0) == topSym;
-    case 2:
-      return false;
-    }
-    return false;
+    return history.get(0, 0) == topSym;
   }
 
   public ProbabilityStructure copy() {

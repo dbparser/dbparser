@@ -518,10 +518,10 @@ public class Decoder implements Serializable {
       System.err.println(className + ": sentence length: " + sentLen +
                          " word" + (sentLen > 1 ? "s" : ""));
       numSents++;
-      float avgLen =
-        ((numSents - 1)/(float)numSents) * avgSentLen +
-        (float)sentLen / numSents;
-      System.err.println(className + ": cummulative avg. length: " + avgLen);
+      avgSentLen = ((numSents - 1)/(float)numSents) * avgSentLen +
+                   (float)sentLen / numSents;
+      System.err.println(className + ": cummulative avg. length: " +
+                         avgSentLen);
     }
     for (int span = 2; span <= sentLen; span++) {
       if (debugSpans)

@@ -69,7 +69,7 @@ public class Treebank extends danbikel.parser.lang.AbstractTreebank {
   static {
     for (int i = 0; i < canonicalLabelMapData.length; i++)
       canonicalLabelMap.put(canonicalLabelMapData[i][0],
-			    canonicalLabelMapData[i][1]);
+                            canonicalLabelMapData[i][1]);
   }
 
   private static String[] puncToRaiseElements = {","};

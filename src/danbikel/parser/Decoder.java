@@ -410,7 +410,7 @@ public class Decoder implements Serializable {
 	SubcatBag.setUpFastUidMap(nonterminalTable);
       if (sampleSubcat instanceof BrokenSubcatBag)
 	BrokenSubcatBag.setUpFastUidMap(nonterminalTable);
-      Training.setUpFastArgMap(nonterminalTable);
+      Language.training().setUpFastArgMap(nonterminalTable);
       if (useHeadToParentMap) {
 	this.headToParentMap = server.headToParentMap();
 	convertHeadToParentMap();

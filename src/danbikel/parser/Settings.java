@@ -771,6 +771,19 @@ public class Settings implements Serializable {
     "parser.chart.itemClass";
 
   /**
+   * The property to specify whether the chart should add 3 in natural
+   * log-space to the beam width for chart items whose root labels are either
+   * <tt>NP</tt> or <tt>NP-A</tt>, as is done by Collins' parser.  That is, if
+   * the normal beam width is <tt>exp(-B)</tt>, then this hack makes the beam
+   * for NP/NP-A chart items expand to <tt>exp(-(B+3))</tt>.
+   * <p>
+   * The value of this constant is
+   * <code>"parser.chart.collinsNPPruneHack"</code>.
+   */
+  public final static String collinsNPPruneHack =
+    "parser.chart.collinsNPPruneHack";
+
+  /**
    * The property to specify the maximum length a sentence can be;
    * sentences greater than this length will not be parsed.
    * If the value of this property is less than <tt>1</tt>, the

@@ -254,16 +254,18 @@ public class SubcatBag implements Subcat, Externalizable {
    */
   public int hashCode() {
     // do the efficient version if we can afford the 2-bit bit-shifts
+    if (counts[sizeIdx] == 0)
+      return 0;
     if (counts.length <= 16) {
       int code = 0;
-      for (int i = 0; i < counts.length; i++)
+      for (int i = counts.length - 1; i >= 0; i--)
 	code = (code << 2) ^ counts[i];
       return code;
     }
     // otherwise do the slightly less efficient version
     else {
       int code = 0;
-      for (int i = 0; i < counts.length; i++)
+      for (int i = counts.length - 1; i >= 0; i--)
 	code = (code * 31) + counts[i];
       return code;
     }
@@ -276,10 +278,17 @@ public class SubcatBag implements Subcat, Externalizable {
    * categories.
    */
   public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
     if (!(obj instanceof SubcatBag))
       return false;
     SubcatBag other = (SubcatBag)obj;
-    return Arrays.equals(counts, other.counts);
+    if (counts.length != other.counts.length)
+      return false;
+    for (int i = counts.length - 1; i >= 0; i--)
+      if (counts[i] != other.counts[i])
+        return false;
+    return true;
   }
 
   /**

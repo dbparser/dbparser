@@ -7,6 +7,12 @@ import danbikel.lisp.*;
 public abstract class HeadFinder implements Serializable {
   // constants
   /**
+   * The fallback default in case the property for specifying the path to
+   * the head table file or resource is not set.
+   */
+  protected static final String fallbackDefaultHeadTableResource =
+    "data/head-rules.lisp";
+  /**
    * Constant to indicate a left-to-right scan (makes for more
    * readable code for this class and its subclasses).
    */
@@ -20,7 +26,7 @@ public abstract class HeadFinder implements Serializable {
    * The wildcard character used in default head-finding instructions.
    * @see #readHeadTable
    */
-  protected static final Symbol defaultSym = Symbol.add("*");
+  protected static final Symbol defaultSym = Constants.kleeneStarSym;
   /**
    * The character from a head table's head-finding instruction that indicates
    * a left-to-right scan.
@@ -73,6 +79,9 @@ public abstract class HeadFinder implements Serializable {
   }
 
   // data members
+  private static Nonterminal nt1 = new Nonterminal();
+  private static Nonterminal nt2 = new Nonterminal();
+
   /**
    * The map of parent nonterminals to their arrays of
    * {@link HeadFinder.HeadFindInstruction}.  When a head is being
@@ -107,10 +116,18 @@ public abstract class HeadFinder implements Serializable {
    * @see Settings#getFileOrResourceAsStream
    */
   protected HeadFinder() throws IOException, FileNotFoundException {
-    String headTableFilename = Settings.get(Settings.headTablePrefix +
-					    Language.getLanguage());
+    String headTableProperty =
+      Settings.headTablePrefix + Language.getLanguage();
+    String headTableResource = Settings.get(headTableProperty);
+    if (headTableResource == null) {
+      System.err.println(getClass().getName() + ": warning: the property \"" +
+                         headTableProperty + "\"" +
+                         " was not set;\n\tusing fallback default " +
+                         "\"" + fallbackDefaultHeadTableResource + "\"");
+      headTableResource = fallbackDefaultHeadTableResource;
+    }
     InputStream is = Settings.getFileOrResourceAsStream(this.getClass(),
-							headTableFilename);
+							headTableResource);
     int bufSize = Constants.defaultFileBufsize;
     SexpTokenizer headTableTok =
       new SexpTokenizer(is, Language.encoding(), bufSize);
@@ -149,9 +166,14 @@ public abstract class HeadFinder implements Serializable {
     if (instructions == null) {
       if (warnDefaultRule)
 	System.err.println(getClass().getName() + ": warning: couldn't find " +
-			   "rule for " + lhs + " " + rhs);
+			   "rule for " + lhs + " -> " + rhs);
       instructions =
 	(HeadFindInstruction[])headFindInstructions.get(defaultSym);
+
+      if (instructions == null)
+	System.err.println(getClass().getName() + ": error: couldn't find " +
+			   "rule for " + lhs + " -> " + rhs +
+			   "\n\tand there is no default rule");
     }
 
     int headIdx = -1;
@@ -180,15 +202,15 @@ public abstract class HeadFinder implements Serializable {
    * Finds the head for the production at the root of the specified subtree.
    * The general contract of this method is to extract the root nonterminal
    * label of the specified tree, create a list of the child nonterminal
-   * labels and call {@link #findHead(Symbol,SexpList)}.
+   * labels and call {@link #findHead(Sexp,Symbol,SexpList)}.
    * <br><b>Efficiency note</b>: This default implementation creates a new
    * <code>SexpList</code> containing the labels of the children of the root of
-   * <code>tree</code> and then calls {@link #findHead(Symbol,SexpList)}.
+   * <code>tree</code> and then calls {@link #findHead(Sexp,Symbol,SexpList)}.
    * @param tree the subtree for whose root production to find the head
    * @return the 1-based index of the head child of the production at the
    * root of the specified subtree
    *
-   * @see #findHead(Symbol,SexpList)
+   * @see #findHead(Sexp,Symbol,SexpList)
    */
   public int findHead(Sexp tree) {
     SexpList treeList = tree.list();
@@ -315,7 +337,7 @@ public abstract class HeadFinder implements Serializable {
    * rule, where the wildcard matches any parent.  Also, we should possibly
    * require default instructions, instead of allowing them to be implicit.
    *
-   * @see #findHead(Symbol,SexpList)
+   * @see #findHead(Sexp,Symbol,SexpList)
    */
   protected void readHeadTable(Sexp headTableSexp) {
     if (!headTableSexp.isList())
@@ -419,9 +441,19 @@ public abstract class HeadFinder implements Serializable {
    * @param matchTags an array of symbols
    */
   protected static final boolean tagMatches(Symbol tag, Symbol matchTags[]) {
+    Nonterminal tagNT = null;
     for (int j = 0; j < matchTags.length; j++) {
       if (tag == matchTags[j])
 	return true;
+      else {
+        // let's see if the current match tag subsumes the tag in question
+        if (tagNT == null)
+          tagNT = Language.treebank.parseNonterminal(tag, nt1);
+        Nonterminal matchTagNT =
+          Language.treebank.parseNonterminal(matchTags[j], nt2);
+        if (matchTagNT.subsumes(tagNT))
+          return true;
+      }
     }
     return false;
   }

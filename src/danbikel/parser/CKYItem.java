@@ -34,11 +34,11 @@ public class CKYItem extends Item implements SexpConvertible {
   private CKYItem headChild;
 
   /** A list of <code>CKYItem</code> objects that are the children to the left
-      of the head child, with the adjacent child being last. */
+      of the head child, with the head-adjacent child being last. */
   private SLNode leftChildren;
 
   /** A list of <code>CKYItem</code> objects that are the children to the right
-      of the head child, with the adjacent child being last. */
+      of the head child, with the head-adjacent child being last. */
   private SLNode rightChildren;
 
   /** The previous modifiers generated on this item's side of its parent's
@@ -62,7 +62,36 @@ public class CKYItem extends Item implements SexpConvertible {
 
   // constructor
 
-  /** Constructs an empty CKY chart item. */
+  /**
+   * Constructs a CKY chart item with the specified data.
+   *
+   * @param label the nonterminal label at the root of the implicit subtree
+   * represented by this chart item
+   * @param headWord the head word of the lexicalized nonterminal at the root
+   * of this chart item's subtree
+   * @param leftSubcat the subcat frame to the left of the head child of
+   * the implicit subtree of this chart item
+   * @param rightSubcat the subcat frame to the left of the head child of
+   * the implicit subtree of this chart item
+   * @param headChild the chart item that represents the subtree of the
+   * head child of this chart item's subtree
+   * @param leftChildren the list of chart items that represent the
+   * left-modifier subtrees of this chart item's subtree
+   * @param rightChildren the list of chart items that represent the
+   * right-modifier subtrees of this chart item's subtree
+   * @param previousMods the list of previously-generated modifiers
+   * of the head child of the parent of this chart item's subtree
+   * @param start the start index of the span of words covered by this
+   * chart item
+   * @param end the end index of the span of words covered by this
+   * chart item
+   * @param containsVerb a boolean indicating whether this chart item's
+   * subtree contains a verb
+   * @param stop a boolean indicating whether stop probabilities have been
+   * computed for this chart item
+   * @param logProb the score for this chart item (inside probability *
+   * outside probability)
+   */
   public CKYItem(Symbol label,
                  Word headWord,
                  Subcat leftSubcat,
@@ -161,12 +190,8 @@ public class CKYItem extends Item implements SexpConvertible {
       // first, add label of this node
       list.add(label);
       // then, add left subtrees in order
-      SLNode currChild = leftChildren;
-      while (currChild != null) {
-        CKYItem item = (CKYItem)currChild.data();
-        list.add(item.toSexp());
-        currChild = currChild.next();
-      }
+      for (SLNode curr = leftChildren; curr != null; curr = curr.next())
+        list.add(((CKYItem)curr.data()).toSexp());
       // next, add head child's subtree
       list.add(headChild.toSexp());
       // finally, add right children in reverse order

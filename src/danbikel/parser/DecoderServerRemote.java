@@ -17,9 +17,7 @@ public interface DecoderServerRemote extends Server {
 
   public Map rightSubcatMap() throws RemoteException;
 
-  public Map leftModNonterminalMap() throws RemoteException;
-
-  public Map rightModNonterminalMap() throws RemoteException;
+  public Map modNonterminalMap() throws RemoteException;
 
   public CountsTable nonterminals() throws RemoteException;
 
@@ -103,4 +101,13 @@ public interface DecoderServerRemote extends Server {
    * @return the log of the probability of generating a gap
    */
   public double logProbGap(int id, TrainerEvent event) throws RemoteException;
+
+  // non-log prob methods
+  public double probHead(int id, TrainerEvent event) throws RemoteException;
+  public double probMod(int id, TrainerEvent event) throws RemoteException;
+  public double probLeftSubcat(int id, TrainerEvent event)
+    throws RemoteException;
+  public double probRightSubcat(int id, TrainerEvent event)
+    throws RemoteException;
+  public double probTop(int id, TrainerEvent event) throws RemoteException;
 }

@@ -21,6 +21,9 @@
 #include <string.h>
 #include <malloc.h>
 
+#define OUTPUT_RECALL_ERRORS
+#define OUTPUT_SPURIOUS_BRACKETS
+
 /* Internal Data format -------------------------------------------*/
 /*                                                                 */
 /* (S (NP (NNX this)) (VP (VBX is) (NP (DT a) (NNX pen))) (SYM .)) */
@@ -781,7 +784,7 @@ calc_result()
     /* massage the data */
     /*------------------*/
     massage_data();
-	   
+
     /* matching brackets */
     /*-------------------*/
     match = 0;
@@ -799,6 +802,25 @@ calc_result()
 	    }
 	}
     }
+
+#ifdef DB
+#ifdef OUTPUT_SPURIOUS_BRACKETS
+    for (j = 0; j < bn2; j++) {
+      if (bracket2[j].result == 0) {
+	fprintf(stdout, "produced spurious bracket %s %d %d\n",
+		bracket2[j].label, bracket2[j].start, (bracket2[j].end - 1));
+      }
+    }
+#endif
+#ifdef OUTPUT_RECALL_ERRORS
+    for (i = 0; i < bn1; i++) {
+      if (bracket1[i].result == 0) {
+	fprintf(stdout, "didn't recall gold bracket %s %d %d\n",
+		bracket1[i].label, bracket1[i].start, (bracket1[i].end - 1));
+      }
+    }
+#endif
+#endif
 
     /* crossing */
     /*----------*/
@@ -1071,6 +1093,12 @@ print_total()
     printf("Tagging accuracy          = %6.2f\n",
 	   (TOT40_word>0?100.0*TOT40_correct_tag/TOT40_word:0.0));
 
+#ifdef DB
+    printf("No. of matched brackets   = %d\n", TOT40_match);
+    printf("No. of gold brackets      = %d\n", TOT40_bn1);
+    printf("No. of test brackets      = %d\n", TOT40_bn2);
+#endif
+	   
 }
 
 

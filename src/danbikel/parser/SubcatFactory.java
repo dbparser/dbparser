@@ -23,5 +23,5 @@ public interface SubcatFactory extends Serializable {
    * behavior is undefined if <code>list</code> contains a <code>SexpList</code>
    * object
    */
-  public Subcat get(SexpList lisit);
+  public Subcat get(SexpList list);
 }

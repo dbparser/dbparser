@@ -25,10 +25,10 @@ public interface Consumer extends Remote {
    * a parameter, in case the consumer needs to create an output file
    * when this method is invoked.
    *
-   * @param inputFilenam the name of the input file for which object processing
-   * has commenced
-   * @param the name of the (optional) output file to be created from the
-   * specified input file
+   * @param inputFilename the name of the input file for which object
+   * processing has commenced
+   * @param outputFilename the name of the (optional) output file to be
+   * created from the specified input file
    */
   public void newFile(String inputFilename, String outputFilename);
 

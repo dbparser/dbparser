@@ -168,7 +168,7 @@ public class SexpSubcatEvent extends SexpEvent {
    * more than one <code>Subcat</code> object to a
    * <code>SexpSubcatEvent</code> object.
    *
-   * @param subcat the component to add to this event
+   * @param obj the component to add to this event
    */
   public MutableEvent add(Object obj) {
     // important to test if obj is an instance of Subcat first, because

@@ -154,7 +154,7 @@ public class ModelCollection implements Serializable {
    * @param headModel the head-generation model
    * @param gapModel the gap-generation model
    * @param leftSubcatModel the left subcat-generation model
-   * @param rightSubcatmodel the right subcat-generation mode,l
+   * @param rightSubcatModel the right subcat-generation mode,l
    * @param modNonterminalModel the modifying nonterminal-generation model
    * @param modWordModel the modifying word-generation model
    * @param vocabCounter a table of counts of all "known" words of the

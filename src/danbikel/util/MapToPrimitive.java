@@ -41,7 +41,7 @@ public interface MapToPrimitive extends FlexibleMap {
      * current key (as determined by the current key's <code>equals</code>
      * method), this method does nothing and returns <code>false</code>.
      *
-     * @param equalKey a key equal to the current key as determined by
+     * @param key a key equal to the current key as determined by
      * the current key's <code>equals</code> method
      * @return <code>true</code> if the specified key was equal to the current
      * key and was therefore substituted for the current key, <code>false</code>
@@ -358,7 +358,7 @@ public interface MapToPrimitive extends FlexibleMap {
      * the specified character.
      *
      * @param index the index of the character value to set
-     * @param ch the character to set as a value for the key of
+     * @param value the character to set as a value for the key of
      * this map entry
      *
      * @throws UnsupportedOperationException if the implementor does not

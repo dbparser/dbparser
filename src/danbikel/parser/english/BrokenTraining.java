@@ -76,7 +76,8 @@ public class BrokenTraining extends danbikel.parser.Training {
    * {@link danbikel.parser.Training#semTagArgStopSet}.  Does no format
    * checking on the S-expressions of the metadata resource.
    *
-   * @param metadata S-expressions containing metadata for this class
+   * @param metadataTok tokenizer for stream of S-expressions containing
+   * metadata for this class
    */
   protected void readMetadata(SexpTokenizer metadataTok) throws IOException {
     Sexp metadataSexp = null;

@@ -305,7 +305,7 @@ public interface SwitchboardRemote extends Remote {
    * {@link #nextObject(int)} method as the second argument to the this method.
    *
    * @param clientId the ID number of the client requesting the next object
-   * @param object the processed object and its number, or <code>null</code>
+   * @param obj the processed object and its number, or <code>null</code>
    * if the client was unable to process the object
    * @param millis the number of milliseconds the client took to process the
    * object

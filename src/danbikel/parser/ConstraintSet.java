@@ -48,7 +48,7 @@ public interface ConstraintSet extends Collection {
    * @return whether chart items need to violate none of the constraints
    * in this set
    *
-   * @see #containsViolation(Item)
+   * @see #isViolatedBy(Item)
    */
   public boolean findNoViolations();
 

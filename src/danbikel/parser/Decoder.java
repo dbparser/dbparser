@@ -120,7 +120,7 @@ public class Decoder implements Serializable {
   /** The map from vocabulary items to their possible parts of speech. */
   protected Map posMap;
   /**
-   * A cache derived from {@link posMap} that is a map of (presumably
+   * A cache derived from {@link #posMap} that is a map of (presumably
    * closed-class) parts of speech to random example words observed with
    * the part of speech from which they are mapped.
    */

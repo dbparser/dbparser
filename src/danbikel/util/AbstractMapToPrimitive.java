@@ -346,7 +346,7 @@ abstract public class AbstractMapToPrimitive
      * the specified character.
      *
      * @param index the index of the character value to set
-     * @param ch the character to set as a value for the key of
+     * @param value the character to set as a value for the key of
      * this map entry
      *
      * @throws UnsupportedOperationException if the implementor does not

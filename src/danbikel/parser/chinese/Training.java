@@ -29,21 +29,13 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
   private final static Symbol wordsToPruneSym = Symbol.add("prune-words");
   private final static Symbol VP = Symbol.get("VP");
 
-  /**
-   * The prefix of the property to get the resource required by the default
-   * constructor.  The value of this constant is
-   * <code>&quot;parser.training.metadata.&quot;</code>.
-   */
-  protected final static String metadataPropertyPrefix =
-    "parser.training.metadata.";
-
   // data members
   private Nonterminal nonterminal = new Nonterminal();
 
   /**
    * The default constructor, to be invoked by {@link danbikel.parser.Language}.
    * This constructor looks for a resource named by the property
-   * <code>metadataPropertyPrefix + language</code>
+   * <code>çmetadataPropertyPrefix + language</code>
    * where <code>metadataPropertyPrefix</code> is the value of
    * the constant {@link #metadataPropertyPrefix} and <code>language</code>
    * is the value of <code>Settings.get(Settings.language)</code>.
@@ -59,66 +51,6 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
     SexpTokenizer metadataTok =
       new SexpTokenizer(is, Language.encoding(), bufSize);
     readMetadata(metadataTok);
-  }
-
-  /**
-   * Reads metadata to fill in {@link #argContexts} and
-   * {@link #semTagArgStopSet}.  Does no format checking on the
-   * S-expressions of the metadata resource.
-   *
-   * @param metadataTok tokenizer for stream of S-expressions containing
-   * metadata for this class
-   */
-  protected void readMetadata(SexpTokenizer metadataTok) throws IOException {
-    Sexp metadataSexp = null;
-    while ((metadataSexp = Sexp.read(metadataTok)) != null) {
-      SexpList metadata = metadataSexp.list();
-      int metadataLen = metadata.length();
-      Symbol dataType = metadata.first().symbol();
-      if (dataType == argContextsSym) {
-	for (int i = 1; i < metadataLen; i++) {
-	  SexpList context = metadata.get(i).list();
-	  argContexts.put(context.get(0), context.get(1));
-	}
-      }
-      else if (dataType == semTagArgStopListSym) {
-	SexpList semTagArgStopList = metadata.get(1).list();
-	for (int i = 0; i < semTagArgStopList.length(); i++)
-	  semTagArgStopSet.add(semTagArgStopList.get(i));
-      }
-      else if (dataType == nodesToPruneSym) {
-	SexpList nodesToPruneList = metadata.get(1).list();
-	for (int i = 0; i < nodesToPruneList.length(); i++)
-	  nodesToPrune.add(nodesToPruneList.get(i));
-      }
-      else if (dataType == wordsToPruneSym) {
-        SexpList wordsToPruneList = metadata.get(1).list();
-        for (int i = 0; i < wordsToPruneList.length(); i++)
-          wordsToPrune.add(wordsToPruneList.get(i));
-      }
-      else {
-	// unrecognized data type
-      }
-    }
-  }
-
-  /** Debugging method to print the metadata used by this class. */
-  public void printMetadata() {
-    Iterator argContextsIt = argContexts.keySet().iterator();
-    while (argContextsIt.hasNext()) {
-      Sexp parent = (Sexp)argContextsIt.next();
-      System.out.println("parent: " + parent + "\t" +
-			 "children: " + argContexts.get(parent));
-    }
-    Iterator argStopSetIt = semTagArgStopSet.iterator();
-    System.out.print("(");
-    if (argStopSetIt.hasNext())
-      System.out.print(argStopSetIt.next());
-    while (argStopSetIt.hasNext()) {
-      System.out.print(' ');
-      System.out.print(argStopSetIt.next());
-    }
-    System.out.println(")");
   }
 
   /**

@@ -160,7 +160,7 @@ public class Model implements Serializable {
    * @param canonical a reflexive map used to canonicalize objects
    * created when deriving counts
    */
-  public void deriveCounts(CountsTable trainerCounts, Filter filter,
+  public void deriveCounts(MapToPrimitive trainerCounts, Filter filter,
 			   double threshold, FlexibleMap canonical) {
     deriveCounts(trainerCounts, filter, threshold, canonical, false);
   }
@@ -179,7 +179,7 @@ public class Model implements Serializable {
    * @param deriveOtherModelCounts an unused parameter, as this class
    * does not contain other, internal <code>Model</code> instances
    */
-  public void deriveCounts(CountsTable trainerCounts, Filter filter,
+  public void deriveCounts(MapToPrimitive trainerCounts, Filter filter,
 			   double threshold, FlexibleMap canonical,
 			   boolean deriveOtherModelCounts) {
     setCanonicalEvents(canonical);
@@ -684,7 +684,7 @@ public class Model implements Serializable {
    * @param canonical a reflexive map used to canonicalize objects
    * created when deriving counts
    */
-  protected void deriveHistories(CountsTable trainerCounts, Filter filter,
+  protected void deriveHistories(MapToPrimitive trainerCounts, Filter filter,
 				 FlexibleMap canonical) {
     Time time = null;
     if (verbose)
@@ -737,7 +737,7 @@ public class Model implements Serializable {
     }
   }
 
-  protected void precomputeProbs(CountsTable trainerCounts, Filter filter) {
+  protected void precomputeProbs(MapToPrimitive trainerCounts, Filter filter) {
     Time time = null;
     if (verbose)
       time = new Time();

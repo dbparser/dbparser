@@ -28,6 +28,7 @@ public class Parser
   private final static boolean debug = false;
   private final static boolean debugCacheStats = true;
   private final static String className = Parser.class.getName();
+  private final static boolean flushAfterEverySentence = true;
 
   // public constants
   public final static String outputFilenameSuffix = ".parsed";
@@ -353,6 +354,8 @@ public class Parser
                              Time.elapsedTime(totalTime.elapsedMillis() / i));
           out.write(String.valueOf(parsedSent));
           out.write("\n");
+          if (flushAfterEverySentence)
+            out.flush();
         }
         System.err.println("\ntotal elapsed time: " + totalTime);
         System.err.println("\nHave a nice day!");

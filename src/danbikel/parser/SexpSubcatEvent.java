@@ -2,6 +2,7 @@ package danbikel.parser;
 
 import danbikel.lisp.*;
 import java.util.*;
+import java.io.*;
 
 /**
  * Represents an event composed of zero or more <code>Sexp</code> objects
@@ -127,7 +128,7 @@ public class SexpSubcatEvent extends SexpEvent {
    * <code>SexpList</code>.  If the type is that for <code>Subcat</code>,
    * then the specified index must be 0, as this <code>Event</code>
    * implementation only supports the storage of at most 1 <code>Subcat</code>
-   * object. 
+   * object.
    *
    * @param type the type index of the component to get
    * @param index the index of the component to get
@@ -153,7 +154,7 @@ public class SexpSubcatEvent extends SexpEvent {
 	throw new IndexOutOfBoundsException();
     }
   }
-  
+
   private final int subcatCount() { return (subcat == null ? 0 : 1); }
 
   /**
@@ -217,6 +218,17 @@ public class SexpSubcatEvent extends SexpEvent {
     return code;
   }
 
+  public boolean equals(Object o) {
+    if (this == o)
+      return true;
+    if (o instanceof SexpSubcatEvent) {
+      SexpSubcatEvent other = (SexpSubcatEvent)o;
+      return this.subcat.equals(other.subcat) && super.equals(o);
+    }
+    else
+      return this.genericEquals(o);
+  }
+
   /**
    * Returns a string representation of this object of the form
    * <tt>(</tt>{@link #sexpSubcatLabel}<tt>&nbsp;event)</tt>
@@ -251,5 +263,16 @@ public class SexpSubcatEvent extends SexpEvent {
   public void clear() {
     super.clear();
     subcat = null;
+  }
+
+  public void writeExternal(ObjectOutput out) throws IOException {
+    super.writeExternal(out);
+    out.writeObject(subcat);
+  }
+
+  public void readExternal(ObjectInput in)
+    throws IOException, ClassNotFoundException {
+    super.readExternal(in);
+    subcat = (Subcat)in.readObject();
   }
 }

@@ -1,7 +1,7 @@
 package danbikel.parser;
 
 import danbikel.lisp.*;
-import java.io.Serializable;
+import java.io.*;
 import java.util.*;
 
 /**
@@ -11,7 +11,7 @@ import java.util.*;
  * is that nonterminals are stripped of any gap augmentations before added
  * to this subcat frame.
  */
-public class SubcatList extends SexpList implements Subcat {
+public class SubcatList extends SexpList implements Subcat, Externalizable {
 
   // N.B.: the internal list holds requirements (Symbol objects) in the reverse
   // order in which they were added, so that calls to remove are extremely
@@ -147,7 +147,7 @@ public class SubcatList extends SexpList implements Subcat {
     return new SubcatList(this, false);
   }
 
-  
+
   public Subcat getCanonical(Map map, boolean unused) {
     Subcat mapElt = (Subcat)map.get(this);
     if (mapElt == null) {
@@ -214,5 +214,24 @@ public class SubcatList extends SexpList implements Subcat {
     for (int i = size - 1; i >= 0; i--)
       list.add((Symbol)get(0, i));
     return list;
+  }
+
+  public void become(Subcat other) {
+    SubcatList otherList = (SubcatList)other;
+    clear();
+    super.addAll(otherList);
+  }
+
+  public void writeExternal(ObjectOutput out) throws IOException {
+    super.writeExternal(out);
+    // if there were additional data members in this subclass of
+    // SexpList, we'd write them out here
+  }
+
+  public void readExternal(ObjectInput in)
+    throws IOException, ClassNotFoundException {
+    super.readExternal(in);
+    // if there were additional data members in this subclass of
+    // SexpList, we'd read them in here
   }
 }

@@ -35,6 +35,10 @@ public abstract class AbstractServer
       request it. */
   protected boolean acceptClientsOnlyByRequest;
 
+  /**
+   * Constructs a non-exported <code>AbstractServer</code> object.
+   */
+  protected AbstractServer() { }
 
   /**
    * Constructs a new server with the specified timeout value for its
@@ -186,5 +190,5 @@ public abstract class AbstractServer
       request it. */
   public boolean acceptClientsOnlyByRequest() {
     return acceptClientsOnlyByRequest;
-  }  
+  }
 }

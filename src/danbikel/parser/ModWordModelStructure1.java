@@ -13,7 +13,7 @@ public class ModWordModelStructure1 extends ProbabilityStructure {
 
   public Event getHistory(TrainerEvent trainerEvent, int backOffLevel) {
     ModifierEvent modEvent = (ModifierEvent)trainerEvent;
-    MutableEvent hist = historyWithSubcat;
+    MutableEvent hist = historiesWithSubcats[backOffLevel];
     hist.clear();
     Symbol verbInterveningSym =
       Constants.booleanToSym(modEvent.verbIntervening());
@@ -47,15 +47,16 @@ public class ModWordModelStructure1 extends ProbabilityStructure {
       break;
     case 2:
       // for p(w_i | t_i)
-      history.clear();
-      history.add(modEvent.modHeadWord().tag());
-      hist = history;
+      hist = histories[backOffLevel]; // efficiency hack: don't need subcat
+      hist.clear();
+      hist.add(modEvent.modHeadWord().tag());
       break;
     }
     return hist;
   }
 
   public Event getFuture(TrainerEvent trainerEvent, int backOffLevel) {
+    MutableEvent future = futures[backOffLevel];
     future.clear();
     future.add(((ModifierEvent)trainerEvent).modHeadWord().word());
     return future;

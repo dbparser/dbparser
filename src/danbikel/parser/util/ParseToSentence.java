@@ -4,9 +4,23 @@ import danbikel.lisp.*;
 import danbikel.parser.*;
 import java.io.*;
 
+/**
+ * Reads parse trees either from standard input or a specified file,
+ * converting them to sentences and printing those sentences on standard
+ * output.
+ */
 public class ParseToSentence {
   private static final int bufSize = Constants.defaultFileBufsize;
 
+  private ParseToSentence() {}
+
+  /**
+   * Reads parse trees either from standard input or a specified file,
+   * converting them to sentences and printing those sentences on standard
+   * output.
+   * <pre>usage: [filename]</pre>
+   * where standard input is assumed if no argument is present.
+   */
   public static void main(String[] args) {
     InputStream inStream = System.in;
     if (args.length > 0) {

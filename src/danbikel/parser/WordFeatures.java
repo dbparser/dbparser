@@ -35,4 +35,10 @@ public abstract class WordFeatures implements Serializable {
   public Symbol features(Symbol word, boolean firstWord) {
     return unknownWordSym;
   }
+
+  /**
+   * The symbol that represents the case where none of the features fires
+   * for a particular word.
+   */
+  public abstract Symbol defaultFeatureVector();
 }

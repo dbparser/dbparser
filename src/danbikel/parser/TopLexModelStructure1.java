@@ -10,17 +10,19 @@ public class TopLexModelStructure1 extends ProbabilityStructure {
 
   public Event getHistory(TrainerEvent trainerEvent, int backOffLevel) {
     HeadEvent headEvent = (HeadEvent)trainerEvent;
-
+    MutableEvent history = histories[backOffLevel];
     history.clear();
     switch (backOffLevel) {
     case 0:
-      // for p(w,t | H, +TOP+)
+      // for p(w | t, H, +TOP+)
+      history.add(headEvent.headWord().tag());
       history.add(headEvent.head());
       history.add(headEvent.parent());
       break;
     case 1:
-      // for p(w,t | +TOP+)
-      history.add(headEvent.parent());
+      // for p(w | t, H)
+      history.add(headEvent.headWord().tag());
+      history.add(Language.treebank.getCanonical(headEvent.head()));
       break;
     }
     return history;
@@ -28,10 +30,10 @@ public class TopLexModelStructure1 extends ProbabilityStructure {
 
   public Event getFuture(TrainerEvent trainerEvent, int backOffLevel) {
     HeadEvent headEvent = (HeadEvent)trainerEvent;
+    MutableEvent future = futures[backOffLevel];
     future.clear();
-    // for p(w,t | ...)
+    // for p(w | ...)
     future.add(headEvent.headWord().word());
-    future.add(headEvent.headWord().tag());
     return future;
   }
 

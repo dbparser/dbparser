@@ -20,6 +20,7 @@ abstract public class SubcatModelStructure1 extends ProbabilityStructure {
     Sexp noGapParent =
       Language.training.removeGapAugmentation(headEvent.parent());
 
+    MutableEvent history = histories[backOffLevel];
     history.clear();
     switch (backOffLevel) {
     case 0:

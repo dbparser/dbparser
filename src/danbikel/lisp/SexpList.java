@@ -1,18 +1,21 @@
 package danbikel.lisp;
 
-import java.io.Serializable;
+import java.io.*;
 import java.util.*;
 
 /**
  * Stores a list of <code>Sexp</code> objects, which are either symbols
  * or themselves lists.
  */
-public class SexpList extends Sexp implements Serializable {
+public class SexpList extends Sexp implements Externalizable {
   // constants
   /**
    * An immutable object to represent the empty list.
    */
   public static final SexpList emptyList = new SexpList(0);
+  static {
+    emptyList.list = Collections.unmodifiableList(emptyList.list);
+  }
 
   /**
    * A simple canonicalization method that returns the unique object
@@ -77,8 +80,6 @@ public class SexpList extends Sexp implements Serializable {
    * @return this <code>SexpList</code> object
    */
   public SexpList add(Sexp sexp) {
-    if (this == emptyList)
-      return this;
     list.add(sexp);
     return this;
   }
@@ -92,8 +93,6 @@ public class SexpList extends Sexp implements Serializable {
    * @return this <code>SexpList</code> object
    */
   public SexpList add(int index, Sexp sexp) {
-    if (this == emptyList)
-      return this;
     list.add(index, sexp);
     return this;
   }
@@ -259,7 +258,7 @@ public class SexpList extends Sexp implements Serializable {
   }
 
   /**
-   * Returns the symbol at the specified index.  Calling this method is
+   * Returns the list at the specified index.  Calling this method is
    * equivalent to calling
    * <pre>get(index).list()</pre>
    *
@@ -346,21 +345,30 @@ public class SexpList extends Sexp implements Serializable {
    * @see AbstractList#equals
    */
   public boolean equals(Object o) {
-    if (o == null || !(o instanceof SexpList))
+    if (this == o)
+      return true;
+    if (!(o instanceof SexpList))
       return false;
-    SexpList sexpList = (SexpList)o;
-    return (list.size() == sexpList.list.size() &&
-	    list.equals(sexpList.list));
+    SexpList otherList = (SexpList)o;
+    if (list.size() != otherList.list.size())
+      return false;
+    int size = list.size();
+    for (int i = 0; i < size; i++)
+      if (this.get(i).equals(otherList.get(i)) == false)
+        return false;
+    return true;
   }
 
   /**
    * Returns the hash code value for this list.
-   * <p>
-   * The implementation used is that provided by {@link AbstractList#hashCode}.
    * @return the hash code value for this list
    */
   public int hashCode() {
-    return list.hashCode();
+    int code = 0;
+    int listSize = list.size();
+    for (int i = 0; i < listSize; i++)
+      code = 31*code + list.get(i).hashCode();
+    return code;
   }
 
   /**
@@ -396,5 +404,14 @@ public class SexpList extends Sexp implements Serializable {
 
   public ListIterator listIterator() {
     return list.listIterator();
+  }
+
+  public void writeExternal(ObjectOutput out) throws IOException {
+    out.writeObject(list);
+  }
+
+  public void readExternal(ObjectInput in)
+    throws IOException, ClassNotFoundException {
+    list = (List)in.readObject();
   }
 }

@@ -10,7 +10,7 @@ import java.util.*;
  * @see Symbol
  * @see SexpList
  */
-abstract public class Sexp implements Serializable {
+abstract public class Sexp implements Externalizable {
   private static final String className = Sexp.class.getName();
 
   // all Sexp objects are constructed via the read method
@@ -127,6 +127,12 @@ abstract public class Sexp implements Serializable {
   public static Sexp read(String in) throws IOException {
     return read(new SexpTokenizer(new StringReader(in)));
   }
+
+
+  public abstract void readExternal(ObjectInput oi)
+    throws IOException, ClassNotFoundException;
+
+  public abstract void writeExternal(ObjectOutput oo) throws IOException;
 
   public static void main(String[] args) {
     try {

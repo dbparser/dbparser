@@ -14,7 +14,6 @@ public class Constants {
   /** The constant representing the right side or the right-to-left
       direction. */
   public static final boolean RIGHT = true;
-
   /** The symbol constant representing the left side or the
       left-to-right direction. */
   public static final Symbol leftSym = Symbol.add("left");

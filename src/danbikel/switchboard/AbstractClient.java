@@ -78,19 +78,11 @@ public abstract class AbstractClient
   protected Random rand = new Random(System.currentTimeMillis());
 
 
-  
+
   /**
-   * Constructs a new client with switchboard-side sockets that will
-   * have an infinite timeout.
-   * <p>
-   * <b>Warning</b>: Using this constructor will admit the possibility
-   * of system hangs (that is, a lack of fault-tolerance).  Use constructors
-   * that provide sockets with non-infinite timeouts to ensure the
-   * fault-tolerance of the distributed computing system.
+   * Constructs a non-exported <code>AbstractClient</code> object.
    */
-  protected AbstractClient() throws RemoteException {
-    super(0);
-  }
+  protected AbstractClient() throws RemoteException { }
 
   /**
    * Constructs a new client with the specified timeout, to be set for
@@ -453,6 +445,7 @@ public abstract class AbstractClient
 	}
 
 	Object processed = null;
+        long processingTime = System.currentTimeMillis();
 	try { processed = process(obj.get()); }
 	catch (RemoteException re) {
 	  System.err.println(className +
@@ -460,13 +453,14 @@ public abstract class AbstractClient
 			     obj.number() + " (" + re + ")");
 	  processed = null;
 	}
+        processingTime = System.currentTimeMillis() - processingTime;
 
 	if (processed != null) {
 	  obj.setProcessed(true);
 	  obj.set(processed);
 	}
 
-	switchboard.putObject(id, obj, sleepRandom(5000));
+	switchboard.putObject(id, obj, processingTime);
 	numProcessed++;
       }
       catch (RemoteException re) {

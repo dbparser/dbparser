@@ -20,14 +20,14 @@ import java.util.*;
  */
 public class LRUCache extends SofterHashMap {
   // constant
-  private final static int softerHashMapType = SofterHashMap.soft;
+  private final static int softerHashMapType = SofterHashMap.weak;
 
 
   // inner class for linked list nodes
   private static class Node {
     Object element;
     Node next;
-    
+
     Node(Object element, Node next) {
       this.element = element;
       this.next = next;
@@ -132,7 +132,7 @@ public class LRUCache extends SofterHashMap {
       if (keyInMap != null)
 	key = keyInMap;
       makeMostRecentlyUsed(key);
-      
+
       return super.put(key, value);
     }
   }

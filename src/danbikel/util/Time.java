@@ -35,6 +35,11 @@ public class Time {
     this.startTime = startTime;
   }
 
+  /** Resets the internal start time to be the current time. */
+  public void reset() {
+    this.startTime = System.currentTimeMillis();
+  }
+
   /** Returns a string representation of the elapsed time since the start
       time of this <code>Time</code> object, using the output of
       {@link #elapsedTime(long)}. */

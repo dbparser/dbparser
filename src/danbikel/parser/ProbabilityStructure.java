@@ -39,8 +39,8 @@ public abstract class ProbabilityStructure implements Serializable {
    * directly, by using the <code>SexpEvent.add(Object)</code> method.
    *
    * @see SexpEvent#add(Object)
-   * @see #history
-   * @see #historyWithSubcat
+   * @see #histories
+   * @see #historiesWithSubcats
    */
   protected SexpList historyList;
 
@@ -57,48 +57,53 @@ public abstract class ProbabilityStructure implements Serializable {
    * directly, by using the <code>SexpEvent.add(Object)</code> method.
    *
    * @see SexpEvent#add(Object)
-   * @see #future
-   * @see #futureWithSubcat
+   * @see #futures
+   * @see #futuresWithSubcats
    */
   protected SexpList futureList;
 
   /**
-   * A reusable <code>SexpEvent</code> object to represent a history
-   * context.  This may be used as the return object of
+   * A reusable <code>SexpEvent</code> array to represent history
+   * contexts; the array will be initialized to have the size of
+   * {@link #numLevels()}.  These objects may be used as the return values of
    * <code>getHistory(TrainerEvent,int)</code>.
    * @see #getHistory(TrainerEvent,int)
    */
-  protected MutableEvent history;
+  protected MutableEvent[] histories;
   /**
-   * A reusable <code>SexpEvent</code> object to represent a future.
-   * This may be used as the return object of
+   * A reusable <code>SexpEvent</code> array to represent futures;
+   * the array will be initialized to have the size of {@link #numLevels()}.
+   * These objects may be used as the return values of
    * <code>getFuture(TrainerEvent,int)</code>.
    * @see #getFuture(TrainerEvent,int)
    */
-  protected MutableEvent future;
+  protected MutableEvent[] futures;
 
   /**
-   * A reusable <code>SexpSubcatEvent</code> object to represent a history.
-   * This may be used as the return object of
+   * A reusable <code>SexpSubcatEvent</code> array to represent
+   * histories; the array will be initialized to have the size of
+   * {@link #numLevels()}.
+   * These objects may be used as the return values of
    * <code>getHistory(TrainerEvent,int)</code>.
    * @see #getHistory(TrainerEvent,int)
    */
-  protected MutableEvent historyWithSubcat;
+  protected MutableEvent[] historiesWithSubcats;
 
   /**
-   * A reusable <code>SexpSubcatEvent</code> object to represent a future.
-   * This may be used as the return object of
+   * A reusable <code>SexpSubcatEvent</code> array to represent futures;
+   * the array will be initialized to have the size of
+   * {@link #numLevels()}. These objects may be used as the return values of
    * <code>getFuture(TrainerEvent,int)</code>.
    * @see #getFuture(TrainerEvent,int)
    */
-  protected MutableEvent futureWithSubcat;
+  protected MutableEvent[] futuresWithSubcats;
 
   /**
-   * A reusable <code>Transition</code> object to represent a transition.
-   * This may be used as the return object of
-   * {@link #getTransition(TrainerEvent,int)}.
+   * A reusable <code>Transition</code> array to store transitions.
+   * The <code>Transition</code> objects in this array may be used as the
+   * return values of {@link #getTransition(TrainerEvent,int)}.
    */
-  protected Transition transition = new Transition(null, null);
+  public Transition[] transitions;
 
   /**
    * An array used only during the computation of top-level probabilities,
@@ -133,10 +138,22 @@ public abstract class ProbabilityStructure implements Serializable {
    * @see #maxEventComponents
    */
   protected ProbabilityStructure() {
-    history = new SexpEvent(maxEventComponents());
-    future = new SexpEvent(maxEventComponents());
-    historyWithSubcat = new SexpSubcatEvent(maxEventComponents());
-    futureWithSubcat = new SexpSubcatEvent(maxEventComponents());
+    histories = new SexpEvent[numLevels()];
+    for (int i = 0; i < histories.length; i++)
+      histories[i] = new SexpEvent(maxEventComponents());
+    futures = new SexpEvent[numLevels()];
+    for (int i = 0; i < futures.length; i++)
+      futures[i] = new SexpEvent(maxEventComponents());
+    historiesWithSubcats = new SexpSubcatEvent[numLevels()];
+    for (int i = 0; i < historiesWithSubcats.length; i++)
+      historiesWithSubcats[i] = new SexpSubcatEvent(maxEventComponents());
+    futuresWithSubcats = new SexpSubcatEvent[numLevels()];
+    for (int i = 0; i < futuresWithSubcats.length; i++)
+      futuresWithSubcats[i] = new SexpSubcatEvent(maxEventComponents());
+
+    transitions = new Transition[numLevels()];
+    for (int i = 0; i < transitions.length; i++)
+      transitions[i] = new Transition(null, null);
 
     ///////////////////////////////////////////////////////////////////////////
     // no longer needed
@@ -228,7 +245,16 @@ public abstract class ProbabilityStructure implements Serializable {
    */
   public Transition getTransition(TrainerEvent trainerEvent,
 				  int backOffLevel) {
+    Transition transition = transitions[backOffLevel];
     transition.setHistory(getHistory(trainerEvent, backOffLevel));
+    transition.setFuture(getFuture(trainerEvent, backOffLevel));
+    return transition;
+  }
+
+  Transition getTransition(TrainerEvent trainerEvent, Event history,
+                           int backOffLevel) {
+    Transition transition = transitions[backOffLevel];
+    transition.setHistory(history);
     transition.setFuture(getFuture(trainerEvent, backOffLevel));
     return transition;
   }

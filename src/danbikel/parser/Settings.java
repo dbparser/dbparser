@@ -68,7 +68,7 @@ public class Settings implements Serializable {
   /** The official name of this program. */
   public final static String progName = "WordNet Parser";
   /** The official version of this program. */
-  public final static String version = "0.1";
+  public final static String version = "0.8";
   /**
    * The prefix that all properties for this parser should have
    * (to be used when finding system properties that are meant to be included
@@ -635,6 +635,18 @@ public class Settings implements Serializable {
    */
   public final static String decoderCellLimit =
     "parser.decoder.cellLimit";
+
+  /**
+   * The property to specify whether the decoder should employ a constraint
+   * on the way commas can appear in and around chart items.  Specifically,
+   * the constraint is that for a chart item that represents the CFG rule
+   * <pre>Z --> &lt;.. X Y..&gt;</pre>
+   * two of its children <tt>X</tt> and <tt>Y</tt> are separated by a comma,
+   * then the last word in <tt>Y</tt> must be directly followed by a comma or
+   * must be the last word in the sentence.
+   */
+  public final static String decoderUseCommaConstraint =
+    "parser.decoder.useCommaConstraint";
 
   /**
    * The property to specify whether words are downcased during training

@@ -11,6 +11,7 @@ public class NonterminalPriorModelStructure1 extends ProbabilityStructure {
   public Event getHistory(TrainerEvent trainerEvent, int backOffLevel) {
     HeadEvent headEvent = (HeadEvent)trainerEvent;
 
+    MutableEvent history = histories[backOffLevel];
     history.clear();
     switch (backOffLevel) {
     case 0:
@@ -26,6 +27,7 @@ public class NonterminalPriorModelStructure1 extends ProbabilityStructure {
     return history;
   }
   public Event getFuture(TrainerEvent trainerEvent, int backOffLevel) {
+    MutableEvent future = futures[backOffLevel];
     future.clear();
     future.add(((HeadEvent)trainerEvent).head());
     return future;

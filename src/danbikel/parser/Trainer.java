@@ -3,6 +3,7 @@ package danbikel.parser;
 import java.util.HashMap;
 import danbikel.lisp.*;
 import danbikel.util.*;
+import danbikel.parser.util.Util;
 import java.util.*;
 import java.io.*;
 
@@ -32,12 +33,10 @@ import java.io.*;
  * The various model objects capture the generation submodels of the different
  * output elements of the parser.  The smoothing levels of these
  * submodels are represented by <code>ProbabilityStructure</code> objects,
- * passed as parameters to the <code>Model</code> objects, both at
- * {@link Model#Model(ProbabilityStructure) construction}
- * and when invoking their
- * {@link Model#estimateLogProb(int,TrainerEvent)
- * estimateLogProb} methods.  This architecture provides a type of
- * "plug-n-play" smoothing scheme for the various submodels of this parser.
+ * passed as parameters to the <code>Model</code> objects, at
+ * {@link Model#Model(ProbabilityStructure) construction} time.  This
+ * architecture provides a type of "plug-n-play" smoothing scheme for the
+ * various submodels of this parser.
  *
  * @see #main(String[])
  * @see Model
@@ -176,6 +175,31 @@ public class Trainer implements Serializable {
   private Symbol gapAugmentation = Language.training.gapAugmentation();
   private Symbol traceTag = Language.training.traceTag();
 
+  // various filters used by deriveCounts and deriveSubcatMaps
+  Filter allPass = new AllPass();
+  Filter nonTop = new Filter() {
+      public boolean pass(Object obj) {
+        return ((TrainerEvent)obj).parent() != topSym;
+      }
+    };
+  Filter topOnly = new Filter() {
+      public boolean pass(Object obj) {
+        return ((TrainerEvent)obj).parent() == topSym;
+      }
+    };
+  Filter leftOnly = new Filter() {
+      public boolean pass(Object obj) {
+        return ((TrainerEvent)obj).side() == Constants.LEFT;
+      }
+    };
+  Filter rightOnly = new Filter() {
+      public boolean pass(Object obj) {
+        return ((TrainerEvent)obj).side() == Constants.RIGHT;
+      }
+    };
+
+
+
   // constructor
 
   /**
@@ -252,6 +276,13 @@ public class Trainer implements Serializable {
 			   (sentNum > 1 ? "s" : ""));
 	intervalCounter = 0;
       }
+
+      if (!tree.isList()) {
+        System.err.println(className + ": error: invalid format for training " +
+                           "parse tree: " + tree + " ...skipping");
+        continue;
+      }
+
       // parenthesis-stripping is indicated if the training tree is a list
       // containing one element that is also a list
       if (auto)
@@ -264,7 +295,8 @@ public class Trainer implements Serializable {
 
       Language.training.preProcess(tree);
 
-      //System.err.println(tree);
+      //System.err.println(Util.prettyPrint(tree));
+
       HeadTreeNode headTree = new HeadTreeNode(tree);
       if (downcaseWords)
 	downcaseWords(headTree);
@@ -444,9 +476,9 @@ public class Trainer implements Serializable {
       Symbol modifier = currMod.label();
       verbIntervening |= prevModHadVerb;
       wordsIntervening = (modIdx > 0 ? true : headAlreadyHasMods);
-      // crucial to copy modifier's head word object (see comment above)
       Subcat dynamicSubcatCopy =
 	((Subcat)dynamicSubcat.copy()).getCanonical(canonicalSubcatMap, false);
+      // crucial to copy modifier's head word object (see comment above)
       ModifierEvent modEvent = new ModifierEvent(currMod.headWord().copy(),
 						 headWord,
 						 modifier,
@@ -487,6 +519,7 @@ public class Trainer implements Serializable {
     Subcat emptySubcat = dynamicSubcat.getCanonical(canonicalSubcatMap, false);
 
     // transition to stop symbol
+    verbIntervening |= prevModHadVerb;
     ModifierEvent modEvent = new ModifierEvent(stopWord,
 					       headWord,
 					       stopSym,
@@ -786,28 +819,6 @@ public class Trainer implements Serializable {
 
       HashMap canonicalEventLists = new HashMap();
 
-      Filter allPass = new AllPass();
-      Filter nonTop = new Filter() {
-	  public boolean pass(Object obj) {
-	    return ((TrainerEvent)obj).parent() != topSym;
-	  }
-	};
-      Filter topOnly = new Filter() {
-	  public boolean pass(Object obj) {
-	    return ((TrainerEvent)obj).parent() == topSym;
-	  }
-	};
-      Filter leftOnly = new Filter() {
-	  public boolean pass(Object obj) {
-	    return ((TrainerEvent)obj).side() == Constants.LEFT;
-	  }
-	};
-      Filter rightOnly = new Filter() {
-	  public boolean pass(Object obj) {
-	    return ((TrainerEvent)obj).side() == Constants.RIGHT;
-	  }
-	};
-
       System.err.print("Deriving events for prior probability computations...");
       derivePriors();
       System.err.println("done.");
@@ -818,15 +829,15 @@ public class Trainer implements Serializable {
       nonterminalPriorModel.canonicalize(canonicalEventLists);
       topNonterminalModel.deriveCounts(headEvents, topOnly);
       topNonterminalModel.canonicalize(canonicalEventLists);
-      topLexModel.deriveCounts(headEvents, topOnly);
+      topLexModel.deriveCounts(headEvents, allPass);
       topLexModel.canonicalize(canonicalEventLists);
       headModel.deriveCounts(headEvents, nonTop);
       headModel.canonicalize(canonicalEventLists);
       gapModel.deriveCounts(gapEvents, allPass);
       gapModel.canonicalize(canonicalEventLists);
-      leftSubcatModel.deriveCounts(headEvents, allPass);
+      leftSubcatModel.deriveCounts(headEvents, nonTop);
       leftSubcatModel.canonicalize(canonicalEventLists);
-      rightSubcatModel.deriveCounts(headEvents, allPass);
+      rightSubcatModel.deriveCounts(headEvents, nonTop);
       rightSubcatModel.canonicalize(canonicalEventLists);
       leftModNonterminalModel.deriveCounts(modifierEvents, leftOnly);
       leftModNonterminalModel.canonicalize(canonicalEventLists);
@@ -841,11 +852,12 @@ public class Trainer implements Serializable {
 		       rightSubcatModel.getProbStructure());
 
       canonicalEventLists = null;
+      /*
       System.err.print("gc ... ");
       System.err.flush();
       System.gc();
       System.err.println("done");
-
+      */
       modelCollection.set(lexPriorModel,
 			  nonterminalPriorModel,
 			  topNonterminalModel,
@@ -863,7 +875,9 @@ public class Trainer implements Serializable {
 			  nonterminals,
 			  posMap,
 			  leftSubcatMap,
-			  rightSubcatMap);
+			  rightSubcatMap,
+                          Language.training.getPrunedPreterms(),
+                          Language.training.getPrunedPunctuation());
     }
     catch (ExceptionInInitializerError e) {
       System.err.println(className + ": problem initializing an instance of " +
@@ -900,10 +914,12 @@ public class Trainer implements Serializable {
     int leftMSLastLevel = leftMS.numLevels() - 1;
     int rightMSLastLevel = rightMS.numLevels() - 1;
 
+    Filter filter = nonTop;
     Iterator events = headEvents.keySet().iterator();
     while (events.hasNext()) {
       HeadEvent headEvent = (HeadEvent)events.next();
-
+      if (!filter.pass(headEvent))
+        continue;
       Event leftContext =
 	leftMS.getHistory(headEvent, leftMSLastLevel).copy();
       leftContext.canonicalize(canonicalSubcatMap);
@@ -924,17 +940,25 @@ public class Trainer implements Serializable {
     canonicalSubcatMap = null; // it has served its purpose
   }
 
-  // a couple of utility methods to output subcat maps
+  // three utility methods to output subcat maps
+
+  /**
+   * Outputs the subcat maps internal to this <code>Trainer</code> object
+   * to <code>System.err</code>.
+   */
+  public void outputSubcatMaps() {
+    outputSubcatMaps(leftSubcatMap, rightSubcatMap);
+  }
 
   /** Outputs both left and right subcat maps to <code>System.err</code>. */
-  public void outputSubcatMaps() {
+  public static void outputSubcatMaps(Map leftSubcatMap, Map rightSubcatMap) {
     try {
       BufferedWriter systemErr =
 	new BufferedWriter(new OutputStreamWriter(System.err,
 						  Language.encoding()),
 			   Constants.defaultFileBufsize);
       try {
-	outputSubcatMaps(systemErr);
+	outputSubcatMaps(leftSubcatMap, rightSubcatMap, systemErr);
 	systemErr.flush();
       }
       catch (IOException ioe) {
@@ -947,12 +971,16 @@ public class Trainer implements Serializable {
   }
 
   /** Outputs both left and right subcat maps to the specified writer. */
-  public void outputSubcatMaps(Writer writer) throws IOException {
+  public static void outputSubcatMaps(Map leftSubcatMap,
+                                      Map rightSubcatMap,
+                                      Writer writer) throws IOException {
     SymbolicCollectionWriter.writeMap(leftSubcatMap,
 				      Symbol.add("left-subcat"), writer);
     SymbolicCollectionWriter.writeMap(rightSubcatMap,
 				      Symbol.add("right-subcat"), writer);
   }
+
+
 
   /**
    * Runs through all headEvents and modifierEvents, collecting lexicalized
@@ -1205,7 +1233,6 @@ public class Trainer implements Serializable {
     ObjectOutputStream oos = new ObjectOutputStream(bos);
     writeModelCollection(oos,
 			 trainingInputFilename, trainingOutputFilename);
-    oos.close();
   }
 
   public void writeModelCollection(ObjectOutputStream oos,
@@ -1227,7 +1254,7 @@ public class Trainer implements Serializable {
   public static ModelCollection loadModelCollection(String objectInputFilename)
     throws ClassNotFoundException, IOException, OptionalDataException {
     FileInputStream fi = new FileInputStream(objectInputFilename);
-    int bufSize = Constants.defaultFileBufsize;
+    int bufSize = Constants.defaultFileBufsize * 10;
     BufferedInputStream bfi = new BufferedInputStream(fi, bufSize);
     ObjectInputStream ois = new ObjectInputStream(bfi);
     System.err.println("\nLoading derived counts from object file \"" +

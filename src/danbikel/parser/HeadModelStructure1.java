@@ -17,6 +17,7 @@ public class HeadModelStructure1 extends ProbabilityStructure {
     Sexp noGapParent =
       Language.training.removeGapAugmentation(headEvent.parent());
 
+    MutableEvent history = histories[backOffLevel];
     history.clear();
     switch (backOffLevel) {
     case 0:
@@ -38,6 +39,7 @@ public class HeadModelStructure1 extends ProbabilityStructure {
   }
 
   public Event getFuture(TrainerEvent trainerEvent, int backOffLevel) {
+    MutableEvent future = futures[backOffLevel];
     future.clear();
     future.add(((HeadEvent)trainerEvent).head());
     return future;

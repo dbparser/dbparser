@@ -36,7 +36,7 @@ import java.lang.reflect.Proxy;
  * @see AbstractServer
  */
 public abstract class AbstractSwitchboardUser
-  extends UnicastRemoteObject implements SwitchboardUser {
+  extends RemoteServer implements SwitchboardUser {
 
   /** The fallback-default timeout value for client- (switchboard-) side
       sockets.  The value of this constant is <tt>120000</tt>. */
@@ -102,7 +102,7 @@ public abstract class AbstractSwitchboardUser
       super(stub, retries, sleep);
       this.sbUser = sbUser;
     }
-    
+
     protected static
     synchronized Object proxyFor(Object stub, AbstractSwitchboardUser sbUser,
 				 int retries, long sleep) {
@@ -170,6 +170,12 @@ public abstract class AbstractSwitchboardUser
   private boolean aliveRenewed = false;
 
   /**
+   * A no-arg constructor for concrete subclasses that wish to have
+   * stand-alone (non-exported) constructors.
+   */
+  protected AbstractSwitchboardUser() {}
+
+  /**
    * Constructs a switchboard user whose switchboard-side (RMI client-side)
    * sockets will have the specified timeout.  This constructor must be
    * called by the constructor of a subclass.
@@ -212,7 +218,7 @@ public abstract class AbstractSwitchboardUser
 				    RMIClientSocketFactory csf,
 				    RMIServerSocketFactory ssf)
     throws RemoteException {
-    super(port, csf, ssf);
+    UnicastRemoteObject.exportObject(this, port, csf, ssf);
     setClassName();
   }
 
@@ -229,7 +235,7 @@ public abstract class AbstractSwitchboardUser
   /**
    * Repeatedly tries to get the switchboard stub from the bootstrap registry.
    * The number of times is determined by the value of
-   * {@link #maxSwitchboardTries}.  Each attempt that results in an 
+   * {@link #maxSwitchboardTries}.  Each attempt that results in an
    * error will be printed out to <code>System.err</code>.
    */
   protected void getSwitchboard(String name, boolean verbose)
@@ -241,7 +247,7 @@ public abstract class AbstractSwitchboardUser
    * Repeatedly tries to get the switchboard stub from the bootstrap registry.
    * The number of times is determined by the value of
    * {@link #maxSwitchboardTries}.  If <code>verbose</code> is
-   * <code>true</code>, each attempt that results in an 
+   * <code>true</code>, each attempt that results in an
    * error will be printed out to the specified <code>PrintWriter</code>.
    *
    * @param name the name of the switchboard in the bootstrap registry

@@ -1,6 +1,5 @@
 package danbikel.lisp;
 
-import java.io.Serializable;
 import java.util.*;
 import java.lang.ref.*;
 
@@ -16,12 +15,12 @@ import java.lang.ref.*;
  * In this way, the programmer need never be concerned about the symbol
  * map monotonically growing simply because the program continues to
  * instantiate new symbols.
- * 
+ *
  * @see StringSymbol
  * @see IntSymbol
 */
 
-abstract public class Symbol extends Sexp implements Serializable {
+abstract public class Symbol extends Sexp {
 
   private final static boolean selfCleaning = true;
 

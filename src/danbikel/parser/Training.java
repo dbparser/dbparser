@@ -34,6 +34,8 @@ public abstract class Training implements Serializable {
   protected static final String addGapInfoProperty =
     "parser.training.addgapinfo";
 
+  // data members
+
   private Nonterminal nonterminal = new Nonterminal();
   private Nonterminal addGapData = new Nonterminal();
 
@@ -90,7 +92,7 @@ public abstract class Training implements Serializable {
   protected String canonicalDelimPlusArgAug;
 
   /**
-   * The symbol that gets reassigned as the part of speech for null
+   * The symbol that gets assigned as the part of speech for null
    * preterminals that represent traces that have undergone WH-movement, as
    * relabeled by the default implementation of {@link
    * #addGapInformation(Sexp)}.  The default value is the return value of
@@ -124,6 +126,12 @@ public abstract class Training implements Serializable {
    * should be added in the constructor of a subclass.
    */
   protected Set nodesToPrune;
+
+  /**
+   * The set of preterminals (<code>Sexp</code> objects) that have been pruned
+   * away.
+   */
+  protected Set prunedPreterms = new HashSet();
 
   /**
    * Data member used to store the map required by the default implementation
@@ -183,6 +191,12 @@ public abstract class Training implements Serializable {
   // data members used by raisePunctuation
   private SexpList addToRaise = new SexpList();
   private SexpList raise = new SexpList();
+  /**
+   * The set of preterminals (<code>Sexp</code> objects) that were "raised
+   * away" by {@link #raisePunctuation(Sexp)} because they appeared either at
+   * the beginning or the end of a sentence.
+   */
+  protected Set prunedPunctuation = new HashSet();
 
   // data member used by hasGap
   private ArrayList hasGapIndexStack = new ArrayList();
@@ -210,11 +224,11 @@ public abstract class Training implements Serializable {
    * in order:
    * <ol>
    * <li> {@link #prune(Sexp)}
-   * <li> {@link #raisePunctuation(Sexp)}
    * <li> {@link #addBaseNPs(Sexp)}
    * <li> {@link #addGapInformation(Sexp)}
    * <li> {@link #relabelSubjectlessSentences(Sexp)}
    * <li> {@link #removeNullElements(Sexp)}
+   * <li> {@link #raisePunctuation(Sexp)}
    * <li> {@link #identifyArguments(Sexp)}
    * <li> {@link #stripAugmentations(Sexp)}
    * </ol>
@@ -239,6 +253,12 @@ public abstract class Training implements Serializable {
    *   <li>{@link #addGapInformation(Sexp)} because the determination of
    *   the location of a trace requires the presence of indexed null elements
    *   </ul>
+   * <li>{@link #raisePunctuation(Sexp)} should be run after
+   * {@link #removeNullElements(Sexp)} because a null element that is a
+   * leftmost or rightmost child can block detection of a punctuation element
+   * that needs to be raised after removal of the null element (if a punctuation
+   * element is the next-to-leftmost or next-to-rightmost child of an interior
+   * node)
    * <li>{@link #stripAugmentations(Sexp)} should be run after all methods
    * that may depend upon the presence of nonterminal augmentations: {@link
    * #identifyArguments(Sexp)}, {@link #relabelSubjectlessSentences(Sexp)} and
@@ -250,11 +270,11 @@ public abstract class Training implements Serializable {
    */
   public Sexp preProcess(Sexp tree) {
     prune(tree);
-    raisePunctuation(tree);
     addBaseNPs(tree);
     addGapInformation(tree);
     relabelSubjectlessSentences(tree);
     removeNullElements(tree);
+    raisePunctuation(tree);
     identifyArguments(tree);
     stripAugmentations(tree);
     return tree;
@@ -293,8 +313,27 @@ public abstract class Training implements Serializable {
   }
 
   /**
+   * Returns <code>true</code> if the specified label is a node to prune.
+   */
+  /*
+  public boolean isNodeToPrune(Symbol label) {
+    return nodesToPrune.contains(label);
+  }
+  */
+
+  /**
+   * Returns the set of pruned preterminals (<code>Sexp</code> objects).
+   *
+   * @see #prune(Sexp)
+   */
+  public Set getPrunedPreterms() { return prunedPreterms; }
+
+  /**
    * Prunes away subtrees that have a root that is an element of
    * <code>nodesToPrune</code>.
+   * <p>
+   * <b>Side effect</b>: An internal set of pruned preterminals will
+   * be updated.  This set may be accessed via {@link #getPrunedPreterms()}.
    * <p>
    * <b>Bugs</b>: Cannot prune away entire tree if the root label of the
    * specified tree is in <code>nodesToPrune</code>.
@@ -313,12 +352,26 @@ public abstract class Training implements Serializable {
     if (tree.isList()) {
       SexpList treeList = tree.list();
       for (int i = 1; i < treeList.length(); i++)
-	if (nodesToPrune.contains(treeList.getChildLabel(i)))
+	if (nodesToPrune.contains(treeList.getChildLabel(i))) {
+          collectPreterms(prunedPreterms, treeList.get(i));
 	  treeList.remove(i--);
+	}
 	else
 	  prune(treeList.get(i));
     }
     return tree;
+  }
+
+  private final void collectPreterms(Set preterms, Sexp tree) {
+    if (treebank.isPreterminal(tree)) {
+      preterms.add(tree);
+    }
+    else if (tree.isList()) {
+      SexpList treeList = tree.list();
+      int treeListLen = treeList.length();
+      for (int i = 1; i < treeListLen; i++)
+        collectPreterms(preterms, treeList.get(i));
+    }
   }
 
   /**
@@ -460,8 +513,8 @@ public abstract class Training implements Serializable {
     hasGap(tree, tree, hasGapIndexStack);
     return tree;
   }
-    
-  
+
+
   /**
    * Returns -1 if <code>tree</code> has no gap (trace), or the index of the
    * trace otherwise.  If <code>tree</code> is a null preterminal with an
@@ -588,7 +641,7 @@ public abstract class Training implements Serializable {
       SexpList treeList = tree.list();
       int treeListLen = treeList.length();
       Symbol parent = treeList.get(0).symbol();
-      
+
       int numWHNPChildren = 0;
       int whnpIdx = -1;
       for (int i = 1; i < treeListLen; i++) {
@@ -610,7 +663,7 @@ public abstract class Training implements Serializable {
 	System.err.println(className + ": warning: multiple WHNP nodes have " +
 			   "moved to become children of the same parent (" +
 			   parent + ") for tree\n\t" + root);
-      
+
       if (numWHNPChildren > 0)
 	indexStack.add(new Integer(whnpIdx));
 
@@ -629,7 +682,7 @@ public abstract class Training implements Serializable {
 
       // don't need to issue warning if numTracesToBeLinked > 1, since
       // we check for crossing WHNP movement in base case above
-      
+
       if (numTracesToBeLinked > 0) {
 	Nonterminal parsedParent =
 	  treebank.parseNonterminal(parent, nonterminal);
@@ -777,7 +830,7 @@ public abstract class Training implements Serializable {
       Sexp curr = tree;
       for ( ; !(treebank.isPreterminal(curr)); curr = curr.list().get(1))
 	if (curr.list().length() != 2)
-	  return false;       
+	  return false;
       return treebank.isNullElementPreterminal(curr);
     }
     else
@@ -832,6 +885,10 @@ public abstract class Training implements Serializable {
    * defined by the implementation of the method {@link
    * Treebank#isPuncToRaise(Sexp)}.
    * <p>
+   * <b>Side effect</b>: All preterminals removed from the beginning and end
+   * of the sentence are stored in an internal set, which can be accessed
+   * via {@link #getPrunedPunctuation()}.
+   * <p>
    * Example of punctuation raising:
    * <pre>
    * (S (NP
@@ -874,7 +931,8 @@ public abstract class Training implements Serializable {
    * cause an interior node to become a leaf).
    * <p>
    * @param tree the parse tree to destructively modify by raising punctuation
-   * @return a reference to the modified <code>tree</code> object */
+   * @return a reference to the modified <code>tree</code> object
+   */
   public Sexp raisePunctuation(Sexp tree) {
     /*
     leftRaise.clear();
@@ -883,8 +941,12 @@ public abstract class Training implements Serializable {
     */
     raise.clear();
     raisePunctuation(tree, raise, Constants.LEFT);
+    for (int i = 0; i < raise.length(); i++)
+      prunedPunctuation.add(raise.get(i));
     raise.clear();
     raisePunctuation(tree, raise, Constants.RIGHT);
+    for (int i = 0; i < raise.length(); i++)
+      prunedPunctuation.add(raise.get(i));
     return tree;
   }
 
@@ -897,7 +959,7 @@ public abstract class Training implements Serializable {
 			 "\t" + tree);
       return;
     }
-	
+
     // if tree is a list with at least two children (i.e., of length 3)
     if (tree.isList()) {
       SexpList treeList = tree.list();
@@ -929,7 +991,7 @@ public abstract class Training implements Serializable {
 	  }
 	  // set i to the new last element index (not strictly necessary)
 	  if (raise.addAll(addToRaise.reverse()))
-	    i = endIdx; 
+	    i = endIdx;
 	}
 	// if it's not the last child we're visiting at this level and
 	// there are raise requests enqueued, we can oblige by
@@ -945,6 +1007,7 @@ public abstract class Training implements Serializable {
 	    if (leftToRight)
 	      i += insertIncrement;
 	  }
+          endIdx = (leftToRight ? treeList.length() - 1 : 1);
 	  i -= insertIncrement; // offset increment for enclosing for loop
 	  raise.clear();
 	}
@@ -954,11 +1017,20 @@ public abstract class Training implements Serializable {
 
   private static boolean allChildrenPuncToRaise(Sexp tree) {
     int treeLen = tree.list().length();
-    for (int i = 0; i < treeLen; i++)
+    for (int i = 1; i < treeLen; i++)
       if (Language.treebank.isPuncToRaise(tree.list().get(i)) == false)
 	return false;
     return true;
   }
+
+  /**
+   * Returns the set of preterminals (<code>Sexp</code> objects) that were
+   * punctuation elements that were "raised away" because they were either at
+   * the beginning or end of a sentence.
+   *
+   * @see #raisePunctuation(Sexp)
+   */
+  public Set getPrunedPunctuation() { return prunedPunctuation; }
 
   /**
    * Adds and/or relabels base NPs, which are defined in this default

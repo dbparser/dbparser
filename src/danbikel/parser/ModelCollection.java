@@ -31,6 +31,8 @@ public class ModelCollection implements Serializable {
   private Map posMap;
   private Map leftSubcatMap;
   private Map rightSubcatMap;
+  private Set prunedPreterms;
+  private Set prunedPunctuation;
 
   // derived data
   // maps from integers to nonterminals and nonterminals to integers
@@ -98,7 +100,9 @@ public class ModelCollection implements Serializable {
 		  CountsTable nonterminals,
 		  Map posMap,
 		  Map leftSubcatMap,
-		  Map rightSubcatMap) {
+		  Map rightSubcatMap,
+                  Set prunedPreterms,
+                  Set prunedPunctuation) {
     this.lexPriorModel = lexPriorModel;
     this.nonterminalPriorModel = nonterminalPriorModel;
     this.topNonterminalModel = topNonterminalModel;
@@ -117,6 +121,8 @@ public class ModelCollection implements Serializable {
     this.posMap = posMap;
     this.leftSubcatMap = leftSubcatMap;
     this.rightSubcatMap = rightSubcatMap;
+    this.prunedPreterms = prunedPreterms;
+    this.prunedPunctuation = prunedPunctuation;
 
     createNonterminalMap();
   }
@@ -155,4 +161,6 @@ public class ModelCollection implements Serializable {
   public Map posMap() { return posMap; }
   public Map leftSubcatMap() { return leftSubcatMap; }
   public Map rightSubcatMap() { return rightSubcatMap; }
+  public Set prunedPreterms() { return prunedPreterms; }
+  public Set prunedPunctuation() { return prunedPunctuation; }
 }

@@ -148,4 +148,13 @@ public interface Subcat extends MutableEvent, SexpConvertible {
    * list returned by this method.
    */
   public Sexp toSexp();
+
+  /**
+   * Causes this subcat to be equal to the specified subcat by copying the
+   * specified subcat's data to this subcat.
+   *
+   * @throws ClassCastException if the specified subcat is not of the same
+   * run-time type as this subcat
+   */
+  public void become(Subcat other);
 }

@@ -58,22 +58,15 @@ public class HeadEvent implements TrainerEvent, Cloneable {
    */
   public HeadEvent(Word headWord, Symbol parent, Symbol head,
 		   SexpList leftSubcat, SexpList rightSubcat) {
-    this.headWord = headWord;
-    this.parent = parent;
-    this.head = head;
-    this.leftSubcat = Subcats.get(leftSubcat);
-    this.rightSubcat = Subcats.get(rightSubcat);
+    this(headWord, parent, head,
+         Subcats.get(leftSubcat), Subcats.get(rightSubcat));
   }
 
   public HeadEvent(Word headWord, Symbol parent, Symbol head,
 		   Subcat leftSubcat, Subcat rightSubcat) {
-    this.headWord = headWord;
-    this.parent = parent;
-    this.head = head;
-    this.leftSubcat = leftSubcat;
-    this.rightSubcat = rightSubcat;
+    set(headWord, parent, head, leftSubcat, rightSubcat);
   }
-  
+
 
   // accessors
   /** Returns the head word of this head event. */
@@ -92,6 +85,22 @@ public class HeadEvent implements TrainerEvent, Cloneable {
    * Returns <code>null</code>, as head events do not deal with modifier words.
    */
   public Word modHeadWord() { return null; }
+
+  // mutators
+
+  void setHeadWord(Word headWord) { this.headWord = headWord; }
+  void setParent(Symbol parent) { this.parent = parent; }
+  void setHead(Symbol head) { this.head = head; }
+  void setLeftSubcat(Subcat leftSubcat) { this.leftSubcat = leftSubcat; }
+  void setRightSubcat(Subcat rightSubcat) { this.rightSubcat = rightSubcat; }
+  void set(Word headWord, Symbol parent, Symbol head,
+           Subcat leftSubcat, Subcat rightSubcat) {
+    this.headWord = headWord;
+    this.parent = parent;
+    this.head = head;
+    this.leftSubcat = leftSubcat;
+    this.rightSubcat = rightSubcat;
+  }
 
   /**
    * Throws an <code>UnsupportedOperationException</code>, as this is not

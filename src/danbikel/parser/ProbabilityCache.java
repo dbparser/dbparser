@@ -6,7 +6,7 @@ import danbikel.util.LRUCache;
  * A least-recently used cache storing arbitrary objects with their
  * probabilities.
  */
-public class ProbabilityCache extends LRUCache {
+public class ProbabilityCache extends java.util.WeakHashMap {
 
   /**
    * Constructs a <code>ProbabilityCache</code> with the specified minimum
@@ -16,7 +16,8 @@ public class ProbabilityCache extends LRUCache {
    * @see LRUCache#LRUCache(int)
    */
   public ProbabilityCache(int minCapacity) {
-    super(minCapacity);
+    //super(minCapacity);
+    super();
   }
   /**
    * Constructs a <code>ProbabilityCache</code> with the specified minimum
@@ -28,7 +29,8 @@ public class ProbabilityCache extends LRUCache {
    * @see LRUCache#LRUCache(int,int)
    */
   public ProbabilityCache(int minCapacity, int initialCapacity) {
-    super(minCapacity, initialCapacity);
+    //super(minCapacity, initialCapacity);
+    super(initialCapacity);
   }
   /**
    * Constructs a <code>ProbabilityCache</code> with the specified minimum
@@ -43,7 +45,8 @@ public class ProbabilityCache extends LRUCache {
    */
   public ProbabilityCache(int minCapacity, int initialCapacity,
 			  float loadFactor) {
-    super(minCapacity, initialCapacity, loadFactor);
+    //super(minCapacity, initialCapacity, loadFactor);
+    super(initialCapacity, loadFactor);
   }
 
   /**
@@ -65,7 +68,7 @@ public class ProbabilityCache extends LRUCache {
    * @return the old value associated with <code>key</code>, or
    * <code>null</code> if there was no mapping for this key
    */
-  public Object put(Object key, double probability) {
+  public synchronized Object put(Object key, double probability) {
     return super.put(key, new Double(probability));
   }
 
@@ -89,7 +92,7 @@ public class ProbabilityCache extends LRUCache {
    * @return the probability of the specified key or <code>null</code>
    * if it is not in this cache
    */
-  public Double getProb(Object key) {
+    public synchronized Double getProb(Object key) {
     return (Double)super.get(key);
   }
 }

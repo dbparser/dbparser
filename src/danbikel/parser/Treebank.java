@@ -160,7 +160,7 @@ public abstract class Treebank implements Serializable {
    * of {@link Training#relabelSubjectlessSentences(Sexp)}.
    */
   public abstract boolean isNullElementPreterminal(Sexp tree);
-  
+
   /**
    * Returns the index of a trace for the specified null element preterminal.
    * This default implementation assumes trace indicies are marked on trace
@@ -255,6 +255,29 @@ public abstract class Treebank implements Serializable {
    * @see Trainer
    */
   public abstract boolean isVerb(Sexp preterminal);
+
+  /**
+   * Returns <code>true</code> if the specified symbol is the part of speech
+   * tag of a verb.  This method should return true for exactly the same
+   * parts of speech for which {@link #isVerb(Sexp)} returns <code>true</code>,
+   * and is used to calculate the distance metric while decoding.
+   *
+   * @see CKYItem#containsVerb()
+   * @see Decoder
+   */
+  public abstract boolean isVerbTag(Symbol tag);
+
+  /**
+   * Returns <code>true</code> if the specified word is a comma.  This method
+   * is used by the <code>Decoder</code> class when performing the comma
+   * constraint on chart items.  This method may return <code>null</code> if
+   * the comma constraint will never be used with a particular language
+   * package.
+   *
+   * @param word the word to test
+   * @see Settings#decoderUseCommaConstraint
+   */
+  public abstract boolean isComma(Symbol word);
 
   /**
    * Returns a string whose characters are the set of delimiters for
@@ -537,7 +560,7 @@ public abstract class Treebank implements Serializable {
 
   /**
    * Removes the specified augmentation from the augmentation list of the
-   * specified <code>Nonterminal</code> object, and the previous augmentation 
+   * specified <code>Nonterminal</code> object, and the previous augmentation
    * delimiter.  If the specified augmentation is <i>not</i> preceded by
    * an augmentation delimiter, meaning it is the base label itself, then it
    * is not removed.

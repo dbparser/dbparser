@@ -20,7 +20,7 @@
 (sem-tag-arg-stop-list (ADV VOC BNF DIR EXT LOC MNR TMP CLR PRP))
 
 ;;; a list of nodes to be pruned from training data parse trees
-(prune-nodes (`` ''))
+(prune-nodes (`` '' .))
 
 ;;; THE FOLLOWING DATA IS CURRENTLY NOT USED BY danbikel.parser.english.Training
 

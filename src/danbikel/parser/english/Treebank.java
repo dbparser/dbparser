@@ -22,7 +22,7 @@ import danbikel.parser.Nonterminal;
  */
 public class Treebank extends danbikel.parser.Treebank {
 
-  // bit vector for delimiters of augmented nonterminal labels
+  // the characters that are delimiters of augmented nonterminal labels
   private final static String augmentationDelimStr = "-=|";
 
   // basic nodes in the English Treebank that will be transformed in a
@@ -37,6 +37,7 @@ public class Treebank extends danbikel.parser.Treebank {
   // other basic nodes
   static final Symbol WHNP = Symbol.add("WHNP");
   static final Symbol CC = Symbol.add("CC");
+  static final Symbol comma = Symbol.add(",");
 
   // null element
   static final Symbol nullElementPreterminal = Symbol.add("-NONE-");
@@ -59,7 +60,7 @@ public class Treebank extends danbikel.parser.Treebank {
 			    canonicalLabelMapData[i][1]);
   }
 
-  private static String[] puncToRaiseElements = {",", "."};
+  private static String[] puncToRaiseElements = {",", ":"};
 
   private static Set puncToRaise = new HashSet();
   static {
@@ -132,8 +133,6 @@ public class Treebank extends danbikel.parser.Treebank {
    * <code>&quot;.&quot;</code>.
    */
   public boolean isPuncToRaise(Sexp preterm) {
-    if (preterm == null)
-      throw new RuntimeException("yikes!!!");
     return (isPreterminal(preterm) &&
 	    puncToRaise.contains(preterm.list().first()));
   }
@@ -202,7 +201,15 @@ public class Treebank extends danbikel.parser.Treebank {
    * @return <code>true</code> if <code>preterminal</code> is a verb
    */
   public boolean isVerb(Sexp preterminal) {
-    return verbTags.contains(preterminal.list().get(0).symbol());
+    return isVerbTag(preterminal.list().get(0).symbol());
+  }
+
+  public boolean isVerbTag(Symbol tag) {
+    return verbTags.contains(tag);
+  }
+
+  public boolean isComma(Symbol word) {
+    return word == comma;
   }
 
   /**

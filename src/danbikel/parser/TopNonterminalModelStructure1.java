@@ -11,15 +11,18 @@ public class TopNonterminalModelStructure1 extends ProbabilityStructure {
   public Event getHistory(TrainerEvent trainerEvent, int backOffLevel) {
     if (backOffLevel != 0)
       throw new IllegalArgumentException();
+    MutableEvent history = histories[backOffLevel];
     history.clear();
-    // for p(H | +TOP+)
+    // for p(H,t | +TOP+)
     history.add(trainerEvent.parent());
     return history;
   }
   public Event getFuture(TrainerEvent trainerEvent, int backOffLevel) {
+    MutableEvent future = futures[backOffLevel];
     future.clear();
-    // for p(H | ...)
+    // for p(H,t | ...)
     future.add(((HeadEvent)trainerEvent).head());
+    future.add(((HeadEvent)trainerEvent).headWord().tag());
     return future;
   }
 

@@ -138,7 +138,6 @@ public class StartSwitchboard {
       // and create messages file in that directory
       File outFile = new File(outFilenameMain);
       String messageFilename =
-	System.getProperty("user.dir") + File.separator +
 	outFile.getParent() + File.separator +
 	Switchboard.defaultMessagesFilename;
 

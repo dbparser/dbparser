@@ -2,6 +2,7 @@ package danbikel.parser;
 
 import danbikel.lisp.*;
 import java.util.*;
+import java.io.*;
 
 /**
  * Provides a bag implementation of subcat requirements (a <i>bag</i>
@@ -37,7 +38,7 @@ import java.util.*;
  * @see Subcats
  * @see #toSexp()
  */
-public class SubcatBag implements Subcat {
+public class SubcatBag implements Subcat, Externalizable {
   // constants
   // index constants: make sure to update remove method if these change
   // (if it's necessary: see comment inside remove method code)
@@ -292,7 +293,7 @@ public class SubcatBag implements Subcat {
     sb.append("size=").append(counts[sizeIdx]).append(" ");
     for (int i = firstRealUid; i < counts.length; i++)
       sb.append(symbols[i]).append("=").append(counts[i]).append(" ");
-    sb.append("misc=").append(counts[miscIdx]).append("\n");
+    sb.append("misc=").append(counts[miscIdx]);
     return sb.toString();
   }
 
@@ -435,5 +436,29 @@ public class SubcatBag implements Subcat {
     for (int i = 0; i < size; i++)
       list.add((Symbol)get(0, i));
     return list;
+  }
+
+  public void writeExternal(ObjectOutput stream) throws IOException {
+    stream.writeByte(size());
+    stream.writeInt(counts.length - 1);
+    for (int countIdx = 1; countIdx < counts.length; countIdx++) {
+      stream.writeObject(symbols[countIdx]);
+      stream.writeByte(counts[countIdx]);
+    }
+  }
+  public void readExternal(ObjectInput stream)
+    throws IOException, ClassNotFoundException {
+    counts[sizeIdx] = stream.readByte();
+    int numPairs = stream.readInt();
+    for (int i = 0; i < numPairs; i++) {
+      Symbol requirement = (Symbol)stream.readObject();
+      counts[getUid(requirement)] = stream.readByte();
+    }
+  }
+
+  public void become(Subcat other) {
+    SubcatBag otherBag = (SubcatBag)other;
+    System.arraycopy(otherBag.counts, 0, this.counts, 0,
+                     otherBag.counts.length);
   }
 }

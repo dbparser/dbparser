@@ -3,7 +3,7 @@ package danbikel.parser;
 import java.util.HashMap;
 import danbikel.util.*;
 import danbikel.lisp.*;
-import java.io.Serializable;
+import java.io.*;
 import java.util.*;
 
 /**
@@ -28,6 +28,11 @@ import java.util.*;
  * @see ProbabilityStructure
  */
 public class Model implements Serializable {
+  // constants
+  private final static boolean useCache = true;
+  private final static int topLevelCacheSize = 50000;
+  private final static int minCacheSize = 1000;
+
   // data members
 
   // the prob structure to use
@@ -46,6 +51,8 @@ public class Model implements Serializable {
   // for temporary storage of histories (so we don't have to copy histories
   // created by deriveHistories() to create transition objects)
   private transient HashMap[] histories;
+  private transient ProbabilityCache topLevelCache;
+  private transient ProbabilityCache[] cache;
 
   /**
    * Constructs a new object for deriving all counts using the specified
@@ -59,8 +66,24 @@ public class Model implements Serializable {
     numLevels = structure.numLevels();
     specialLevel = structure.specialLevel();
     counts = new CountsTrio[numLevels];
-    for (int i = 0; i < counts.length; i++) {
+    for (int i = 0; i < counts.length; i++)
       counts[i] = new CountsTrio();
+    if (useCache)
+      setUpCaches();
+  }
+
+  private void setUpCaches() {
+    int cacheSize = topLevelCacheSize;
+    topLevelCache = new ProbabilityCache(cacheSize, cacheSize);
+    cacheSize /= 2;
+    if (cacheSize < minCacheSize)
+      cacheSize = minCacheSize;
+    cache = new ProbabilityCache[numLevels];
+    for (int i = 0; i < cache.length; i++) {
+      cache[i] = new ProbabilityCache(cacheSize, cacheSize);
+      cacheSize /= 2;
+      if (cacheSize < minCacheSize)
+        cacheSize = minCacheSize;
     }
   }
 
@@ -79,7 +102,7 @@ public class Model implements Serializable {
     Time time = null;
     if (verbose)
       time = new Time();
-    
+
     Iterator entries = trainerCounts.entrySet().iterator();
     while (entries.hasNext()) {
       Map.Entry entry = (Map.Entry)entries.next();
@@ -150,17 +173,51 @@ public class Model implements Serializable {
 
   protected double estimateProb(ProbabilityStructure structure,
 				TrainerEvent event) {
-    // check cache here!
+    if (Debug.level >= 20) {
+      System.err.println(structure.getClass().getName() + "\n\t" + event);
+    }
+
+    if (useCache) {
+      Double cacheProb = topLevelCache.getProb(event);
+      if (cacheProb != null)
+        return cacheProb.doubleValue();
+    }
+
+    int highestCachedLevel = numLevels;
 
     structure.prevHistCount = 0;
     for (int level = 0; level < numLevels; level++) {
       if (level == specialLevel)
 	estimateSpecialLevelProb(structure, event);
 
-      // check cache here!!!!!!!!!!!!
-      
       Event history = structure.getHistory(event, level);
       Transition transition = structure.getTransition(event, level);
+
+      // check cache here!!!!!!!!!!!!
+      if (useCache) {
+        if (Debug.level >= 21) {
+          System.err.print("getting prob for " + transition +
+                           " at level " + level + ": ");
+        }
+        Double cacheProb = cache[level].getProb(transition);
+        if (Debug.level >= 21) {
+          System.err.println(cacheProb);
+        }
+        if (cacheProb != null) {
+          if (Debug.level >= 21) {
+            System.err.println("yea! " + structure.getClass().getName() +
+                               "; level=" + level);
+          }
+          structure.estimates[level] = cacheProb.doubleValue();
+          highestCachedLevel = level;
+          break;
+        }
+        else {
+          if (Debug.level >= 21) {
+            System.err.println("nope");
+          }
+        }
+      }
       CountsTrio trio = counts[level];
       double historyCount = trio.history().count(history);
       double transitionCount = trio.transition().count(transition);
@@ -180,19 +237,40 @@ public class Model implements Serializable {
 	estimate = transitionCount / historyCount;
       }
 
-      // cache probVal here!!!!!!!!!!!!
+      if (Debug.level >= 20) {
+        for (int i = 0; i < level; i++)
+          System.err.print("  ");
+        System.err.println(transitionCount + "    " +
+                           historyCount + "    " + uniqueCount + "    " +
+                           adjustment + "    " + estimate);
+      }
+
       structure.lambdas[level] = lambda;
       structure.estimates[level] = estimate;
       structure.prevHistCount = historyCount;
     }
     double prob = 0.0;
-    for (int level = numLevels - 1; level >= 0; level--) {
+    if (useCache) {
+      prob = (highestCachedLevel == numLevels ?
+              0.0 : structure.estimates[highestCachedLevel]);
+    }
+    for (int level = highestCachedLevel - 1; level >= 0; level--) {
       double lambda = structure.lambdas[level];
       double estimate = structure.estimates[level];
       prob = lambda * estimate + ((1 - lambda) * prob);
+      if (useCache  && prob > Constants.logOfZero) {
+        Transition transition = structure.transitions[level];
+	if (Debug.level >= 21) {
+	  System.err.println("adding " + transition + " to cache at level " +
+			     level);
+	}
+	cache[level].put(transition.copy(), prob);
+      }
     }
 
-    // cache prob here!!!!!!!!!!!!!
+    if (useCache && prob > Constants.logOfZero)
+      topLevelCache.put(event.copy(), prob);
+
     return prob;
   }
 
@@ -245,7 +323,7 @@ public class Model implements Serializable {
 					    TrainerEvent event) {
     return 1.0;
   }
-  
+
   /**
    * Called by
    * {@link #deriveCounts(CountsTable,Filter)}, for each
@@ -435,4 +513,11 @@ public class Model implements Serializable {
    * {@link #deriveCounts(CountsTable,Filter)}.
    */
   public void beQuiet() { verbose = false; }
+
+  private void readObject(ObjectInputStream in)
+  throws IOException, ClassNotFoundException {
+    in.defaultReadObject();
+    if (useCache)
+      setUpCaches();
+  }
 }

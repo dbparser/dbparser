@@ -1,5 +1,6 @@
 package danbikel.parser;
 
+import danbikel.util.ObjectPool;
 import danbikel.lisp.*;
 import java.io.Serializable;
 import java.util.*;
@@ -37,7 +38,12 @@ public class CKYChart extends Chart {
     super(size, cellLimit, pruneFact);
   }
 
-  protected boolean prune(SortedMap items, Item item, int limit, double fact) {
-    return true;
+  protected void setUpItemPool() {
+    itemPool = new ObjectPool(CKYItem.class, 50000);
+  }
+
+  public CKYItem getNewItem() {
+    return (CKYItem)itemPool.get();
+    // return new CKYItem();
   }
 }

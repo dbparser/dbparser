@@ -110,8 +110,8 @@ public class SexpTokenizer extends WordTokenizer {
 
   /**
    * Convenience constructor, creating a <code>SexpTokenizer</code> around a
-   * <code>BufferedReader</code> around a <code>FileInputStream</code>.
-   * The tokenizer will recognize comment lines. 
+   * <code>BufferedReader</code> around a <code>InputStreamReader</code>.
+   * The tokenizer will recognize comment lines.
    *
    * @param stream the stream of bytes, encoded with <code>encoding</code>,
    * containing S-expressions
@@ -120,13 +120,13 @@ public class SexpTokenizer extends WordTokenizer {
    * that will be created
    */
   public SexpTokenizer(InputStream stream, String encoding, int bufSize)
-    throws UnsupportedEncodingException, FileNotFoundException {
+    throws UnsupportedEncodingException {
     this(new BufferedReader(new InputStreamReader(stream, encoding), bufSize));
   }
 
   /**
    * Convenience constructor, creating a <code>SexpTokenizer</code> around a
-   * <code>BufferedReader</code> around a <code>FileInputStream</code>.
+   * <code>BufferedReader</code> around a <code>InputStreamReader</code>.
    *
    * @param stream the stream of bytes, encoded with <code>encoding</code>,
    * containing S-expressions
@@ -137,7 +137,7 @@ public class SexpTokenizer extends WordTokenizer {
    */
   public SexpTokenizer(InputStream stream, String encoding, int bufSize,
 		       boolean comments)
-    throws UnsupportedEncodingException, FileNotFoundException {
+    throws UnsupportedEncodingException {
     this(new BufferedReader(new InputStreamReader(stream, encoding), bufSize),
 	 comments);
   }

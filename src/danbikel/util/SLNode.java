@@ -1,18 +1,37 @@
 package danbikel.util;
 
+import java.io.Serializable;
 import java.util.*;
 
 /**
- * Represents a node in a singly-linked list.
+ * Represents a node in a singly-linked list.  This class provides
+ * low-level and direct access to the nodes of a singly-linked list
+ * and to the data objects at those nodes, and is thus intended to be
+ * used when efficiency concerns outweigh data abstraction concerns.
+ * For example, this class makes no attempt at providing synchronization
+ * mechanisms, nor does it attempt to check for concurrent modifications,
+ * as do most of the Collections framework classes.  Also, zero-length
+ * lists are represented implicitly by <code>null</code>, as far as
+ * this class is concerned.
  */
-public class SLNode {
+public class SLNode implements Serializable {
   private Object data;
   private SLNode next;
 
+  /**
+   * Constructs a new <code>SLNode</code> with the specified data object
+   * and <code>next</code> node.
+   *
+   * @param data the data to associate with this node
+   * @param next the next object in the singly-linked list, or
+   * <code>null</code> if this is the last node in the list
+   */
   public SLNode(Object data, SLNode next) {
     this.data = data;
     this.next = next;
   }
+
+  // accessors
 
   /**
    * Returns the data associated with this node of the list.
@@ -23,6 +42,13 @@ public class SLNode {
    * Returns the next node of this list.
    */
   public SLNode next() { return next; }
+
+  // mutators
+
+  public SLNode setData(Object data) {
+    this.data = data;
+    return this;
+  }
 
   /**
    * Sets the next node of this list.
@@ -67,6 +93,14 @@ public class SLNode {
 
   /**
    * Returns an iterator to iterate over the elements of this list.
+   * An alternative and more efficient iteration idiom is as
+   * follows:
+   * <pre>
+   * for (SLNode curr = &lt;init&gt;; curr.next() != null; curr = curr.next()) {
+   *   Object data = curr.data();
+   *   // operate on data at current node...
+   * }
+   * </pre>
    */
   public Iterator iterator() {
     return new Iterator() {
@@ -90,6 +124,10 @@ public class SLNode {
     };
   }
 
+  /**
+   * Returns a human- and <code>Sexp</code>-readable version of the
+   * singly-linked list headed by this node.
+   */
   public String toString() {
     StringBuffer sb = new StringBuffer();
     sb.append("(");
@@ -102,6 +140,10 @@ public class SLNode {
     return sb.toString();
   }
 
+  /**
+   * Returns the hash code for this singly-linked list, using the same
+   * algorithm specified by {@link List#hashCode()}.
+   */
   public int hashCode() {
     int code = 0;
     SLNode curr = this;
@@ -112,6 +154,13 @@ public class SLNode {
     return code;
   }
 
+  /**
+   * Returns <code>true</code> if the specified object is also an instance
+   * of <code>SLNode</code>, and if the singly-linked list it head has
+   * the same number of nodes as the list headed by this node, and if
+   * those two lists have data objects that are pairwise-equal; otherwise,
+   * this method returns <code>false</code>.
+   */
   public boolean equals(Object obj) {
     if (!(obj instanceof SLNode))
       return false;

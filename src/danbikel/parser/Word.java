@@ -237,7 +237,8 @@ public class Word implements Serializable, Cloneable, SexpConvertible {
    *
    * @return the string representation.
    */
-  public String toString() {
+  public String
+  toString() {
     StringBuffer b = new StringBuffer();
     b.append("(");
     b.append(word);

@@ -1,7 +1,7 @@
 package danbikel.parser;
 
 import danbikel.lisp.*;
-import java.io.Serializable;
+import java.io.*;
 
 /**
  * A class to represent the modifier generation event implicit in the models
@@ -94,15 +94,8 @@ public class ModifierEvent implements TrainerEvent, Cloneable {
 		       SexpList subcat,
 		       boolean verbIntervening,
 		       boolean side) {
-    this.modHeadWord = modHeadWord;
-    this.headWord = headWord;
-    this.modifier = modifier;
-    this.previousMods = SexpList.getCanonical(previousMods);
-    this.parent = parent;
-    this.head = head;
-    this.subcat = Subcats.get(subcat);
-    this.verbIntervening = verbIntervening;
-    this.side = side;
+    this(modHeadWord, headWord, modifier, previousMods, parent, head,
+         Subcats.get(subcat), verbIntervening, side);
   }
 
   public ModifierEvent(Word modHeadWord,
@@ -114,15 +107,8 @@ public class ModifierEvent implements TrainerEvent, Cloneable {
 		       Subcat subcat,
 		       boolean verbIntervening,
 		       boolean side) {
-    this.modHeadWord = modHeadWord;
-    this.headWord = headWord;
-    this.modifier = modifier;
-    this.previousMods = SexpList.getCanonical(previousMods);
-    this.parent = parent;
-    this.head = head;
-    this.subcat = subcat;
-    this.verbIntervening = verbIntervening;
-    this.side = side;
+    set(modHeadWord, headWord, modifier, previousMods, parent, head,
+        subcat, verbIntervening, side);
   }
 
   // accessors
@@ -154,6 +140,54 @@ public class ModifierEvent implements TrainerEvent, Cloneable {
    * this modifier lies on the right side.
    */
   public boolean side() { return side; }
+
+  // package-access mutators
+  void setModHeadWord(Word modHeadWord) {
+    this.modHeadWord = modHeadWord;
+  }
+  void setHeadWord(Word headWord) {
+    this.headWord = headWord;
+  }
+  void setModifier(Symbol modifier) {
+    this.modifier = modifier;
+  }
+  void setPreviousMods(SexpList previousMods) {
+    this.previousMods = previousMods;
+  }
+  void setParent(Symbol parent) {
+    this.parent = parent;
+  }
+  void setHead(Symbol head) {
+    this.head = head;
+  }
+  void setSubcat(Subcat subcat) {
+    this.subcat = subcat;
+  }
+  void setVerbIntervening(boolean verbIntervening) {
+    this.verbIntervening = verbIntervening;
+  }
+  void setSide(boolean side) {
+    this.side = side;
+  }
+  void set(Word modHeadWord,
+           Word headWord,
+           Symbol modifier,
+           SexpList previousMods,
+           Symbol parent,
+           Symbol head,
+           Subcat subcat,
+           boolean verbIntervening,
+           boolean side) {
+    this.modHeadWord = modHeadWord;
+    this.headWord = headWord;
+    this.modifier = modifier;
+    this.previousMods = SexpList.getCanonical(previousMods);
+    this.parent = parent;
+    this.head = head;
+    this.subcat = subcat;
+    this.verbIntervening = verbIntervening;
+    this.side = side;
+  }
 
   /**
    * Returns <code>true</code> if the specified object is an instance of
@@ -230,5 +264,15 @@ public class ModifierEvent implements TrainerEvent, Cloneable {
 			     (Subcat)subcat.copy(),
 			     verbIntervening,
 			     side);
+  }
+
+  private void readObject(ObjectInputStream in)
+  throws IOException, ClassNotFoundException {
+    in.defaultReadObject();
+    System.err.println("reading a ModifierEvent!");
+  }
+  private void writeObject(ObjectOutputStream out) throws IOException {
+    out.defaultWriteObject();
+    System.err.println("outputting a ModifierEvent!");
   }
 }

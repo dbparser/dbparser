@@ -24,7 +24,7 @@ public class ModNonterminalModelStructure1 extends ProbabilityStructure {
   public Event getHistory(TrainerEvent trainerEvent, int backOffLevel) {
     ModifierEvent modEvent = (ModifierEvent)trainerEvent;
 
-    MutableEvent hist = historyWithSubcat;
+    MutableEvent hist = historiesWithSubcats[backOffLevel];
 
     hist.clear();
     Symbol verbInterveningSym =
@@ -66,6 +66,7 @@ public class ModNonterminalModelStructure1 extends ProbabilityStructure {
 
   public Event getFuture(TrainerEvent trainerEvent, int backOffLevel) {
     ModifierEvent modEvent = (ModifierEvent)trainerEvent;
+    MutableEvent future = futures[backOffLevel];
     future.clear();
     future.add(modEvent.modifier());
     future.add(modEvent.modHeadWord().tag());

@@ -7,7 +7,7 @@ import java.rmi.server.*;
 
 /**
  * Delivers sockets with timeout values (set via
- * <code>Socket.setSoTimeout</code>.  In the case of
+ * <code>Socket.setSoTimeout</code>).  In the case of
  * <code>createServerSocket</code>, the <code>ServerSocket</code>
  * returned is of type <code>TimeoutServerSocket</code>, which
  * delivers sockets via its implementation of <code>accept</code> with
@@ -21,7 +21,7 @@ public class TimeoutSocketFactory
 
   private int clientTimeout;
   private int serverTimeout;
-  
+
   /**
    * Constructs a new <code>TimeoutSocketFactory</code> with the
    * specified timeout values for server and client sockets.
@@ -69,7 +69,7 @@ public class TimeoutSocketFactory
 
   public void setTimeout(int clientTimeout, int serverTimeout) {
     this.clientTimeout = clientTimeout;
-    this.serverTimeout = serverTimeout;    
+    this.serverTimeout = serverTimeout;
   }
 
   public boolean equals(Object obj) {

@@ -36,6 +36,8 @@ public class WordFeatures extends danbikel.parser.WordFeatures {
   private static boolean useUnderscores =
   Boolean.valueOf(Settings.get(useUnderscoresProperty)).booleanValue();
 
+  private final static Symbol defaultFeatureVector = Symbol.add("C0H0I0D0N0");
+
   private static String[] derivationalFeatures = {
     "-backed", "-based", "graphy", "meter", "ente", "ment", "ness",
     "tion", "ael", "ary", "ate", "ble", "ent", "ess", "est", "ial",
@@ -81,6 +83,10 @@ public class WordFeatures extends danbikel.parser.WordFeatures {
 	toString();
     }
     return Symbol.add(returnStr);
+  }
+
+  public Symbol defaultFeatureVector() {
+    return defaultFeatureVector;
   }
 
   private static String capitalizationFeature(String word, boolean firstWord) {

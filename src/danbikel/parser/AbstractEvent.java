@@ -12,7 +12,7 @@ package danbikel.parser;
 abstract public class AbstractEvent implements Event {
   AbstractEvent() { }
 
-  public boolean equals(Object obj) {
+  public boolean genericEquals(Object obj) {
     if (!(obj instanceof Event))
       return false;
     // check same number of types and same total number of components

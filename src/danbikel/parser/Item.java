@@ -46,7 +46,7 @@ public abstract class Item implements Serializable, Comparable {
 
   public int compareTo(Object o) {
     Item otherItem = (Item)o;
-    return (logProb < otherItem.logProb ? -1:
+    return (logProb < otherItem.logProb ? -1 :
 	    (logProb == otherItem.logProb ? 0 :
 	     1));
   }

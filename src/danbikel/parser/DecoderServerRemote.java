@@ -19,7 +19,20 @@ public interface DecoderServerRemote extends Server {
 
   public CountsTable nonterminals() throws RemoteException;
 
+  public Set prunedPreterms() throws RemoteException;
+
+  public Set prunedPunctuation() throws RemoteException;
+
+  /**
+   * Replaces every low-frequency or "unknown" word of the specified sentence
+   * with a two-element <code>SexpList</code> object, whose first element
+   * is the original word and whose second element is the word feature vector.
+   */
   public SexpList convertUnknownWords(SexpList sentence) throws RemoteException;
+
+  public ProbabilityStructure leftSubcatProbStructure() throws RemoteException;
+
+  public ProbabilityStructure rightSubcatProbStructure() throws RemoteException;
 
   /** Returns a test probability (for debugging purposes). */
   public double testProb() throws RemoteException;
@@ -60,6 +73,9 @@ public interface DecoderServerRemote extends Server {
    * @return the log of the probability of generating a new left modifier
    */
   public double logProbLeft(int id, TrainerEvent event) throws RemoteException;
+
+  public double logProbMod(int id, TrainerEvent event, boolean side)
+    throws RemoteException;
 
   /**
    * Returns the log of the probability of generating a gap.

@@ -13,6 +13,11 @@ import java.util.*;
 public class Debug implements Serializable {
   // data members
   public static int counter = 0;  // to count stuff
+  public static int level = 0;
+
+  public static void setLevel(int newLevel) {
+    level = newLevel;
+  }
 
   public static void setOutputStream(PrintStream err) {
     System.setErr(err);

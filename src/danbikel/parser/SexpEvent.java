@@ -2,6 +2,7 @@ package danbikel.parser;
 
 import danbikel.lisp.*;
 import java.util.*;
+import java.io.*;
 
 /**
  * Represents an event composed of one or more <code>Sexp</code>
@@ -13,7 +14,7 @@ import java.util.*;
  * single <code>SexpEvent</code> object may be re-used for efficiency.
  */
 public class SexpEvent extends AbstractEvent
-  implements MutableEvent, SexpConvertible {
+  implements MutableEvent, SexpConvertible, Externalizable {
   // private constants
   private final static String sexpLabelStr = "sexp-event";
 
@@ -205,6 +206,8 @@ public class SexpEvent extends AbstractEvent
    * the same order.
    */
   public boolean equals(Object o) {
+    if (this == o)
+      return true;
     if (!(o instanceof Event))
       return false;
     else if (o instanceof SexpEvent) {
@@ -224,10 +227,10 @@ public class SexpEvent extends AbstractEvent
       }
     }
     else {
-      return super.equals(o);
-    }	      
+      return this.genericEquals(o);
+    }
   }
-  
+
   /**
    * Returns a string representation of this object of the form
    * <tt>(</tt>{@link #sexpLabel}<tt>&nbsp;event)</tt>
@@ -253,16 +256,33 @@ public class SexpEvent extends AbstractEvent
     Sexp newComponent = (Sexp)obj;
     if (event == null)
       event = newComponent;
-    else if (event.isSymbol()) {
-      SexpList newEvent = new SexpList().add(event).add(newComponent);
-      event = newEvent;
+    else if (event.isList()) {
+      event.list().add(newComponent);
     }
     else {
-      event.list().add(newComponent);
+      SexpList newEvent = new SexpList().add(event).add(newComponent);
+      event = newEvent;
     }
     return this;
   }
 
+  /**
+   * Since events are typically read-only, this method will allow for
+   * canonicalization (or "unique-ifying") of the information
+   * contained in this event.  Use of this method is intended to
+   * conserve memory by removing duplicate copies of event information
+   * in different event objects.
+   *
+   * @param canonical a reflexive map of objecs representing event
+   * information: for each unique key-value pair, the value is a
+   * reference to the key
+   *
+   * @return 1 if the backing <code>Sexp</code> was a list and was therefore
+   * canonicalized, 0 if it was a list but was not canonicalized (and had to
+   * be added to <code>canonical</code>) or -1 if this event was a
+   * <code>Symbol</code> and was therefore not even eligible for
+   * canonicalization
+   */
   public int canonicalize(Map canonical) {
     if (event.isSymbol()) // only lists are eligible for canonicalization
       return -1;
@@ -314,5 +334,14 @@ public class SexpEvent extends AbstractEvent
       event = null;
     else
       event.list().clear();
+  }
+
+  public void writeExternal(ObjectOutput out) throws IOException {
+    out.writeObject(event);
+  }
+
+  public void readExternal(ObjectInput in)
+    throws IOException, ClassNotFoundException {
+    event = (Sexp)in.readObject();
   }
 }

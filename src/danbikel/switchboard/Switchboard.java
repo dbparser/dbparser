@@ -34,6 +34,12 @@ public class Switchboard
 
   // public constants
 
+  /**
+   * Allows external links to {@link UnicastRemoteObject} and its members
+   * not to break when generating javadoc API documentation.
+   */
+  public static final UnicastRemoteObject javadocHack = null;
+
   // allow users access to constructor defaults
 
   /** The default rmiregistry binding name, <tt>"/Switchboard"</tt>,
@@ -176,7 +182,7 @@ public class Switchboard
   /** Encapsulates all the details associated with a file to be processed.
       This class implements <code>Runnable</code> so that its instances can
       be the bases of dumper threads, as created by
-      {@link Switchboard#processFile(String,String,String,boolean)}. */ 
+      {@link Switchboard#processFile(String,String,String,boolean)}. */
   private class IOData implements Runnable {
     // data members
 
@@ -241,12 +247,12 @@ public class Switchboard
 	log(msg);
 	return;
       }
-	
+
 
       String msg = className + ": opening input file \"" + inName + "\" " +
 	"(ID number " + id + ")";
       log(msg);
-      
+
       in = objReaderFactory.get(inName, encoding, bufSize);
 
       boolean autoFlush = true;
@@ -325,7 +331,7 @@ public class Switchboard
 		     ioe + ")");
 	}
 	numObjectsProcessed++;
-	numObjectsProcessedThisRun++;      
+	numObjectsProcessedThisRun++;
       }
     }
 
@@ -341,7 +347,7 @@ public class Switchboard
     synchronized boolean done() {
       return (!moreObjects && numObjectsProcessed == currObjectNum);
     }
-  
+
     /**
      * Waits on this object until object processing is done, then
      * reads through the log file and spits out the processed objects in
@@ -379,7 +385,7 @@ public class Switchboard
 	  allObjects.add(currNumObj);
 	}
 
-      
+
 	try {
 	  out = objWriterFactory.get(outName, encoding, bufSize, false);
 	}
@@ -404,7 +410,7 @@ public class Switchboard
 	String errMsg = Switchboard.this.className +
 	  ": error outputting final output file! " +
 	  "(" + ioe + ")";
-	if (verbose) 
+	if (verbose)
 	  logFailure(errMsg);
 	System.err.println(errMsg);
       }
@@ -656,7 +662,7 @@ public class Switchboard
 	    if (serverData != null)
 	      serverData.clients.remove(thisIdInteger);
 	  }
-	  
+
 	  // push all objects handed out to the client back on toProcess deque
 	  Iterator objects = objectsInProgress.values().iterator();
 	  while (objects.hasNext()) {
@@ -838,7 +844,7 @@ public class Switchboard
       #nextObject(int)}. */
   private Time timer;
   private Properties settings = null;
-  
+
   private TimeoutSocketFactory tsf;
 
 
@@ -1455,12 +1461,12 @@ public class Switchboard
     export();
     Naming.rebind(bindingName, this);
   }
-		       
+
 
   /**
    * Exports this object using
    * {@link UnicastRemoteObject#exportObject(Remote,int,
-   *        RMIClientSocketFactory,RMIServerSocketFactory)
+    *       RMIClientSocketFactory,RMIServerSocketFactory)
    * UnicastRemoteObject.exportObject}.
    */
   public void export() throws RemoteException {
@@ -1641,7 +1647,7 @@ public class Switchboard
 
   private void setKeepAliveInterval() {
     if (settings != null) {
-      String keepAliveIntervalStr = 
+      String keepAliveIntervalStr =
 	settings.getProperty(SwitchboardRemote.keepAliveInterval);
       if (keepAliveIntervalStr != null)
 	keepAliveInterval = Integer.parseInt(keepAliveIntervalStr);
@@ -1659,7 +1665,7 @@ public class Switchboard
 
   private void setServerDeathKillClients() {
     if (settings != null) {
-      String serverDeathKillClientsStr = 
+      String serverDeathKillClientsStr =
 	settings.getProperty(SwitchboardRemote.serverDeathKillClients);
       if (serverDeathKillClientsStr != null)
 	serverDeathKillClients =
@@ -1719,7 +1725,7 @@ public class Switchboard
       if (verbose)
 	log("register(Client): registered client running on host " + host,
 	    clientId);
-      
+
       return clientId;
     }
   }
@@ -1760,9 +1766,9 @@ public class Switchboard
       if (verbose)
 	log("register(Server): registered server running on host " + host,
 	    -1, serverId);
-      
+
       return serverId;
-    }    
+    }
   }
 
   public synchronized Server getServer(int clientId) throws RemoteException {
@@ -1818,7 +1824,7 @@ public class Switchboard
     updateServerData(serverData);
 
     assignClientToServer(clientData, serverData);
-	
+
     return serverData.server;
   }
 
@@ -1836,10 +1842,10 @@ public class Switchboard
   private void assignClientToServer(ClientData client, ServerData server) {
     // remove server from sorted set while it is being manipulated
     sortedServers.remove(server);
-    
+
     // add client to set of server's clients
     server.clients.add(new Integer(client.id));
-    
+
     // re-insert server (possibly into a new position in the ordering)
     sortedServers.add(server);
 
@@ -1851,7 +1857,7 @@ public class Switchboard
       oldServer.clients.remove(new Integer(client.id));
       sortedServers.add(oldServer);
     }
-    
+
     // set client's data object to show that it has been assigned serverId
     client.serverId = server.id;
 
@@ -1952,7 +1958,7 @@ public class Switchboard
 
 	if (verbose)
 	  log("trying to kill client No. " + userData.id);
-      
+
 	try { user.die(true); }
 	catch (RemoteException re) {}
       }
@@ -1968,7 +1974,7 @@ public class Switchboard
 
 	if (verbose)
 	  log("trying to kill server No. " + userData.id);
-      
+
 	try { user.die(true); }
 	catch (RemoteException re) {}
       }

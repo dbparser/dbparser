@@ -30,6 +30,8 @@ public class IntSymbol extends Symbol implements Externalizable {
   /**
    * Creates an instance whose internal <code>Integer</code>
    * has the value <code>i</code>.
+   *
+   * @param i the integer value for this new <code>IntSymbol</code>
    */
   IntSymbol(int i) {
     symInt = new Integer(i);
@@ -37,6 +39,9 @@ public class IntSymbol extends Symbol implements Externalizable {
   /**
    * Creates an instance whose internal <code>Integer</code>
    * has the value <code>i</code>.
+   *
+   * @param i the <code>Integer</code> that will be wrapped by this
+   * <code>IntSymbol</code> object
    */
   IntSymbol(Integer i) {
     symInt = i;
@@ -65,16 +70,34 @@ public class IntSymbol extends Symbol implements Externalizable {
   /**
    * Returns the key used by the internal symbol map of the class
    * <code>Symbol</code>, which, for this type of symbol, is the
-   * <code>Integer</code> object returned by {@link #getInteger}.
+   * <code>Integer</code> object returned by {@link #getInteger()}.
+   *
+   * @return the object returned by {@link #getInteger()}
    */
   protected Object getSymKey() { return symInt; }
 
   // methods to comply with Externalizable interface
 
+  /**
+   * Writes this object to an <code>ObjectOutput</code> instance.
+   *
+   * @param out the object stream to which to write an object of this class
+   * @throws IOException if the underlying write operation throws an
+   * <code>IOException</code>
+   */
   public void writeExternal(ObjectOutput out) throws IOException {
     out.writeInt(symInt.intValue());
   }
 
+  /**
+   * Reads this object from an <code>ObjectInput</code> instance.
+   *
+   * @param in the object stream from which to read objects of this class
+   * @throws IOException if the underlying read operation throws an
+   * <code>IOException</code>
+   * @throws ClassNotFoundException if the underlying read operation throws
+   * an <code>ClassNotFoundException</code>
+   */
   public void readExternal(ObjectInput in)
     throws IOException, ClassNotFoundException {
     symInt = new Integer(in.readInt());
@@ -84,6 +107,11 @@ public class IntSymbol extends Symbol implements Externalizable {
    * Deals with the issue of uniqueness when we are dealing with more
    * than one VM by adding the read symbol to the symbol map, if it
    * is not already there.
+   *
+   * @return the canonical version of this symbol
+   *
+   * @throws ObjectStreamException if there is a problem with the underlying
+   * read operation
    */
   public Object readResolve() throws ObjectStreamException {
     return Symbol.get(symInt);

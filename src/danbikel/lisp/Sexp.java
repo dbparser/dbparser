@@ -20,6 +20,8 @@ abstract public class Sexp implements Externalizable {
    * Returns this object cast to a <code>Symbol</code>.
    * @exception ClassCastException if this object is not type-compatible with
    * <code>Symbol</code>
+   *
+   * @return this object cast to a <code>Symbol</code>.
    */
   public final Symbol symbol() { return (Symbol)this; }
 
@@ -27,6 +29,8 @@ abstract public class Sexp implements Externalizable {
    * Returns this object cast to a <code>SexpList</code>.
    * @exception ClassCastException if this object is not type-compatible with
    * <code>SexpList</code>
+   *
+   * @return this object case to a <code>SexpList</code>.
    */
   public final SexpList list() { return (SexpList)this; }
 
@@ -34,16 +38,24 @@ abstract public class Sexp implements Externalizable {
   /**
    * Returns <code>true</code> if this is an instance of a
    * <code>SexpList</code>, <code>false</code> otherwise.
+   *
+   * @return <code>true</code> if this is an instance of a
+   * <code>SexpList</code>, <code>false</code> otherwise.
    */
   public abstract boolean isList();
   /**
    * Returns <code>true</code> if this is an instance of a <code>Symbol</code>,
+   * <code>false</code> otherwise.
+   *
+   * @return <code>true</code> if this is an instance of a <code>Symbol</code>,
    * <code>false</code> otherwise.
    */
   public abstract boolean isSymbol();
 
   /**
    * Returns a deep copy of this S-expression.
+   *
+   * @return a deep copy of this S-expression.
    */
   abstract public Sexp deepCopy();
 
@@ -63,6 +75,9 @@ abstract public class Sexp implements Externalizable {
    *
    * @see SexpList#getCanonical(SexpList)
    * @see SexpList#trimToSize
+   *
+   * @return a canonical version of this S-expression, using the specified
+   * map to perform canonicalization
    */
   public final Sexp getCanonical(Map map) {
     if (this.isSymbol())
@@ -104,6 +119,10 @@ abstract public class Sexp implements Externalizable {
    * If there are no tokens remaining in <code>tok</code>, this method returns
    * <code>null</code>.
    *
+   * @param tok the tokenizer from which to read an S-expression
+   * @return the next S-expression that can be read from the specified
+   * S-expression tokenizer
+   *
    * @exception IOException if there is an unexpected end of stream, mismatched
    * parentheses or an unexpected character
    */
@@ -138,6 +157,12 @@ abstract public class Sexp implements Externalizable {
   /**
    * Returns the S-expression contained in the specified string.  If the string
    * contains no tokens, this method returns <code>null</code>.
+   *
+   * @param in the string from which to read an S-expression
+   * @return the first S-expression contained in the specified string
+   *
+   * @throws IOException if there was an underlying problem reading from
+   * the specified string
    */
   public static Sexp read(String in) throws IOException {
     return read(new SexpTokenizer(new StringReader(in)));

@@ -50,7 +50,37 @@ public class SexpList extends Sexp implements Externalizable {
     }
   };
 
-
+  public final static class HashCache extends SexpList {
+    static int equalsCalls = 0;
+    static int numInstances = 0;
+    transient int hash = super.hashCode();
+    public HashCache() { numInstances++; }
+    HashCache(SexpList other, boolean dontCopy) {
+      super(other, dontCopy);
+      numInstances++;
+    }
+    public int hashCode() { return hash; }
+    public void readExternal(ObjectInput in)
+      throws IOException, ClassNotFoundException {
+      super.readExternal(in);
+      hash = super.hashCode();
+    }
+    public boolean equals(Object obj) {
+      equalsCalls++;
+      if (this == obj)
+	return true;
+      if (obj instanceof HashCache)
+	return this == obj;
+      else
+	return super.equals(obj);
+    }
+    protected void finalize() throws Throwable {
+      numInstances--;
+      if (numInstances < 10)
+	System.err.println("calls of method equals for SexpList.HashCache: " +
+			   equalsCalls);
+    }
+  };
 
   /**
    * A simple canonicalization method that returns the unique object
@@ -65,6 +95,11 @@ public class SexpList extends Sexp implements Externalizable {
   private Sexp[] items;
   /** The number of items in this list. */
   private int size;
+
+  SexpList(SexpList otherList, boolean dontCopy) {
+    this.items = otherList.items;
+    this.size = otherList.size;
+  }
 
   /**
    * Constructs a <code>SexpList</code> with the default initial capacity.
@@ -459,7 +494,8 @@ public class SexpList extends Sexp implements Externalizable {
     if (this.size != otherList.size)
       return false;
     for (int i = 0; i < size; i++)
-      if (this.items[i].equals(otherList.items[i]) == false)
+      if (items[i] != otherList.items[i] &&
+          items[i].equals(otherList.items[i]) == false)
         return false;
     return true;
   }

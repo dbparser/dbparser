@@ -21,6 +21,19 @@ public class Constants {
       direction. */
   public static final Symbol rightSym = Symbol.add("right");
 
+  /**
+   * The symbol constant indicating to match the first child node in the
+   * natural walk of a parent's children in a syntax tree (left-to-right,
+   * in English).
+   */
+  public static final Symbol firstSym = Symbol.add("first");
+  /**
+   * The symbol constant indicating to match the last child node in the
+   * reverse of the natural walk of a parent's children in a syntax tree
+   * (right-to-left, in English).
+   */
+  public static final Symbol lastSym = Symbol.add("last");
+
   /** A symbol constant to represent truth. */
   public static final Symbol trueSym = Symbol.add("true");
   /** A symbol constant to represent falsity. */

@@ -9,8 +9,14 @@ endif
 set host = $1
 set pidOutputFile = $2
 
+set dir = `dirname $0`
+set scriptDir = `cd $dir  ; echo $cwd`
+
+# script used by this script
+set rmiregistryScript = $scriptDir/no-cp-rmiregistry
+
 echo Starting rmiregistry on $host
-$RSH -n $host 'unsetenv CLASSPATH ; rmiregistry' &
+$RSH -n $host $rmiregistryScript
 set registryPid = $!
 
 echo Creating rmiregistry pid file $pidOutputFile

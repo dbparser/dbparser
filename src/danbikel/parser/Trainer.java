@@ -228,6 +228,18 @@ public class Trainer implements Serializable {
   protected HashSet unknownWords = new HashSet();
   protected ModelCollection modelCollection;
 
+  // Model objects
+  protected Model lexPriorModel;
+  protected Model nonterminalPriorModel;
+  protected Model topNonterminalModel;
+  protected Model topLexModel;
+  protected Model headModel;
+  protected Model gapModel;
+  protected Model leftSubcatModel;
+  protected Model rightSubcatModel;
+  protected Model modNonterminalModel;
+  protected Model modWordModel;
+
   // handle onto static WordFeatures object from Language object
   transient protected WordFeatures wordFeatures = Language.wordFeatures;
 
@@ -1029,161 +1041,73 @@ public class Trainer implements Serializable {
     return false;
   }
 
-  /**
-   * Derives event counts for all back-off levels of all sub-models for
-   * the current parsing model.
-   * <p>
-   * <b>Implementation note</b>: After all counts have been derived from
-   * top-level <code>TrainerEvent</code> objects, the tables that contain
-   * the top-level objects are cleared (set to <code>null</code>).
-   */
-  public void deriveCounts() {
+  protected void createModelObjects() {
+    String globalModelStructureNumber =
+      Settings.get(Settings.globalModelStructureNumber);
+    if (globalModelStructureNumber == null) {
+      globalModelStructureNumber = "1";
+    }
+    System.err.println(className + ": using global model structure number " +
+                       globalModelStructureNumber);
     try {
-      String globalModelStructureNumber =
-	Settings.get(Settings.globalModelStructureNumber);
-      if (globalModelStructureNumber == null) {
-	globalModelStructureNumber = "1";
-      }
-      System.err.println(className + ": using global model structure number " +
-			 globalModelStructureNumber);
+      lexPriorModel =
+        getProbStructure(lexPriorModelStructureClassnamePrefix,
+                         globalModelStructureNumber,
+                         Settings.lexPriorModelStructureNumber,
+                         Settings.lexPriorModelStructureClass).newModel();
 
-      Model lexPriorModel =
-	getProbStructure(lexPriorModelStructureClassnamePrefix,
-			 globalModelStructureNumber,
-			 Settings.lexPriorModelStructureNumber,
-			 Settings.lexPriorModelStructureClass).newModel();
+      nonterminalPriorModel =
+        getProbStructure(nonterminalPriorModelStructureClassnamePrefix,
+                         globalModelStructureNumber,
+                         Settings.nonterminalPriorModelStructureNumber,
+                         Settings.nonterminalPriorModelStructureClass).newModel();
 
-      Model nonterminalPriorModel =
-	getProbStructure(nonterminalPriorModelStructureClassnamePrefix,
-			 globalModelStructureNumber,
-			 Settings.nonterminalPriorModelStructureNumber,
-			 Settings.nonterminalPriorModelStructureClass).newModel();
+      topNonterminalModel =
+        getProbStructure(topNonterminalModelStructureClassnamePrefix,
+                         globalModelStructureNumber,
+                         Settings.topNonterminalModelStructureNumber,
+                         Settings.topNonterminalModelStructureClass).newModel();
 
-      Model topNonterminalModel =
-	getProbStructure(topNonterminalModelStructureClassnamePrefix,
-			 globalModelStructureNumber,
-			 Settings.topNonterminalModelStructureNumber,
-			 Settings.topNonterminalModelStructureClass).newModel();
+      topLexModel =
+        getProbStructure(topLexModelStructureClassnamePrefix,
+                         globalModelStructureNumber,
+                         Settings.topLexModelStructureNumber,
+                         Settings.topLexModelStructureClass).newModel();
 
-      Model topLexModel =
-	getProbStructure(topLexModelStructureClassnamePrefix,
-			 globalModelStructureNumber,
-			 Settings.topLexModelStructureNumber,
-			 Settings.topLexModelStructureClass).newModel();
-
-      Model headModel =
-	getProbStructure(headModelStructureClassnamePrefix,
-			 globalModelStructureNumber,
-			 Settings.headModelStructureNumber,
-			 Settings.headModelStructureClass).newModel();
-      Model gapModel =
-	getProbStructure(gapModelStructureClassnamePrefix,
-			 globalModelStructureNumber,
-			 Settings.gapModelStructureNumber,
-			 Settings.gapModelStructureClass).newModel();
-      Model leftSubcatModel =
-	getProbStructure(leftSubcatModelStructureClassnamePrefix,
-			 globalModelStructureNumber,
-			 Settings.leftSubcatModelStructureNumber,
-			 Settings.leftSubcatModelStructureClass).newModel();
-      Model rightSubcatModel =
-	getProbStructure(rightSubcatModelStructureClassnamePrefix,
-			 globalModelStructureNumber,
-			 Settings.rightSubcatModelStructureNumber,
-			 Settings.rightSubcatModelStructureClass).newModel();
-      Model modNonterminalModel =
-	getProbStructure(modNonterminalModelStructureClassnamePrefix,
-			 globalModelStructureNumber,
-			 Settings.modNonterminalModelStructureNumber,
-			 Settings.modNonterminalModelStructureClass).newModel();
-      Model modWordModel =
-	getProbStructure(modWordModelStructureClassnamePrefix,
-			 globalModelStructureNumber,
-			 Settings.modWordModelStructureNumber,
-			 Settings.modWordModelStructureClass).newModel();
-
-      danbikel.util.HashMap canonical = new danbikel.util.HashMap(100003, 1.5f);
-
-      System.err.print("Deriving events for prior probability computations...");
-      derivePriors();
-      System.err.println("done.");
-
-      deriveCounts(lexPriorModel,
-		   nonterminalPriorModel,
-		   topNonterminalModel,
-		   topLexModel,
-		   headModel,
-		   gapModel,
-		   leftSubcatModel,
-		   rightSubcatModel,
-		   modNonterminalModel,
-		   modWordModel,
-		   derivedCountThreshold,
-		   canonical);
-
-      deriveHeadToParentMap(canonical);
-
-      deriveSubcatMaps(leftSubcatModel.getProbStructure(),
-		       rightSubcatModel.getProbStructure(),
-		       canonical);
-
-      deriveModNonterminalMap(modNonterminalModel.getProbStructure(),
-			      canonical);
-
-      System.err.println("Canonical events HashMap stats: " +
-			 canonical.getStats());
-
-      //canonicalEventLists = null;
-      /*
-      System.err.print("gc ... ");
-      System.err.flush();
-      System.gc();
-      System.err.println("done");
-      */
-
-      modelCollection.set(lexPriorModel,
-			  nonterminalPriorModel,
-			  topNonterminalModel,
-			  topLexModel,
-			  headModel,
-			  gapModel,
-			  leftSubcatModel,
-			  rightSubcatModel,
-			  modNonterminalModel,
-			  modWordModel,
-			  vocabCounter,
-			  wordFeatureCounter,
-			  nonterminals,
-			  posMap,
-			  headToParentMap,
-			  leftSubcatMap,
-			  rightSubcatMap,
-			  modNonterminalMap,
-			  prunedPreterms,
-			  prunedPunctuation,
-			  canonical);
-
-      // somewhat of a hack: we allow counts for a back-off level from
-      // one model to be shared with another model; in this case, the
-      // last level of back-off from the modWordModel is being
-      // shared (i.e., will be used) as the last level of back-off for
-      // topLexModel, as the last levels of both these models should just
-      // be estimating p(w | t)
-      if (shareCounts) {
-	modelCollection.shareCounts(true);
-      }
-
-      deriveCountsHook(canonical);
-
-      // finally, remove handles to all top-level TrainerEvent objects
-      priorEvents = null;
-      headEvents = null;
-      modifierEvents = null;
-      gapEvents = null;
+      headModel =
+        getProbStructure(headModelStructureClassnamePrefix,
+                         globalModelStructureNumber,
+                         Settings.headModelStructureNumber,
+                         Settings.headModelStructureClass).newModel();
+      gapModel =
+        getProbStructure(gapModelStructureClassnamePrefix,
+                         globalModelStructureNumber,
+                         Settings.gapModelStructureNumber,
+                         Settings.gapModelStructureClass).newModel();
+      leftSubcatModel =
+        getProbStructure(leftSubcatModelStructureClassnamePrefix,
+                         globalModelStructureNumber,
+                         Settings.leftSubcatModelStructureNumber,
+                         Settings.leftSubcatModelStructureClass).newModel();
+      rightSubcatModel =
+        getProbStructure(rightSubcatModelStructureClassnamePrefix,
+                         globalModelStructureNumber,
+                         Settings.rightSubcatModelStructureNumber,
+                         Settings.rightSubcatModelStructureClass).newModel();
+      modNonterminalModel =
+        getProbStructure(modNonterminalModelStructureClassnamePrefix,
+                         globalModelStructureNumber,
+                         Settings.modNonterminalModelStructureNumber,
+                         Settings.modNonterminalModelStructureClass).newModel();
+      modWordModel =
+        getProbStructure(modWordModelStructureClassnamePrefix,
+                         globalModelStructureNumber,
+                         Settings.modWordModelStructureNumber,
+                         Settings.modWordModelStructureClass).newModel();
     }
     catch (ExceptionInInitializerError e) {
       System.err.println(className + ": problem initializing an instance of " +
-			 "a model class: " + e);
+                         "a model class: " + e);
     }
     catch (LinkageError e) {
       System.err.println(className + ": problem linking a model class: " + e);
@@ -1193,26 +1117,61 @@ public class Trainer implements Serializable {
     }
     catch (InstantiationException e) {
       System.err.println(className + ": couldn't instantiate a model class: " +
-			 e);
+                         e);
     }
     catch (IllegalAccessException e) {
       System.err.println(className + ": not allowed to instantiate a model " +
-			 "class: " + e);
+                         "class: " + e);
     }
   }
 
-  protected void deriveCounts(Model lexPriorModel,
-			      Model nonterminalPriorModel,
-			      Model topNonterminalModel,
-			      Model topLexModel,
-			      Model headModel,
-			      Model gapModel,
-			      Model leftSubcatModel,
-			      Model rightSubcatModel,
-			      Model modNonterminalModel,
-			      Model modWordModel,
-			      double derivedCountThreshold,
-			      FlexibleMap canonical) {
+  /**
+   * Derives event counts for all back-off levels of all sub-models for
+   * the current parsing model.
+   */
+  public void deriveCounts() {
+    deriveCounts(true);
+  }
+
+  public void deriveCounts(boolean setModelCollection) {
+    danbikel.util.HashMap canonical = new danbikel.util.HashMap(100003, 1.5f);
+
+    deriveCounts(derivedCountThreshold, canonical);
+
+    System.err.println("Canonical events HashMap stats: " +
+                       canonical.getStats());
+
+    if (setModelCollection)
+      modelCollectionSet(canonical);
+  }
+
+  protected void clearEventCounters() {
+    priorEvents.clear();
+    headEvents.clear();
+    modifierEvents.clear();
+    gapEvents.clear();
+  }
+
+  protected void deriveCounts(double derivedCountThreshold,
+                              FlexibleMap canonical) {
+    System.err.print("Deriving events for prior probability computations...");
+    derivePriors();
+    System.err.println("done.");
+
+    deriveModelCounts(derivedCountThreshold, canonical);
+
+    deriveHeadToParentMap(canonical);
+
+    deriveSubcatMaps(leftSubcatModel.getProbStructure(),
+                     rightSubcatModel.getProbStructure(),
+                     canonical);
+
+    deriveModNonterminalMap(modNonterminalModel.getProbStructure(),
+                            canonical);
+  }
+
+  protected void deriveModelCounts(double derivedCountThreshold,
+                                   FlexibleMap canonical) {
     double th = derivedCountThreshold;
     lexPriorModel.deriveCounts(priorEvents, allPass, th, canonical);
     nonterminalPriorModel.deriveCounts(priorEvents, allPass, th, canonical);
@@ -1226,12 +1185,46 @@ public class Trainer implements Serializable {
     modWordModel.deriveCounts(modifierEvents, nonStop, th, canonical);
   }
 
+  protected void modelCollectionSet(FlexibleMap canonical) {
+    modelCollection.set(lexPriorModel,
+                        nonterminalPriorModel,
+                        topNonterminalModel,
+                        topLexModel,
+                        headModel,
+                        gapModel,
+                        leftSubcatModel,
+                        rightSubcatModel,
+                        modNonterminalModel,
+                        modWordModel,
+                        vocabCounter,
+                        wordFeatureCounter,
+                        nonterminals,
+                        posMap,
+                        headToParentMap,
+                        leftSubcatMap,
+                        rightSubcatMap,
+                        modNonterminalMap,
+                        prunedPreterms,
+                        prunedPunctuation,
+                        canonical);
+    modelCollectionSetHook();
+
+    // somewhat of a hack: we allow counts for a back-off level from
+    // one model to be shared with another model; in this case, the
+    // last level of back-off from the modWordModel is being
+    // shared (i.e., will be used) as the last level of back-off for
+    // topLexModel, as the last levels of both these models should just
+    // be estimating p(w | t)
+    if (shareCounts) {
+      modelCollection.shareCounts(true);
+    }
+  }
+
   /**
-   * A method called by {@link #deriveCounts()} just before it sets all handles
-   * to top-level <code>TrainerEvent</code> objects to <code>null</code>,
-   * to allow subclasses to derive additional counts and/or maps.
+   * A method called by {@link #deriveCounts()} just after it calls
+   * {@link ModelCollection#set}.
    */
-  protected void deriveCountsHook(FlexibleMap canonical) { }
+  protected void modelCollectionSetHook() { }
 
   /**
    * Called by {@link #deriveCounts()}.
@@ -1542,6 +1535,7 @@ public class Trainer implements Serializable {
     valueCounts.add(value, count);
   }
 
+
   // I/O methods
 
   /**
@@ -1636,7 +1630,8 @@ public class Trainer implements Serializable {
 		       "; event=" + event);
   }
 
-  public void readStats(SexpTokenizer tok) throws IOException {
+  public void readStats(SexpTokenizer tok)
+    throws IOException {
     Map canonicalMap = new danbikel.util.HashMap(100003, 1.5f);
     Sexp curr = null;
     for (int i = 1; (curr = Sexp.read(tok)) != null; i++) {
@@ -1802,7 +1797,6 @@ public class Trainer implements Serializable {
     if (trainingOutputFilename != null)
       ps.println("training output file: \"" + trainingOutputFilename + "\".");
   }
-
 
   // main method stuff
 
@@ -1983,12 +1977,15 @@ public class Trainer implements Serializable {
       Time overallTime = new Time();
       Time trainingTime = new Time();
 
+      if (objectOutputFilename != null)
+        trainer.createModelObjects();
+
       if (inputFilename != null) {
-	Time time = new Time();
-	System.err.println("Loading observations from \"" + inputFilename +
-			   "\".");
-	trainer.readStats(new File(inputFilename));
-	System.err.println("Finished reading observations in " + time + ".");
+        Time time = new Time();
+        System.err.println("Loading observations from \"" + inputFilename +
+                           "\".");
+        trainer.readStats(new File(inputFilename));
+        System.err.println("Finished reading observations in " + time + ".");
       }
 
       if (trainingFilename != null) {

@@ -64,7 +64,6 @@ public class Model implements Serializable {
 
   // for temporary storage of histories (so we don't have to copy histories
   // created by deriveHistories() to create transition objects)
-  //private transient HashMap[] histories;
   private transient ProbabilityCache topLevelCache;
   private transient ProbabilityCache[] cache;
   private transient int[] cacheHits;
@@ -160,7 +159,7 @@ public class Model implements Serializable {
     while (entries.hasNext()) {
       MapToPrimitive.Entry entry = (MapToPrimitive.Entry)entries.next();
       TrainerEvent event = (TrainerEvent)entry.getKey();
-      int count = entry.getIntValue(0);
+      int count = entry.getIntValue();
       if (!filter.pass(event))
 	continue;
 
@@ -313,6 +312,7 @@ public class Model implements Serializable {
     }
     */
     int highestCachedLevel = numLevels;
+    int lastLevel = numLevels - 1;
 
     double[] lambdas = structure.lambdas;
     double[] estimates = structure.estimates;
@@ -370,7 +370,8 @@ public class Model implements Serializable {
 	if (structure.prevHistCount <= historyCount)
 	  adjustment = 1 - structure.prevHistCount / historyCount;
         */
-	lambda = historyCount / (historyCount + fudge * diversityCount);
+	lambda = (level == lastLevel ? 1.0 :
+                  historyCount / (historyCount + fudge * diversityCount));
 	  //adjustment * (historyCount / (historyCount + fudge * diversityCount));
 	estimate = transitionCount / historyCount;
       }
@@ -511,7 +512,7 @@ public class Model implements Serializable {
 
   /**
    * Called by
-   * {@link #deriveCounts(CountsTable,Filter,FlexibleMap)}, for each
+   * {@link #deriveCounts(CountsTable,Filter,int,FlexibleMap)}, for each
    * type of transition observed, this method derives the number of
    * unique transitions from the history context to the possible
    * futures.  This number of unique transitions, called the
@@ -548,7 +549,7 @@ public class Model implements Serializable {
   }
 
   /**
-   * Called by {@link #deriveCounts(CountsTable,Filter,FlexibleMap)},
+   * Called by {@link #deriveCounts(CountsTable,Filter,int,FlexibleMap)},
    * this method provides a hook to count transition(s) for the special
    * level of back-off of the model, if one exists.
    */
@@ -561,16 +562,11 @@ public class Model implements Serializable {
     Time time = null;
     if (verbose)
       time = new Time();
-    /*
-    histories = new HashMap[numLevels];
-    for (int level = 0; level < numLevels; level++)
-      histories[level] = new HashMap();
-    */
     Iterator entries = trainerCounts.entrySet().iterator();
     while (entries.hasNext()) {
       MapToPrimitive.Entry entry = (MapToPrimitive.Entry)entries.next();
       TrainerEvent event = (TrainerEvent)entry.getKey();
-      int count = entry.getIntValue(CountsTrio.hist);
+      int count = entry.getIntValue();
       if (!filter.pass(event))
 	continue;
       // store all histories for all non-special back-off levels
@@ -580,11 +576,6 @@ public class Model implements Serializable {
 	Event history = structure.getHistory(event, level);
         history = canonicalizeEvent(history, canonical);
 	counts[level].history().add(history, CountsTrio.hist, count);
-	//histories[level].put(history, history);
-
-	/*
-	System.err.println("level: " + level + "; history: " + history);
-	*/
       }
 
       // store all histories for the special back-off level (if one exists)
@@ -648,6 +639,7 @@ public class Model implements Serializable {
                                  Transition[] transitions, Event[] histories) {
     double[] lambdas = structure.lambdas;
     double[] estimates = structure.estimates;
+    int lastLevel = numLevels - 1;
     for (int level = 0; level < numLevels; level++) {
       if (level == specialLevel)
 	precomputeSpecialLevelProb(event);
@@ -678,14 +670,14 @@ public class Model implements Serializable {
       double diversityCount = histEntry.getIntValue(CountsTrio.diversity);
 
       double fudge = lambdaFudge[level];
-      double lambda = historyCount / (historyCount + fudge * diversityCount);
+      double lambda = (level == lastLevel ? 1.0 :
+                       historyCount / (historyCount + fudge * diversityCount));
       double estimate = transitionCount / historyCount;
       lambdas[level] = lambda;
       estimates[level] = estimate;
     }
 
     double prob = 0.0;
-    int lastLevel = numLevels - 1;
     for (int level = lastLevel; level >= 0; level--) {
       double lambda = lambdas[level];
       double estimate = estimates[level];
@@ -820,7 +812,8 @@ public class Model implements Serializable {
   // accessors
   /**
    * Returns the type of <code>ProbabilityStructure</code> object used
-   * during the invocation of {@link #deriveCounts}.
+   * during the invocation of
+   * {@link #deriveCounts(CountsTable,Filter,int,FlexibleMap)}.
    *
    * <p>A copy of this object should be created and stored for each
    * parsing client thread, for use when the clients need to call the
@@ -836,13 +829,13 @@ public class Model implements Serializable {
   /**
    * Causes this class to be verbose in its output to <code>System.err</code>
    * during the invocation of its methods, such as
-   * {@link #deriveCounts(CountsTable,Filter,FlexibleMap)}.
+   * {@link #deriveCounts(CountsTable,Filter,int,FlexibleMap)}.
    */
   public void beVerbose() { verbose = true;}
   /**
    * Causes this class not to output anything to <code>System.err</code>
    * during the invocation of its methods, such as
-   * {@link #deriveCounts(CountsTable,Filter,FlexibleMap)}.
+   * {@link #deriveCounts(CountsTable,Filter,int,FlexibleMap)}.
    */
   public void beQuiet() { verbose = false; }
 

@@ -47,6 +47,14 @@ public class TopLexModelStructure1 extends ProbabilityStructure {
     return future;
   }
 
+  public boolean doCleanup() { return true; }
+
+  public boolean removeHistory(int backOffLevel, Event history) {
+    return (backOffLevel == 0 &&
+            history.get(0, 2) != Language.training().topSym());
+  }
+
+
   public ProbabilityStructure copy() {
     return new TopLexModelStructure1();
   }

@@ -21,7 +21,12 @@ and the Ant output directory might be "classes.ant".-->
     <include name="bin/no-cp-rmiregistry"/>
     <include name="bin/train"/>
     <include name="bin/wrapper"/>
-  </patternset>		   
+  </patternset>
+  <patternset id="src.and.resources">
+    <include name="${src}/**/*.java"/>
+    <include name="${src}/**/*.properties"/>
+    <include name="${src}/**/*.lisp"/>
+  </patternset>	   
   <patternset id="deploy.files">
     <patternset refid="deploy.bin.files"/>
     <include name="settings/**"/>

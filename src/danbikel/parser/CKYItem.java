@@ -13,6 +13,85 @@ import java.text.*;
  * @see CKYChart
  */
 public class CKYItem extends Item implements SexpConvertible {
+  /**
+   * Overrides <code>equals</code> and <code>hashCode</code> methods
+   * to take the first previous modifier into account only insofar as
+   * its equality to the initial {@link Training#startSym} modifier.
+   */
+  public static class PrevModIsStart extends CKYItem {
+    private final static Symbol startSym = Language.training.startSym();
+
+    public PrevModIsStart() {
+      super();
+    }
+    /**
+     * Returns <code>true</code> if and only if the specified object is
+     * also an instance of a <code>CKYItem</code> and all elements of
+     * this <code>CKYItem</code> are equal to those of the specified
+     * <code>CKYItem</code>, except their left and right children lists
+     * and their log probability values.
+     */
+    public boolean equals(Object obj) {
+      if (this == obj)
+	return true;
+      if (!(obj instanceof PrevModIsStart))
+	return false;
+      PrevModIsStart other = (PrevModIsStart)obj;
+      if (stop && other.stop) {
+	return (this.isPreterminal() == other.isPreterminal() &&
+		this.label == other.label &&
+		this.headWord.equals(other.headWord));
+      }
+      else {
+	return (this.isPreterminal() == other.isPreterminal() &&
+		this.stop == other.stop &&
+		this.leftVerb == other.leftVerb &&
+		this.rightVerb == other.rightVerb &&
+		this.label == other.label &&
+		this.headWord.equals(other.headWord) &&
+		(this.headChild == null ||
+		 this.headChild.label == other.headChild.label) &&
+		this.leftPrevModIsStart() == other.leftPrevModIsStart() &&
+		this.rightPrevModIsStart() == other.rightPrevModIsStart() &&
+		this.leftSubcat.equals(other.leftSubcat) &&
+		this.rightSubcat.equals(other.rightSubcat));
+      }
+    }
+
+    private boolean leftPrevModIsStart() {
+      return leftPrevMods.get(0) == startSym;
+    }
+    private boolean rightPrevModIsStart() {
+      return rightPrevMods.get(0) == startSym;
+    }
+
+    /**
+     * Computes the hash code based on all elements used by the
+     * {@link #equals} method.
+     */
+    public int hashCode() {
+      int code = label.hashCode();
+      code = (code << 2) ^ headWord.hashCode();
+      if (stop) {
+	code = (code << 1) | (isPreterminal() ? 1 : 0);
+	return code;
+      }
+      if (leftSubcat != null)
+	code = (code << 2) ^ leftSubcat.hashCode();
+      if (rightSubcat != null)
+	code = (code << 2) ^ rightSubcat.hashCode();
+      if (headChild != null)
+	code = (code << 2) ^ headChild.label().hashCode();
+      int booleanCode = 0;
+      booleanCode = (booleanCode << 1) | (leftPrevModIsStart() ? 1 : 0);
+      booleanCode = (booleanCode << 1) | (rightPrevModIsStart() ? 1 : 0);
+      booleanCode = (booleanCode << 1) | (stop ? 1 : 0);
+      booleanCode = (booleanCode << 1) | (leftVerb ? 1 : 0);
+      booleanCode = (booleanCode << 1) | (rightVerb ? 1 : 0);
+      return code ^ booleanCode;
+    }
+  };
+
   // constants
   private final static int outputPrecision = 14;
 
@@ -29,58 +108,58 @@ public class CKYItem extends Item implements SexpConvertible {
 
   /** The log of the probability of the implicit tree represented by
       this item. */
-  private double logTreeProb;
+  protected double logTreeProb;
 
   /** The label of this chart item. */
-  private Symbol label;
+  protected Symbol label;
 
   /** The head word of this chart item. */
-  private Word headWord;
+  protected Word headWord;
 
   /** The subcat frame representing the unmet requirements on the left
       side of the head as of the production of this chart item. */
-  private Subcat leftSubcat;
+  protected Subcat leftSubcat;
 
   /** The subcat frame representing the unmet requirements on the right
       side of the head as of the production of this chart item. */
-  private Subcat rightSubcat;
+  protected Subcat rightSubcat;
 
   /** The item representing the head child of the tree node represented by this
       chart item, or <code>null</code> if this item represents a
       preterminal. */
-  private CKYItem headChild;
+  protected CKYItem headChild;
 
   /** A list of <code>CKYItem</code> objects that are the children to the left
       of the head child, with the head-adjacent child being last. */
-  private SLNode leftChildren;
+  protected SLNode leftChildren;
 
   /** A list of <code>CKYItem</code> objects that are the children to the right
       of the head child, with the head-adjacent child being last. */
-  private SLNode rightChildren;
+  protected SLNode rightChildren;
 
   /** The previous modifiers generated on the left of the head child. */
-  private SexpList leftPrevMods;
+  protected SexpList leftPrevMods;
 
   /** The previous modifiers generated on the right of the head child. */
-  private SexpList rightPrevMods;
+  protected SexpList rightPrevMods;
 
   /** The index of the first word of the span covered by this item. */
-  private int start;
+  protected int start;
 
   /** The index of the last word of the span covered by this item. */
-  private int end;
+  protected int end;
 
   /** The boolean indicating whether a verb intervenes between the head child
       and the currently-generated left-modifying child. */
-  private boolean leftVerb;
+  protected boolean leftVerb;
 
   /** The boolean indicating whether a verb intervenes between the head child
       and the currently-generated right-modifying child. */
-  private boolean rightVerb;
+  protected boolean rightVerb;
 
   /** The boolean indicating whether this item has received its stop
       probabilities. */
-  private boolean stop;
+  protected boolean stop;
 
   /**
    * The boolean indicating whether this item has been eliminated from the
@@ -88,7 +167,7 @@ public class CKYItem extends Item implements SexpConvertible {
    * could not be immediately reclaimed, since the caller of
    * <code>Chart.add</code> may have a handle onto this item).
    */
-  private boolean garbage = false;
+  protected boolean garbage = false;
 
   // constructors
 

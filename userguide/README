@@ -1,0 +1,205 @@
+This file describes how to train and use this parsing engine.
+
+1. Preliminaries
+----------------
+
+1.1 Settings files
+------------------
+
+The parser comes with several, crucial settings files, all located in the
+<parser home>/settings directory.  A given training or parsing run needs only a
+single settings file, which determines, among other things, which language the
+parser will work in.
+
+1.2 Scripts
+-----------
+The distribution comes with several shell scripts, all of which are hard-coded
+to use /bin/tcsh.  You may need to modify this if tcsh lives in a different
+place in your environment.  As we do not yet use a true installation scheme
+(such as autoconf/configure), you must make any modifications by hand.  This
+may change in the near future.
+
+Most of the provided scripts spit out their usage if they are run with no
+arguments.
+
+1.3 File formats
+----------------
+Most I/O of the parsing engine is performed by an Lisp-style S-expression
+reader/writer written entirely in Java.  As such, newlines are generally
+irrelevant, being treated as just another form of whitespace.  The one
+exception to this is a comment, which consists of a semicolon and anything
+after that semicolon character to the end of the line (just as in Lisp).
+
+2. Training
+------------
+
+A training file must be in the de facto standard format of Penn Treebank .mrg
+files, which contain trees with part-of-speech tag preterminals and words as
+leaves.  The original Penn Treebank enclosed sentences in an extra set of
+parentheses; the trainer disregards these parens, if they are present.
+
+The easiest way to use the trainer is via the script <parser home>/bin/train,
+which has the following usage:
+    train <max. heap size in megabytes> <settings file> <parse tree input file>
+Note that all training trees are expected to be in one file.
+
+Training is, for the most part, performed in-memory.  This means the heap size
+for training needs to be rather large; a value in the range of 500-800 is
+generally required, but this value depends greatly on the number of sentence
+being fed to the trainer.  (The working set is much smaller than the maximum
+heap size, however.)
+
+Example
+-------
+To train on a file wsj-02-21.mrg containing Section 02-21 of the WSJ Penn
+Treebank data, one would issue the command
+	 train 800 <parser home>/settings/collins.properties wsj-02-21.mrg
+
+The train script spits out the actual java command that is doing the training.
+
+The trainer outputs two files: an .observed file, containing human-readable,
+top-level event counts that were derived rather directly from the training
+trees, and an .obj file, which is a series of serizlied Java objects containing
+the actual, derived counts used by the parser.  The .observed file is called
+the "observations file" and the .obj file is called "derived data file", and is
+the main output file of the trainer.
+
+3. Parsing
+------------
+
+3.1 Uniprocessor
+----------------
+The easiest way to parse in a non-distributed fashion is to use the
+<parser home>/bin/parse script, the usage of which is:
+    parse <max. heap> <settings> <derived data file> <parse tree input file>
+The parser does not need as much memory as the trainer; for English, a value
+less than or equal to 500 for <max. heap> should suffice.
+
+The input file should have one of two Lisp-style formats:
+	Format 1:
+	((word1 (pos1)) (word2 (pos2)) ... (wordN (posN)))
+or
+	Format 2:
+	(word1 word2 ... wordN)
+
+Format 1 is typically used, where each part of speech was that produced by some
+(possibly automatic) tagging program.
+
+Format 2 is used when it is desirable to have the parser do all its own part of
+speech tagging as part of the parsing process, but all the provided settings
+files assume that tagging will be performed as a pre-processing step.
+
+A part of speech that is supplied for a word is only used when that word was
+never observed in training; nevertheless, *every* word must have a non-empty
+part of speech list; i.e., the format
+	((word1 ()) (word2 ()) ... (wordN ()))
+is *not* valid.
+
+Here is the first sentence of Section 00 of the WSJ Penn Treebank in Format 1:
+
+((Pierre (NNP)) (Vinken (NNP)) (, (,)) (61 (CD)) (years (NNS)) (old (JJ)) (,
+(,)) (will (MD)) (join (VB)) (the (DT)) (board (NN)) (as (IN)) (a (DT))
+(nonexecutive (JJ)) (director (NN)) (Nov. (NNP)) (29 (CD)) (. (.)) )
+
+3.2 Distributed computing environment
+-------------------------------------
+
+3.2.1 Script usage
+------------------
+The easiest way to parse in a distributed-computing environment is to use the
+<parser home>/bin/internal-server-run script.  The usage is:
+	internal-server-run <settings file> <derived data file> <input file>+
+Note that you can specify multiple input files.
+
+While this script makes using multiple hosts easy, it may not work
+out-of-the-box, requiring a few caveats:
+
+	0. The script contains a hard-coded path to a java executable which
+	   should be changed according to your environment (possibly to be
+	   set java = java, if your default path variable is satisfactory).
+
+	1. Most batch queues copy a batch script before executing it, which
+	   breaks any reliance on the $0 variable.  Accordingly, you may have
+	   to modify the script to hard-code paths for the scriptDir and parent
+	   variables (near the beginning of the script).
+
+	2. The script uses ssh for logging into nodes, and assumes that it will
+	   not need to enter a password for doing so.  The remote shell
+	   mechanism of the internal-server-run script, as well as that of a
+	   dependent script called start-rmiregistry, may be changed by
+	   altering the definition of the RSH variable.
+
+	3. The script assumes the nodes will be provided via
+           whitespace-separated list in a NODES environment variable, and
+           preprends "node" to every element in this list (appropriate
+	   for Clubmask/Beowulf environment at Penn).  Please comment
+	   out the shell script code that does the prepending if this
+	   behavior is not appropriate for your environment.
+
+	4. The script relies on other scripts in its bin directory.
+
+In the future, we may customize the internal-server-run script via an
+installation procedure, instead of forcing you, the user, to perform the
+customizations directly.
+
+3.2.3 Experiment directory
+--------------------------
+The script creates an experiment directory whose name is
+    ~/experiments/<date>/<time>
+
+The experiment directory will contain the following items:
+	1. Log files for all the parsing clients, where each log file has the
+           name <host>-<uid>.log, where <host> is the host name on which the
+           client is running and where <uid> is a unique integer, so that two
+           clients running on the same host will have differently-named log
+           files.
+
+	2. A log file containing the incremental work of the
+	   distributed-computing run; this file has the same name as the input
+	   file plus a .log extension.
+
+	3. A file called switchboard.messages, which can be monitored to track
+	   the progress of the distributed-computing run, via the command
+		tail -f switchboard.messages
+
+	4. Finally, the internal-server-run script copies a specialized version
+	   of *itself* to the experiment directory, in order to facilitate
+	   re-running the experiment, or continuing an experiment that had to
+	   be killed before all input sentences were parsed.  This latter
+	   feature--being able to recover from a previous, incomplete run--can
+	   be very useful.  Crucially, the ability to re-start an experiment
+	   from where it left off makes use of the log file that contains
+	   incremental work (list item No. 2, above).
+
+
+4. Advanced usage information
+-----------------------------
+
+It is, of course, possible to call the java process directly for training and
+parsing.  The normal mechanism to specify a settings file is to provide a
+command-line definition of the parser.settingsFile system property, as follows:
+	java -Dparser.settingsFile=collins.properties
+To avoid specifying the settings file on the command line, you can provide a
+default settings file: the parsing engine will always check to see if the file
+~/.db-parser/settings exists (where ~ is your home directory), and if so, use
+it if there is no definition of the parser.settingsFile system property.  For
+example, if you will always be parsing English, you can execute the following
+commands:
+   mkdir ~/.db-parser
+   cp <parser home>/settings/collins.properties ~/.db-parser/settings
+
+The Java class used for training is danbikel.parser.Trainer.  You can see its
+usage by executing
+	java danbikel.parser.Trainer -help
+
+The Java class used for parsing is danbikel.parser.Parser.  You can see its
+usage by executing
+	java danbikel.parser.Parser -help
+
+The Java class used for starting the switchboard, which is the central
+component in a distributed-computing run, is danbikel.parser.StartSwitchboard.
+You can see its usage by executing
+	java danbikel.parser.StartSwitchboard -help
+
+Developer-level documentation is available in the <parser home>/doc directory.
+Currently, not all methods and classes are documented.

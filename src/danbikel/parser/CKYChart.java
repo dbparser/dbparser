@@ -39,7 +39,15 @@ public class CKYChart extends Chart {
   }
 
   protected void setUpItemPool() {
-    itemPool = new ObjectPool(CKYItem.class, 50000);
+    String chartItemClassname = Settings.get(Settings.chartItemClass);
+    Class chartItemClass = null;
+    try { chartItemClass = Class.forName(chartItemClassname); }
+    catch (ClassNotFoundException cnfe) {
+      throw new RuntimeException("Couldn't find class " +
+				 chartItemClassname + "; check " +
+				 Settings.chartItemClass + " property");
+    }
+    itemPool = new ObjectPool(chartItemClass, 50000);
   }
 
   public CKYItem getNewItem() {

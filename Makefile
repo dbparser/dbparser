@@ -168,6 +168,7 @@ danbikel.parser.english.CLASSES =	$(OBJDIR)/HeadFinder.class \
 danbikel.parser.english.RESOURCES =	$(OBJDIR)/data
 
 danbikel.parser.util.CLASSES =	$(OBJDIR)/AddFakePos.class \
+				$(OBJDIR)/DebugChart.class \
 				$(OBJDIR)/LispHead.class \
 				$(OBJDIR)/ParseToSentence.class \
 				$(OBJDIR)/PrettyPrint.class \

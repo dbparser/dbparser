@@ -92,8 +92,8 @@ public abstract class Treebank implements Serializable {
    * the terminal and preterminal symbols (word and part-of-speech tag
    * symbols):
    * <pre>
-   * new Word(preterminal.list().get(1).symbol(),
-   *	      preterminal.list().get(0).symbol());
+   * Words.get(preterminal.list().get(1).symbol(),
+   *	       preterminal.list().get(0).symbol());
    * </pre>
    * If a particular Treebank requires a different type of word object to be
    * constructed, or has a different preterminal tree structure, this method
@@ -103,8 +103,8 @@ public abstract class Treebank implements Serializable {
    * @return the symbol in <code>preterminal</code> that is a part of speech
    */
   public Word makeWord(Sexp preterminal) {
-    return new Word(preterminal.list().get(1).symbol(),
-		    preterminal.list().get(0).symbol());
+    return Words.get(preterminal.list().get(1).symbol(),
+		     preterminal.list().get(0).symbol());
   }
 
   /**
@@ -141,10 +141,9 @@ public abstract class Treebank implements Serializable {
   public abstract boolean isSentence(Symbol label);
 
   /**
-   * Returns the symbol with which
-   * {@linkdanbikel.parser.english.Training#fixSubjectlessSentences} will un-do
-   * incorrect labelings of subjectless sentences with {@link
-   * #subjectlessSentenceLabel()}.
+   * Returns the canonical label for a sentence, for de-transforming sentences
+   * that were transformed via {@link
+   * Training#relabelSubjectlessSentences(Sexp)}.
    */
   public abstract Symbol sentenceLabel();
 

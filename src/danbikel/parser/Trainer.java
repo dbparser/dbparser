@@ -104,7 +104,7 @@ public class Trainer implements Serializable {
   // constants for default classname prefixes for ProbabilityStructure
   // subclasses
   private final static String packagePrefix =
-    className.substring(0, (className.lastIndexOf('.') + 1));
+    Settings.get(Settings.modelStructurePackage) + ".";
   private final static String lexPriorModelStructureClassnamePrefix =
     packagePrefix + "LexPriorModelStructure";
   private final static String nonterminalPriorModelStructureClassnamePrefix =
@@ -225,6 +225,7 @@ public class Trainer implements Serializable {
   protected Map leftSubcatMap = new HashMap();
   protected Map rightSubcatMap = new HashMap();
   protected Map modNonterminalMap = new HashMap();
+  protected Map simpleModNonterminalMap = new HashMap();
   protected Set prunedPreterms;
   protected Set prunedPunctuation;
   // temporary map for canonicalizing subcat objects for
@@ -1257,6 +1258,8 @@ public class Trainer implements Serializable {
     derivePriors();
     System.err.println("done.");
 
+    Language.training().setUpFastArgMap(nonterminals);
+
     deriveModelCounts(derivedCountThreshold, canonical);
 
     deriveHeadToParentMap(canonical);
@@ -1316,6 +1319,7 @@ public class Trainer implements Serializable {
                         leftSubcatMap,
                         rightSubcatMap,
                         modNonterminalMap,
+                        simpleModNonterminalMap,
                         prunedPreterms,
                         prunedPunctuation,
                         canonical);
@@ -1414,6 +1418,11 @@ public class Trainer implements Serializable {
 
     int modMSLastLevel = modMS.numLevels() - 1;
 
+    SexpList lookupTriple = new SexpList(3).add(null).add(null).add(null);
+    SexpList lookupPair = new SexpList(2).add(null).add(null);
+    SexpList parentHeadSideTriple;
+    SexpList modPair;
+
     // we want to ignore stop-word modifiers, as well as the "fake" modifier
     // of +TOP+ that is the root of the observed tree; the nonStopAndNonTop
     // filter accomplishes this
@@ -1429,10 +1438,31 @@ public class Trainer implements Serializable {
       Event future = modMS.getFuture(modEvent, modMSLastLevel).copy();
       future.canonicalize(canonicalMap);
       addToValueSet(modNonterminalMap, context, future);
+
+      lookupTriple.set(0, modEvent.parent());
+      lookupTriple.set(1, modEvent.head());
+      lookupTriple.set(2, Constants.sideToSym(modEvent.side()));
+      parentHeadSideTriple = getCanonicalList(canonicalMap, lookupTriple);
+
+      lookupPair.set(0, modEvent.modifier());
+      lookupPair.set(1, modEvent.modHeadWord().tag());
+      modPair = getCanonicalList(canonicalMap, lookupPair);
+
+      addToValueSet(simpleModNonterminalMap, parentHeadSideTriple, modPair);
     }
 
     if (Settings.getBoolean(Settings.outputModNonterminalMap))
       outputModNonterminalMap();
+  }
+
+  public final static SexpList getCanonicalList(Map map,
+                                                SexpList list) {
+    SexpList canonicalList = (SexpList)map.get(list);
+    if (canonicalList == null) {
+      canonicalList = (SexpList)list.deepCopy();
+      map.put(canonicalList, canonicalList);
+    }
+    return canonicalList;
   }
 
   // four utility methods to output subcat and mod nonterminal maps
@@ -1459,6 +1489,7 @@ public class Trainer implements Serializable {
    */
   public void outputModNonterminalMap() {
     outputMap(modNonterminalMap, "mod-map");
+    outputMap(simpleModNonterminalMap, "simple-mod-map");
   }
 
   /** Outputs the specified map to <code>System.err</code> */
@@ -1636,7 +1667,6 @@ public class Trainer implements Serializable {
     }
     valueCounts.add(value, count);
   }
-
 
   // I/O methods
 
@@ -2033,6 +2063,19 @@ public class Trainer implements Serializable {
     Properties props = (Properties)ois.readObject();
     Settings.storeSorted(props, os, " " + Settings.progName + " v" +
 			 Settings.version);
+    ps.println("------------------------------");
+    ps.println("Settings diferent during training than now");
+    ps.println("------------------------------");
+    Iterator propIt = props.entrySet().iterator();
+    while (propIt.hasNext()) {
+      Map.Entry entry = (Map.Entry)propIt.next();
+      String setting = (String)entry.getKey();
+      String trainingValue = (String)entry.getValue();
+      String currValue = Settings.get(setting);
+      if (currValue == null || !currValue.equals(trainingValue))
+        ps.println(setting + "\n\twas " + trainingValue +
+                   "\n\tis " + currValue);
+    }
     ps.println("------------------------------");
     String trainingInputFilename = (String)ois.readObject();
     if (trainingInputFilename != null)

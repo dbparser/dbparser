@@ -144,6 +144,7 @@ and the Ant output directory might be "classes.ant".-->
     <javadoc destdir="doc"
              protected="true"
 	     use="true"
+	     overview="${src}/overview.html"
 	     windowtitle="Dan Bikel's Parser"
 	     doctitle="Dan Bikel's Parser"
 	     header="Parser"

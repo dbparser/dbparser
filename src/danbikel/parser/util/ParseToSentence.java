@@ -68,11 +68,17 @@ public class ParseToSentence {
     try {
       SexpTokenizer tok =
         new SexpTokenizer(inStream, Language.encoding(), bufSize);
+      OutputStream os = System.out;
+      Writer writer =
+	new BufferedWriter(new OutputStreamWriter(os, Language.encoding()));
+      PrintWriter pw = new PrintWriter(writer);
       Sexp curr = null;
       while ((curr = Sexp.read(tok)) != null)
-        System.out.println(tags ?
-                           Util.collectTaggedWords(curr) :
-                           Util.collectLeaves(curr));
+        pw.println(tags ?
+		   Util.collectTaggedWords(curr) :
+		   Util.collectLeaves(curr));
+      pw.flush();
+      pw.close();
     }
     catch (Exception e) {
       System.out.println(e);

@@ -7,7 +7,6 @@ public class ModNonterminalModelStructure6 extends ProbabilityStructure {
   // data members
   private static Symbol startSym = Language.training().startSym();
   private static Word startWord = Language.training().startWord();
-  private static Symbol baseNP = Language.treebank().baseNPLabel();
   private Symbol topSym = Language.training().topSym();
   private ProbabilityStructure[] jointStructures = {new TagModelStructure1()};
 
@@ -21,7 +20,7 @@ public class ModNonterminalModelStructure6 extends ProbabilityStructure {
   public Event getHistory(TrainerEvent trainerEvent, int backOffLevel) {
     ModifierEvent modEvent = (ModifierEvent)trainerEvent;
 
-    if (modEvent.parent() == baseNP)
+    if (Language.treebank().isBaseNP(modEvent.parent()))
       return getBaseNPHistory(modEvent, backOffLevel);
 
     Symbol side = Constants.sideToSym(modEvent.side());

@@ -7,7 +7,6 @@ public class BrokenModWordModelStructure extends ProbabilityStructure {
   // data members
   private Symbol startSym = Language.training().startSym();
   private Word startWord = Language.training().startWord();
-  private Symbol baseNP = Language.treebank().baseNPLabel();
   private Symbol topSym = Language.training().topSym();
 
   public BrokenModWordModelStructure() {
@@ -20,7 +19,7 @@ public class BrokenModWordModelStructure extends ProbabilityStructure {
   public Event getHistory(TrainerEvent trainerEvent, int backOffLevel) {
     ModifierEvent modEvent = (ModifierEvent)trainerEvent;
 
-    if (modEvent.parent() == baseNP)
+    if (Language.treebank().isBaseNP(modEvent.parent()))
       return getBaseNPHistory(modEvent, backOffLevel);
 
     Symbol side = Constants.sideToSym(modEvent.side());

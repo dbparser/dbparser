@@ -1,0 +1,51 @@
+#!/bin/tcsh -f
+
+if ($#argv < 5) then
+    echo "usage: <minutes per job> <settings file> <em dir> <training file> <test file>"
+    exit 1
+endif
+
+set minutes = $1
+set settings = $2
+set emDir = $3
+set trainingFile = $4
+set testFile = $5
+
+# make sure all files/directories actually exist (except for trainingFile,
+# which is only used for its name)
+if (! -f $settings) then
+    echo "error: settings file $settings does not exist"
+    exit 1
+endif
+
+if (! -d $emDir) then
+    echo "error: em directory $emDir is not a directory"
+    exit 1
+endif
+
+if (! -f $testFile) then
+    echo "error: test file $testFile does not exist"
+    exit 1
+endif
+
+set trainingPrefix = $trainingFile:t:r
+
+# give settings absolute path, if necessary
+set settingsDir = `dirname $settings`
+set settings = `cd $settingsDir; echo $cwd`/$settings:t
+
+# give test file absolute path, if necessary
+set testDir = `dirname $testFile`
+set test = `cd $testDir; echo $cwd`/$testFile:t
+
+# give emDir absolute path, if necessary
+set emDir = `cd $emDir; echo $cwd`
+
+set thisDir = `dirname $0`
+set scriptDir = `cd $thisDir ; echo $cwd`
+
+foreach dir ($emDir/[0-9][0-9])
+    echo "c" | cmsubmit -p 20 -t $minutes $scriptDir/wrapper \
+	$scriptDir/internal-server-run $settings \
+	$dir/$trainingPrefix.precomp.obj.gz $testFile
+end

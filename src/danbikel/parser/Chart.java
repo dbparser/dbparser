@@ -437,7 +437,13 @@ public abstract class Chart implements Serializable {
             added = true;
           }
           else
-            System.err.println("assertion failed: couldn't replace item");
+            System.err.println(className +
+                               ": assertion failed: couldn't replace item" +
+                               "\n\t" +
+                               "oldItem.equals(item)=" + oldItem.equals(item) +
+                               "; " +
+                               "item.equals(oldItem)=" + item.equals(oldItem) +
+                               "\n\toldItem: " + oldItem + "\n\titem: " + item);
         }
         else {
           added = true;

@@ -97,7 +97,20 @@ The parser comes with several, crucial settings files, all located in the
 directory.
  A given training or parsing run needs only a single settings file, which
  determines, among other things, which language the parser will work in.
- 
+\layout Standard
+
+
+\series bold 
+N.B.
+\series default 
+: Virtually all settings that can appear in a settings file are contained
+ as documented constants in the 
+\family typewriter 
+danbikel.parser.Settings
+\family default 
+ class.
+ Please see that API documentation for this class for information about
+ all possible settings.
 \layout Subsection
 
 Scripts
@@ -743,6 +756,31 @@ node
  behavior is not appropriate for your environment.
 \layout Enumerate
 
+The script assumes that the unique identifier for the batch job will be
+ contained in a 
+\family typewriter 
+JOBID
+\family default 
+ environment variable.
+ This job identifier is used only to guarantee that different jobs have
+ distinctly-named experiment directories (see 
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+S
+\end_inset 
+
+
+\begin_inset LatexCommand \ref{sec:experiment-directory}
+
+\end_inset 
+
+ for more information on experiment directories).
+\layout Enumerate
+
 The script relies on other scripts in its 
 \family typewriter 
 bin
@@ -799,6 +837,11 @@ internal-server-run
  script via an installation procedure, instead of forcing you, the user,
  to perform the customizations directly.
 \layout Subsubsection
+
+
+\begin_inset LatexCommand \label{sec:experiment-directory}
+
+\end_inset 
 
 Experiment directory
 \layout Standard
@@ -1247,7 +1290,8 @@ danbikel.parser.InterpolatedKnesserNeyModel
 .
 \layout Standard
 \noindent 
-For more information on this setting, see the documentation for the 
+For more information on this setting, see the API documentation for the
+ 
 \family typewriter 
 danbikel.parser.Settings
 \family default 

@@ -46,6 +46,8 @@
       (r))
  (VNV (r VNV VV VA VC VE)
       (r))
+ (VPT (r VNV VV VA VC VE)
+      (r))
  (UCP (r))
  (WHNP (r WHNP NP NN NT NR QP)
        (r))

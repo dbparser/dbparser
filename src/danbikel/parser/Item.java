@@ -55,6 +55,18 @@ public abstract class Item implements Serializable, Comparable {
   public abstract boolean garbage();
 
   /**
+   * Returns the constraint associated with this chart item, or
+   * <code>null</code> if this item has no associated constraint.
+   */
+  public abstract Constraint getConstraint();
+
+  /**
+   * Sets the constraint for this item.
+   * @param constraint the constraint to be associated with this item.
+   */
+  public abstract void setConstraint(Constraint constraint);
+
+  /**
    * Sets the value of this item's garbage status.
    *
    * @see #garbage()

@@ -114,6 +114,8 @@ public abstract class Training implements Serializable {
   /** Data member returned by the accessor method of the same name. */
   private Symbol stopSym = Symbol.add("+STOP+");
   /** Data member returned by the accessor method of the same name. */
+  private Word startWord = new Word(startSym, startSym);
+  /** Data member returned by the accessor method of the same name. */
   private Word stopWord = new Word(stopSym, stopSym);
   /** Data member returned by the accessor method of the same name. */
   private Symbol topSym = Symbol.add("+TOP+");
@@ -1208,6 +1210,14 @@ public abstract class Training implements Serializable {
    * @see Trainer
    */
   public Symbol startSym() { return startSym; }
+  /**
+   * Returns the <code>Word</code> object that represents the hidden "head
+   * word" of the start symbol.
+   *
+   * @see #startSym
+   * @see Trainer
+   */
+  public Word startWord() { return startWord; }
   /**
    * Returns the symbol to indicate a hidden nonterminal that follows the last
    * in a sequence of modifier nonterminals.  The default value is the return

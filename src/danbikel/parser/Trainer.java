@@ -946,7 +946,7 @@ public class Trainer implements Serializable {
       boolean isConj = Language.treebank.isConjunction(modifier);
       boolean isConjPConj =
 	isConj && side == Constants.RIGHT &&
-	parent != Language.treebank.baseNPLabel() && mods.hasNext();
+	!Language.treebank.isBaseNP(parent) && mods.hasNext();
 
       if (isConjPConj && prevConj != null)
 	System.err.println(className +
@@ -1438,8 +1438,12 @@ public class Trainer implements Serializable {
       future.canonicalize(canonicalMap);
       addToValueSet(modNonterminalMap, context, future);
 
-      lookupTriple.set(0, modEvent.parent());
-      lookupTriple.set(1, modEvent.head());
+      Symbol arglessParent =
+	Language.training().removeArgAugmentation(modEvent.parent());
+      Symbol gaplessHead =
+	(Symbol)Language.training().removeGapAugmentation(modEvent.head());
+      lookupTriple.set(0, arglessParent);
+      lookupTriple.set(1, gaplessHead);
       lookupTriple.set(2, Constants.sideToSym(modEvent.side()));
       parentHeadSideTriple = getCanonicalList(canonicalMap, lookupTriple);
 

@@ -19,7 +19,8 @@ set time = `date '+%H.%M'`
 
 set dir = `dirname $0`
 set scriptDir = `cd $dir  ; echo $cwd`
-set parent = `cd $scriptDir/.. ; echo $cwd`
+#set parent = `cd $scriptDir/.. ; echo $cwd`
+set parent = $scriptDir:h
 set jarFile = $parent/dbparser.jar
 
 # prepend parent of this script's directory to a shell variable version

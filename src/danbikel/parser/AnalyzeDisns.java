@@ -20,8 +20,8 @@ import java.io.*;
  */
 public class AnalyzeDisns {
 
-  private final static int toZeroIdx = 0;
-  private final static int toPrevIdx = 1;
+  public final static int toZeroIdx = 0;
+  public final static int toPrevIdx = 1;
 
   /**
    * Returns the entropy of the specified distribution.
@@ -227,6 +227,55 @@ public class AnalyzeDisns {
     return logProbs;
   }
 
+  public static CountsTable[] computeModelEntropies(Model model) {
+    ProbabilityStructure structure = model.getProbStructure();
+    int numLevels = structure.numLevels();
+    CountsTable[] entropy = new CountsTable[numLevels];
+    for (int i = 0; i < entropy.length; i++)
+      entropy[i] = new CountsTableImpl();
+    return computeModelEntropies(model, entropy);
+  }
+  public static CountsTable[] computeModelEntropies(Model model,
+						    CountsTable[] entropy) {
+    ProbabilityStructure structure = model.getProbStructure();
+
+    // set up temporary data structures for getFutures and getLogProbDisn
+    // methods
+    int disnLen = 1000;
+    double[] disn = new double[disnLen];
+    Transition tmpTrans = new Transition(null,null);
+    Set futuresSet = new HashSet();
+
+    // foreach back-off level
+    //   foreach history context at level
+    //     map history context to its entropy
+    int numLevels = structure.numLevels();
+    for (int level = 0; level < numLevels; level++) {
+      Set futures = getFutures(futuresSet, model, level);
+      disnLen = futures.size();
+      if (disnLen > disn.length)
+	disn = new double[disnLen];
+      Event hist = null;
+      Set entrySet = model.counts[level].history().entrySet();
+      Iterator it = entrySet.iterator();
+      while (it.hasNext()) {
+	MapToPrimitive.Entry entry = (MapToPrimitive.Entry)it.next();
+        hist = (Event)entry.getKey();
+        double count  = entry.getDoubleValue(CountsTrio.hist);
+        double diversity = entry.getDoubleValue(CountsTrio.diversity);
+        double[] logProbDisn = getLogProbDisn(model, level, hist,
+					      futures, disn, tmpTrans);
+        int numNonZeroProbs = 0;
+        for (int i = logProbDisn.length - 1; i >= 0; i--)
+	  if (logProbDisn[i] != Constants.logOfZero)
+	    numNonZeroProbs++;
+	entropy[level].put(hist, entropyFromLogProbs(logProbDisn, disnLen));
+      }
+    }
+
+    return entropy;
+  }
+
   /**
    * Creates a file named after the probability structure class of the
    * specified model and writes information about every distribution contained
@@ -293,6 +342,108 @@ public class AnalyzeDisns {
     }
     writer.flush();
     writer.close();
+  }
+
+  public static CountsTable[] newEntropyCountsTables(Model model) {
+    ProbabilityStructure structure = model.getProbStructure();
+    int numLevels = structure.numLevels();
+    int lastLevel = numLevels - 1;
+    CountsTable[] entropy = new CountsTable[numLevels];
+    for (int i = 0; i < lastLevel; i++)
+      entropy[i] = new CountsTableImpl();
+    return entropy;
+  }
+
+  public static BiCountsTable[] newJSCountsTables(Model model) {
+    ProbabilityStructure structure = model.getProbStructure();
+    int numLevels = structure.numLevels();
+    BiCountsTable[] js = new BiCountsTable[numLevels];
+    for (int level = 1; level < numLevels; level++)
+      js[level] = new BiCountsTable();
+    return js;
+  }
+
+  public static void computeEntropyAndJSStats(Model model,
+					      CountsTable[] entropy,
+					      BiCountsTable[] js) {
+    ProbabilityStructure structure = model.getProbStructure();
+    int numLevels = structure.numLevels();
+    int lastLevel = numLevels - 1;
+
+    // set up temporary data structures for getFutures and getLogProbDisn
+    // methods
+    Transition tmpTrans = new Transition(null,null);
+    Set futures = getFutures(new HashSet(), model, 0);
+    double[] zeroLevelDisn = new double[futures.size()];
+    double[] currDisn = null;
+    double[] prevDisn = null;
+    Map[] disnCache = new Map[numLevels];
+    for (int i = 0; i < numLevels; i++)
+      disnCache[i] = new java.util.LinkedHashMap(16, 0.75f, true) {
+	  protected boolean removeEldestEntry(Map.Entry eldest) {
+	    return size() > 5000;
+	  }
+	};
+
+    Event hist = null;
+    double count = 0.0, oldCount = 0.0, zeroLevelCount = 0.0;
+    Set entrySet = model.counts[0].history().entrySet();
+    Iterator it = entrySet.iterator();
+    while (it.hasNext()) {
+      MapToPrimitive.Entry entry = (MapToPrimitive.Entry)it.next();
+      hist = (Event)entry.getKey();
+      boolean prevLevelHistFirstSeen = true;
+      count = entry.getDoubleValue(CountsTrio.hist);
+      zeroLevelCount = oldCount = count;
+      // put disn for hist_0 into zeroLevelDisn
+      getLogProbDisn(model, 0, hist, futures, zeroLevelDisn, tmpTrans);
+      // store entropy for zeroeth level hist
+      entropy[0].put(hist, entropyFromLogProbs(zeroLevelDisn));
+      for (int level = 1; level < numLevels; level++) {
+	// get this level's hist from previous level's using histBackOffMap
+	hist = (Event)model.histBackOffMap[level - 1].get(hist);
+	MapToPrimitive.Entry currHistEntry =
+	  model.counts[level].history().getEntry(hist);
+	count = currHistEntry.getDoubleValue(CountsTrio.hist);
+	double probExtraContextToZero = zeroLevelCount / count;
+	double probExtraContextToPrev = oldCount / count;
+	// put curr disn for this hist into currDisn
+	// first, check cache
+	double[] cached = (double[])disnCache[level].get(hist);
+	if (cached != null) {
+	  currDisn = cached;
+	}
+	else {
+	  currDisn = new double[futures.size()];
+	  getLogProbDisn(model, level, hist, futures, currDisn, tmpTrans);
+	  disnCache[level].put(hist, currDisn);
+	}
+	// store entropy for current level's hist, if we haven't already
+	// computed it
+	if (level < lastLevel && entropy[level].getEntry(hist) != null) {
+	  entropy[level].put(hist, entropyFromLogProbs(currDisn));
+	}
+	double klDistToZero  = klDistFromLogProbs(zeroLevelDisn, currDisn);
+	double klDistToPrev =
+	  level > 1 && prevLevelHistFirstSeen ?
+	  klDistFromLogProbs(prevDisn, currDisn) : klDistToZero;
+
+	boolean currLevelHistUnseen = js[level].getEntry(hist) == null;
+
+	js[level].add(hist, toZeroIdx, probExtraContextToZero * klDistToZero);
+	// only add to js dist to prev when prev was first seen, since we only
+	// want to sum over unique "expansions" to more-specific histories for
+	// the current level hist
+	if (prevLevelHistFirstSeen)
+	  js[level].add(hist, toPrevIdx, probExtraContextToPrev * klDistToPrev);
+
+	// currDisn becomes prevDisn and count becomes oldCount
+	prevDisn = currDisn;
+	oldCount = count;
+
+	prevLevelHistFirstSeen = currLevelHistUnseen;
+      }
+    }
   }
 
   /**
@@ -418,7 +569,8 @@ public class AnalyzeDisns {
 	}
 	double klDistToZero  = klDistFromLogProbs(zeroLevelDisn, currDisn);
 	double klDistToPrev =
-	  level > 1 ? klDistFromLogProbs(prevDisn, currDisn) : klDistToZero;
+	  level > 1 && prevLevelHistFirstSeen ?
+	  klDistFromLogProbs(prevDisn, currDisn) : klDistToZero;
 
 	boolean currLevelHistUnseen = js[level].getEntry(hist) == null;
 

@@ -42,6 +42,14 @@ public class CountsTable extends danbikel.util.HashMapDouble {
     super(initialCapacity, loadFactor);
   }
 
+  public void addAll(CountsTable other) {
+    Iterator it = other.entrySet().iterator();
+    while (it.hasNext()) {
+      MapToPrimitive.Entry entry = (MapToPrimitive.Entry)it.next();
+      this.add(entry.getKey(), entry.getDoubleValue());
+    }
+  }
+
   public void add(Object key) {
     add(key, 0, 1.0);
   }
@@ -68,7 +76,7 @@ public class CountsTable extends danbikel.util.HashMapDouble {
     while (it.hasNext()) {
       MapToPrimitive.Entry entry = (MapToPrimitive.Entry)it.next();
       if (entry.getDoubleValue() < threshold)
-        it.remove();
+	it.remove();
     }
   }
 

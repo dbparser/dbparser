@@ -1,6 +1,7 @@
-(let ((this-file (file-truename (car file-name-history))))
-  (string-match ".*/" this-file)
-  (setq parent-dir (substring this-file 0 (1- (match-end 0)))))
+(let ((curr-file (file-truename (car file-name-history))))
+  (string-match ".*/src/" curr-file)
+  (setq src-root-dir (substring curr-file 0 (1- (match-end 0))))
+  (setq sandbox-dir (file-truename (concat src-root-dir "/.."))))
 
 (setq relative-src-dirs '("danbikel/lisp"
 			  "danbikel/parser"
@@ -13,16 +14,16 @@
 (setq wn-src-dir '("~/wn/src/danbikel/wordnet"))
 
 (setq absolute-src-dirs
-      (append (mapcar '(lambda (arg) (concat parent-dir "/" arg))
+      (append (mapcar '(lambda (arg) (concat src-root-dir "/" arg))
 				relative-src-dirs)
 	      wn-src-dir))
 
 (setq
- jde-global-classpath (list (concat parent-dir path-separator
+ jde-global-classpath (list (concat src-root-dir path-separator
 				    (getenv "CLASSPATH")))
- jde-make-program (concat "cd " parent-dir "; make")
+ jde-make-program (concat "cd " sandbox-dir "; make")
  jde-run-option-properties (list (cons "WNHOME" (getenv "WNHOME")))
- jde-compile-option-directory parent-dir
+ jde-compile-option-directory sandbox-dir
  jde-compile-option-debug (quote ("all" (t t nil)))
  jde-run-option-heap-size (quote ((200 . "megabytes") (600 . "megabytes")))
  jde-db-source-directories absolute-src-dirs

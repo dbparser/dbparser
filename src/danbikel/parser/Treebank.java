@@ -117,7 +117,7 @@ public abstract class Treebank implements Serializable {
    * @return a preterminal subtree constructed from <code>word</code>
    */
   public Sexp constructPreterminal(Word word) {
-    return new SexpList(Arrays.asList(new Symbol[] {word.tag(), word.word()}));
+    return new SexpList(2).add(word.tag()).add(word.word());
   }
 
   /**

@@ -8,7 +8,7 @@ and the Ant output directory might be "classes.ant".-->
   <property name="dest" value="classes.ant"/>
   <property name="src" value="src"/>
   <property name="deploy" value="deploy"/>
-  <patternset id="deploy.bin">
+  <patternset id="deploy.bin.files">
     <include name="bin/addFakePos"/>
     <include name="bin/internal-server-run"/>
     <include name="bin/kill-node-procs"/>
@@ -22,7 +22,7 @@ and the Ant output directory might be "classes.ant".-->
     <include name="bin/wrapper"/>
   </patternset>		   
   <patternset id="deploy.files">
-    <patternset refid="deploy.bin"/>
+    <patternset refid="deploy.bin.files"/>
     <include name="settings/**"/>
     <exclude name="settings/broken*"/>
     <include name="doc/**"/>

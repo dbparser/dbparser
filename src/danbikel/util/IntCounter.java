@@ -39,6 +39,24 @@ public class IntCounter implements Comparable, Serializable {
 
   public int hashCode() { return count; }
 
+  /**
+   * Returns <code>true</code> if the specified object is an instance of
+   * <code>IntCounter</code> and if its count is the same as that of
+   * this <code>IntCounter</code> object, <code>false</code> otherwise.
+   *
+   * @param obj the object to compare with this object
+   * @return <code>true</code> if the specified object is an instance of
+   * <code>IntCounter</code> and if its count is the same as that of
+   * this <code>IntCounter</code> object, <code>false</code> otherwise
+   */
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (!(obj instanceof IntCounter))
+      return false;
+    return this.count == ((IntCounter)obj).count;
+  }
+
   public String toString() { return String.valueOf(count); }
 
   public int compareTo(Object obj) {

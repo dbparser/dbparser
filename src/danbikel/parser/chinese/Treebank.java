@@ -128,12 +128,17 @@ public class Treebank extends danbikel.parser.lang.AbstractTreebank {
   /**
    * Returns <code>true</code> if the specified S-expression represents a
    * preterminal whose terminal element is the null element
-   * (<code>&quot;-NONE-&quot;</code>) for the Penn Treebank.
+   * (<code>&quot;-NONE-&quot;</code>) for the Chinese Treebank.
+   * <p>
+   * <b>N.B.</b>: Some null elements in the Chinese Treebank have indices
+   * appended.  Consequently, this method simply checks if the print name
+   * of the preterminal <i>starts with</i> the string <tt>-NONE-</tt>.
+   *
    * @see Training#relabelSubjectlessSentences(Sexp)
    */
   public boolean isNullElementPreterminal(Sexp tree) {
     return (isPreterminal(tree) &&
-	    tree.list().get(0).symbol() == nullElementPreterminal);
+	    tree.list().get(0).symbol().toString().startsWith(nullElementPreterminal.toString()));
   }
 
   /**

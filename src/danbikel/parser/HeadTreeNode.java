@@ -120,6 +120,9 @@ public class HeadTreeNode implements Serializable, SexpConvertible {
 	containsVerb |= postMod.containsVerb;
       }
 
+      if (label == treebank.baseNPLabel())
+	containsVerb = false;
+
       rightIdx = wordCounter.get();
 
       // finally, set head word

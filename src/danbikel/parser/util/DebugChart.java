@@ -192,6 +192,7 @@ public class DebugChart {
     double highestLogProb =
       nonTopSentSpanItem ? nonTopHighestLogProb : chart.getTopLogProb(start, end);
     double distance = highestLogProb - bdi.logProb();
+    distance /= Math.log(10); // put distance in log base 10
     // next, get the current best-derivation item's rank among all items
     // covering its span
     int rank = -1;
@@ -361,6 +362,9 @@ public class DebugChart {
   }
 
   public static String itemToString(CKYItem item, Set best) {
+    int numChildren = item.numLeftChildren() + item.numRightChildren();
+    if (!item.isPreterminal())
+      numChildren++;
     return ("[" + item.start() + "," + item.end() + "," +
 	    item.label() + item.headWord() + ",stop=" +
 	    (item.stop() ? "t" : "f") + ", best=" +
@@ -371,10 +375,14 @@ public class DebugChart {
 	     item.headChild().end() + "," +
 	     item.headChild().label() +
 	     "]") +
+            ",numKids=" + numChildren +
 	    "]");
   }
 
   public static String itemToString(CKYItem item) {
+    int numChildren = item.numLeftChildren() + item.numRightChildren();
+    if (!item.isPreterminal())
+      numChildren++;
     return ("[" + item.start() + "," + item.end() + "," +
 	    item.label() + item.headWord() + ",stop=" +
 	    (item.stop() ? "t" : "f") + ", " +
@@ -384,6 +392,7 @@ public class DebugChart {
 	     item.headChild().end() + "," +
 	     item.headChild().label() +
 	     "]") +
+            ",numKids=" + numChildren +
 	    "]");
   }
 

@@ -33,6 +33,7 @@ public class ModelCollection implements Serializable {
   private Map rightSubcatMap;
   private Set prunedPreterms;
   private Set prunedPunctuation;
+  private Map canonicalEvents;
 
   // derived data
   // maps from integers to nonterminals and nonterminals to integers
@@ -102,7 +103,8 @@ public class ModelCollection implements Serializable {
 		  Map leftSubcatMap,
 		  Map rightSubcatMap,
                   Set prunedPreterms,
-                  Set prunedPunctuation) {
+                  Set prunedPunctuation,
+                  Map canonicalEvents) {
     this.lexPriorModel = lexPriorModel;
     this.nonterminalPriorModel = nonterminalPriorModel;
     this.topNonterminalModel = topNonterminalModel;
@@ -123,6 +125,8 @@ public class ModelCollection implements Serializable {
     this.rightSubcatMap = rightSubcatMap;
     this.prunedPreterms = prunedPreterms;
     this.prunedPunctuation = prunedPunctuation;
+
+    this.canonicalEvents = canonicalEvents;
 
     createNonterminalMap();
   }
@@ -163,4 +167,6 @@ public class ModelCollection implements Serializable {
   public Map rightSubcatMap() { return rightSubcatMap; }
   public Set prunedPreterms() { return prunedPreterms; }
   public Set prunedPunctuation() { return prunedPunctuation; }
+
+  public Map canonicalEvents() { return canonicalEvents; }
 }

@@ -69,13 +69,13 @@ public class HeadFinder extends danbikel.parser.HeadFinder {
     int defaultHeadIdx = defaultHead - 1;
 
     // before returning, we check for the coordinated phrase case
-    /*
     if (defaultHeadIdx >= 2 &&
 	treebank.isConjunction(rhs.get(defaultHeadIdx - 1).symbol()) &&
         lhs != treebank.baseNPLabel()) {
-    */
+    /*
     if (defaultHeadIdx >= 2 &&
 	treebank.isConjunction(rhs.get(defaultHeadIdx - 1).symbol())) {
+    */
       // first, try to find same label farther back
       /*
       int firstOccurrenceIdx = rhs.indexOf(rhs.get(defaultHeadIdx));

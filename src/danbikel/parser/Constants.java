@@ -50,6 +50,23 @@ public class Constants {
   public static final double logOfZero = Double.NEGATIVE_INFINITY;
 
   /**
+   * A constant to represent the logarithm of a probability of 1.0
+   * (equal to 0.0).
+   */
+  public static final double logProbCertain = 0.0;
+
+  /**
+   * A constant to represent the probability of an impossible event
+   * (equal to 0.0).
+   */
+  public static final double probImpossible = 0.0;
+
+  /**
+   * A constant to represent the probability of 1.0 (equal to 1.0).
+   */
+  public static final double probCertain = 1.0;
+
+  /**
    * The default file buffer size, which may be passed as an argument to
    * <code>BufferedReader</code> and <code>BufferedWriter</code> constructors.
    */

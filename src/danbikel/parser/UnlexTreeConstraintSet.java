@@ -65,7 +65,7 @@ public class UnlexTreeConstraintSet
     else {
       List children = tree.getChildren();
       for (int i = 0; i < children.size(); i++)
-        collectNodes((UnlexTreeConstraint)children.get(i));
+	collectNodes((UnlexTreeConstraint)children.get(i));
     }
   }
 
@@ -95,7 +95,7 @@ public class UnlexTreeConstraintSet
    *
    * @return <code>false</code>
    *
-   * @see #findAtLeastOneSatisyfing()
+   * @see #findAtLeastOneSatisfying()
    */
   public boolean findNoViolations() { return false; }
 
@@ -112,7 +112,7 @@ public class UnlexTreeConstraintSet
    *
    * @see #findNoViolations()
    */
-  public boolean containsViolation(Item item) {
+  public boolean isViolatedBy(Item item) {
     throw new UnsupportedOperationException();
   }
 
@@ -132,7 +132,7 @@ public class UnlexTreeConstraintSet
       ckyItem.headChild().getConstraint().getParent();
 
     return (headChildConstraintParent.isSatisfiedBy(item) ?
-            headChildConstraintParent : null);
+	    headChildConstraintParent : null);
   }
 
   public String toString() {
@@ -153,11 +153,11 @@ public class UnlexTreeConstraintSet
   public static void main(String[] args) {
     try {
       SexpTokenizer tok =
-        new SexpTokenizer(System.in, Language.encoding(), 8192);
+	new SexpTokenizer(System.in, Language.encoding(), 8192);
       Sexp curr = null;
       while ((curr = Sexp.read(tok)) != null) {
-        UnlexTreeConstraintSet set = new UnlexTreeConstraintSet(curr);
-        System.out.println(((SexpConvertible)set.root()).toSexp());
+	UnlexTreeConstraintSet set = new UnlexTreeConstraintSet(curr);
+	System.out.println(((SexpConvertible)set.root()).toSexp());
       }
     }
     catch (Exception e) {

@@ -212,6 +212,7 @@ public class EMChart extends CKYChart {
       if (unaryLevel != existingItem.unaryLevel())
 	System.err.println(className + ": warning: re-deriving an item with " +
 			   "a different unary level!");
+      item.setGarbage(true);
     }
     else {
       if (ante1 != null) {

@@ -1,0 +1,32 @@
+#!/bin/tcsh -f
+
+if ($#argv < 5) then
+    echo ""
+    echo "This program submits a job using cmsubmit and the scripts"
+    echo -n "~/jbproject/dbparser/bin/wrapper and "
+    echo "~/jbproject/bin/internal-server-run."
+    echo ""
+    echo "usage: <cpus> <time> <settings> <derived data file> <test file>"
+    echo ""
+    exit 1
+endif
+
+set cpus = $1
+set minutes = $2
+set settings = $3
+set derivedDataFile = $4
+set testFile = $5
+
+# gives files absolute paths, if necessary
+set settingsDir = `dirname $settings`
+set settings = `cd $settingsDir; echo $cwd`/$settings:t
+
+set derivedDataDir = `dirname $derivedDataFile`
+set derivedDataFile = `cd $derivedDataDir; echo $cwd`/$derivedDataFile:t
+
+set testDir = `dirname $testFile`
+set testFile = `cd $testDir; echo $cwd`/$testFile:t
+
+cmsubmit -p $cpus -t $minutes ~/jbproject/dbparser/bin/wrapper \
+    ~/jbproject/dbparser/bin/internal-server-run $settings \
+    $derivedDataFile $testFile

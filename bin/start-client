@@ -1,18 +1,22 @@
 #!/bin/tcsh -f
 
-set java = /usr/java/jdk1.3.1_03/bin/java
+set java = $1
+set classpath = $2
+set settingsFile = $3
+set host = $4
+set logDir = $5
+set args = ($argv[6-$#argv])
 
-set classpath = $1
-set host = $2
-set logDir = $3
-set args = ($argv[4-$#argv])
+set settingsProp = "-Dparser.settingsFile=$settingsFile"
 
 set parent = `dirname $0`/..
 set classes = $parent/classes
 
 set clientPolicy = "-Djava.security.policy=$parent/policy-files/client.policy"
 set clientCodebase = "-Djava.rmi.server.codebase=file://$classes/"
+set disableHttp = "-Djava.rmi.server.disableHttp=true"
 
 # start the parser
-$java -server -cp $classpath -Xms800m -Xmx800m $clientPolicy $clientCodebase \
+$java -server -cp $classpath -Xms800m -Xmx800m $settingsProp $clientPolicy \
+    $clientCodebase $disableHttp \
     danbikel.parser.Parser $args >& $logDir/$host.log

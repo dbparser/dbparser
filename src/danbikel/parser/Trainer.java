@@ -289,6 +289,63 @@ public class Trainer implements Serializable {
       }
   };
 
+  /**
+   * Class to represent a MapToPrimitive.Entry object for use by the
+   * {@link #getTrainerEventIterator} method.
+   */
+  public static class EventEntry extends AbstractMapToPrimitive.Entry {
+    /**
+     * The {@link TrainerEvent} object contained by this map entry.
+     */
+    protected TrainerEvent event;
+    /**
+     * The observed count of the {@link TrainerEvent} object contained by
+     * this map entry.
+     */
+    protected double count;
+
+    /**
+     * Constructs a new <code>EventEntry</code> instance with the specified
+     * {@link TrainerEvent} and count.
+     *
+     * @param event the {@link TrainerEvent} of this map entry
+     * @param count the observed count of the {@link TrainerEvent] of this map
+     * entry
+     */
+    public EventEntry(TrainerEvent event, double count) {
+      this.event = event;
+      this.count = count;
+    }
+
+    public Object getKey() {
+      return event;
+    }
+    public double getDoubleValue(int idx) {
+      return count;
+    }
+
+    /**
+     * Throws an {@link UnsupportedOperationException}.
+     * @return an {@link UnsupportedOperationException}.
+     */
+    public Object getValue() {
+      throw new UnsupportedOperationException();
+    }
+    /**
+     * Throws an {@link UnsupportedOperationException}.
+     * @return an {@link UnsupportedOperationException}.
+     */
+    public Object setValue(Object value) {
+      throw new UnsupportedOperationException();
+    }
+    /**
+     * Throws an {@link UnsupportedOperationException}.
+     * @return an {@link UnsupportedOperationException}.
+     */
+    public boolean replaceKey(Object newKey) {
+      throw new UnsupportedOperationException();
+    }
+  }
 
   // constructor
 
@@ -1628,6 +1685,64 @@ public class Trainer implements Serializable {
     Symbol name = event.symbolAt(0);
     System.err.println(className + ": error: unrecognized event type " + name +
 		       "; event=" + event);
+  }
+
+  public static Iterator getEventIterator(final SexpTokenizer tokenizer,
+                                          final Symbol type) {
+    return new Iterator() {
+      SexpTokenizer tok = tokenizer;
+      int intType = eventsToTypes.getEntry(type).getIntValue();
+
+      SexpList next = getNext();
+
+      /**
+       * Gets the Sexp of the next event that is of the correct type.
+       * @return the Sexp of the next event that is of the correct type.
+       */
+      SexpList getNext() {
+        Sexp curr;
+        try {
+          while ((curr = Sexp.read(tok)) != null) {
+            SexpList event = curr.list();
+            Symbol name = event.symbolAt(0);
+            MapToPrimitive.Entry entry = eventsToTypes.getEntry(name);
+            if (entry != null && entry.getIntValue() == intType) {
+              return event;
+            }
+          }
+        }
+        catch (IOException ioe) {
+          System.err.println("TrainerEvent iterator: " + ioe);
+        }
+        return null;
+      }
+
+      public boolean hasNext() {
+        return next != null;
+      }
+      public Object next() {
+        if (next == null)
+          return new NoSuchElementException();
+        TrainerEvent event = null;
+        switch (intType) {
+          case headEventType:
+            event = new HeadEvent(next.get(1));
+            break;
+          case modEventType:
+            event = new ModifierEvent(next.get(1));
+            break;
+          case gapEventType:
+            event = new GapEvent(next.get(1));
+            break;
+        }
+        double count = Double.parseDouble(next.get(2).toString());
+        next = getNext();
+        return new EventEntry(event, count);
+      }
+      public void remove() {
+        throw new UnsupportedOperationException();
+      }
+    };
   }
 
   public void readStats(SexpTokenizer tok)

@@ -135,6 +135,13 @@ public abstract class ProbabilityStructure implements Serializable {
   public double prevHistCount;
 
   /**
+   * Handle onto additional data object for this probability structure,
+   * whose value is <code>null</code> if no other data is required for
+   * the concrete probability structure.
+   */
+  protected Object additionalData;
+
+  /**
    * Usually called implicitly, this constructor initializes the
    * internal, reusable {@link #historyList} to have an initial capacity of
    * the return value of <code>maxEventComponents</code>.
@@ -163,8 +170,8 @@ public abstract class ProbabilityStructure implements Serializable {
 
     ///////////////////////////////////////////////////////////////////////////
     // no longer needed
-    historyList = new SexpList(maxEventComponents());
-    futureList = new SexpList(maxEventComponents());
+    //historyList = new SexpList(maxEventComponents());
+    //futureList = new SexpList(maxEventComponents());
     ///////////////////////////////////////////////////////////////////////////
 
     estimates = new double[numLevels()];
@@ -238,6 +245,13 @@ public abstract class ProbabilityStructure implements Serializable {
   public double lambdaFudge(int backOffLevel) { return 5.0; }
 
   /**
+   * Returns the "fudge term" for the lambda computation for
+   * <code>backOffLevel</code>.  The default implementation returns
+   * <code>0.0</code>.
+   */
+  public double lambdaFudgeTerm(int backOffLevel) { return 0.0; }
+
+  /**
    * Extracts the history context for the specified back-off level
    * from the specified trainer event.
    *
@@ -293,6 +307,68 @@ public abstract class ProbabilityStructure implements Serializable {
   }
 
   /**
+   * Indicates whether the <code>Model</code> class needs to invoke
+   * its cleanup method at the end of its {@link
+   * Model#deriveCounts(CountsTable,Filter,int,FlexibleMap)
+   * deriveCounts} method.  The default implementation here returns
+   * <code>false</code>.
+   *
+   * @see #removeHistory(int,Event)
+   * @see #removeFuture(int,Event)
+   * @see #removeTransition(int,Transition)
+   * @see Model#deriveCounts(CountsTable,Filter,int,FlexibleMap)
+   * @see Model#cleanup()
+   */
+  public boolean doCleanup() {
+    return false;
+  }
+
+  /**
+   * Indicates that {@link Model#cleanup()}, which is invoked at the end
+   * of {@link Model#deriveCounts(CountsTable,Filter,int,FlexibleMap)
+   * Model.deriveCounts},
+   * can safely remove the specified event from the <code>Model</code>
+   * object's internal counts tables, as the event is not applicable
+   * to any of the probabilities for which the model will produce an estimate.
+   * <p>
+   * The default implementation simply returns <code>false</code>.
+   *
+   * @see Model#deriveCounts(CountsTable,Filter,int,FlexibleMap)
+   * @see Model#cleanup()
+   */
+  public boolean removeHistory(int backOffLevel, Event history) {
+    return false;
+  }
+  /**
+   * Indicates that {@link Model#cleanup()}, which is invoked at the end
+   * of {@link Model#deriveCounts(CountsTable,Filter,int,FlexibleMap)},
+   * can safely remove the specified event from the <code>Model</code>
+   * object's internal counts tables, as the event is not applicable
+   * to any of the probabilities for which the model will produce an estimate.
+   * <p>
+   * The default implementation simply returns <code>false</code>.
+   *
+   * @see Model#deriveCounts(CountsTable,Filter,int,FlexibleMap)
+   * @see Model#cleanup()
+   */
+  public boolean removeFuture(int backOffLevel, Event future) {
+    return false;
+  }
+  /**
+   * Returns <code>true</code> if the specified transition contains
+   * either a history or future for which {@link
+   * #removeHistory(int,Event)} or {@link #removeFuture(int,Event)}
+   * return <code>true</code>, respectively.
+   *
+   * @see Model#deriveCounts(CountsTable,Filter,int,FlexibleMap)
+   * @see Model#cleanup()
+   */
+  public boolean removeTransition(int backOffLevel, Transition transition) {
+    return (removeHistory(backOffLevel, transition.history()) ||
+	    removeFuture(backOffLevel, transition.future()));
+  }
+
+  /**
    * Returns the recommended cache size for the specified back-off level
    * of the model that uses this probability structure.  This default
    * implementation simply returns <code>topLevelCacheSize / 2^level</code>.
@@ -306,6 +382,8 @@ public abstract class ProbabilityStructure implements Serializable {
     return size;
   }
 
+  public Object getAdditionalData() { return additionalData; }
+  public void setAdditionalData(Object data) { additionalData = data; }
 
   /**
    * Returns a deep copy of this object.  Currently, all data members

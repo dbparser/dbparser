@@ -106,9 +106,14 @@ public class CKYItem extends Item implements SexpConvertible {
 
   // data members
 
-  /** The log of the probability of the implicit tree represented by
-      this item. */
+  /** The log of the probability of the tree represented by this item. */
   protected double logTreeProb;
+
+  /**
+   * The log of the probability of the lexicalized root nonterminal label of
+   * the tree represented by this item.
+   */
+  protected double logPrior;
 
   /** The label of this chart item. */
   protected Symbol label;
@@ -223,9 +228,11 @@ public class CKYItem extends Item implements SexpConvertible {
                  boolean rightVerb,
                  boolean stop,
                  double logTreeProb,
+                 double logPrior,
                  double logProb) {
     super(logProb);
     this.logTreeProb = logTreeProb;
+    this.logPrior = logPrior;
     this.label = label;
     this.headWord = headWord;
     this.leftSubcat = leftSubcat;
@@ -257,9 +264,11 @@ public class CKYItem extends Item implements SexpConvertible {
                   boolean rightVerb,
                   boolean stop,
                   double logTreeProb,
+                  double logPrior,
                   double logProb) {
     this.logProb = logProb;
     this.logTreeProb = logTreeProb;
+    this.logPrior = logPrior;
     this.label = label;
     this.headWord = headWord;
     this.leftSubcat = leftSubcat;
@@ -316,6 +325,8 @@ public class CKYItem extends Item implements SexpConvertible {
   public double logProb() { return logProb; }
 
   public double logTreeProb() { return logTreeProb; }
+
+  public double logPrior() { return logPrior; }
 
   public Symbol headLabel() {
     if (isPreterminal())
@@ -374,6 +385,8 @@ public class CKYItem extends Item implements SexpConvertible {
   }
 
   public void setLogProb(double logProb) { this.logProb = logProb; }
+
+  public void setLogPrior(double logPrior) { this.logPrior = logPrior; }
 
   // side-sensitive mutators
   public void setSubcat(boolean side, Subcat subcat) {
@@ -525,6 +538,7 @@ public class CKYItem extends Item implements SexpConvertible {
       "; lv=" + shortBool(leftVerb) + "; rv=" + shortBool(rightVerb) +
       "; stop=" + shortBool(stop) +
       "\t; tree=" + doubleNF.format(logTreeProb) +
+      "; prior=" + doubleNF.format(logPrior) +
       "; prob=" + doubleNF.format(logProb) +
       " (@" + System.identityHashCode(this) + ")";
   }
@@ -559,6 +573,7 @@ public class CKYItem extends Item implements SexpConvertible {
     this.stop = other.stop;
     this.logTreeProb = other.logTreeProb;
     this.logProb = other.logProb;
+    this.logPrior = other.logPrior;
     return this;
   }
 
@@ -570,6 +585,6 @@ public class CKYItem extends Item implements SexpConvertible {
                        (SexpList)rightPrevMods.deepCopy(),
                        start, end,
                        leftVerb, rightVerb, stop,
-                       logTreeProb, logProb);
+                       logTreeProb, logPrior, logProb);
   }
 }

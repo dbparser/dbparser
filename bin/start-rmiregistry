@@ -1,0 +1,15 @@
+#!/bin/tcsh -f
+
+if ($#argv != 2) then
+    echo "usage: <host on which to start rmiregistry> <output file for pid>"
+endif
+
+set host = $1
+set pidOutputFile = $2
+
+echo Start rmiregistry on $host
+echo "" | rsh $host 'unsetenv CLASSPATH ; rmiregistry' &
+set registryPid = $!
+
+echo Creating rmiregistry pid file $pidOutputFile
+echo "$registryPid " > $pidOutputFile

@@ -7,15 +7,15 @@ import java.io.*;
 
 /**
  * Provides a bag implementation of subcat requirements (a <i>bag</i>
- * is a set that allows multiple occurrences of the same item).  In
- * particular, this class determines all possible argument nonterminal
- * labels by inspecting the values of the {@link Training#argContexts}
+ * is a set that allows multiple occurrences of the same item).  This list
+ * of all argument nonterminals is provided by {@link Training#argNonterminals}
  * map.  As a special case, this class also supports gap requirements,
  * that is, requirements equal to {@link Training#gapAugmentation}.
  * This class also provides a separate bin for miscellaneous subcat
  * requirements, such as those that can be matched via {@link
- * Training#headSym}.  All nonterminal requirements are stripped of any
- * augmentations before being counted in this subcat bag.
+ * danbikel.parser.lang.AbstractTraining#headSym}.  All nonterminal
+ * requirements are stripped of any augmentations before being counted in
+ * this subcat bag.
  * <p>
  * The comment for the <code>toSexp</code> method describes the way in which
  * this class represents miscellaneous requirements.
@@ -26,7 +26,7 @@ import java.io.*;
  * and miscellaneous subcat requirements.  If this parsing package is
  * expanded to include additional elements that are possible
  * generative requirements, and these elements do not appear in {@link
- * Training#argContexts}, unless it is modified, this class will
+ * Training#argNonterminals}, unless it is modified, this class will
  * simply put these elements in the miscellaneous bin.
  * <li>This class cannot collect more than 127 total occurrences of
  * requirements.  This is well beyond the number of arguments ever postulated
@@ -55,9 +55,6 @@ public class SubcatBag implements Subcat, Externalizable {
   private static Symbol[] symbols;
   static {
     Treebank treebank = Language.treebank();
-    Symbol headSym = Language.training.headSym();
-    Symbol headPreSym = Language.training.headPreSym();
-    Symbol headPostSym = Language.training.headPostSym();
     Symbol gapAugmentation = Language.training.gapAugmentation();
     Symbol argAugmentation = Language.training.argAugmentation();
     char delimChar = Language.treebank.canonicalAugDelimiter();
@@ -144,12 +141,12 @@ public class SubcatBag implements Subcat, Externalizable {
 
   /**
    * Adds the specified requirement to this subcat bag.  There are
-   * separate bins maintained for each of the nonterminals discvered as
-   * list elements of the values of {@link Training#argContexts}, as
+   * separate bins maintained for each of the nonterminals in the
+   * list returned by {@link Training#argNonterminals}, as
    * well as a bin for gap augmentations (that is, requirements that are
    * equal to {@link Training#gapAugmentation}) and a miscellaneous bin
    * for all other requirements, such as those that can be matched via
-   * {@link Training#headSym}.
+   * {@link danbikel.parser.lang.AbstractTraining#headSym}.
    *
    * @param requirement the requirement to add to this subcat bag
    */

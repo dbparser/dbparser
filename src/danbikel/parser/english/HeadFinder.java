@@ -8,7 +8,7 @@ import danbikel.parser.Language;
 import danbikel.parser.Settings;
 import danbikel.parser.Constants;
 
-public class HeadFinder extends danbikel.parser.HeadFinder {
+public class HeadFinder extends danbikel.parser.lang.AbstractHeadFinder {
   Treebank treebank = Language.treebank();
 
   /**
@@ -38,12 +38,13 @@ public class HeadFinder extends danbikel.parser.HeadFinder {
    * Finds the head for the grammar production <code>lhs -> rhs</code>.  This
    * method destructively modifies <code>rhs</code> to contain only
    * the canonical version of each of its symbols.  This method then calls
-   * {@link danbikel.parser.HeadFinder#defaultFindHead(Symbol,SexpList)},
-   * using the canonical version of the <code>lhs</code> symbol for the first
-   * argument.  If the default head index points to a nonterminal in a
-   * coordinating relationship, that is, if the default head index is greater
-   * than 2 and the previous nonterminal is a conjunction, then the index
-   * returned is the default head index minus 2.
+   * {@link #defaultFindHead(Symbol,SexpList)}, using the canonical version
+   * of the <code>lhs</code> symbol for the first argument.  If the default
+   * head index points to a nonterminal in a coordinating relationship, that
+   * is, if the default head index is greater than 2 and the previous
+   * nonterminal is a conjunction, then the index returned is the default
+   * head index minus 2.
+   *
    * @param tree the original subtree in which to find the head child, or
    * <code>null</code> if the subtree is not available
    * @param lhs the nonterminal label that is the left-hand side of a grammar

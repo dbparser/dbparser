@@ -14,17 +14,16 @@ import danbikel.lisp.*;
  * Provides methods for language-specific processing of training parse trees.
  * Even though this subclass of {@link danbikel.parser.Training} is
  * in the default English language package, its primary purpose is simply
- * to fill in the {@link danbikel.parser.Training#argContexts},
- * {@link danbikel.parser.Training#semTagArgStopSet} and
- * {@link danbikel.parser.Training#nodesToPrune} data members using
- * a metadata resource.  If this capability is desired in another language
- * package, this class may be subclassed.
+ * to fill in the {@link #argContexts}, {@link #semTagArgStopSet} and
+ * {@link #nodesToPrune} data members using a metadata resource.  If this
+ * capability is desired in another language package, this class may be
+ * subclassed.
  * <p>
  * This class also re-defined the method
  * {@link danbikel.parser.Training#addBaseNPs(Sexp)}, with an important change
  * that is possibly only relevant to the Penn Treebank.
  */
-public class BrokenTraining extends danbikel.parser.Training {
+public class BrokenTraining extends danbikel.parser.lang.AbstractTraining {
   // constants
   private final static String className = BrokenTraining.class.getName();
   private final static Symbol argContextsSym = Symbol.add("arg-contexts");
@@ -72,9 +71,9 @@ public class BrokenTraining extends danbikel.parser.Training {
     return tree;
   }
   /**
-   * Reads metadata to fill in {@link danbikel.parser.Training#argContexts} and
-   * {@link danbikel.parser.Training#semTagArgStopSet}.  Does no format
-   * checking on the S-expressions of the metadata resource.
+   * Reads metadata to fill in {@link #argContexts} and
+   * {@link #semTagArgStopSet}.  Does no format checking on the
+   * S-expressions of the metadata resource.
    *
    * @param metadataTok tokenizer for stream of S-expressions containing
    * metadata for this class
@@ -371,7 +370,7 @@ public class BrokenTraining extends danbikel.parser.Training {
     return tree;
   }
 
-  protected void postProcess(Sexp tree) {
+  public void postProcess(Sexp tree) {
     //unrepairBaseNPs(tree);
     super.postProcess(tree);
   }

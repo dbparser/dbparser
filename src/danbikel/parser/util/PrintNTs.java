@@ -1,0 +1,76 @@
+package danbikel.parser.util;
+
+import danbikel.lisp.*;
+import danbikel.parser.*;
+import java.io.*;
+import java.util.*;
+
+public class PrintNTs {
+  private static final int bufSize = Constants.defaultFileBufsize;
+
+  private PrintNTs() {}
+
+  private static String[] usageMsg = {
+    "usage: [-v|-help|-usage] [-tags] [filename]",
+    "where",
+    "\t-v|-help|-usage: prints out this message",
+    "\t-tags: indicates to treat tags as nonterminals",
+    "\tfilename is the file to be processed (standard input is assumed if",
+    "\t\tthis argument is \"-\" or is not present)"
+  };
+
+  private static void usage() {
+    for (int i = 0; i < usageMsg.length; i++)
+      System.err.println(usageMsg[i]);
+  }
+
+  /**
+   * Reads in parse trees either from a specified file or from standard input,
+   * collects all nonterminals and then prints them, one nonterminal per line,
+   * to standard output.  By default, tags are not considered nonterminals.
+   * <pre>usage: [- | <filename>] [-tags]</pre>
+   * where specifying <tt>-</tt> or using no arguments at all indicates to
+   * read from standard input, and where specifying -tags indicates to consider
+   * part of speech tags to be nonterminals.
+   */
+  public static void main(String[] args) {
+    InputStream inStream = System.in;
+    boolean includeTags = false;
+    String inFile = null;
+    for (int i = 0; i < args.length; i++) {
+      if (args[i].equals("-help") || args[i].equals("-usage") ||
+          args[i].equals("-v")) {
+        usage();
+        return;
+      }
+      else if (args[i].equals("-tags"))
+        includeTags = true;
+      else if (!args[i].equals("-"))
+        inFile = args[i];
+    }
+    if (inFile != null) {
+      try {
+	inStream = new FileInputStream(inFile);
+      } catch (FileNotFoundException fnfe) {
+	System.err.println(fnfe);
+	System.exit(-1);
+      }
+    }
+    try {
+      Set ntSet = new HashSet();
+      SexpTokenizer tok =
+        new SexpTokenizer(inStream, Language.encoding(), bufSize);
+      Sexp curr = null;
+      int sentNum;
+      for (sentNum = 0; (curr = Sexp.read(tok)) != null; sentNum++)
+        Util.collectNonterminals(ntSet, curr, includeTags);
+      System.err.println("number of sentences processed: " + sentNum);
+      Iterator it = ntSet.iterator();
+      while (it.hasNext())
+        System.out.println(it.next());
+    }
+    catch (Exception e) {
+      System.out.println(e);
+    }
+  }
+}

@@ -141,6 +141,14 @@ public abstract class Treebank implements Serializable {
   public abstract boolean isSentence(Symbol label);
 
   /**
+   * Returns the symbol with which
+   * {@linkdanbikel.parser.english.Training#fixSubjectlessSentences} will un-do
+   * incorrect labelings of subjectless sentences with {@link
+   * #subjectlessSentenceLabel()}.
+   */
+  public abstract Symbol sentenceLabel();
+
+  /**
    * Returns the symbol with which {@link
    * Training#relabelSubjectlessSentences(Sexp)}
    * will relabel sentences when they have no subjects.
@@ -160,6 +168,8 @@ public abstract class Treebank implements Serializable {
    * a preterminal whose terminal element is the null element for the current
    * language's Treebank.  This method is intended to be used by implementations
    * of {@link Training#relabelSubjectlessSentences(Sexp)}.
+   *
+   * @see Training#relabelSubjectlessSentences(Sexp)
    */
   public abstract boolean isNullElementPreterminal(Sexp tree);
 
@@ -215,18 +225,24 @@ public abstract class Treebank implements Serializable {
    * a preterminal that is the possessive part of speech.  This method is
    * intended to be used by implementations of {@link
    * Training#addBaseNPs(Sexp)}.
+   *
+   * @see Training#addBaseNPs(Sexp)
    */
   public abstract boolean isPossessivePreterminal(Sexp tree);
 
   /**
    * Returns <code>true</code> if the canonical version of the specified label
    * is an NP for the current language's Treebank.
+   *
+   * @see Training#addBaseNPs(Sexp)
    */
   public abstract boolean isNP(Symbol label);
 
   /**
    * Returns the symbol with which {@link Training#addBaseNPs(Sexp)} will
    * relabel core NPs.
+   *
+   * @see Training#addBaseNPs(Sexp)
    */
   public abstract Symbol baseNPLabel();
 
@@ -244,6 +260,8 @@ public abstract class Treebank implements Serializable {
   /**
    * Returns the symbol that {@link Training#addBaseNPs(Sexp)} should
    * add as a parent if a base NP is not dominated by an NP.
+   *
+   * @see Training#addBaseNPs(Sexp)
    */
   public abstract Symbol NPLabel();
 
@@ -282,14 +300,32 @@ public abstract class Treebank implements Serializable {
   /**
    * Returns <code>true</code> if the specified word is a comma.  This method
    * is used by the <code>Decoder</code> class when performing the comma
-   * constraint on chart items.  This method may return <code>null</code> if
-   * the comma constraint will never be used with a particular language
-   * package.
+   * constraint on chart items.
    *
    * @param word the word to test
    * @see Settings#decoderUseCommaConstraint
    */
   public abstract boolean isComma(Symbol word);
+
+  /**
+   * Returns <code>true</code> if the specified word is a left
+   * parenthesis.  This method is used by the <code>Decoder</code>
+   * class when performing the comma constraint on chart items.
+   *
+   * @param word the word to test
+   * @see Settings#decoderUseCommaConstraint
+   */
+  public abstract boolean isLeftParen(Symbol word);
+
+  /**
+   * Returns <code>true</code> if the specified word is a right
+   * parenthesis.  This method is used by the <code>Decoder</code>
+   * class when performing the comma constraint on chart items.
+   *
+   * @param word the word to test
+   * @see Settings#decoderUseCommaConstraint
+   */
+  public abstract boolean isRightParen(Symbol word);
 
   /**
    * Returns a string whose characters are the set of delimiters for
@@ -525,7 +561,7 @@ public abstract class Treebank implements Serializable {
 
   /**
    * Provides an efficient, thread-safe method for testing whether the
-   * specified nonterminal contains the specified augmentation (without
+    * specified nonterminal contains the specified augmentation (without
    * parsing the nonterminal).
    * <p>
    * <b>N.B.</b>: This method assumes that the augmentation is preceded
@@ -628,7 +664,7 @@ public abstract class Treebank implements Serializable {
     return list;
   }
 
-  private final boolean isAugDelim(Sexp sexp) {
+  public final boolean isAugDelim(Sexp sexp) {
     String symStr = sexp.toString();
     return (symStr.length() == 1 && augmentationDelimSet.get(symStr.charAt(0)));
   }

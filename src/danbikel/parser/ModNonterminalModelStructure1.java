@@ -16,7 +16,9 @@ import danbikel.lisp.*;
 public class ModNonterminalModelStructure1 extends ProbabilityStructure {
   // data members
   private Symbol startSym = Language.training().startSym();
-  public ModNonterminalModelStructure1() { super(); }
+  public ModNonterminalModelStructure1() {
+    super();
+  }
 
   public int maxEventComponents() { return 7; }
   public int numLevels() { return 3; }
@@ -32,33 +34,33 @@ public class ModNonterminalModelStructure1 extends ProbabilityStructure {
     switch (backOffLevel) {
     case 0:
       // for p(M(t)_i | P, H, w, t, verbIntervening, (M_i-1,...,M_i-k), subcat)
-      hist.add(Language.training.removeGapAugmentation(modEvent.parent()));
-      hist.add(Language.training.removeGapAugmentation(modEvent.head()));
-      hist.add(modEvent.headWord().word());
-      hist.add(modEvent.headWord().tag());
-      hist.add(verbInterveningSym);
-      hist.add(Language.training.removeGapAugmentation(modEvent.previousMods()));
-      hist.add(modEvent.subcat());
+      hist.add(0, Language.training.removeGapAugmentation(modEvent.parent()));
+      hist.add(0, Language.training.removeGapAugmentation(modEvent.head()));
+      hist.add(0, modEvent.headWord().word());
+      hist.add(0, modEvent.headWord().tag());
+      hist.add(0, verbInterveningSym);
+      hist.add(0, Language.training.removeGapAugmentation(modEvent.previousMods()));
+      hist.add(1, modEvent.subcat());
       break;
     case 1:
       // for p(M(t)_i | P, H, w, t, verbIntervening, M_i-1, subcat)
-      hist.add(Language.training.removeGapAugmentation(modEvent.parent()));
-      hist.add(Language.training.removeGapAugmentation(modEvent.head()));
-      hist.add(modEvent.headWord().tag());
-      hist.add(verbInterveningSym);
-      hist.add(Language.training.removeGapAugmentation(modEvent.previousMods().list().get(0)));
-      hist.add(modEvent.subcat());
+      hist.add(0, Language.training.removeGapAugmentation(modEvent.parent()));
+      hist.add(0, Language.training.removeGapAugmentation(modEvent.head()));
+      hist.add(0, modEvent.headWord().tag());
+      hist.add(0, verbInterveningSym);
+      hist.add(0, Language.training.removeGapAugmentation(modEvent.previousMods().list().get(0)));
+      hist.add(1, modEvent.subcat());
       break;
     case 2:
       // for p(M(t)_i | P, H, verbIntervening, M_i-1 == +START+, subcat)
       Symbol prevModIsStartSym =
 	Constants.booleanToSym(modEvent.previousMods().list().get(0) ==
 			       startSym);
-      hist.add(Language.training.removeGapAugmentation(modEvent.parent()));
-      hist.add(Language.training.removeGapAugmentation(modEvent.head()));
-      hist.add(verbInterveningSym);
-      hist.add(prevModIsStartSym);
-      hist.add(modEvent.subcat());
+      hist.add(0, Language.training.removeGapAugmentation(modEvent.parent()));
+      hist.add(0, Language.training.removeGapAugmentation(modEvent.head()));
+      hist.add(0, verbInterveningSym);
+      hist.add(0, prevModIsStartSym);
+      hist.add(1, modEvent.subcat());
       break;
     }
     return hist;

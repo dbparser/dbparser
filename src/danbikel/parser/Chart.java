@@ -108,7 +108,6 @@ public abstract class Chart implements Serializable {
    * @param size the size to be set for this chart
    */
   protected void setSizeAndClear(int size) {
-    reclaimItemsInChart();
     setSize(size);
     clear();
   }

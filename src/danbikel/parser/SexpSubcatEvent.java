@@ -202,7 +202,7 @@ public class SexpSubcatEvent extends SexpEvent {
    */
   public int canonicalize(Map canonical) {
     if (subcat != null)
-      subcat = subcat.getCanonical(canonical, false);
+      subcat = subcat.getCanonical(false, canonical);
     return super.canonicalize(canonical);
   }
 
@@ -210,6 +210,12 @@ public class SexpSubcatEvent extends SexpEvent {
    * Returns a deep copy of this event, using <code>SexpEvent.copy</code> to
    * copy the backing <code>Sexp</code>, and using <code>Event.copy</code>
    * to copy the backing <code>Subcat</code>, if there is one.
+   * <p>
+   * <b>Bugs</b>: The subcat is <i><b>not</b></i> deeply copied, as we
+   * are using "caller-copy" semantics, that is, that any thread that wishes
+   * to use a modified version of a subcat must take care to copy an existing
+   * subcat before making the modification.  This convention is potentially
+   * dangerous, but is in place for efficiency.
    *
    * @see SexpEvent#copy
    * @see Event#copy

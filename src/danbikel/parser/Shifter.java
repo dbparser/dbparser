@@ -49,20 +49,4 @@ public class Shifter {
   public static boolean skip(CKYItem item, Word prevWord, Word currWord) {
     return shifter.skip(item, prevWord, currWord);
   }
-
-
-
-
-  public static void shift(TrainerEvent event, SexpList list, Sexp sexp) {
-    shifter.shift(event, list, sexp);
-  }
-  public static void shift(TrainerEvent event, WordList wordList, Word word) {
-    shifter.shift(event, wordList, word);
-  }
-  public static boolean skip(CKYItem item, Sexp sexp) {
-    return shifter.skip(item, sexp);
-  }
-  public static boolean skip(CKYItem item, Word word) {
-    return shifter.skip(item, word);
-  }
 }

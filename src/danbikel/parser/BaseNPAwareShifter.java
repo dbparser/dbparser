@@ -150,7 +150,6 @@ public class BaseNPAwareShifter implements Shift {
 		  Language.treebank.isConjunction(currModSym)) ||
 		 (Language.treebank.isConjunction(prevModSym) &&
 		  Language.treebank.isPunctuation(currModSym)));
-
   }
 
   /**
@@ -188,30 +187,5 @@ public class BaseNPAwareShifter implements Shift {
 		  Language.treebank.isConjunction(currWord.tag())) ||
 		 (Language.treebank.isConjunction(prevWord.tag()) &&
 		  Language.treebank.isPunctuation(currWord.tag())));
-  }
-
-
-
-
-
-  public void shift(TrainerEvent event, SexpList list, Sexp sexp) {
-    Symbol sym = sexp.symbol();
-    if (event.parent() == baseNP && Language.treebank.isPunctuation(sym))
-      return;
-    list.remove(list.length() - 1);
-    list.add(0, sym);
-  }
-  public void shift(TrainerEvent event, WordList wordList, Word word) {
-    if (event.parent() == baseNP && Language.treebank.isPunctuation(word.tag()))
-      return;
-    wordList.shift(word);
-  }
-  public boolean skip(CKYItem item, Sexp sexp) {
-    return (item.label() == baseNP &&
-	    Language.treebank.isPunctuation(sexp.symbol()));
-  }
-  public boolean skip(CKYItem item, Word word) {
-    return (item.label() == baseNP &&
-	    Language.treebank.isPunctuation(word.tag()));
   }
 }

@@ -1334,7 +1334,10 @@ public abstract class Training implements Serializable {
       Sexp curr = null;
       for (int treeNum = 1; (curr = Sexp.read(tok)) != null; treeNum++) {
 	if (curr.isList()) {
+          // automatically determine whethe to strip outer parens
 	  Sexp tree = curr.list().get(0);
+          if (tree.isSymbol())
+            tree = curr;
 	  if (training.isValidTree(tree))
 	    System.out.println(training.preProcess(tree));
 	  else

@@ -20,6 +20,7 @@ abstract public class AbstractEvent implements Event {
     if (otherEvent.numTypes() != numTypes() ||
 	otherEvent.numComponents() != numComponents())
       return false;
+    System.err.println("warning: we're deep in genericEquals!");
     // check that every type of this object is supported by other object
     // (and hence, since they have the same number of types, the converse
     // will be true)

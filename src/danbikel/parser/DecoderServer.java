@@ -21,6 +21,7 @@ public class DecoderServer
     Integer.parseInt(Settings.get(Settings.unknownWordThreshold));
   private boolean downcaseWords =
     Boolean.valueOf(Settings.get(Settings.downcaseWords)).booleanValue();
+  private Word stopWord = Language.training.stopWord();
 
   /**
    * Constructs a non-exported <code>DecoderServer</code> object.
@@ -267,8 +268,14 @@ public class DecoderServer
   public double logPrior(int id, TrainerEvent event) {
     Model lexPriorModel = modelCollection.lexPriorModel();
     Model nonterminalPriorModel = modelCollection.nonterminalPriorModel();
-    return (lexPriorModel.estimateLogProb(id, event) +
-	    nonterminalPriorModel.estimateLogProb(id, event));
+    double lexPriorProb = lexPriorModel.estimateLogProb(id, event);
+    if (lexPriorProb == Constants.logOfZero)
+      return Constants.logOfZero;
+    double nonterminalPriorProb =
+      nonterminalPriorModel.estimateLogProb(id, event);
+    if (nonterminalPriorProb == Constants.logOfZero)
+      return Constants.logOfZero;
+    return lexPriorProb + nonterminalPriorProb;
   }
 
   public double logProbHead(int id, TrainerEvent event) {
@@ -308,6 +315,8 @@ public class DecoderServer
     double leftModNTProb = leftModNTModel.estimateLogProb(id, event);
     if (leftModNTProb == Constants.logOfZero)
       return Constants.logOfZero;
+    if (stopWord.equals(event.modHeadWord()))
+      return leftModNTProb;
     double leftWordProb = leftModWordModel.estimateLogProb(id, event);
     if (leftWordProb == Constants.logOfZero)
       return Constants.logOfZero;
@@ -320,6 +329,8 @@ public class DecoderServer
     double rightModNTProb = rightModNTModel.estimateLogProb(id, event);
     if (rightModNTProb == Constants.logOfZero)
       return Constants.logOfZero;
+    if (stopWord.equals(event.modHeadWord()))
+      return rightModNTProb;
     double rightWordProb = rightModWordModel.estimateLogProb(id, event);
     if (rightWordProb == Constants.logOfZero)
       return Constants.logOfZero;

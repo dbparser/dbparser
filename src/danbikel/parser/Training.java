@@ -51,6 +51,36 @@ public interface Training {
   public Sexp preProcess(Sexp tree);
 
   /**
+   * Invoked by the {@linkplain Decoder decoder} as the first step in
+   * preprocessing (prior to the invocation of {@link #preProcessTest}).
+   * Returns whether the specified word should be removed from the sentence
+   * before parsing.
+   *
+   * @param word a word in the sentence about to parsed
+   * @param tag the supplied part-of-speech tag of the specified word,
+   * or <tt>null</tt> if tags were not supplied
+   * @param idx the index of the specified word in the specified sentence
+   * @param sentence a list of {@link Symbol} objects that represent the words
+   * of the sentence to be parsed
+   * @param tags coordinated list of supplied part-of-speech tag lists for each
+   * of the words in the specified sentence, or <tt>null</tt> if no tags
+   * were supplied
+   * @param originalTags the cached copy of the specified <tt>tags</tt> list,
+   * used when {@link Settings#restorePrunedWords} is <tt>true</tt>
+   * @param prunedPretermsPosSet the set of part-of-speech tags that were
+   * pruned during training
+   * @param prunedPretermsPosMap a map of words pruned during training to
+   * their part-of-speech tags when they were pruned
+   *
+   * @return whether the specified word should be removed from the sentence
+   * before parsing
+   */
+  public boolean removeWord(Symbol word, Symbol tag, int idx, SexpList sentence,
+			    SexpList tags, SexpList originalTags,
+			    Set prunedPretermsPosSet,
+			    Map prunedPretermsPosMap);
+
+  /**
    * Preprocesses the specified test sentence and its coordinated list of tags.
    *
    * @param sentence the list of words, where a known word is a symbol and

@@ -147,4 +147,7 @@ public class GapEvent implements TrainerEvent, Cloneable {
   public TrainerEvent copy() {
     return new GapEvent(direction, headWord.copy(), parent, head);
   }
+  public TrainerEvent shallowCopy() {
+    return new GapEvent(direction, headWord, parent, head);
+  }
 }

@@ -167,4 +167,8 @@ public class HeadEvent implements TrainerEvent, Cloneable {
 			 (Subcat)leftSubcat.copy(),
 			 (Subcat)rightSubcat.copy());
   }
+
+  public TrainerEvent shallowCopy() {
+    return new HeadEvent(headWord, parent, head, leftSubcat, rightSubcat);
+  }
 }

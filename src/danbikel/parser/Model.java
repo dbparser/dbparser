@@ -170,7 +170,7 @@ public class Model implements Serializable {
     while (entries.hasNext()) {
       MapToPrimitive.Entry entry = (MapToPrimitive.Entry)entries.next();
       TrainerEvent event = (TrainerEvent)entry.getKey();
-      int count = entry.getIntValue();
+      double count = entry.getDoubleValue();
       if (!filter.pass(event))
 	continue;
 
@@ -306,6 +306,21 @@ public class Model implements Serializable {
    *
    */
   public double estimateLogProb(int id, TrainerEvent event) {
+    ProbabilityStructure clientStructure = getClientProbStructure(id);
+    return (precomputeProbs ?
+            estimateLogProbUsingPrecomputed(clientStructure, event) :
+            Math.log(estimateProb(clientStructure, event)));
+  }
+
+  public double estimateProb(int id, TrainerEvent event) {
+    if (precomputeProbs)
+      throw
+        new UnsupportedOperationException("precomputed probs are in log-space");
+    ProbabilityStructure clientStructure = getClientProbStructure(id);
+    return estimateProb(clientStructure, event);
+  }
+
+  private final ProbabilityStructure getClientProbStructure(int id) {
     ProbabilityStructure clientStructure = null;
 
     if (id < structureMapArrSize) {
@@ -326,9 +341,7 @@ public class Model implements Serializable {
         }
       }
     }
-    return (precomputeProbs ?
-            estimateLogProbUsingPrecomputed(clientStructure, event) :
-            Math.log(estimateProb(clientStructure, event)));
+    return clientStructure;
   }
 
   /**
@@ -362,8 +375,8 @@ public class Model implements Serializable {
     return Constants.logOfZero;
   }
 
-  protected double estimateProb(ProbabilityStructure probStructure,
-				TrainerEvent event) {
+  public double estimateProb(ProbabilityStructure probStructure,
+			     TrainerEvent event) {
     ProbabilityStructure structure = probStructure;
     if (Debug.level >= 20) {
       System.err.println(structureClassName + "\n\t" + event);
@@ -414,11 +427,11 @@ public class Model implements Serializable {
       }
       CountsTrio trio = counts[level];
       MapToPrimitive.Entry histEntry = trio.history().getEntry(history);
-      double historyCount = (histEntry == null ? 0 :
-                             histEntry.getIntValue(CountsTrio.hist));
+      double historyCount = (histEntry == null ? 0.0 :
+                             histEntry.getDoubleValue(CountsTrio.hist));
       double transitionCount = trio.transition().count(transition);
-      double diversityCount = (histEntry == null ? 0 :
-                               histEntry.getIntValue(CountsTrio.diversity));
+      double diversityCount = (histEntry == null ? 0.0 :
+                               histEntry.getDoubleValue(CountsTrio.diversity));
 
       double lambda, estimate; //, adjustment = 1.0;
       double fudge = lambdaFudge[level];
@@ -534,18 +547,18 @@ public class Model implements Serializable {
     Event history = transition.history();
     CountsTrio trio = counts[level];
     MapToPrimitive.Entry histEntry = trio.history().getEntry(history);
-    double historyCount = (histEntry == null ? 0 :
-                           histEntry.getIntValue(CountsTrio.hist));
+    double historyCount = (histEntry == null ? 0.0 :
+                           histEntry.getDoubleValue(CountsTrio.hist));
     double transitionCount = trio.transition().count(transition);
-    double diversityCount = (histEntry == null ? 0 :
-                             histEntry.getIntValue(CountsTrio.diversity));
+    double diversityCount = (histEntry == null ? 0.0 :
+                             histEntry.getDoubleValue(CountsTrio.diversity));
 
     double lambda, estimate, adjustment = 1.0;
     double fudge = structure.lambdaFudge(level);
     double fudgeTerm = structure.lambdaFudgeTerm(level);
-    if (historyCount == 0) {
-      lambda = 0;
-      estimate = 0;
+    if (historyCount == 0.0) {
+      lambda = 0.0;
+      estimate = 0.0;
     }
     else {
       if (prevHistCount <= historyCount)
@@ -619,7 +632,7 @@ public class Model implements Serializable {
    * level of back-off of the model, if one exists.
    */
   protected void deriveSpecialLevelTransitions(TrainerEvent event,
-					       int count) {
+					       double count) {
   }
 
   private void deriveHistories(CountsTable trainerCounts, Filter filter,
@@ -631,7 +644,7 @@ public class Model implements Serializable {
     while (entries.hasNext()) {
       MapToPrimitive.Entry entry = (MapToPrimitive.Entry)entries.next();
       TrainerEvent event = (TrainerEvent)entry.getKey();
-      int count = entry.getIntValue();
+      double count = entry.getDoubleValue();
       if (!filter.pass(event))
 	continue;
       // store all histories for all non-special back-off levels
@@ -659,13 +672,13 @@ public class Model implements Serializable {
       while (it.hasNext()) {
         MapToPrimitive.Entry transEntry = (MapToPrimitive.Entry)it.next();
         Transition trans = (Transition)transEntry.getKey();
-        int transCount = transEntry.getIntValue();
+        double transCount = transEntry.getDoubleValue();
         if (transCount < threshold) {
           MapToPrimitive.Entry histEntry =
             counts[level].history().getEntry(trans.history());
           histEntry.add(CountsTrio.hist, -transCount);
-          if (histEntry.getIntValue(CountsTrio.hist) <= 0) {
-            if (histEntry.getIntValue(CountsTrio.hist) < 0)
+          if (histEntry.getDoubleValue(CountsTrio.hist) <= 0.0) {
+            if (histEntry.getDoubleValue(CountsTrio.hist) < 0.0)
               System.err.println("yikes!!!");
             counts[level].history().remove(histEntry.getKey());
           }
@@ -730,10 +743,10 @@ public class Model implements Serializable {
       transitions[level] =
 	transEntry == null ? null : (Transition)transEntry.getKey();
 
-      double historyCount = histEntry.getIntValue(CountsTrio.hist);
+      double historyCount = histEntry.getDoubleValue(CountsTrio.hist);
       double transitionCount =
-	transEntry == null ? 0.0 : transEntry.getIntValue();
-      double diversityCount = histEntry.getIntValue(CountsTrio.diversity);
+	transEntry == null ? 0.0 : transEntry.getDoubleValue();
+      double diversityCount = histEntry.getDoubleValue(CountsTrio.diversity);
 
       double fudge = lambdaFudge[level];
       double fudgeTerm = lambdaFudgeTerm[level];
@@ -765,7 +778,7 @@ public class Model implements Serializable {
    * of back-off, if one exists.
    */
   protected void deriveSpecialLevelHistories(TrainerEvent event,
-					     int count) {
+					     double count) {
   }
 
   /**

@@ -53,10 +53,9 @@ set scorerDir = $parent/scorer
 set scorer = $scorerDir/evalb
 set scorerParam = $scorerDir/COLLINS.prm
 
-# set up shell variables sb and cl for switchboard and clients, respectively
-# (startClientScript also does this, so we're only doing it here to get
-# the proper setting of the sb variable)
-source $parent/policy.tcsh
+# set variable to indicate switchboard policy file to JVM
+set sbPolicy = "-Djava.security.policy=$parent/policy-files/switchboard.policy"
+set sbCodebase = "-Djava.rmi.server.codebase=file://$parent/"
 
 set nodes = `$printNodesScript`
 
@@ -123,7 +122,8 @@ endif
 
 # start switchboard
 echo Starting switchboard on $sbHost
-echo "" | rsh $sbHost java -cp $classpath -Xms100m -Xmx100m $sb \
+echo "" | rsh $sbHost java -cp $classpath -Xms100m -Xmx100m \
+		$sbPolicy $sbCodebase \
 		danbikel.parser.StartSwitchboard \
 		-msg $sbMsgFile $inFile -o $outFile -log $logFile
 

@@ -8,12 +8,7 @@ import java.io.Serializable;
  * <ul>
  * <li> the word itself
  * <li> the word's part of speech
- * <li> the synset information for the word
- *   <ul>
- *   <li> the WordNet lemma
- *   <li> the WordNet part of speech, one of {noun, verb, adjective, adverb}
- *   <li> the synset integer
- *   </ul>
+ * <li> an optional representation of the word's features
  * </ul>
  */
 public class Word implements Serializable, Cloneable, SexpConvertible {
@@ -26,17 +21,22 @@ public class Word implements Serializable, Cloneable, SexpConvertible {
   // the copy method
   protected Symbol word;
   protected Symbol tag;
+  protected Symbol features;
 
   /**
-   * Creates a new Word object with the specified word and part of speech,
-   * with all WordNet fields set to <code>null</code>.
+   * Creates a new Word object with the specified word and part of speech.
    *
    * @param word the word itself (all lowercase).
    * @param tag its part-of-speech tag.
    */
   public Word(Symbol word, Symbol tag) {
+    this(word, tag, null);
+  }
+
+  public Word(Symbol word, Symbol tag, Symbol features) {
     this.word = word;
     this.tag = tag;
+    this.features = features;
   }
 
   public Word(Sexp s) {
@@ -45,44 +45,54 @@ public class Word implements Serializable, Cloneable, SexpConvertible {
 					 ": S-expression passed to " +
 					 "constructor is not a list");
     SexpList sexp = s.list();
-    if (sexp.length() != 2)
+    int sexpLen = sexp.length();
+    if (!(sexpLen >= 2 && sexpLen <= 3))
       throw new IllegalArgumentException(className +
-					 ": illegal Sexp length: " +
-					 sexp.length());
+					 ": illegal Sexp length: " + sexpLen);
 
-    if (sexp.isAllSymbols() == false)
+    if (!sexp.isAllSymbols())
 	throw new IllegalArgumentException(className +
 					   ": non-Symbol element to Sexp");
 
-    word = sexp.get(0).symbol();
-    tag = sexp.get(1).symbol();
+    word = sexp.symbolAt(0);
+    tag = sexp.symbolAt(1);
+    features = (sexpLen == 3 ? sexp.symbolAt(2) : null);
   }
 
   /**
-   * Returns the word itself.
-   * @return the word itself
+   * Returns the word itself of this <code>Word</code> object.
    */
   public Symbol word() { return word; }
 
   /**
-   * Sets the word field.
+   * Sets the word itself of this <code>Word</code> object.
    *
-   * @param word the word itself (lowercase)
+   * @param word the word itself
    */
   public void setWord(Symbol word) { this.word = word; }
 
   /**
-   * Returns the tag field.
-   * @return the part-of-speech tag of this word
+   * Returns the part-of-speech tag of this word.
    */
   public Symbol tag() { return tag; }
 
   /**
-   * Sets the tag field.
+   * Sets the part-of-speech tag for this word.
    *
-   * @param tag the part-of-speech tag.
+   * @param tag the part-of-speech tag
    */
   public void setTag(Symbol tag) { this.tag = tag; }
+
+  /**
+   * Returns the features of this word, or <code>null</code> if no features
+   * have been set for this word.
+   */
+  public Symbol features() { return features; }
+
+  /**
+   * Sets the features for this word.
+   */
+  public void setFeatures(Symbol features) { this.features = features; }
 
   /**
    * Returns a hash value for this object.
@@ -105,7 +115,9 @@ public class Word implements Serializable, Cloneable, SexpConvertible {
       return true;
     if (obj instanceof Word) {
       Word other = (Word)obj;
-      return word == other.word && tag == other.tag;
+      return (word == other.word &&
+	      tag == other.tag &&
+	      features == other.features);
     }
     return false;
   }
@@ -121,6 +133,8 @@ public class Word implements Serializable, Cloneable, SexpConvertible {
     b.append(word);
     b.append(" ");
     b.append(tag);
+    if (features != null)
+      b.append(" ").append(features);
     b.append(")");
     return b.toString();
   }

@@ -24,7 +24,7 @@
 ;;;                    e.g., (head 1) indicates that the first child after the
 ;;;                    head is a candidate for being relabeled as an argument
 ;;;
-;;; <search-set>   ::= <direction> <nt>+
+;;; <search-set>   ::= <direction> [<not>] <nt>+
 ;;;
 ;;; <direction>    ::= first | last
 ;;;                    first indicates a left-to-right search of the children
@@ -36,12 +36,17 @@
 ;;;                    {PP, NP, WHNP} will be a candidate for being relabeled
 ;;;                    as an argument
 ;;;
+;;; <not>          ::= not
+;;;                    indicates to search for something not in the set of
+;;;                    nonterminals specified by <nt>+
+;;;
 (arg-contexts (S (NP SBAR S))
 	      (VP (NP SBAR S VP))
 	      (SBAR (S))
 ;	      (PP (head 1)))
 ;	      (PP (head-post first PP NP WHNP ADJP ADVP S SBAR VP UCP RB RBS))))
-	      (PP (head-post first PP NP WHNP ADJP ADVP S SBAR VP UCP)))
+;	      (PP (head-post first PP NP WHNP ADJP ADVP S SBAR VP UCP)))
+              (PP (head-post first not IN PRN CC , : RB RBS)))
 ;;; a list of semantic tags on Penn Treebank nonterminals that prevent
 ;;; children in the appropriate contexts from being relabeled as arguments
 (sem-tag-arg-stop-list (ADV VOC BNF DIR EXT LOC MNR TMP CLR PRP))

@@ -5,7 +5,7 @@ package danbikel.util;
  */
 public interface Filter {
   /**
-   * Returns <code>true</code> if this filter allows the  specified object to
+   * Returns <code>true</code> if this filter allows the specified object to
    * pass through.
    */
   public boolean pass(Object obj);

@@ -200,7 +200,7 @@ public abstract class AbstractHeadFinder implements HeadFinder, Serializable {
   protected int defaultFindHead(Symbol lhs, SexpList rhs) {
     if (useRand && rand.nextDouble() <= probRandom &&
         !(Language.treebank().isNP(lhs) &&
-          lhs != Language.treebank().baseNPLabel())) {
+          !Language.treebank().isBaseNP(lhs))) {
       // return a randomly-selected head index
       int rhsLen = rhs.length();
       return rand.nextInt(rhsLen) + 1;

@@ -196,6 +196,8 @@ public class ModifierEvent implements TrainerEvent, Cloneable {
    * object, according to each data member's <code>equals(Object)</code> method.
    */
   public boolean equals(Object o) {
+    if (this == o)
+      return true;
     if (!(o instanceof ModifierEvent))
       return false;
     ModifierEvent other = (ModifierEvent)o;

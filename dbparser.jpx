@@ -6,7 +6,10 @@
   <property category="build" name="CopyExtensions.2" value="policy"/>
   <property category="generalFormatting" name="continuationIndent" value="2"/>
   <property category="idl" name="ProcessIDL" value="false"/>
+  <property category="javaFormatting" name="alignMultilineAssign" value="1"/>
   <property category="javaFormatting" name="packagePrefixGroups.1" value="&lt;*&gt;"/>
+  <property category="javaFormatting" name="spaceAfterTypecast" value="0"/>
+  <property category="javaFormatting" name="spaceBeforeLparen" value="0"/>
   <property category="serverservices" name="disabled.services" value="connector;jdatastore"/>
   <property category="serverservices" name="ejb.service.server" value="Borland Enterprise Server AppServer Edition 5.0.2+"/>
   <property category="serverservices" name="is.single.server" value="0"/>

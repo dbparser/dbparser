@@ -38,8 +38,9 @@ public class UnlexTreeConstraint implements Constraint, SexpConvertible {
       SexpList treeList = tree.list();
       int treeListLen = treeList.length();
 
-      //label = Language.treebank().getCanonical(treeList.symbolAt(0));
       label = treeList.symbolAt(0);
+      if (label != Language.treebank().baseNPLabel())
+        label = Language.treebank().getCanonical(label);
       start = currWordIdx.get();
       this.parent = parent;
       children = new ArrayList(treeListLen - 1);

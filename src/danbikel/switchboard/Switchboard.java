@@ -100,6 +100,12 @@ public class Switchboard
   public static final int defaultKeepAliveInterval = 5000;
 
   /**
+   * The default sorting behavior for creating the output file from the
+   * log file, which is to perform a sort.
+   */
+  public static final boolean defaultSortOutput = true;
+
+  /**
    * The default port on which to receive RMI calls, which is 0, indicating
    * an anonymous port.  Unlike the RMI API, we encourage the use of this
    * constant rather than direct referral to a "magic number".  This value
@@ -378,13 +384,16 @@ public class Switchboard
 	// read in all objects from log, sorting them on the fly into a TreeSet
 	ObjectReader numObjReader =
 	  numObjReaderFactory.get(logName, encoding, bufSize);
-	TreeSet allObjects = new TreeSet();
-	Object curr = null;
-	while ((curr = numObjReader.readObject()) != null) {
-	  NumberedObject currNumObj = (NumberedObject)curr;
-	  allObjects.add(currNumObj);
-	}
 
+        TreeSet allObjects = null;
+        if (sortOutput) {
+       	  allObjects = new TreeSet();
+          Object curr = null;
+          while ((curr = numObjReader.readObject()) != null) {
+            NumberedObject currNumObj = (NumberedObject)curr;
+            allObjects.add(currNumObj);
+          }
+        }
 
 	try {
 	  out = objWriterFactory.get(outName, encoding, bufSize, false);
@@ -399,11 +408,21 @@ public class Switchboard
 	  return;
 	}
 
-	Iterator it = allObjects.iterator();
-	while (it.hasNext()) {
-	  NumberedObject numObj = (NumberedObject)it.next();
-	  out.writeObject(numObj.get());
-	}
+        if (sortOutput) {
+          Iterator it = allObjects.iterator();
+          while (it.hasNext()) {
+            NumberedObject numObj = (NumberedObject)it.next();
+            out.writeObject(numObj.get());
+          }
+        }
+        else {
+          // write out objects in the order in which they appear in log file
+          Object curr = null;
+          while ((curr = numObjReader.readObject()) != null) {
+            NumberedObject currNumObj = (NumberedObject)curr;
+            out.writeObject(currNumObj.get());
+          }
+        }
 	out.close();
       }
       catch (IOException ioe) {
@@ -841,6 +860,7 @@ public class Switchboard
   private int keepAliveMaxRetries;
   private int keepAliveInterval;
   private boolean serverDeathKillClients;
+  private boolean sortOutput;
 
   // other data
   /** A timer object used to collect stats on object processing; set
@@ -1380,6 +1400,7 @@ public class Switchboard
     this.keepAliveInterval = defaultKeepAliveInterval;
     this.keepAliveMaxRetries = defaultKeepAliveMaxRetries;
     this.serverDeathKillClients = defaultServerDeathKillClients;
+    this.sortOutput = defaultSortOutput;
 
     this.msgs = msgs;
 
@@ -1636,6 +1657,7 @@ public class Switchboard
     setKeepAliveInterval();
     setKeepAliveMaxRetries();
     setServerDeathKillClients();
+    setSortOutput();
   }
 
   private void setSocketTimeout() {
@@ -1674,6 +1696,14 @@ public class Switchboard
       if (serverDeathKillClientsStr != null)
 	serverDeathKillClients =
 	  Boolean.valueOf(serverDeathKillClientsStr).booleanValue();
+    }
+  }
+
+  private void setSortOutput() {
+    if (settings != null) {
+      String sortOutputStr = settings.getProperty(SwitchboardRemote.sortOutput);
+      if (sortOutputStr != null)
+        sortOutput = Boolean.valueOf(sortOutputStr).booleanValue();
     }
   }
 

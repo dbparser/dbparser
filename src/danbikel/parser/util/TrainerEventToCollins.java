@@ -44,6 +44,24 @@ public class TrainerEventToCollins {
   }
 
   public static String modEventToCollins(ModifierEvent modEvent) {
+
+    boolean parentIsBaseNP = modEvent.parent() == baseNP;
+
+    // conjunctions are treated specially when they are not dominated by
+    // NPB and when they are part of a coordinated phrase (i.e., actually
+    // conjoining two phrases, as opposed to starting a phrase, such as "But..."
+    // hence, when such a "true" coordinating conjunction is the modifier
+    // we return null; we also return null when the modifier is punctuation,
+    // since punctuation is ALWAYS treated specially, even when parent is NPB
+
+    // no need to test for parent not being base NP, since we now do that
+    // in Trainer
+    //boolean nonBaseNPConjPConj = !parentIsBaseNP && modEvent.isConjPConj();
+
+    if (modEvent.isConjPConj() ||
+	Language.treebank().isPunctuation(modEvent.modifier()))
+      return null;
+
     StringBuffer sb = new StringBuffer(80);
     sb.append("2 ");
     Word modHeadWord = modEvent.modHeadWord();
@@ -57,15 +75,7 @@ public class TrainerEventToCollins {
     }
 
     Symbol prevMod = modEvent.previousMods().symbolAt(0);
-    boolean prevModIsStart = false, prevModIsPunc = false, prevModIsCC = false;
-    if (prevMod == startSym)
-      prevModIsStart = true;
-    else if (Language.treebank().isPunctuation(prevMod))
-      prevModIsPunc = true;
-    else if (Language.treebank().isConjunction(prevMod))
-      prevModIsCC = true;
-
-    boolean parentIsBaseNP = modEvent.parent() == baseNP;
+    boolean prevModIsStart = prevMod == startSym;
 
     Word headWord = modEvent.headWord();
     if (parentIsBaseNP && !prevModIsStart)
@@ -86,21 +96,34 @@ public class TrainerEventToCollins {
 
     // append distance triple
     sb.append(modEvent.side() == Constants.LEFT ? "1" : "0");
-    // mike doesn't consider CC's or punctuation to be words when calculating
-    // head-adjacency, so we can either approximate it by detecting whether
-    // previous mod is either start or punc or CC, or just know that our
-    // head-adjacency will always be different
-    /*
-    boolean adjacent = parentIsBaseNP ||
-                       prevModIsStart || prevModIsPunc || prevModIsCC;
-    */
-    boolean adjacent = parentIsBaseNP || prevModIsStart;
+    boolean adjacent = parentIsBaseNP || modEvent.headAdjacent();
     sb.append(adjacent ? "1" : "0");
     boolean verbIntervening =
       parentIsBaseNP ? false : modEvent.verbIntervening();
     sb.append(verbIntervening ? "1" : "0");
 
-    // don't even try to spit out coordination and punctuation information
+    sb.append(" ");
+
+    // append coordination information
+    // note that conjunctions are only treated specially when they are NOT
+    // dominated by NPB
+    Word prevConj = modEvent.prevConj();
+    if (parentIsBaseNP || prevConj == null)
+      sb.append("0");
+    else {
+      sb.append("1 ");
+      sb.append(prevConj.word()).append(" ").append(prevConj.tag());
+    }
+
+    sb.append(" ");
+
+    Word prevPunc = modEvent.prevPunc();
+    if (prevPunc == null)
+      sb.append("0");
+    else {
+      sb.append("1 ");
+      sb.append(prevPunc.word()).append(" ").append(prevPunc.tag());
+    }
 
     return sb.toString();
   }
@@ -120,6 +143,11 @@ public class TrainerEventToCollins {
   }
 
   public static String trainerEventToCollins(TrainerEvent event) {
+    // top events are handled by manually adding TOP to each training sentence
+    // so that we can correctly generate #STOP# events to either side of sole
+    // "head child" of TOP (just like Mike's trainer does)
+    if (event.parent() == topSym)
+      return null;
     String collinsStr = null;
     if (event instanceof HeadEvent)
       collinsStr = headEventToCollins((HeadEvent)event);

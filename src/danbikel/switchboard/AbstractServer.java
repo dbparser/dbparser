@@ -151,6 +151,39 @@ public abstract class AbstractServer
   }
 
   /**
+   * Calls {@link #setPolicyFile(String)} with the value of the
+   * {@link SwitchboardRemote#serverPolicyFile} property obtained from
+   * the specified <code>Properties</code> object.
+   *
+   * @param props the <code>Properties</code> object from which to
+   * obtain the value of the {@link SwitchboardRemote#serverPolicyFile}
+   * property
+   */
+  protected static void setPolicyFile(java.util.Properties props) {
+    setPolicyFile(props.getProperty(SwitchboardRemote.serverPolicyFile));
+  }
+
+  /**
+   * Calls {@link #setPolicyFile(Class,String)} with the specified class
+   * and the value of the {@link SwitchboardRemote#serverPolicyFile}
+   * property obtained from the specified <code>Properties</code> object.
+   *
+   * @param props the <code>Properties</code> object from which to
+   * obtain the value of the {@link SwitchboardRemote#serverPolicyFile}
+   * property
+   */
+  public static void setPolicyFile(Class cl, java.util.Properties props) {
+    setPolicyFile(cl,
+		  props.getProperty(SwitchboardRemote.switchboardPolicyFile));
+  }
+
+  public static void disableHttp(java.util.Properties props) {
+    String property = props.getProperty(SwitchboardRemote.serverDisableHttp);
+    if (property != null)
+      disableHttp(property);
+  }
+
+  /**
    * Re-registers this server with the switchboard.  This method should
    * only be called in the event of a switchboard failure.
    */

@@ -5,7 +5,7 @@ import danbikel.util.proxy.Retry;
 import java.io.Serializable;
 import java.io.PrintWriter;
 import java.util.Properties;
-import java.net.MalformedURLException;
+import java.net.*;
 import java.rmi.*;
 import java.rmi.server.*;
 import java.lang.reflect.Proxy;
@@ -232,6 +232,39 @@ public abstract class AbstractSwitchboardUser
   }
 
   /**
+   * Sets the system property <tt>"java.security.policy"</tt> to be the
+   * URL of the specified resource obtained from the
+   * <code>SwitchboardRemote</code> class.
+   *
+   * @param resource the resource to obtain from {@link SwitchboardRemote}
+   * that will be the value of the system property
+   * <tt>"java.security.policy"</tt>
+   */
+  protected static void setPolicyFile(String resource) {
+    setPolicyFile(SwitchboardRemote.class, resource);
+  }
+
+  /**
+   * Sets the system property <tt>"java.security.policy"</tt> to be the
+   * URL of the specified resource obtained from the specified class.
+   *
+   * @param resource the resource to obtain from the specified class
+   * that will be the value of the system property
+   * <tt>"java.security.policy"</tt>
+   */
+  protected static void setPolicyFile(Class cl, String resource) {
+    if (System.getProperty("java.security.policy") == null) {
+      URL policyURL = cl.getResource(resource);
+      System.setProperty("java.security.policy", policyURL.toString());
+    }
+  }
+
+  protected static void disableHttp(String property) {
+    if (System.getProperty("java.rmi.server.disableHttp") == null)
+      System.setProperty("java.rmi.server.disableHttp", property);
+  }
+
+  /**
    * Repeatedly tries to get the switchboard stub from the bootstrap registry.
    * The number of times is determined by the value of
    * {@link #maxSwitchboardTries}.  There will be no error output
@@ -389,7 +422,7 @@ public abstract class AbstractSwitchboardUser
       thisHost = java.net.InetAddress.getLocalHost().getHostName();
     }
     catch (java.net.UnknownHostException uhe) {
-      throw new UnknownHostException(className, uhe);
+      throw new java.rmi.UnknownHostException(className, uhe);
     }
     return thisHost;
   }

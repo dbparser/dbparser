@@ -2,8 +2,8 @@ package danbikel.switchboard;
 
 import danbikel.util.proxy.Reconnect;
 import danbikel.util.proxy.Retry;
-import java.util.Random;
-import java.net.MalformedURLException;
+import java.util.*;
+import java.net.*;
 import java.rmi.*;
 import java.rmi.server.*;
 
@@ -145,6 +145,38 @@ public abstract class AbstractClient
 			   RMIServerSocketFactory ssf)
     throws RemoteException {
     super(port, csf, ssf);
+  }
+
+  /**
+   * Calls {@link #setPolicyFile(String)} with the value of the
+   * {@link SwitchboardRemote#clientPolicyFile} property obtained from
+   * the specified <code>Properties</code> object.
+   *
+   * @param props the <code>Properties</code> object from which to
+   * obtain the value of the {@link SwitchboardRemote#clientPolicyFile}
+   * property
+   */
+  protected static void setPolicyFile(Properties props) {
+    setPolicyFile(props.getProperty(SwitchboardRemote.clientPolicyFile));
+  }
+
+  /**
+   * Calls {@link #setPolicyFile(Class,String)} with the specified class
+   * and the value of the {@link SwitchboardRemote#clientPolicyFile}
+   * property obtained from the specified <code>Properties</code> object.
+   *
+   * @param props the <code>Properties</code> object from which to
+   * obtain the value of the {@link SwitchboardRemote#clientPolicyFile}
+   * property
+   */
+  public static void setPolicyFile(Class cl, java.util.Properties props) {
+    setPolicyFile(cl,
+		  props.getProperty(SwitchboardRemote.clientPolicyFile));
+  }
+
+  public static void disableHttp(Properties props) {
+    String property = props.getProperty(SwitchboardRemote.clientDisableHttp);
+    disableHttp(property);
   }
 
   /**

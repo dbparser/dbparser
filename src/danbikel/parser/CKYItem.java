@@ -420,6 +420,9 @@ public class CKYItem extends Item implements SexpConvertible {
   /** The constraint associated with this chart item. */
   protected Constraint constraint;
 
+  /** The total number of possible parses represented by this chart item. */
+  protected int numParses = 1;
+
   /** The boolean indicating whether a verb intervenes between the head child
       and the currently-generated left-modifying child. */
   protected boolean leftVerb;
@@ -552,6 +555,7 @@ public class CKYItem extends Item implements SexpConvertible {
     this.rightVerb = rightVerb;
     this.stop = stop;
     containsVerb = containsVerbUndefined;
+    this.numParses = 1;
     garbage = false;
   }
 
@@ -610,6 +614,8 @@ public class CKYItem extends Item implements SexpConvertible {
   }
 
   public boolean garbage() { return garbage; }
+
+  public int numParses() { return numParses; }
 
   // side-sensitive accessors
   public Subcat subcat(boolean side) {
@@ -738,6 +744,23 @@ public class CKYItem extends Item implements SexpConvertible {
 
   public void setGarbage(boolean garbage) {
     this.garbage = garbage;
+  }
+
+  /**
+   * Indicates that the specified item is an antecedent to this item, allowing
+   * a subclass instance to store a list of antecedents, or do other
+   * computation based on its antecedents.  The default implementation here
+   * multiplies the {@link #numParses} data member of this item by the
+   * number of parses of the specified antecedent.
+   *
+   * @param antecedent an antecedent of this item
+   */
+  public void hasAntecedent(Item antecedent) {
+    numParses *= ((CKYItem)antecedent).numParses;
+  }
+
+  public void hasEquivalentItem(Item equivalentItem) {
+    numParses += ((CKYItem)equivalentItem).numParses;
   }
 
   /** Returns <code>true</code> if this item represents a preterminal. */
@@ -948,6 +971,7 @@ public class CKYItem extends Item implements SexpConvertible {
       "\t; tree=" + doubleNF.format(logTreeProb) +
       "; prior=" + doubleNF.format(logPrior) +
       "; prob=" + doubleNF.format(logProb) +
+      "; numParses=" + numParses +
       " (@" + System.identityHashCode(this) + ")";
   }
 
@@ -988,11 +1012,15 @@ public class CKYItem extends Item implements SexpConvertible {
     this.logProb = other.logProb;
     this.logPrior = other.logPrior;
     this.constraint = other.constraint;
+    this.numParses = other.numParses;
     containsVerb = containsVerbUndefined;
     garbage = false;
     return this;
   }
 
+  public Item clear() { numParses = 1; return this; }
+
+  /*
   public CKYItem shallowCopy() {
     return new CKYItem(label, headWord,
 		       leftSubcat, rightSubcat,
@@ -1003,4 +1031,5 @@ public class CKYItem extends Item implements SexpConvertible {
 		       leftVerb, rightVerb, stop,
 		       logTreeProb, logPrior, logProb);
   }
+  */
 }

@@ -6,7 +6,9 @@ public class ModWordModelStructure1 extends ProbabilityStructure {
   // data members
   private Symbol startSym = Language.training().startSym();
 
-  public ModWordModelStructure1() { super(); }
+  public ModWordModelStructure1() {
+    super();
+  }
 
   public int maxEventComponents() { return 9; }
   public int numLevels() { return 3; }
@@ -21,29 +23,29 @@ public class ModWordModelStructure1 extends ProbabilityStructure {
     case 0:
       // for p(w_i | M(t)_i, P, H, w, t, verbIntervening, (M_i-1,...,M_i-k),
       //             subcat)
-      hist.add(Language.training.removeGapAugmentation(modEvent.modifier()));
-      hist.add(modEvent.modHeadWord().tag());
-      hist.add(Language.training.removeGapAugmentation(modEvent.parent()));
-      hist.add(Language.training.removeGapAugmentation(modEvent.head()));
-      hist.add(modEvent.headWord().word());
-      hist.add(modEvent.headWord().tag());
-      hist.add(verbInterveningSym);
-      hist.add(Language.training.removeGapAugmentation(modEvent.previousMods()));
-      hist.add(modEvent.subcat());
+      hist.add(0, Language.training.removeGapAugmentation(modEvent.modifier()));
+      hist.add(0, modEvent.modHeadWord().tag());
+      hist.add(0, Language.training.removeGapAugmentation(modEvent.parent()));
+      hist.add(0, Language.training.removeGapAugmentation(modEvent.head()));
+      hist.add(0, modEvent.headWord().word());
+      hist.add(0, modEvent.headWord().tag());
+      hist.add(0, verbInterveningSym);
+      hist.add(0, Language.training.removeGapAugmentation(modEvent.previousMods()));
+      hist.add(1, modEvent.subcat());
       break;
     case 1:
       // for p(w_i | M(t)_i, P, H, t, verbIntervening, M_i-1 == +START+, subcat)
       Symbol prevModIsStartSym =
 	Constants.booleanToSym(modEvent.previousMods().list().get(0) ==
 			       startSym);
-      hist.add(Language.training.removeGapAugmentation(modEvent.modifier()));
-      hist.add(modEvent.modHeadWord().tag());
-      hist.add(Language.training.removeGapAugmentation(modEvent.parent()));
-      hist.add(Language.training.removeGapAugmentation(modEvent.head()));
-      hist.add(modEvent.headWord().tag());
-      hist.add(verbInterveningSym);
-      hist.add(prevModIsStartSym);
-      hist.add(modEvent.subcat());
+      hist.add(0, Language.training.removeGapAugmentation(modEvent.modifier()));
+      hist.add(0, modEvent.modHeadWord().tag());
+      hist.add(0, Language.training.removeGapAugmentation(modEvent.parent()));
+      hist.add(0, Language.training.removeGapAugmentation(modEvent.head()));
+      hist.add(0, modEvent.headWord().tag());
+      hist.add(0, verbInterveningSym);
+      hist.add(0, prevModIsStartSym);
+      hist.add(1, modEvent.subcat());
       break;
     case 2:
       // for p(w_i | t_i)

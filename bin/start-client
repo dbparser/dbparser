@@ -12,5 +12,5 @@ set parent = `dirname $0`/..
 source $parent/policy.tcsh
 
 # start the parser
-java -server -cp $classpath -Xms256m -Xmx256m $cl danbikel.parser.Parser \
+java -server -cp $classpath -Xms330m -Xmx330m $cl danbikel.parser.Parser \
     $args >& $logDir/$host.log

@@ -26,7 +26,8 @@ public class WordTokenizer {
     System.getProperty("line.separator").toCharArray();
   private final static int lineSepLength = lineSep.length;
   private final static int initialBufChunkSize = 1024;
-  private final static int maxBufChunkSize = 1048576;
+  //private final static int maxBufChunkSize = 1048576;
+  private final static int maxBufChunkSize = 8192;
 
   // data members
 
@@ -190,10 +191,17 @@ public class WordTokenizer {
   private final int ensureBufferCapacity(int tokenStartIdx) {
     if (buf.capacity() == buf.length()) {
       StringBuffer old = buf;
-      int newSize = currBufChunkSize * 2;
-      if (newSize <= maxBufChunkSize)
-	currBufChunkSize = newSize;
-      buf = new StringBuffer(currBufChunkSize);
+      // if we're trying to build an exceptionally long token, just keep
+      // doubling buf's capacity; otherwise, impose regular maxBufChunkSize
+      // limits
+      if (tokenStartIdx == 0)
+	buf = new StringBuffer(old.length() * 2);
+      else {
+	int newSize = currBufChunkSize * 2;
+	if (newSize <= maxBufChunkSize)
+	  currBufChunkSize = newSize;
+	buf = new StringBuffer(currBufChunkSize);
+      }
       buf.append(old.substring(tokenStartIdx, old.length()));
       return 0;
     }

@@ -11,5 +11,5 @@ set clientPolicy = "-Djava.security.policy=$parent/policy-files/client.policy"
 set clientCodebase = "-Djava.rmi.server.codebase=file://$parent/"
 
 # start the parser
-java -server -cp $classpath -Xms350m -Xmx350m $clientPolicy $clientCodebase \
+java -server -cp $classpath -Xms400m -Xmx400m $clientPolicy $clientCodebase \
     danbikel.parser.Parser $args >& $logDir/$host.log

@@ -17,6 +17,10 @@ public interface DecoderServerRemote extends Server {
 
   public Map rightSubcatMap() throws RemoteException;
 
+  public Map leftModNonterminalMap() throws RemoteException;
+
+  public Map rightModNonterminalMap() throws RemoteException;
+
   public CountsTable nonterminals() throws RemoteException;
 
   public Set prunedPreterms() throws RemoteException;
@@ -33,6 +37,10 @@ public interface DecoderServerRemote extends Server {
   public ProbabilityStructure leftSubcatProbStructure() throws RemoteException;
 
   public ProbabilityStructure rightSubcatProbStructure() throws RemoteException;
+
+  public ProbabilityStructure leftModNonterminalProbStructure() throws RemoteException;
+
+  public ProbabilityStructure rightModNonterminalProbStructure() throws RemoteException;
 
   /** Returns a test probability (for debugging purposes). */
   public double testProb() throws RemoteException;

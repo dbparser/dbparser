@@ -10,19 +10,25 @@ if ($#argv == 3) then
     shift
 endif
 
+set RSH = ssh
+set java = /usr/java/jdk1.3.1_03/bin/java
+
 # date and time variables, upon which $outputDir is based
 # --these will be modified when this script is time-stamped and copied
 # to $outputDir
 set date = `date '+%Y.%m.%d'`
 set time = `date '+%H.%M'`
 
-set dir = `dirname $0`
-set scriptDir = `cd $dir  ; echo $cwd`
-set parent = `cd $scriptDir/.. ; echo $cwd`
+#set dir = `dirname $0`
+#set scriptDir = `cd $dir  ; echo $cwd`
+set scriptDir = ~/jbproject/dbparser/bin
+#set parent = `cd $scriptDir/.. ; echo $cwd`
+set parent = ~/jbproject/dbparser
+set classes = $parent/classes
 
 # prepend parent of this script's directory to a shell variable version
 # of CLASSPATH, so we use classes of this particular sandbox
-set classpath = $parent\:$CLASSPATH
+set classpath = $classes\:$CLASSPATH
 
 # the two required arguments
 # --these will be modified when this script is time-stamped and copied
@@ -34,11 +40,11 @@ set inFile = $2
 set goldFile = $inFile.gold
 
 # the all-important output directory for this experiment
-set outputDir = $parent/experiments/$date/$time
+set outputDir = ~/experiments/$date/$time
 
 # scripts used by this script
 set startClientScript = $scriptDir/start-client
-set printNodesScript = $scriptDir/print-nodes
+#set printNodesScript = $scriptDir/print-nodes
 set rmiregistryScript = $scriptDir/start-rmiregistry
 set scorerScript = $scriptDir/score
 
@@ -55,15 +61,24 @@ set logFile = $outputDir/$inFile:t.log
 
 # set variable to indicate switchboard policy file to JVM
 set sbPolicy = "-Djava.security.policy=$parent/policy-files/switchboard.policy"
-set sbCodebase = "-Djava.rmi.server.codebase=file://$parent/"
+set sbCodebase = "-Djava.rmi.server.codebase=file://$classes/"
 
 # scorer directory
 set scorerDir = $parent/scorer
 
-set nodes = `$printNodesScript`
+#set nodes = `$printNodesScript`
+set nodes = ($NODES)
+
+# the following is only necessary when NOT using bpsh: we need
+# to prepend "node" to every nodename (which is simply an integer)
+set tmpNodes = ()
+foreach node ($nodes)
+    set tmpNodes = ($tmpNodes node$node)
+end
+set nodes = ($tmpNodes)
 
 if ($#nodes == 0) then
-    echo "No nodes found when running $printNodesScript\!"
+    echo "No nodes found!"
     exit 1
 endif
 
@@ -92,12 +107,19 @@ echo "	$pidFile"
 /bin/rm -f $pidFile
 
 # start clients
+#
+# the script that starts the client uses the name of the host simply
+# as the basis of its output log; since sometimes to nodes can have the
+# same name (when they are multiprocessors), we append a unique integer
+# to the hostname that is passed to the start client script
 set sbNameRMI = "//$sbHost/Switchboard"
+@ i = 1
 foreach host ($clientHosts)
     echo Starting client on $host
-    echo "" | rsh $host $startClientScript $classpath $host $outputDir \
-                            -is $derivedDataFile $sbNameRMI &
+    $RSH -n $host $startClientScript $classpath $host-$i $outputDir \
+	-is $derivedDataFile $sbNameRMI &
     echo -n "$! " >> $pidFile
+    @ i++
 end
 
 echo "Putting nodes used in this experiment into"
@@ -125,10 +147,10 @@ endif
 
 # start switchboard
 echo Starting switchboard on $sbHost
-echo "" | rsh $sbHost java -cp $classpath -Xms100m -Xmx100m \
-		$sbPolicy $sbCodebase \
-		danbikel.parser.StartSwitchboard \
-		-msg $sbMsgFile $inFile -o $outFile -log $logFile
+$RSH -n $sbHost $java -server -cp $classpath -Xms100m -Xmx100m \
+	$sbPolicy $sbCodebase \
+	danbikel.parser.StartSwitchboard \
+	-msg $sbMsgFile $inFile -o $outFile -log $logFile
 
 # finally, if gold file exists, try to score
 if (-f $goldFile) then
@@ -139,7 +161,8 @@ endif
 
 # kill off rmi registry proc
 echo "Killing rmiregistry"
-kill `cat $rmiregistryPidFile`
+#kill `cat $rmiregistryPidFile`
+$RSH $sbHost 'killall rmiregistry'
 
 echo "Killing clients, if any are still alive"
 kill `cat $pidFile`

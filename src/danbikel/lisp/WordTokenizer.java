@@ -22,9 +22,11 @@ public class WordTokenizer {
   public StreamTokenizer javadocHack;
 
   // constants
-  private static final char[] lineSep =
+  private final static char[] lineSep =
     System.getProperty("line.separator").toCharArray();
-  private static final int lineSepLength = lineSep.length;
+  private final static int lineSepLength = lineSep.length;
+  private final static int initialBufChunkSize = 1024;
+  private final static int maxBufChunkSize = 1048576;
 
   // data members
 
@@ -54,7 +56,18 @@ public class WordTokenizer {
   private int lineno = 1;
   private int linenoOfLastToken = 0;
   private int lineSepMatchIdx = 0;
-  private char[] buf = new char[100];
+  private int currBufChunkSize = initialBufChunkSize;
+  // by using increasingly larger StringBuffer objects to do buffering,
+  // we hackishly avoid char array copying, since neither the
+  // StringBuffer.toString nor String.substring methods do any copying, but
+  // merely shares the StringBuffer's internal char array with the
+  // newly-created String object; furthermore, as long as the capacity
+  // of the StringBuffer is not exceeded, future append operations will
+  // not cause any copying to occur this is really a low-level hack, since
+  // it is dependent on Sun's implementation of String and StringBuffer;
+  // however, it is the only way to avoid an array copy for every single
+  // token, since we to create a String object for each token
+  private StringBuffer buf = new StringBuffer(currBufChunkSize);
 
   /**
    * Creates a new tokenizer object.
@@ -156,22 +169,35 @@ public class WordTokenizer {
     else {
       ttype = StreamTokenizer.TT_WORD;
       linenoOfLastToken = lineno;
-      int bufIdx = 0;
-      while (lastChar != -1 &&
-	     !Character.isWhitespace((char)lastChar) &&
-	     !ordinary.get(lastChar)) {
-        buf[bufIdx++] = (char)lastChar;
-        if (bufIdx == buf.length) {
-          int newBufLen = buf.length * 2;
-          char[] newBuf = new char[newBufLen];
-          System.arraycopy(buf, 0, newBuf, 0, buf.length);
-          buf = newBuf;
-        }
-	lastChar = readChar();
+      int tokenStartIdx = buf.length();
+      // we synchronize on buf, so we don't have to re-acquire lock for every
+      // invocation of append
+      synchronized (buf) {
+	while (lastChar != -1 &&
+	       !Character.isWhitespace((char)lastChar) &&
+	       !ordinary.get(lastChar)) {
+	  tokenStartIdx = ensureBufferCapacity(tokenStartIdx);
+	  buf.append((char)lastChar);
+	  lastChar = readChar();
+	}
+	sval = buf.substring(tokenStartIdx, buf.length());
       }
-      sval = new String(buf, 0, bufIdx);
     }
     return ttype;
+  }
+
+  private final int ensureBufferCapacity(int tokenStartIdx) {
+    if (buf.capacity() == buf.length()) {
+      StringBuffer old = buf;
+      int newSize = currBufChunkSize * 2;
+      if (newSize <= maxBufChunkSize)
+	currBufChunkSize = newSize;
+      buf = new StringBuffer(currBufChunkSize);
+      buf.append(old.substring(tokenStartIdx, old.length()));
+      return 0;
+    }
+    else
+      return tokenStartIdx;
   }
 
   /**

@@ -183,6 +183,7 @@ danbikel.parser.util.CLASSES =	$(OBJDIR)/AddFakePos.class \
 				$(OBJDIR)/LispHead.class \
 				$(OBJDIR)/ParseToSentence.class \
 				$(OBJDIR)/PrettyPrint.class \
+				$(OBJDIR)/TrainerEventToCollins.class \
 				$(OBJDIR)/Util.class
 
 DEP_PACKAGE_DIRS = $(DEPTH)/wn

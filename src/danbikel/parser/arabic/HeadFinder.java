@@ -72,7 +72,7 @@ public class HeadFinder extends danbikel.parser.lang.AbstractHeadFinder {
     // before returning, we check for the coordinated phrase case
     if (defaultHeadIdx >= 2 &&
 	treebank.isConjunction(rhs.get(defaultHeadIdx - 1).symbol()) &&
-        lhs != treebank.baseNPLabel()) {
+        !Language.treebank().isBaseNP(lhs)) {
     /*
     if (defaultHeadIdx >= 2 &&
 	treebank.isConjunction(rhs.get(defaultHeadIdx - 1).symbol())) {

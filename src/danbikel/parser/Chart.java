@@ -148,7 +148,7 @@ public abstract class Chart implements Serializable {
   }
 
   /**
-   * Constructs a new chart with the specified chart size.  This connstructor
+   * Constructs a new chart with the specified chart size.  This constructor
    * must be called by the constructor of a subclass.
    *
    * @param size the initial size of this chart
@@ -339,7 +339,7 @@ public abstract class Chart implements Serializable {
       }
     }
     if (cellLimit > 0) {
-      //cellLimit = Math.max(10, Math.min(90, 350 / (end + 1 - start)));
+      cellLimit = Math.max(10, Math.min(90, 350 / (end + 1 - start)));
       if (end > start) { // don't do cell limiting on spans of length 1
 	int numItems = items.size();
 	if (numItems > cellLimit) { // don't create iterator if no need
@@ -430,11 +430,11 @@ public abstract class Chart implements Serializable {
    * chart, <code>false</code> otherwise
    */
   public boolean add(int start, int end, Item item) {
+    if (item.logProb() <= Constants.logOfZero)
+      return false;
     if (debugNumItemsGenerated) {
       totalItemsGenerated++;
     }
-    if (item.logProb() <= Constants.logOfZero)
-      return false;
 
     boolean added = false;
 
@@ -455,8 +455,7 @@ public abstract class Chart implements Serializable {
       double oldItemProb =
 	itemExists ? itemEntry.getDoubleValue() : Constants.logOfZero;
       Item oldItem = null;
-      if (!itemExists ||
-	  (itemExists && itemEntry.getDoubleValue() < item.logProb())) {
+      if (!itemExists || oldItemProb < item.logProb()) {
 	boolean removedOldItem = false;
 	if (itemExists) {
 	  // replace the key with the new item and set the new item's map
@@ -493,6 +492,13 @@ public abstract class Chart implements Serializable {
 	  chart[start][end].topLogProb = item.logProb();
 	  chart[start][end].topItem = item;
 	}
+      }
+
+      if (itemExists) {
+        // tell item in chart about its equivalent item
+        Item newItem = (Item)itemEntry.getKey();
+        Item equivItem = oldItem != null ? oldItem : item;
+        newItem.hasEquivalentItem(equivItem);
       }
 
       if (debugAddToChart) {
@@ -608,8 +614,19 @@ public abstract class Chart implements Serializable {
    * @param end the end index of the span for which to get all items
    * @return an iterator over all chart items covering the specified span
    */
-  public Iterator get(int start, int end) {
+  public Iterator get(final int start, final int end) {
     return chart[start][end].map.keySet().iterator();
+    /*
+    sortedArr = new Item[chart[start][end].map.size()];
+    int numSorted = 0;
+    Iterator itemsIt = chart[start][end].map.keySet().iterator();
+    while (itemsIt.hasNext()) {
+      Item item = (Item)itemsIt.next();
+      sortedArr[numSorted++] = item;
+    }
+    Arrays.sort(sortedArr, Collections.reverseOrder());
+    return Arrays.asList(sortedArr).iterator();
+    */
   }
 
   /**
@@ -619,7 +636,7 @@ public abstract class Chart implements Serializable {
    * @param item the item to be reclaimed
    */
   protected void reclaimItem(Item item) {
-    itemPool.putBack(item);
+    itemPool.putBack(item.clear());
   }
 
   /**

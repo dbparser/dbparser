@@ -4,6 +4,7 @@ import danbikel.util.*;
 import danbikel.switchboard.*;
 import java.io.*;
 import java.util.*;
+import java.util.zip.*;
 
 public class EventCountsConsumer implements Consumer, Runnable {
   // constants
@@ -143,6 +144,8 @@ public class EventCountsConsumer implements Consumer, Runnable {
   void setOutputWriter() {
     try {
       OutputStream os = new FileOutputStream(outName);
+      if (outName.endsWith(".gz"))
+	os = new GZIPOutputStream(os);
       out = new BufferedWriter(new OutputStreamWriter(os, Language.encoding()),
 			       Constants.defaultFileBufsize);
     }
@@ -155,6 +158,11 @@ public class EventCountsConsumer implements Consumer, Runnable {
       System.err.println(className +
 			 ": error: unsupported encoding: " +
 			 Language.encoding());
+    }
+    catch (IOException ioe) {
+      System.err.println(className +
+			 ": error: trouble creating file \"" + outName + "\"" +
+			 ioe);
     }
   }
 
@@ -261,6 +269,13 @@ public class EventCountsConsumer implements Consumer, Runnable {
 	else
 	  lastLoop = true;
       }
+    }
+    try {
+      out.close();
+    }
+    catch (IOException ioe) {
+      System.err.println(className + ": error: couldn't close file \"" +
+			 outName + "\"");
     }
   }
 

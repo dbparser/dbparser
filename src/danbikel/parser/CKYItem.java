@@ -14,7 +14,7 @@ import java.text.*;
  */
 public class CKYItem extends Item implements SexpConvertible {
   // constants
-  private final static int outputPrecision = 4;
+  private final static int outputPrecision = 14;
 
   // static data members
   // number formatter for string (debugging) output
@@ -81,6 +81,14 @@ public class CKYItem extends Item implements SexpConvertible {
   /** The boolean indicating whether this item has received its stop
       probabilities. */
   private boolean stop;
+
+  /**
+   * The boolean indicating whether this item has been eliminated from the
+   * chart because another, equivalent item was added (meaning that this item
+   * could not be immediately reclaimed, since the caller of
+   * <code>Chart.add</code> may have a handle onto this item).
+   */
+  private boolean garbage = false;
 
   // constructors
 
@@ -236,6 +244,8 @@ public class CKYItem extends Item implements SexpConvertible {
     return headChild.label;
   }
 
+  public boolean garbage() { return garbage; }
+
   // side-sensitive accessors
   public Subcat subcat(boolean side) {
     return side == Constants.LEFT ? leftSubcat : rightSubcat;
@@ -335,6 +345,10 @@ public class CKYItem extends Item implements SexpConvertible {
     setVerb(side, verb);
   }
 
+  public void setGarbage(boolean garbage) {
+    this.garbage = garbage;
+  }
+
   /** Returns <code>true</code> if this item represents a preterminal. */
   public boolean isPreterminal() { return headChild == null; }
 
@@ -346,10 +360,10 @@ public class CKYItem extends Item implements SexpConvertible {
    * and their log probability values.
    */
   public boolean equals(Object obj) {
-    if (!(obj instanceof CKYItem))
-      return false;
     if (this == obj)
       return true;
+    if (!(obj instanceof CKYItem))
+      return false;
     CKYItem other = (CKYItem)obj;
     if (stop && other.stop) {
       return (this.isPreterminal() == other.isPreterminal() &&
@@ -378,19 +392,24 @@ public class CKYItem extends Item implements SexpConvertible {
    */
   public int hashCode() {
     int code = label.hashCode();
-    code = (code * 31) + headWord.hashCode();
+    code = (code << 2) ^ headWord.hashCode();
+    if (stop) {
+      code = (code << 1) | (isPreterminal() ? 1 : 0);
+      return code;
+    }
     if (leftSubcat != null)
-      code = (code * 31) + leftSubcat.hashCode();
+      code = (code << 2) ^ leftSubcat.hashCode();
     if (rightSubcat != null)
-      code = (code * 31) + rightSubcat.hashCode();
+      code = (code << 2) ^ rightSubcat.hashCode();
     if (headChild != null)
-      code = (code * 31) + headChild.label().hashCode();
-    code = (code * 31) + leftPrevMods.hashCode();
-    code = (code * 31) + rightPrevMods.hashCode();
-    code = (code << 1) | (stop ? 1 : 0);
-    code = (code << 1) | (leftVerb ? 1 : 0);
-    code = (code << 1) | (rightVerb ? 1 : 0);
-    return code;
+      code = (code << 2) ^ headChild.label().hashCode();
+    code = (code << 2) ^ leftPrevMods.hashCode();
+    code = (code << 2) ^ rightPrevMods.hashCode();
+    int booleanCode = 0;
+    booleanCode = (booleanCode << 1) | (stop ? 1 : 0);
+    booleanCode = (booleanCode << 1) | (leftVerb ? 1 : 0);
+    booleanCode = (booleanCode << 1) | (rightVerb ? 1 : 0);
+    return code ^ booleanCode;
   }
 
   public Sexp toSexp() {
@@ -427,7 +446,8 @@ public class CKYItem extends Item implements SexpConvertible {
       "; lv=" + shortBool(leftVerb) + "; rv=" + shortBool(rightVerb) +
       "; stop=" + shortBool(stop) +
       "\t; tree=" + doubleNF.format(logTreeProb) +
-      "; prob=" + doubleNF.format(logProb);
+      "; prob=" + doubleNF.format(logProb) +
+      " (@" + System.identityHashCode(this) + ")";
   }
 
   private final static String shortBool(boolean bool) {

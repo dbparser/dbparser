@@ -155,13 +155,10 @@ echo Starting switchboard on $sbHost
 set sbCmd = ($RSH -n $sbHost $java -server -cp $classpath -Xms100m -Xmx100m \
 	     $sbPolicy "$sbCodebase" $disableHttp $settingsProp \
 	     danbikel.parser.StartSwitchboard \
-	     -msg $sbMsgFile $inFiles -o $outFileDir -log $logFileDir)
+	     -msg $sbMsgFile $inFiles -odir $outFileDir -logdir $logFileDir)
 echo -n "	"
 echo $sbCmd
-$RSH -n $sbHost $java -server -cp $classpath -Xms100m -Xmx100m \
-	$sbPolicy "$sbCodebase" $disableHttp $settingsProp \
-	danbikel.parser.StartSwitchboard \
-	-msg $sbMsgFile $inFiles -o $outFileDir -log $logFileDir
+$sbCmd
 
 # finally, if gold file exists, try to score
 foreach file ($inFiles)

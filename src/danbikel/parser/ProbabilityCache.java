@@ -169,54 +169,59 @@ public class ProbabilityCache extends danbikel.util.HashMapDouble {
    *
    * @see #setStrategy(int)
    */
-  public synchronized double put(Object key, double probability) {
+  //public synchronized double put(Object key, double probability) {
+  public double put(Object key, double probability) {
     if (size() >= maxCapacity) {
       switch (strategy) {
       case RANDOM:
-        removeRandom();
-        break;
+	removeRandom();
+	break;
       case BUCKET_LRU:
-        //return super.putAndRemove(key, new Double(probability));
-        return putAndRemove(key, probability);
+	//return super.putAndRemove(key, new Double(probability));
+	return putAndRemove(key, probability);
       case HALF_LIFE:
-        clearHalf();
-        break;
+	clearHalf();
+	break;
       case CLEAR_ALL:
-        clear();
-        break;
+	clear();
+	break;
       }
     }
     //return super.put(key, new Double(probability));
     return super.put(key, probability);
   }
 
+  /*
   public synchronized double put(Object key, int hashCode, double probability) {
     if (size() >= maxCapacity) {
       switch (strategy) {
       case RANDOM:
-        removeRandom();
-        break;
+	removeRandom();
+	break;
       case BUCKET_LRU:
-        //return super.putAndRemove(key, new Double(probability));
-        return putAndRemove(key, hashCode, probability);
+	//return super.putAndRemove(key, new Double(probability));
+	return putAndRemove(key, hashCode, probability);
       case HALF_LIFE:
-        clearHalf();
-        break;
+	clearHalf();
+	break;
       case CLEAR_ALL:
-        clear();
-        break;
+	clear();
+	break;
       }
     }
     //return super.put(key, new Double(probability));
     return super.put(key, hashCode, probability);
   }
+  */
 
-  public final synchronized double putAndRemove(Object key, double probability) {
+  //public final synchronized double putAndRemove(Object key, double probability) {
+  public final double putAndRemove(Object key, double probability) {
     return putAndRemove(key, key.hashCode(), probability);
   }
 
-  public final synchronized double putAndRemove(Object key, int hash,
-                                                double probability) {
+  //public final synchronized double putAndRemove(Object key, int hash,
+  public final double putAndRemove(Object key, int hash,
+						double probability) {
     MapToPrimitive.Entry entry = getEntryMRU(key, hash);
     if (entry != null) {
       double oldProb = entry.getDoubleValue();
@@ -252,17 +257,20 @@ public class ProbabilityCache extends danbikel.util.HashMapDouble {
    * @return the probability of the specified key or <code>null</code>
    * if it is not in this cache
    */
-  public synchronized MapToPrimitive.Entry getProb(Object key) {
+  //public synchronized MapToPrimitive.Entry getProb(Object key) {
+  public MapToPrimitive.Entry getProb(Object key) {
     return (strategy == BUCKET_LRU ?
-            super.getEntryMRU(key) :
-            super.getEntry(key));
+	    super.getEntryMRU(key) :
+	    super.getEntry(key));
   }
 
+  /*
   public synchronized MapToPrimitive.Entry getProb(Object key, int hashCode) {
     return (strategy == BUCKET_LRU ?
-            super.getEntryMRU(key, hashCode) :
-            super.getEntry(key, hashCode));
+	    super.getEntryMRU(key, hashCode) :
+	    super.getEntry(key, hashCode));
   }
+  */
 
   public synchronized boolean containsKey(Object key) {
     return super.containsKey(key);
@@ -276,14 +284,14 @@ public class ProbabilityCache extends danbikel.util.HashMapDouble {
   private void clearHalf() {
     /*
     System.err.print("yea!  we're clearing half from a cache of size " +
-                     size() + "...");
+		     size() + "...");
     */
     Iterator it = keySet().iterator();
     while (it.hasNext()) {
       it.next();
       if (it.hasNext()) {
-        it.next();
-        it.remove();
+	it.next();
+	it.remove();
       }
     }
     // System.err.println("done");

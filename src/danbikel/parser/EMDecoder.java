@@ -49,6 +49,7 @@ public class EMDecoder extends Decoder {
 
   private final static Symbol ADJP = Symbol.add("ADJP");
   private final static Symbol S = Symbol.add("S");
+  private final static Symbol SA = Symbol.add("S-A");
   private final static Symbol SQ = Symbol.add("SQ");
   private final static Symbol SINV = Symbol.add("SINV");
   private final static Symbol SGA = Symbol.add("SG-A");
@@ -66,6 +67,7 @@ public class EMDecoder extends Decoder {
   private final static Symbol FRAG = Symbol.add("FRAG");
   private final static Symbol willSym = Symbol.add("will");
   private final static Symbol mdSym = Symbol.add("MD");
+  private final static Symbol PRPS = Symbol.add("PRP$");
 
   // constants
   private final static String className = EMDecoder.class.getName();
@@ -458,27 +460,32 @@ public class EMDecoder extends Decoder {
 	  for (int i = 0; i < prob.length; i++)
 	    eventProb *= prob[i];
 	  TrainerEvent[] event = pair.events();
-	  for (int i = 0; i < event.length; i++) {
-	    double expectedCount =
-	      sentenceProbInverse * eventProb *
-	      ante1.insideProb() * ante2InsideProb * item.outsideProb();
-	    /*
-	    System.err.println("sentenceProbInverse=" + sentenceProbInverse +
-			       "; eventProb=" + eventProb + "; ante1Inside=" +
-			       ante1.insideProb() + "; ante2Inside=" +
-			       ante2InsideProb + "; item.outside=" +
-			       item.outsideProb());
-	    String name = event[i] instanceof HeadEvent ? "head" : "mod";
-	    System.err.println("(" + name + " " + event[i] + " " +
-			       expectedCount + ")");
-	    */
+          for (int i = 0; i < event.length; i++) {
+            double expectedCount =
+              sentenceProbInverse * eventProb *
+              ante1.insideProb() * ante2InsideProb * item.outsideProb();
+            /*
+            if (item.stop()) {
+              System.err.println("item: " + item);
+              System.err.println("sentenceProbInverse=" + sentenceProbInverse +
+                                 "; eventProb=" + eventProb +
+                                 "; ante1Inside=" +
+                                 ante1.insideProb() + "; ante2Inside=" +
+                                 ante2InsideProb + "; item.outside=" +
+                                 item.outsideProb() + "; expectedCount=" +
+                                 expectedCount);
+              String name = event[i] instanceof HeadEvent ? "head" : "mod";
+              System.err.println("(" + name + " " + event[i] + " " +
+                                 expectedCount + ")");
+            }
+            */
 	    if (event[i].parent() == topSym)
 	      addSynthesizedTopModEvent(event[i], expectedCount, counts);
 
             if (ante1.isPreterminal())
-	      addPretermHeadEvent(ante1, expectedCount, counts);
+              addPretermHeadEvent(ante1, expectedCount, counts);
 	    if (ante2 != null && ante2.isPreterminal())
-	      addPretermHeadEvent(ante2, expectedCount, counts);
+              addPretermHeadEvent(ante2, expectedCount, counts);
 
 	    if (ante1.isPreterminal() && ante2 != null && ante2.isPreterminal())
 	      System.err.println("WARNING: two preterminal antecedents");
@@ -777,11 +784,11 @@ public class EMDecoder extends Decoder {
     boolean debugFlag = false;
     if (debugJoin) {
       Symbol modificandLabel = (Symbol)modificand.label();
-      boolean modificandLabelP = modificandLabel == VP;
-      boolean modLabelP = modLabel == VP;
+      boolean modificandLabelP = modificandLabel == NPB;
+      boolean modLabelP = modLabel == PP;
       debugFlag = (side == Constants.RIGHT &&
-		   ((modificand.start() == 10 && modificand.end() == 28) &&
-		    (modifier.start() == 29 && modifier.end() == 168)));
+		   ((modificand.start() == 19 && modificand.end() == 23) &&
+		    (modifier.start() == 24 && modifier.end() == 24)));
       if (debugFlag) {
 	System.err.println(className + ".join: trying to extend modificand\n" +
 			   modificand + "\nwith modifier\n" + modifier);
@@ -992,7 +999,7 @@ public class EMDecoder extends Decoder {
 						 rightSubcatPS,
 						 rightSubcatPSLastLevel);
       if (debugUnaries) {
-	if (item.start() == 4 && item.end() == 4 && parent == PP) {
+	if (item.start() == 19 && item.end() == 27 && parent == SA) {
 	  System.err.println(className +
 			     ".addUnaries: trying to buid on " + headSym +
 			     " with " + parent);
@@ -1072,10 +1079,12 @@ public class EMDecoder extends Decoder {
 
 	    EMItem newItemCopy = chart.getNewEMItem();
 	    newItemCopy.setDataFrom(newItem);
-	    chart.add(newItemCopy.start(), newItemCopy.end(), newItemCopy,
-		      item, null,
-		      headEvent.shallowCopy(), eventProbMass);
-	    itemsAdded.add(newItemCopy);
+	    boolean added = chart.add(newItemCopy.start(), newItemCopy.end(),
+                                      newItemCopy,
+                                      item, null,
+                                      headEvent.shallowCopy(), eventProbMass);
+            if (added)
+              itemsAdded.add(newItemCopy);
 	  }
 	} // end foreach possible left subcat
       }
@@ -1123,8 +1132,8 @@ public class EMDecoder extends Decoder {
 		 item.rightSubcat(), item.rightVerb(), Constants.RIGHT);
 
     if (debugStops) {
-      //if (item.start() == 3 && item.end() == 4) {
-      if (true) {
+      if (item.start() == 19 && item.end() == 27 &&
+          (item.label() == SA || item.label() == NPA)) {
 	System.err.println(className +
 			   ".addStopProbs: trying to add stops to item " +
 			   item);
@@ -1150,10 +1159,14 @@ public class EMDecoder extends Decoder {
       item.insideProb() * leftProb * rightProb;
 
     if (debugStops) {
-      //if (item.start() == 3 && item.end() == 4) {
-      if (true) {
+      if (item.start() == 19 && item.end() == 27 &&
+          (item.label() == SA || item.label() == NPA)) {
 	System.err.println(className + ".addStopProbs: adding stops to item " +
 			   item);
+        Debug.level = 21;
+        server.probMod(id, leftMod);
+        server.probMod(id, rightMod);
+        Debug.level = 0;
         System.err.println("\tnew inside prob: " + insideProb);
       }
     }
@@ -1186,11 +1199,12 @@ public class EMDecoder extends Decoder {
     ModifierEvent rightModCopy = (ModifierEvent)rightMod.shallowCopy();
     rightModCopy.setPreviousWords(rightMod.previousWords().copy());
 
-    chart.add(item.start(), item.end(), newItem,
-	      item, null,
-	      new TrainerEvent[]{leftModCopy, rightModCopy},
-	      new double[]      {leftProb,    rightProb});
-    itemsAdded.add(newItem);
+    boolean added = chart.add(item.start(), item.end(), newItem,
+                              item, null,
+                              new TrainerEvent[]{leftModCopy, rightModCopy},
+                              new double[]      {leftProb,    rightProb});
+    if (added)
+      itemsAdded.add(newItem);
 
     return itemsAdded;
   }

@@ -118,16 +118,11 @@ public class Decoder implements Serializable {
    * nonterminal generation model to possible modifying nonterminal labels.
    */
   protected Map rightModNonterminalMap;
-  /** The left modifying nonterminal generation model structure. */
-  protected ProbabilityStructure leftModNonterminalPS;
-  /** The last level of back-off in the left modifying nonterminal generation
+  /** The modifying nonterminal generation model structure. */
+  protected ProbabilityStructure modNonterminalPS;
+  /** The last level of back-off in the modifying nonterminal generation
       model structure. */
-  protected int leftModNonterminalPSLastLevel;
-  /** The right modifying nonterminal generation model structure. */
-  protected ProbabilityStructure rightModNonterminalPS;
-  /** The last level of back-off in the right modifying nonterminal generation
-      model structure. */
-  protected int rightModNonterminalPSLastLevel;
+  protected int modNonterminalPSLastLevel;
   // these next three data members are used by {@link #preProcess}
   protected Map prunedPretermsPosMap;
   protected Set prunedPretermsPosSet;
@@ -288,10 +283,7 @@ public class Decoder implements Serializable {
       this.rightSubcatPS = server.rightSubcatProbStructure().copy();
       this.leftModNonterminalMap = server.leftModNonterminalMap();
       this.rightModNonterminalMap = server.rightModNonterminalMap();
-      this.leftModNonterminalPS =
-        server.leftModNonterminalProbStructure().copy();
-      this.rightModNonterminalPS =
-        server.rightModNonterminalProbStructure().copy();
+      this.modNonterminalPS = server.modNonterminalProbStructure().copy();
       prunedPretermsPosMap = new danbikel.util.HashMap();
       prunedPretermsPosSet = new HashSet();
       Set prunedPreterms = server.prunedPreterms();
@@ -320,8 +312,7 @@ public class Decoder implements Serializable {
     leftSubcatPSLastLevel = leftSubcatPS.numLevels() - 1;
     rightSubcatPSLastLevel = rightSubcatPS.numLevels() - 1;
 
-    leftModNonterminalPSLastLevel = leftModNonterminalPS.numLevels() - 1;
-    rightModNonterminalPSLastLevel = rightModNonterminalPS.numLevels() - 1;
+    modNonterminalPSLastLevel = modNonterminalPS.numLevels() - 1;
 
     String useCellLimitStr = Settings.get(Settings.decoderUseCellLimit);
     boolean useCellLimit = Boolean.valueOf(useCellLimitStr).booleanValue();
@@ -1014,7 +1005,7 @@ public class Decoder implements Serializable {
     int lowerIndex = Math.min(thisSideEdgeIndex, oppositeSideEdgeIndex);
     int higherIndex = Math.max(thisSideEdgeIndex, oppositeSideEdgeIndex);
 
-    double logModProb = server.logProbMod(id, modEvent, side);
+    double logModProb = server.logProbMod(id, modEvent);
     if (logModProb <= Constants.logOfZero)
       return;
     double logTreeProb =
@@ -1068,11 +1059,9 @@ public class Decoder implements Serializable {
 
   private boolean futurePossible(ModifierEvent modEvent, boolean side,
 				 boolean debug) {
+    ProbabilityStructure modPS = modNonterminalPS;
+    int lastLevel = modNonterminalPSLastLevel;
     boolean onLeft = side == Constants.LEFT;
-    ProbabilityStructure modPS =
-      (onLeft ? leftModNonterminalPS : rightModNonterminalPS);
-    int lastLevel =
-      (onLeft ? leftModNonterminalPSLastLevel : rightModNonterminalPSLastLevel);
     Map modMap = (onLeft ? leftModNonterminalMap : rightModNonterminalMap);
     Event historyContext = modPS.getHistory(modEvent, lastLevel);
     Set possibleFutures = (Set)modMap.get(historyContext);
@@ -1100,11 +1089,9 @@ public class Decoder implements Serializable {
   }
 
   private Set possibleFutures(ModifierEvent modEvent, boolean side) {
+    ProbabilityStructure modPS = modNonterminalPS;
+    int lastLevel = modNonterminalPSLastLevel;
     boolean onLeft = side == Constants.LEFT;
-    ProbabilityStructure modPS =
-      (onLeft ? leftModNonterminalPS : rightModNonterminalPS);
-    int lastLevel =
-      (onLeft ? leftModNonterminalPSLastLevel : rightModNonterminalPSLastLevel);
     Map modMap = (onLeft ? leftModNonterminalMap : rightModNonterminalMap);
     Event historyContext = modPS.getHistory(modEvent, lastLevel);
     Set possibleFutures = (Set)modMap.get(historyContext);
@@ -1312,10 +1299,10 @@ public class Decoder implements Serializable {
     if (debugStops) {
     }
 
-    double leftLogProb = server.logProbLeft(id, leftMod);
+    double leftLogProb = server.logProbMod(id, leftMod);
     if (leftLogProb <= Constants.logOfZero)
       return itemsAdded;
-    double rightLogProb = server.logProbRight(id, rightMod);
+    double rightLogProb = server.logProbMod(id, rightMod);
     if (rightLogProb <= Constants.logOfZero)
       return itemsAdded;
     double logTreeProb =

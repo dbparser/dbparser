@@ -135,7 +135,7 @@ if (-f $goldFile) then
 	$goldFile $outFile > $outFile.scorable
     # make sure scorer has been compiled
     (cd $scorerDir ; make)
-    $scorer -p $scorerParam $goldFile $outFile.fixed > $outFile.score
+    $scorer -p $scorerParam $goldFile $outFile.scorable > $outFile.score
 endif
 
 # kill off rmi registry proc

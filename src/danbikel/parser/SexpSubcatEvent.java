@@ -182,6 +182,18 @@ public class SexpSubcatEvent extends SexpEvent {
     return this;
   }
 
+  public MutableEvent add(int type, Object obj) {
+    switch (type) {
+    case sexpTypeIdx:
+      super.add(obj);
+      break;
+    case subcatTypeIdx:
+      subcat = (Subcat)obj;
+      break;
+    }
+    return this;
+  }
+
   /**
    * Canonicalizes the backing <code>Sexp</code> and <code>Subcat</code>
    * components of this event using the specified reflexive map.
@@ -205,8 +217,18 @@ public class SexpSubcatEvent extends SexpEvent {
   public Event copy() {
     SexpSubcatEvent eventCopy = new SexpSubcatEvent();
     eventCopy.event = copySexpEvent();
+    /*
     if (subcat != null)
       eventCopy.subcat = (Subcat)subcat.copy();
+    */
+    // WARNING!!!
+    // This is potentially very dangerous, and is an efficiency hack, as we
+    // have made it such that Subcat objects are only copied just prior to
+    // being modified (meaning that in all other cases, we never need to copy
+    // them)
+    // WARNING!!!
+    if (subcat != null)
+      eventCopy.subcat = this.subcat;
     return eventCopy;
   }
 

@@ -61,7 +61,7 @@ public class Model implements Serializable {
    *
    * @see AnalyzeDisns
    */
-  protected final static boolean deleteCountsWhenPrecomputingProbs = false;
+  protected final static boolean deleteCountsWhenPrecomputingProbs = true;
   /** The boolean value of {@link Settings#precomputeProbs}, cached here
       for convenience. */
   protected final static boolean precomputeProbs =
@@ -90,7 +90,13 @@ public class Model implements Serializable {
    *
    * @see AnalyzeDisns
    */
-  protected final static boolean createHistBackOffMap = true;
+  protected final static boolean createHistBackOffMap = false;
+
+  /**
+   * Caches the value of {@link Settings#modelDoPruning}.
+   */
+  protected final static boolean doPruning =
+    Settings.getBoolean(Settings.modelDoPruning);
 
   private final static int structureMapArrSize = 1000;
 
@@ -161,6 +167,9 @@ public class Model implements Serializable {
   protected transient boolean dontAddNewParams;
   protected transient boolean useSmoothingParams;
   protected transient CountsTable[] smoothingParams;
+
+  protected transient HashSet[] transitionsToPrune;
+  protected transient HashSet[] historiesToPrune;
 
   static int numCacheAdds = 0;
   static int numCanonicalHits = 0;
@@ -236,6 +245,14 @@ public class Model implements Serializable {
       histBackOffMap = new java.util.HashMap[numLevels - 1];
       for (int i = 0; i < backOffMap.length; i++) {
 	histBackOffMap[i] = new java.util.HashMap();
+      }
+    }
+    if (doPruning) {
+      transitionsToPrune = new HashSet[numLevels - 1];
+      historiesToPrune = new HashSet[numLevels - 1];
+      for (int i = 0; i < transitionsToPrune.length; i++) {
+	transitionsToPrune[i] = new HashSet();
+	historiesToPrune[i] = new HashSet();
       }
     }
   }
@@ -897,6 +914,161 @@ public class Model implements Serializable {
     }
   }
 
+  protected Transition[] getTransitions(Transition zeroLevelTrans,
+					Transition[] trans) {
+    trans[0] = zeroLevelTrans;
+    for (int i = 1; i < numLevels; i++) {
+      int prevLevel = i - 1;
+      trans[i] = (Transition)backOffMap[prevLevel].get(trans[prevLevel]);
+    }
+    return trans;
+  }
+
+  /**
+   * Prune every history and transition with a back-off level less than
+   * the last level in which the last level history has a diversity of 1
+   * (meaning that the probability is 1, so no need to store a history
+   * and transition).
+   */
+  protected void pruneHistoriesAndTransitionsOld() {
+    Transition[] trans = new Transition[numLevels];
+    int lastLevel = numLevels - 1;
+    Iterator it = counts[0].transition().entrySet().iterator();
+    while (it.hasNext()) {
+      MapToPrimitive.Entry transEntry = (MapToPrimitive.Entry)it.next();
+      Transition zeroLevelTrans = (Transition)transEntry.getKey();
+      getTransitions(zeroLevelTrans, trans);
+
+      MapToPrimitive histMap = counts[lastLevel].history();
+      Event lastLevelHist = trans[lastLevel].history();
+      MapToPrimitive.Entry lastLevelHistEntry =
+	(MapToPrimitive.Entry)histMap.getEntry(lastLevelHist);
+
+      if (lastLevelHistEntry.getDoubleValue(CountsTrio.diversity) == 1) {
+	for (int level = 0; level < lastLevel; level++) {
+	  // delete from precomputedProbs and precomputedLambdas but not
+	  // from smoothingParams
+	  if (precomputeProbs) {
+	    precomputedProbs[level].remove(trans[level]);
+	    precomputedLambdas[level].remove(trans[level].history());
+	    /*
+	    if (saveSmoothingParams)
+	      smoothingParams[level].remove(trans[level].history());
+	    */
+	  }
+	  if (!(precomputeProbs && deleteCountsWhenPrecomputingProbs)) {
+	    counts[level].transition().remove(trans[level]);
+	    counts[level].history().remove(trans[level].history());
+	  }
+	}
+      }
+    }
+  }
+
+  /**
+   * Schedule for pruning every history and transition whose MLE is equal to
+   * that of back-off level's transition.
+   */
+  protected void computeHistoriesAndTransitionsToPrune() {
+    if (!doPruning)
+      return;
+    Transition[] trans = new Transition[numLevels];
+    int lastLevel = numLevels - 1;
+
+    MapToPrimitive.Entry currTransEntry, nextTransEntry;
+    MapToPrimitive.Entry currHistEntry, nextHistEntry;
+
+    for (int level = 0; level < lastLevel; level++) {
+      Iterator it = counts[level].transition().entrySet().iterator();
+      while (it.hasNext()) {
+	MapToPrimitive.Entry transEntry = (MapToPrimitive.Entry)it.next();
+
+	Transition currTrans = (Transition)transEntry.getKey();
+	Event currHist = currTrans.history();
+	Transition nextTrans = (Transition)backOffMap[level].get(currTrans);
+	Event nextHist = nextTrans.history();
+
+	CountsTrio currTrio = counts[level];
+	CountsTrio nextTrio = counts[level + 1];
+
+
+	currTransEntry =
+	  (MapToPrimitive.Entry)currTrio.transition().getEntry(currTrans);
+	currHistEntry =
+	  (MapToPrimitive.Entry)currTrio.history().getEntry(currHist);
+	nextTransEntry =
+	  (MapToPrimitive.Entry)nextTrio.transition().getEntry(nextTrans);
+	nextHistEntry =
+	  (MapToPrimitive.Entry)nextTrio.history().getEntry(nextHist);
+
+	double currTransCount = currTransEntry.getDoubleValue();
+	double currHistCount = currHistEntry.getDoubleValue(CountsTrio.hist);
+	double nextTransCount = nextTransEntry.getDoubleValue();
+	double nextHistCount = nextHistEntry.getDoubleValue(CountsTrio.hist);
+
+	double currMLE = currTransCount / currHistCount;
+	double nextMLE = nextTransCount / nextHistCount;
+
+	if (currMLE == nextMLE) {
+	  /*
+	  System.err.println(structureClassName +
+			     ": pruning " + currTrans + " at level " +
+			     level);
+	  */
+
+	  transitionsToPrune[level].add(currTrans);
+
+	  currHistEntry.add(CountsTrio.hist, -currTransCount);
+	  currHistEntry.add(CountsTrio.diversity, -1.0);
+	  double newDiversity =
+	    currHistEntry.getDoubleValue(CountsTrio.diversity);
+	  double newHistCount = currHistEntry.getDoubleValue(CountsTrio.hist);
+	  if ((newDiversity == 0.0 && newHistCount != 0.0) ||
+	      (newHistCount == 0.0 && newDiversity != 0.0))
+	    System.err.println(structureClassName + ": uh-oh: pruned " +
+			       "last transition from " +
+			       currHist + " but diversity=" + newDiversity +
+			       " where history=" + newHistCount);
+	  if (newDiversity == 0.0) {
+	    //System.err.println(structureClassName + ": removing " + currHist);
+	    historiesToPrune[level].add(currHist);
+	  }
+	}
+      }
+    }
+  }
+
+  protected void pruneHistoriesAndTransitions() {
+    if (!doPruning)
+      return;
+    int totalTransPruned  = 0;
+    int totalHistPruned = 0;
+    boolean deletingCounts =
+      precomputeProbs && deleteCountsWhenPrecomputingProbs;
+    int lastLevel = numLevels - 1;
+    for (int level = 0; level < lastLevel; level++) {
+      totalTransPruned += transitionsToPrune[level].size();
+      Iterator it = transitionsToPrune[level].iterator();
+      while (it.hasNext()) {
+	Transition trans = (Transition)it.next();
+	precomputedProbs[level].remove(trans);
+	if (!deletingCounts)
+	  counts[level].transition().remove(trans);
+      }
+      totalHistPruned += historiesToPrune[level].size();
+      it = historiesToPrune[level].iterator();
+      while (it.hasNext()) {
+	Event hist = (Event)it.next();
+	precomputedLambdas[level].remove(hist);
+	if (!deletingCounts)
+	  counts[level].history().remove(hist);
+      }
+    }
+    if (verbose)
+      System.err.println("Pruned " + totalHistPruned + " histories and " +
+			 totalTransPruned + " transitions.");
+  }
+
   protected void initializeSmoothingParams() {
     smoothingParams = new CountsTableImpl[numLevels];
     for (int i = 0; i < numLevels; i++)
@@ -971,6 +1143,8 @@ public class Model implements Serializable {
    * storePrecomputedProbs
    */
   public void precomputeProbs() {
+    computeHistoriesAndTransitionsToPrune();
+
     if (!precomputeProbs)
       return;
 
@@ -1002,6 +1176,9 @@ public class Model implements Serializable {
       storePrecomputedProbs(lambdas, estimates, transitions, histories,
 			    lastLevel);
     }
+
+    pruneHistoriesAndTransitions();
+
     if (!saveBackOffMap)
       backOffMap = null; // no longer needed!
     if (structure.doCleanup())
@@ -1052,7 +1229,7 @@ public class Model implements Serializable {
 
       transitions[level] = currTrans;
       histories[level] = (Event)histEntry.getKey();
-	
+
       double historyCount = histEntry.getDoubleValue(CountsTrio.hist);
       double transitionCount = transEntry.getDoubleValue();
       double diversityCount = histEntry.getDoubleValue(CountsTrio.diversity);

@@ -1,7 +1,7 @@
 package danbikel.parser;
 
 import danbikel.lisp.*;
-import java.io.Serializable;
+import java.io.*;
 
 /**
  * Abstract class to represent the probability structure--the entire
@@ -26,6 +26,8 @@ import java.io.Serializable;
  * @see Trainer
  */
 public abstract class ProbabilityStructure implements Serializable {
+  protected transient int topLevelCacheSize;
+
   /**
    * A reusable list to enable efficient construction of <code>SexpEvent</code>
    * objects of various sizes to represent history contexts.
@@ -163,6 +165,29 @@ public abstract class ProbabilityStructure implements Serializable {
 
     estimates = new double[numLevels()];
     lambdas = new double[numLevels()];
+
+    topLevelCacheSize = getTopLevelCacheSize();
+  }
+
+  /**
+   * This method converts the value of the setting named
+   * <code>getClass().getName()&nbsp;+&nbsp;".topLevelCacheSize"</code>
+   * to an integer and returns it.  This method is used within the
+   * constructor of this abstract class to set the value of the
+   * {@link #topLevelCacheSize} data member.  Subclasses should override
+   * this method if such a setting may not be available or if a different
+   * mechanism for determining the top-level cache size is desired.
+   *
+   * @see Settings#get(String)
+   */
+  protected int getTopLevelCacheSize() {
+    String topLevelCacheSizeStr =
+      Settings.get(getClass().getName() + ".topLevelCacheSize");
+    /*
+    System.err.println(getClass().getName() + ": setting top-level cache " +
+                       "size to be " + topLevelCacheSizeStr);
+    */
+    return Integer.parseInt(topLevelCacheSizeStr);
   }
 
   /**
@@ -260,6 +285,21 @@ public abstract class ProbabilityStructure implements Serializable {
   }
 
   /**
+   * Returns the recommended cache size for the specified back-off level
+   * of the model that uses this probability structure.  This default
+   * implementation simply returns <code>topLevelCacheSize / 2^level</code>.
+   *
+   * @see #topLevelCacheSize
+   */
+  public int cacheSize(int level) {
+    int size = topLevelCacheSize;
+    for (int i = 0; i < level; i++)
+      size /= 2;
+    return size;
+  }
+
+
+  /**
    * Returns a deep copy of this object.  Currently, all data members
    * of <code>ProbabilityStructure</code> objects are used solely as
    * temporary storage during certain method invocations; therefore,
@@ -273,4 +313,10 @@ public abstract class ProbabilityStructure implements Serializable {
    * to be deeply copied, this method should be overridden.
    */
   public abstract ProbabilityStructure copy();
+
+  private void readObject(ObjectInputStream in)
+  throws IOException, ClassNotFoundException {
+    in.defaultReadObject();
+    topLevelCacheSize = getTopLevelCacheSize();
+  }
 }

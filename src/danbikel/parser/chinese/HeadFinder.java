@@ -34,6 +34,14 @@ public class HeadFinder extends danbikel.parser.lang.AbstractHeadFinder {
     super(headTableSexp);
   }
 
+  private Symbol unSubjectify(Symbol label) {
+    String labelStr = label.toString();
+    if (labelStr.endsWith("SBJ"))
+      return Symbol.get(labelStr.substring(0, labelStr.length() - 3));
+    else
+      return label;
+  }
+
   /**
    * Finds the head for the grammar production <code>lhs -> rhs</code>.  This
    * method destructively modifies <code>rhs</code> to contain only
@@ -58,10 +66,14 @@ public class HeadFinder extends danbikel.parser.lang.AbstractHeadFinder {
   public int findHead(Sexp tree, Symbol lhs, SexpList rhs) {
     // destructively modify rhs, resetting all elements to be their canonicals
     int rhsSize = rhs.size();
-    for (int i = 0; i < rhsSize; i++)
-      rhs.set(i, treebank.getCanonical(rhs.get(i).symbol()));
+    for (int i = 0; i < rhsSize; i++) {
+      Symbol canonical = treebank.getCanonical(rhs.get(i).symbol());
+      //canonical = unSubjectify(canonical);
+      rhs.set(i, canonical);
+    }
 
     Symbol canonicalLHS = treebank.getCanonical(lhs);
+    //canonicalLHS = unSubjectify(canonicalLHS);
 
     // find the default head using the canonical LHS and canonical RHS
     int defaultHead = defaultFindHead(canonicalLHS, rhs);

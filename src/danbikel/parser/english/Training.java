@@ -65,6 +65,7 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
   }
 
   public Sexp preProcess(Sexp tree) {
+    //transformSubjectNTs(tree);
     super.preProcess(tree);
     fixSubjectlessSentences(tree);
     return tree;

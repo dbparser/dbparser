@@ -12,3 +12,6 @@ userguide/*.pdf
 userguide/*.tex
 userguide/*.html
 sb-doc
+.#exported-build.xml.1.1
+dbparser.oif
+switchboard.jar

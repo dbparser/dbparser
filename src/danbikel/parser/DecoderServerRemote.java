@@ -21,6 +21,8 @@ public interface DecoderServerRemote extends Server {
 
   public Map modNonterminalMap() throws RemoteException;
 
+  public Map simpleModNonterminalMap() throws RemoteException;
+
   public CountsTable nonterminals() throws RemoteException;
 
   public Set prunedPreterms() throws RemoteException;

@@ -215,6 +215,10 @@ public class DecoderServer
     return modelCollection.modNonterminalMap();
   }
 
+  public Map simpleModNonterminalMap() throws RemoteException {
+    return modelCollection.simpleModNonterminalMap();
+  }
+
   public Set prunedPreterms() throws RemoteException {
     return modelCollection.prunedPreterms();
   }

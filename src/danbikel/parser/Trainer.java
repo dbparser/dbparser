@@ -940,8 +940,8 @@ public class Trainer implements Serializable {
       HeadTreeNode currMod = (HeadTreeNode)mods.next();
       Symbol modifier = currMod.label();
 
-      Shifter.shift(prevModEvent, prevModList, prevMod, modifier);
-      Shifter.shift(prevModEvent, prevWordList, prevWord, currMod.headWord());
+      Shifter.shift(prevModEvent, prevModList, prevMod);
+      Shifter.shift(prevModEvent, prevWordList, prevWord);
 
       boolean isConj = Language.treebank.isConjunction(modifier);
       boolean isConjPConj =
@@ -1029,8 +1029,8 @@ public class Trainer implements Serializable {
     // transition to stop symbol
     verbIntervening |= prevModHadVerb;
     // need to shift in final mod and modWord
-    Shifter.shift(prevModEvent, prevModList, prevMod, stopSym);
-    Shifter.shift(prevModEvent, prevWordList, prevWord, stopWord);
+    Shifter.shift(prevModEvent, prevModList, prevMod);
+    Shifter.shift(prevModEvent, prevWordList, prevWord);
     ModifierEvent modEvent = new ModifierEvent(stopWord,
 					       headWord,
 					       stopSym,

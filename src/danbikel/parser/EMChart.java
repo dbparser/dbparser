@@ -173,6 +173,14 @@ public class EMChart extends CKYChart {
       EMItem.AntecedentPair newList  =
 	new EMItem.AntecedentPair(ante1, ante2, events, probs, currList);
       existingItem.setAntecedentPairs(newList);
+
+      /*
+      System.err.println(className + ": increasing existing item\n\t" +
+			 existingItem + "\ninside prob of " +
+			 existingItem.insideProb() + " by " +
+			 item.insideProb() + " of\n\t" + item);
+      */
+
       existingItem.increaseInsideProb(item.insideProb());
       if (unaryLevel != existingItem.unaryLevel())
 	System.err.println(className + ": warning: re-deriving an item with " +

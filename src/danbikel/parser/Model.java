@@ -43,6 +43,7 @@ public class Model implements Serializable {
   protected final static boolean useCache = true;
   private final static int minCacheSize = 1000;
   private final static boolean doGCBetweenCanonicalizations = false;
+  private final static boolean saveBackOffMap = false;
 
   private final static int structureMapArrSize = 1000;
 
@@ -79,11 +80,14 @@ public class Model implements Serializable {
   protected transient int[] precomputedNPBProbHits;
   protected transient int precomputedNPBProbCalls;
   /**
-   * A set of numLevels - 1 maps, where map i is a map from back-off level
-   * i transitions to i+1 transitions.  These maps are only used temporarily
+   * A set of {@link #numLevels}<code>&nbsp;-&nbsp;1</code> maps, where map
+   * <i>i</i> is a map from back-off level <i>i</i> transitions to
+   * <i>i</i>&nbsp;+&nbsp;1 transitions.  These maps are only used temporarily
    * when precomputing probs (and are necessary for incremental training).
+   *
+   * @see #savePrecomputeData(CountsTable,Filter)
    */
-  protected transient java.util.HashMap[] backOffMap;
+  protected java.util.HashMap[] backOffMap;
 
   // for temporary storage of histories (so we don't have to copy histories
   // created by deriveHistories() to create transition objects)
@@ -469,6 +473,18 @@ public class Model implements Serializable {
     return Constants.logOfZero;
   }
 
+  /**
+   * Returns the smoothed probability estimate of a transition contained
+   * in the specified <code>TrainerEvent</code> object.
+   *
+   * @param probStructure a <code>ProbabilityStructure</code> object that
+   * is either {@link #structure} or a copy of it, used for temporary
+   * storage during the computation performed by this method
+   * @param event the <code>TrainerEvent</code> containing a transition
+   * from a history to a future whose smoothed probability is to be computed
+   * @return the smoothed probability estimate of a transition contained
+   * in the specified <code>TrainerEvent</code> object
+   */
   protected double estimateProb(ProbabilityStructure probStructure,
 				TrainerEvent event) {
     ProbabilityStructure structure = probStructure;
@@ -685,6 +701,10 @@ public class Model implements Serializable {
    * futures.  This number of unique transitions, called the
    * <i>diversity</i> of a random variable, is used in a modified
    * version of Witten-Bell smoothing.
+   *
+   * @deprecated This method used to be called by {@link
+   * #deriveCounts(CountsTable,Filter,double,FlexibleMap,boolean)}, but
+   * diversity counts are now derived directly by that method.
    */
   protected void deriveDiversityCounts() {
     // derive diversity counts for all levels
@@ -715,6 +735,10 @@ public class Model implements Serializable {
    * whose derived counts should not be derived for this model
    * @param canonical a reflexive map used to canonicalize objects
    * created when deriving counts
+   *
+   * @deprecated This method used to be called by {@link
+   * #deriveCounts(CountsTable,Filter,double,FlexibleMap,boolean)}, but
+   * histories are now derived directly by that method.
    */
   protected void deriveHistories(CountsTable trainerCounts, Filter filter,
 				 FlexibleMap canonical) {
@@ -772,6 +796,21 @@ public class Model implements Serializable {
       smoothingParams[i] = new CountsTableImpl();
   }
 
+  /**
+   * Saves the back-off chain for each event derived from each
+   * <code>TrainerEvent</code> in the key set of the specified counts table.
+   * This method is called by {@link
+   * #deriveCounts(CountsTable,Filter,double,FlexibleMap,boolean)} when
+   * {@link Settings#precomputeProbs} is <code>true</code>.
+   *
+   * @param trainerCounts a counts table containing some or all of the
+   * <code>TrainerEvent</code> objects collected during training
+   * @param filter a filter specifying which <code>TrainerEvent</code>
+   * objects to ignore in the key set of the specified counts table
+   *
+   * @see #deriveCounts(CountsTable,Filter,double,FlexibleMap,boolean)
+   * @see #backOffMap
+   */
   protected void savePrecomputeData(CountsTable trainerCounts, Filter filter) {
     Transition oldTrans;
     Transition currTrans = null;
@@ -805,6 +844,11 @@ public class Model implements Serializable {
    * Precomputes all probabilities and smoothing values for events seen during
    * all previous invocations of {@link
    * #deriveCounts(CountsTable,Filter,double,FlexibleMap,boolean)}.
+   *
+   * @see #precomputeProbs(MapToPrimitive.Entry,double[],double[],
+   * Transition[],Event[],int) precomputeProbs(MapToPrimitive.Entry, ...)
+   * @see #storePrecomputedProbs(double[],double[],Transition[],Event[],int)
+   * storePrecomputedProbs
    */
   public void precomputeProbs() {
     if (!precomputeProbs)
@@ -833,60 +877,13 @@ public class Model implements Serializable {
 	(MapToPrimitive.Entry)topLevelTrans.next();
       double[] lambdas = structure.lambdas;
       double[] estimates = structure.estimates;
-      for (int level = 0; level < numLevels; level++) {
-	Transition currTrans = (Transition)transEntry.getKey();
-	Event history = currTrans.history();
-	MapToPrimitive.Entry histEntry =
-	  (MapToPrimitive.Entry)counts[level].history().getEntry(history);
-
-	if (histEntry == null)
-	  System.err.println("yikes! something is very wrong");
-
-	transitions[level] = currTrans;
-	histories[level] = (Event)histEntry.getKey();
-	
-	double historyCount = histEntry.getDoubleValue(CountsTrio.hist);
-	double transitionCount = transEntry.getDoubleValue();
-	double diversityCount = histEntry.getDoubleValue(CountsTrio.diversity);
-
-	double fudge = lambdaFudge[level];
-	double fudgeTerm = lambdaFudgeTerm[level];
-	double lambda = ((!deficientEstimation && level == lastLevel) ? 1.0 :
-			 historyCount /
-			 (historyCount + fudgeTerm + fudge * diversityCount));
-	if (useSmoothingParams) {
-	  MapToPrimitive.Entry smoothingParamEntry =
-	    smoothingParams[level].getEntry(history);
-	  if (smoothingParamEntry != null)
-	    lambda = smoothingParamEntry.getDoubleValue();
-	  else
-	    System.err.println("uh-oh: couldn't get smoothing param entry " +
-			       "for " + history);
-	}
-	double estimate = transitionCount / historyCount;
-	lambdas[level] = lambda;
-	estimates[level] = estimate;
-
-	if (level < lastLevel) {
-	  Transition nextLevelTrans  =
-	    (Transition)backOffMap[level].get(currTrans);
-	  transEntry = counts[level + 1].transition().getEntry(nextLevelTrans);
-	}
-      }
-      double prob = 0.0;
-      for (int level = lastLevel; level >= 0; level--) {
-	double lambda = lambdas[level];
-	double estimate = estimates[level];
-	prob = lambda * estimate + ((1 - lambda) * prob);
-	if (transitions[level] != null)
-	  precomputedProbs[level].put(transitions[level], Math.log(prob));
-	if (level < lastLevel && histories[level] != null)
-	  precomputedLambdas[level].put(histories[level], Math.log(1 - lambda));
-	if (saveSmoothingParams)
-	  smoothingParams[level].put(histories[level], lambda);
-      }
+      precomputeProbs(transEntry, lambdas, estimates, transitions, histories,
+		      lastLevel);
+      storePrecomputedProbs(lambdas, estimates, transitions, histories,
+			    lastLevel);
     }
-    backOffMap = null; // no longer needed!
+    if (!saveBackOffMap)
+      backOffMap = null; // no longer needed!
     if (structure.doCleanup())
       cleanup();
     if (saveSmoothingParams) {
@@ -896,6 +893,111 @@ public class Model implements Serializable {
     if (verbose)
       System.err.println("Precomputed probabilities for " +
 			 structureClassName + " in " + time + ".");
+  }
+
+  /**
+   * Precomputes the probabilities and smoothing values for the
+   * {@link Transition} object contained as a key within the specified
+   * map entry, where the value is the count of the transition.
+   *
+   * @param transEntry a map entry mapping a <code>Transition</code>
+   * object to its count (a <code>double</code>)
+   * @param lambdas an array in which to store the smoothing value for
+   * each of the back-off levels
+   * @param estimates an array in which to store the maximum-likelihood
+   * estimate at each of the back-off levels
+   * @param transitions an array in which to store the <code>Transition</code>
+   * instance for each of the back-off levels
+   * @param histories an array in which to store the history, an
+   * <code>Event</code> instance, for each of the back-off levels
+   * @param lastLevel the last back-off level (the value equal to
+   * {@link #numLevels}<code>&nbsp;-&nbsp;1</code>)
+   *
+   * @see #precomputeProbs()
+   */
+  protected void precomputeProbs(MapToPrimitive.Entry transEntry,
+				 double[] lambdas,
+				 double[] estimates,
+				 Transition[] transitions,
+				 Event[] histories,
+				 int lastLevel) {
+    for (int level = 0; level < numLevels; level++) {
+      Transition currTrans = (Transition)transEntry.getKey();
+      Event history = currTrans.history();
+      MapToPrimitive.Entry histEntry =
+	(MapToPrimitive.Entry)counts[level].history().getEntry(history);
+
+      if (histEntry == null)
+	System.err.println("yikes! something is very wrong");
+
+      transitions[level] = currTrans;
+      histories[level] = (Event)histEntry.getKey();
+	
+      double historyCount = histEntry.getDoubleValue(CountsTrio.hist);
+      double transitionCount = transEntry.getDoubleValue();
+      double diversityCount = histEntry.getDoubleValue(CountsTrio.diversity);
+
+      double fudge = lambdaFudge[level];
+      double fudgeTerm = lambdaFudgeTerm[level];
+      double lambda = ((!deficientEstimation && level == lastLevel) ? 1.0 :
+		       historyCount /
+		       (historyCount + fudgeTerm + fudge * diversityCount));
+      if (useSmoothingParams) {
+	MapToPrimitive.Entry smoothingParamEntry =
+	  smoothingParams[level].getEntry(history);
+	if (smoothingParamEntry != null)
+	  lambda = smoothingParamEntry.getDoubleValue();
+	else
+	  System.err.println("uh-oh: couldn't get smoothing param entry " +
+			     "for " + history);
+      }
+      double estimate = transitionCount / historyCount;
+      lambdas[level] = lambda;
+      estimates[level] = estimate;
+
+      if (level < lastLevel) {
+	Transition nextLevelTrans  =
+	  (Transition)backOffMap[level].get(currTrans);
+	transEntry = counts[level + 1].transition().getEntry(nextLevelTrans);
+      }
+    }
+  }
+
+  /**
+   * Stores the specified smoothing values (lambdas) and smoothed probability
+   * estimates in the {@link #precomputedProbs} and {@link #smoothingParams}
+   * map arrays.
+   *
+   * @param lambdas an array containing the smoothing value for each of the
+   * back-off levels
+   * @param estimates an array containing the maximum-likelihood estimate at
+   * each of the back-off levels
+   * @param transitions an array containing the <code>Transition</code>
+   * instance for each of the back-off levels
+   * @param histories an array in which to store the history, an
+   * <code>Event</code> instance, for each of the back-off levels
+   * @param lastLevel the last back-off level (the value equal to
+   * {@link #numLevels}<code>&nbsp;-&nbsp;1</code>)
+   *
+   * @see #precomputeProbs()
+   */
+  protected void storePrecomputedProbs(double[] lambdas,
+				       double[] estimates,
+				       Transition[] transitions,
+				       Event[] histories,
+				       int lastLevel) {
+    double prob = 0.0;
+    for (int level = lastLevel; level >= 0; level--) {
+      double lambda = lambdas[level];
+      double estimate = estimates[level];
+      prob = lambda * estimate + ((1 - lambda) * prob);
+      if (transitions[level] != null)
+	precomputedProbs[level].put(transitions[level], Math.log(prob));
+      if (level < lastLevel && histories[level] != null)
+	precomputedLambdas[level].put(histories[level], Math.log(1 - lambda));
+      if (saveSmoothingParams)
+	smoothingParams[level].put(histories[level], lambda);
+    }
   }
 
   /**

@@ -173,7 +173,7 @@ and the Ant output directory might be "classes.ant".-->
 	  <arg value="dbparser.tar"/>
 	  <arg value="dbparser"/>
     </exec>
-    <gzip src="dbparser.tar" zipfile="dbparser.tgz"/>
+    <gzip src="${deploy}/dbparser.tar" zipfile="${deploy}/dbparser.tgz"/>
     <concat destfile="${deploy.install.script}">
       <filelist dir="."
 	        files="${deploy.install.header} ${deploy.tar}"/>

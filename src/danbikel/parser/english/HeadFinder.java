@@ -42,7 +42,7 @@ public class HeadFinder extends danbikel.parser.HeadFinder {
    * using the canonical version of the <code>lhs</code> symbol for the first
    * argument.  If the default head index points to a nonterminal in a
    * coordinating relationship, that is, if the default head index is greater
-   * than 2 and the previous noterminal is a conjunction, then the index
+   * than 2 and the previous nonterminal is a conjunction, then the index
    * returned is the default head index minus 2.
    * @param lhs the nonterminal label that is the left-hand side of a grammar
    * production

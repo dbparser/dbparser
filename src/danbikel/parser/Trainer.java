@@ -1282,9 +1282,6 @@ public class Trainer implements Serializable {
   }
 
   public void readStats(SexpTokenizer tok) throws IOException {
-
-    canonicalSubcatMap = new HashMap();
-
     Sexp curr = null;
     for (int i = 1; (curr = Sexp.read(tok)) != null; i++) {
       if (curr.isSymbol() ||
@@ -1326,7 +1323,6 @@ public class Trainer implements Serializable {
 	break;
       }
     }
-    canonicalSubcatMap = null;
   }
 
   public void writeModelCollection(String objectOutputFilename,

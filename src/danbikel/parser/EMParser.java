@@ -6,6 +6,7 @@ import danbikel.switchboard.*;
 import danbikel.parser.constraints.*;
 import danbikel.parser.util.*;
 import java.util.*;
+import java.util.zip.*;
 import java.net.MalformedURLException;
 import java.rmi.*;
 import java.rmi.server.*;
@@ -222,10 +223,15 @@ public class EMParser extends Parser {
 	  return;
 	parser = (EMParser)getNewParser(derivedDataFilename);
 	int bufSize = Constants.defaultFileBufsize;
+	/*
+	OutputStream os = new FileOutputStream(outputFilename);
+	if (outputFilename.endsWith(".gz"))
+	  os = new GZIPOutputStream(os);
 	OutputStreamWriter osw =
 	  new OutputStreamWriter(new FileOutputStream(outputFilename),
 				 Language.encoding());
 	BufferedWriter out = new BufferedWriter(osw, bufSize);
+	*/
 	Sexp sent = null;
 	SexpTokenizer tok =
 	  new SexpTokenizer(inputFilename, Language.encoding(),

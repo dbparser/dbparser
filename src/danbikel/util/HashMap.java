@@ -351,7 +351,7 @@ public class HashMap extends AbstractMap
   /**
    * Gets the map entry for the specified key.
    *
-   * @key the key whose entry is to be looked up
+   * @param key the key whose entry is to be looked up
    * @return the map entry for the specified key, or <code>null</code>
    * if the specified key is not in this map
    */
@@ -794,7 +794,7 @@ public class HashMap extends AbstractMap
    * It does not support the <tt>add</tt> or <tt>addAll</tt> operations.
    *
    * @return a collection view of the mappings contained in this map.
-   * @see Map.Entry
+   * @see java.util.Map.Entry
    */
   public Set entrySet() {
     if (entrySet==null) {

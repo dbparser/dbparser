@@ -71,7 +71,7 @@ public class Settings implements Serializable {
   /** The official name of this program. */
   public final static String progName = "Parsing Engine";
   /** The official version of this program. */
-  public final static String version = "0.9.6";
+  public final static String version = "0.9.7";
   /**
    * The prefix that all properties for this parser should have
    * (to be used when finding system properties that are meant to be included
@@ -352,6 +352,13 @@ public class Settings implements Serializable {
     "parser.model.smoothingParametersDir";
 
   /**
+   * The property to specify whether to prune redundant parameters from
+   * every {@link Model} instance.
+   */
+  public final static String modelDoPruning =
+    "parser.model.doPruning";
+
+  /**
    * The property to specify whether or not the <code>ModelCollection</code>
    * class should write out the large hash map containing canonical versions of
    * <code>Event</code> objects when it is serialized (that is, saved to a
@@ -409,7 +416,7 @@ public class Settings implements Serializable {
    * The value of this constant is
    * <code>"parser.training.addGapInfo"</code>.
    *
-   * @see Training#addGapInformation(Sexp)
+   * @see Training#addGapInformation(danbikel.lisp.Sexp)
    */
   public static final String addGapInfo =
     "parser.training.addGapInfo";
@@ -422,7 +429,7 @@ public class Settings implements Serializable {
    * Collins' parser, and so is available as a setting here in order to emulate
    * that model.
    *
-   * @see Training#identifyArguments(Sexp)
+   * @see Training#identifyArguments(danbikel.lisp.Sexp)
    */
   public static final String collinsRelabelHeadChildrenAsArgs =
     "parser.training.collinsRelabelHeadChildrenAsArgs";
@@ -439,7 +446,7 @@ public class Settings implements Serializable {
    * The value of this constant is
    * <code>"parser.training.collinsRepairBaseNPs"</code>.
    *
-   * @see Training#repairBaseNPs(Sexp) */
+   * @see Training#repairBaseNPs(danbikel.lisp.Sexp) */
   public static final String collinsRepairBaseNPs =
     "parser.training.collinsRepairBaseNPs";
 
@@ -980,7 +987,7 @@ public class Settings implements Serializable {
    * The value of this constant is
    * <code>"parser.decoder.kBest"</code>.
    *
-   * @see Decoder#parse(SexpList)
+   * @see Decoder#parse(danbikel.lisp.SexpList)
    */
   public final static String kBest =
     "parser.decoder.kBest";
@@ -1203,6 +1210,19 @@ public class Settings implements Serializable {
    */
   public final static String decoderUseHeadToParentMap =
     "parser.decoder.useHeadToParentMap";
+
+  /**
+   * The property to specify that the decoder restores all pruned words.  If
+   * this property is <code>true</code> and the decoder produces a parse for
+   * a sentence, then it is guaranteed that the number of tokens of the input
+   * sentence and the parsed output sentence will be identical.  The value of
+   * this property should be the (string representation of) a boolean
+   * (conversion is performed by the method <code>Boolean.valueOf</code>).
+   *
+   * @see Training#prune(danbikel.lisp.Sexp)
+   */
+  public final static String restorePrunedWords =
+    "parser.decoder.restorePrunedWords";
 
   /**
    * The property to specify whether words are downcased during training

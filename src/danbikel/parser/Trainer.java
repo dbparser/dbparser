@@ -167,10 +167,13 @@ public class Trainer implements Serializable {
     {prunedPuncSym, new Integer(prunedPuncType)},
   };
 
-  private final static Map eventsToTypes = new HashMap();
+  private final static MapToPrimitive eventsToTypes = new HashMapInt();
   static {
-    for (int i = 0; i < eventsToTypesArr.length; i++)
-      eventsToTypes.put(eventsToTypesArr[i][0], eventsToTypesArr[i][1]);
+    for (int i = 0; i < eventsToTypesArr.length; i++) {
+      Object key = eventsToTypesArr[i][0];
+      int value = ((Integer)eventsToTypesArr[i][1]).intValue();
+      eventsToTypes.put(key, value);
+    }
   }
 
   // data members
@@ -197,8 +200,7 @@ public class Trainer implements Serializable {
   private Map posMap = new HashMap();
   private Map leftSubcatMap = new HashMap();
   private Map rightSubcatMap = new HashMap();
-  private Map leftModNonterminalMap = new HashMap();
-  private Map rightModNonterminalMap = new HashMap();
+  private Map modNonterminalMap = new HashMap();
   private Set prunedPreterms;
   private Set prunedPunctuation;
   // temporary map for canonicalizing subcat SexpList objects for
@@ -223,7 +225,7 @@ public class Trainer implements Serializable {
   private Symbol traceTag = Language.training.traceTag();
 
   // various filters used by deriveCounts, deriveSubcatMaps and
-  // deriveModNonterminalMaps
+  // deriveModNonterminalMap
   Filter allPass = new AllPass();
   Filter nonTop = new Filter() {
       public boolean pass(Object obj) {
@@ -979,8 +981,8 @@ public class Trainer implements Serializable {
 		       rightSubcatModel.getProbStructure(),
                        canonical);
 
-      deriveModNonterminalMaps(modNonterminalModel.getProbStructure(),
-                               canonical);
+      deriveModNonterminalMap(modNonterminalModel.getProbStructure(),
+                              canonical);
 
       System.err.println("Canonical events HashMap stats: " +
                          canonical.getStats());
@@ -1009,8 +1011,7 @@ public class Trainer implements Serializable {
 			  posMap,
 			  leftSubcatMap,
 			  rightSubcatMap,
-                          leftModNonterminalMap,
-                          rightModNonterminalMap,
+                          modNonterminalMap,
                           prunedPreterms,
                           prunedPunctuation,
                           canonical);
@@ -1089,8 +1090,8 @@ public class Trainer implements Serializable {
    * @param modMS the modifying nonterminal model structure
    * @param canonicalMap the map of canonicalized objects
    */
-  private void deriveModNonterminalMaps(ProbabilityStructure modMS,
-                                        FlexibleMap canonicalMap) {
+  private void deriveModNonterminalMap(ProbabilityStructure modMS,
+                                       FlexibleMap canonicalMap) {
     System.err.println("Deriving modifying nonterminal maps.");
 
     int modMSLastLevel = modMS.numLevels() - 1;
@@ -1105,9 +1106,6 @@ public class Trainer implements Serializable {
       ModifierEvent modEvent = (ModifierEvent)events.next();
       if (!filter.pass(modEvent))
         continue;
-      boolean leftSide = modEvent.side() == Constants.LEFT;
-      Map modNonterminalMap =
-        leftSide ? leftModNonterminalMap : rightModNonterminalMap;
       Event context = modMS.getHistory(modEvent, modMSLastLevel).copy();
       context.canonicalize(canonicalMap);
       Event future = modMS.getFuture(modEvent, modMSLastLevel).copy();
@@ -1115,10 +1113,18 @@ public class Trainer implements Serializable {
       addToValueSet(modNonterminalMap, context, future);
     }
 
-    outputModNonterminalMaps();
+    outputModNonterminalMap();
   }
 
   // four utility methods to output subcat and mod nonterminal maps
+
+  /**
+   * Outputs the modifier map internal to this <code>Trainer</code> object
+   * to <code>System.err</code>.
+   */
+  public void outputModNonterminalMap() {
+    outputMap(modNonterminalMap, "mod-map");
+  }
 
   /**
    * Outputs the subcat maps internal to this <code>Trainer</code> object
@@ -1128,13 +1134,24 @@ public class Trainer implements Serializable {
     outputMaps(leftSubcatMap, "left-subcat", rightSubcatMap, "right-subcat");
   }
 
-  /**
-   * Outputs the modifier maps internal to this <code>Trainer</code> object
-   * to <code>System.err</code>.
-   */
-  public void outputModNonterminalMaps() {
-    outputMaps(leftModNonterminalMap, "left-mod",
-               rightModNonterminalMap, "right-mod");
+  /** Outputs the specified map to <code>System.err</code> */
+  public static void outputMap(Map map, String mapName) {
+    try {
+      BufferedWriter systemErr =
+	new BufferedWriter(new OutputStreamWriter(System.err,
+						  Language.encoding()),
+			   Constants.defaultFileBufsize);
+      try {
+	outputMap(map, mapName, systemErr);
+	systemErr.flush();
+      }
+      catch (IOException ioe) {
+	System.err.println(ioe);
+      }
+    }
+    catch (UnsupportedEncodingException uee) {
+      System.err.println(uee);
+    }
   }
 
   /** Outputs both the specified maps to <code>System.err</code>. */
@@ -1156,6 +1173,12 @@ public class Trainer implements Serializable {
     catch (UnsupportedEncodingException uee) {
       System.err.println(uee);
     }
+  }
+
+  /** Outputs the specified named map to the specified writer. */
+  public static void outputMap(Map map, String mapName, Writer writer)
+  throws IOException {
+    SymbolicCollectionWriter.writeMap(map, Symbol.add(mapName), writer);
   }
 
   /** Outputs both the specified maps to the specified writer. */
@@ -1180,7 +1203,7 @@ public class Trainer implements Serializable {
     while (it.hasNext()) {
       MapToPrimitive.Entry entry = (MapToPrimitive.Entry)it.next();
       HeadEvent event = (HeadEvent)entry.getKey();
-      int count = entry.getIntValue();
+      double count = entry.getDoubleValue();
       if (isRealWord(event.headWord())) {
 	priorEvents.add(new PriorEvent(event.headWord(), event.head()),
                         count);
@@ -1190,7 +1213,7 @@ public class Trainer implements Serializable {
     while (it.hasNext()) {
       MapToPrimitive.Entry entry = (MapToPrimitive.Entry)it.next();
       ModifierEvent event = (ModifierEvent)entry.getKey();
-      int count = entry.getIntValue();
+      double count = entry.getDoubleValue();
       // we make sure to check that the parent of the modifier event is not
       // +TOP+ so that we don't include the hack whereby we pretend we
       // observed the root of the observed tree to "modify" +TOP+
@@ -1373,33 +1396,34 @@ public class Trainer implements Serializable {
       }
       SexpList event = curr.list();
       Symbol name = event.symbolAt(0);
-      int count = -1;
-      switch (((Integer)eventsToTypes.get(name)).intValue()) {
+      double count = -1.0;
+      MapToPrimitive.Entry entry = eventsToTypes.getEntry(name);
+      switch (entry.getIntValue()) {
       case nonterminalEventType:
-	count = Integer.parseInt(event.symbolAt(2).toString());
+	count = Double.parseDouble(event.symbolAt(2).toString());
 	nonterminals.add(event.get(1), count);
 	break;
       case headEventType:
-	count = Integer.parseInt(event.symbolAt(2).toString());
+	count = Double.parseDouble(event.symbolAt(2).toString());
 	headEvents.add(new HeadEvent(event.get(1)), count);
 	break;
       case modEventType:
-	count = Integer.parseInt(event.symbolAt(2).toString());
+	count = Double.parseDouble(event.symbolAt(2).toString());
 	modifierEvents.add(new ModifierEvent(event.get(1)), count);
 	break;
       case gapEventType:
-	count = Integer.parseInt(event.symbolAt(2).toString());
+	count = Double.parseDouble(event.symbolAt(2).toString());
 	gapEvents.add(new GapEvent(event.get(1)), count);
 	break;
       case posMapType:
 	posMap.put(event.get(1), event.get(2));
 	break;
       case vocabType:
-	count = Integer.parseInt(event.symbolAt(2).toString());
+	count = Double.parseDouble(event.symbolAt(2).toString());
 	vocabCounter.add(event.get(1), count);
 	break;
       case wordFeatureType:
-	count = Integer.parseInt(event.symbolAt(2).toString());
+	count = Double.parseDouble(event.symbolAt(2).toString());
 	wordFeatureCounter.add(event.get(1), count);
 	break;
       case prunedPretermType:
@@ -1814,7 +1838,7 @@ public class Trainer implements Serializable {
     while (modEvents.hasNext()) {
       MapToPrimitive.Entry entry = (MapToPrimitive.Entry)modEvents.next();
       TrainerEvent event = (TrainerEvent)entry.getKey();
-      int count = entry.getIntValue();
+      int count = (int)entry.getDoubleValue();
       outputCollins(event, count);
     }
   }

@@ -153,7 +153,7 @@ public class Parser
 
   private static final String[] usageMsg = {
     "usage: [-nc <numClients> | -num-clients <numClients>]",
-    "\t[-internal-server <derived data file>] ",
+    "\t[-is <derived data file> | -internal-server <derived data file>] ",
     "\t[ [-sa <sentence input file> | --stand-alone <sentence input file> ",
     "\t  [-out <parse output file>] ] |",
     "\t  [switchboard binding name] ]"
@@ -176,7 +176,7 @@ public class Parser
           }
           inputFilename = args[++i];
         }
-        else if (args[i].equals("-internal-server")) {
+        else if (args[i].equals("-is") || args[i].equals("-internal-server")) {
           if (i + 1 == args.length) {
             System.err.println("error: " + args[i] + " requires a filename");
             usage();

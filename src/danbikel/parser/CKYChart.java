@@ -48,8 +48,9 @@ public class CKYChart extends Chart {
     CKYItem newItem = (CKYItem)itemPool.get();
     if (newItem.garbage())
       throw new RuntimeException();
-    */
     return newItem;
+    */
+    return (CKYItem)itemPool.get();
   }
 
   protected void reclaimItemCollection(Collection c) {

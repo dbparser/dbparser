@@ -9,7 +9,7 @@ import java.util.*;
  * Provides a mapping between objects and integer counts that may be
  * incremented or decremented.
  */
-public class CountsTable extends danbikel.util.HashMapInt {
+public class CountsTable extends danbikel.util.HashMapDouble {
   /**
    * Constructs an empty <code>CountsTable</code>.
    */
@@ -43,17 +43,17 @@ public class CountsTable extends danbikel.util.HashMapInt {
   }
 
   public void add(Object key) {
-    add(key, 0, 1);
+    add(key, 0, 1.0);
   }
 
-  public int count(Object key) {
+  public double count(Object key) {
     MapToPrimitive.Entry e = getEntry(key);
-    return (e == null ? 0 : e.getIntValue(0));
+    return (e == null ? 0 : e.getDoubleValue(0));
   }
 
-  public int count(Object key, int hashCode) {
+  public double count(Object key, int hashCode) {
     MapToPrimitive.Entry e = getEntry(key, hashCode);
-    return (e == null ? 0 : e.getIntValue(0));
+    return (e == null ? 0 : e.getDoubleValue(0));
   }
 
   /**

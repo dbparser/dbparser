@@ -44,6 +44,8 @@ public class HeadFinder extends danbikel.parser.HeadFinder {
    * coordinating relationship, that is, if the default head index is greater
    * than 2 and the previous nonterminal is a conjunction, then the index
    * returned is the default head index minus 2.
+   * @param tree the original subtree in which to find the head child, or
+   * <code>null</code> if the subtree is not available
    * @param lhs the nonterminal label that is the left-hand side of a grammar
    * production
    * @param rhs a list of symbols that is the right-hand side of a grammar
@@ -52,7 +54,7 @@ public class HeadFinder extends danbikel.parser.HeadFinder {
    *
    * @see Treebank#isConjunction(Symbol)
    */
-  public int findHead(Symbol lhs, SexpList rhs) {
+  public int findHead(Sexp tree, Symbol lhs, SexpList rhs) {
     // destructively modify rhs, resetting all elements to be their canonicals
     int rhsSize = rhs.size();
     for (int i = 0; i < rhsSize; i++)
@@ -63,10 +65,36 @@ public class HeadFinder extends danbikel.parser.HeadFinder {
     // find the default head using the canonical LHS and canonical RHS
     int defaultHead = defaultFindHead(canonicalLHS, rhs);
 
+    // defaultFindHead returns a 1-based index, so we decrement to be 0-based
+    int defaultHeadIdx = defaultHead - 1;
+
     // before returning, we check for the coordinated phrase case
-    if (defaultHead > 2 &&
-	treebank.isConjunction(rhs.get(defaultHead - 2).symbol()))
-      defaultHead -= 2;
+    /*
+    if (defaultHeadIdx >= 2 &&
+	treebank.isConjunction(rhs.get(defaultHeadIdx - 1).symbol()) &&
+        lhs != treebank.baseNPLabel()) {
+    */
+    if (defaultHeadIdx >= 2 &&
+	treebank.isConjunction(rhs.get(defaultHeadIdx - 1).symbol())) {
+      // first, try to find same label farther back
+      int firstOccurrenceIdx = rhs.indexOf(rhs.get(defaultHeadIdx));
+      if (firstOccurrenceIdx < defaultHeadIdx) {
+        defaultHead = firstOccurrenceIdx + 1;
+      }
+      // if that fails, if we can find a non-punctuation and non-conjunction
+      // symbol to the left of the default head, set default head to be that;
+      // otherwise, leave default head where it is
+      else {
+        for (int i = defaultHeadIdx - 2; i >= 0; i--) {
+          Symbol curr = rhs.symbolAt(i);
+          if (!treebank.isPunctuation(curr) && !treebank.isConjunction(curr)) {
+            defaultHead = i + 1;  // need to return 1-based index, so we add 1
+            break;
+          }
+        }
+      }
+      //defaultHead -= 2;
+    }
 
     return defaultHead;
   }

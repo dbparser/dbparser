@@ -61,8 +61,8 @@
 #define MAX_SENT_LEN           5000
 #define MAX_WORD_IN_SENT        200
 #define MAX_BRACKET_IN_SENT     200
-#define MAX_WORD_LEN            100
-#define MAX_LABEL_LEN            30
+#define MAX_WORD_LEN            200
+#define MAX_LABEL_LEN           200
 
 #define MAX_DELETE_LABEL        100
 #define MAX_EQ_LABEL            100

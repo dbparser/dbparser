@@ -304,7 +304,7 @@
         <patternset refid="deploy.files"/>
       </fileset>
     </copy>
-    <chmod perm="ogu+x">
+    <chmod perm="ogu+rx">
         <fileset dir="${deploy.to}/bin"/>
     </chmod>
     <available file="${deploy.to}/README" property="readme.ln.present"/>
@@ -316,6 +316,9 @@
     <tar destfile="${deploy.tgz}" basedir="${deploy}" compression="gzip"
          includes="dbparser/"/>
     -->
+    <chmod perm="ogu+r">
+        <fileset dir="${deploy.to}"/>
+    </chmod>
     <exec dir="${deploy.to}/.." executable="tar">
 	  <arg value="cvf"/>
 	  <arg value="dbparser.tar"/>

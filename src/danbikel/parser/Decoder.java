@@ -203,34 +203,20 @@ public class Decoder implements Serializable {
    * The boolean value of the
    * {@link Settings#decoderSubstituteWordsForClosedClassTags} setting.
    */
-  protected boolean substituteWordsForClosedClassTags;
-  {
-    String substituteWordsForClosedClassTagsStr =
-      Settings.get(Settings.decoderSubstituteWordsForClosedClassTags);
-    substituteWordsForClosedClassTags =
-      Boolean.valueOf(substituteWordsForClosedClassTagsStr).booleanValue();
-  }
+  protected boolean substituteWordsForClosedClassTags =
+    Settings.getBoolean(Settings.decoderSubstituteWordsForClosedClassTags);
   /**
    * The boolean value of the {@link Settings#decoderUseOnlySuppliedTags}
    * setting.
    */
-  protected boolean useOnlySuppliedTags;
-  {
-    String useOnlySuppliedTagsStr =
-      Settings.get(Settings.decoderUseOnlySuppliedTags);
-    useOnlySuppliedTags =
-      Boolean.valueOf(useOnlySuppliedTagsStr).booleanValue();
-  }
+  protected boolean useOnlySuppliedTags =
+    Settings.getBoolean(Settings.decoderUseOnlySuppliedTags);
   /**
    * The boolean value of the {@link Settings#decoderUseHeadToParentMap}
    * setting.
    */
-  protected boolean useHeadToParentMap;
-  {
-    String useHeadToParentMapStr =
-      Settings.get(Settings.decoderUseHeadToParentMap);
-    useHeadToParentMap = Boolean.valueOf(useHeadToParentMapStr).booleanValue();
-  }
+  protected boolean useHeadToParentMap =
+    Settings.getBoolean(Settings.decoderUseHeadToParentMap);
   /**
    * The value of {@link Training#startSym()}, cached here for efficiency
    * and convenience.
@@ -1248,6 +1234,7 @@ public class Decoder implements Serializable {
 		    null, null, startList, startList, 0, end,
 		    false, false, true, logProb, Constants.logProbCertain,
 		    logProb);
+        newItem.hasAntecedent(item);
 	topProbItemsToAdd.add(newItem);
       }
     }
@@ -1536,6 +1523,8 @@ public class Decoder implements Serializable {
 			   modificand.getConstraint() + " to " + newItem);
       newItem.setConstraint(modificand.getConstraint());
     }
+    newItem.hasAntecedent(modificand);
+    newItem.hasAntecedent(modifier);
 
     boolean added = chart.add(lowerIndex, higherIndex, newItem);
     if (!added) {
@@ -1670,6 +1659,7 @@ public class Decoder implements Serializable {
 		null, null, startList, startList,
 		item.start(), item.end(),
 		false, false, false, 0.0, 0.0, 0.0);
+    newItem.hasAntecedent(item);
     Symbol headSym = (Symbol)item.label();
     HeadEvent headEvent = lookupHeadEvent;
     headEvent.set(item.headWord(), null, headSym, emptySubcat, emptySubcat);
@@ -1912,6 +1902,7 @@ public class Decoder implements Serializable {
       newItem.setConstraint(item.getConstraint());
     }
 
+    newItem.hasAntecedent(item);
     boolean added = chart.add(item.start(), item.end(), newItem);
     if (added)
       itemsAdded.add(newItem);

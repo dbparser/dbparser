@@ -160,6 +160,14 @@ public class EMChart extends CKYChart {
     }
     if (item.insideProb() == Constants.probImpossible)
       return;
+    if (Double.isNaN(item.insideProb())) {
+      System.err.println(className + ": warning: inside prob. is NaN (" +
+			 start + "," + end + "): " + item + "\n\tante1: " +
+			 ante1 + "\n\tante2: " + ante2);
+      System.err.println(events.length + " events");
+      for (int i = 0; i < events.length; i++)
+	System.err.println("event=" + events[i] + "; prob=" + probs[i]);
+    }
 
     Entry chartEntry = chart[start][end];
     MapToPrimitive items = chartEntry.map;

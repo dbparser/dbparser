@@ -218,16 +218,15 @@ public class SubcatBag implements Subcat, Externalizable {
   }
 
   public boolean contains(Symbol requirement) {
-        int uid = getUid(requirement);
-    // if the uid is of an actual nonterminal (greater than firstRealUid,
-    // which is used for gap requirements) and if it's not marked as an
-    // argument, return false
-    if (uid > firstRealUid && !Language.training.isArgumentFast(requirement))
+    int uid = getUid(requirement);
+    // if the uid is of an actual nonterminal (either greater than firstRealUid,
+    // which is used for gap requirements, or equal to miscIdx) and if it's not
+    // marked as an argument, return false
+    if ((uid == miscIdx || uid > firstRealUid) &&
+        !Language.training.isArgumentFast(requirement))
       return false;
-    if (counts[uid] == 0)
-      return false;
-    else
-      return true;
+
+    return counts[uid] > 0;
   }
 
   /**
@@ -348,6 +347,9 @@ public class SubcatBag implements Subcat, Externalizable {
   // methods to comply with the MutableEvent interface
 
   public MutableEvent add(Object obj) {
+    return add((Symbol)obj);
+  }
+  public MutableEvent add(int type, Object obj) {
     return add((Symbol)obj);
   }
   /** This method does nothing and returns. */

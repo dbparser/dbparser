@@ -6,6 +6,7 @@ directories. For example, the JBuilder output directory might be "classes"
 and the Ant output directory might be "classes.ant".-->
 <project basedir="." default="rebuild" name="dbparser.jpx">
   <property name="dest" value="classes.ant"/>
+  <property name="src" value="src"/>
   <property name="deploy" value="deploy"/>
   <patternset id="deploy.bin">
     <include name="bin/addFakePos"/>
@@ -37,8 +38,6 @@ and the Ant output directory might be "classes.ant".-->
   <property name="deploy.install.header" value="${deploy}/install-header"/>
   <property name="deploy.install.script" value="${deploy}/install.sh"/>
   <property name="Generated.Source" value="${dest}/Temporary_Files"/>
-  <property name="src" value="src"/>
-  <property name="rmic" value="rmic"/>
   <path id="project.class.path">
     <pathelement location="${dest}"/>
   </path>

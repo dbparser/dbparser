@@ -7,6 +7,7 @@ import danbikel.parser.Treebank;
 import danbikel.parser.Settings;
 import danbikel.parser.Nonterminal;
 import danbikel.parser.Word;
+import danbikel.parser.Words;
 import danbikel.util.*;
 import danbikel.lisp.*;
 import java.util.*;
@@ -113,6 +114,18 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
   };
 
   // data members
+  /** Data member returned by the accessor method of the same name. */
+  private Symbol startSym = Symbol.add("*START*");
+  /** Data member returned by the accessor method of the same name. */
+  private Symbol stopSym = Symbol.add("*STOP*");
+  /** Data member returned by the accessor method of the same name. */
+  private Word startWord = Words.get(startSym, startSym);
+  /** Data member returned by the accessor method of the same name. */
+  private Word stopWord = Words.get(stopSym, stopSym);
+  /** Data member returned by the accessor method of the same name. */
+  private Symbol topSym = Symbol.add("*TOP*");
+  /** Data member returned by the accessor method of the same name. */
+  private Word topWord = Words.get(topSym, topSym);
   private Nonterminal nonterminal = new Nonterminal();
   private danbikel.util.HashMap transformations = new danbikel.util.HashMap();
 
@@ -127,6 +140,13 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
    * <code>&quot;parser.training.metadata.english&quot;</code>.
    */
   public Training() throws FileNotFoundException, IOException {
+    startSym = Symbol.add("*START*");
+    stopSym = Symbol.add("*STOP*");
+    startWord = Words.get(startSym, startSym);
+    stopWord = Words.get(stopSym, stopSym);
+    topSym = Symbol.add("*TOP*");
+    topWord = Words.get(topSym, topSym);
+
     String language = Settings.get(Settings.language);
     String metadataResource = Settings.get(metadataPropertyPrefix + language);
     InputStream is = Settings.getFileOrResourceAsStream(this.getClass(),
@@ -136,6 +156,26 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
       new SexpTokenizer(is, Language.encoding(), bufSize);
     readMetadata(metadataTok);
   }
+
+  protected void readMetadataHook(Symbol dataType,
+				  int metadataLen, SexpList metadata) {
+    if (dataType == tagMapSym) {
+      for (int i = 1; i < metadataLen; i++) {
+	SexpList mapping = metadata.get(i).list();
+	TagMap.add(mapping.symbolAt(0), mapping.symbolAt(1));
+      }
+    }
+  }
+
+  // re-defining the accessor methods for the changed start, stop and top
+  // data members (and their associated Word objects)
+  public Symbol startSym() { return startSym; }
+  public Word startWord() { return startWord; }
+  public Symbol stopSym() { return stopSym; }
+  public Word stopWord() { return stopWord; }
+  public Symbol topSym() { return topSym; }
+  public Word topWord() { return topWord; }
+
 
   public Sexp preProcess(Sexp tree) {
     transformTags(tree);

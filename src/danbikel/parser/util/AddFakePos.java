@@ -4,41 +4,76 @@ import danbikel.lisp.*;
 import java.io.*;
 
 /**
- * Reads in a file of parse trees and outputs pretty-printed versions.
+ * Reads in a file of unparsed sentences and a file of parsed sentences,
+ * replacing every occurrence of <tt>null</code> in the parsed file with
+ * the original sentence and then adding fake parts of speech for each word
+ * of that original sentence.
  */
 public class AddFakePos {
+
+  private final static Symbol nullSym = Symbol.add("null");
+
   private AddFakePos() {}
+
+  private final static void usage() {
+    System.err.println("usage: <orig. sentence file> [- | filename]");
+    System.exit(1);
+  }
 
   /**
    * Reads in parse trees either from a specified file or from standard input
    * and adds fake parts of speech to raw (un-parsed) sentences.
-   * <pre>usage: [- | <filename>]</pre>
+   * <pre>usage: <orig. sentence file> [- | <filename>]</pre>
    * where specifying <tt>-</tt> or using no arguments at all indicates to
-   * read from standard input.
+   * read the parser output from standard input.
    */
   public static void main(String[] args) {
     InputStream in = System.in;
-    if (args.length > 0) {
-      if (!args[0].equals("-")) {
-        File file = new File(args[0]);
+    InputStream origIn = null;
+    if (args.length < 1)
+      usage();
+    else {
+      File origFile = new File(args[0]);
+      try { origIn = new FileInputStream(origFile); }
+      catch (FileNotFoundException fnfe) {
+        System.err.println("error: file \"" + args[0] + "\" does not exist");
+        System.exit(1);
+      }
+    }
+    if (args.length > 1) {
+      if (!args[1].equals("-")) {
+        File file = new File(args[1]);
         try { in = new FileInputStream(file); }
         catch (FileNotFoundException fnfe) {
-          System.err.println("error: file \"" + args[0] + "\" does not exist");
+          System.err.println("error: file \"" + args[1] + "\" does not exist");
           System.exit(1);
         }
       }
     }
     BufferedReader br = new BufferedReader(new InputStreamReader(in));
     SexpTokenizer tok = null;
+    SexpTokenizer origTok = null;
     String enc = System.getProperty("file.encoding");
-    try { tok = new SexpTokenizer(in, enc, 8192); }
+    try {
+      tok = new SexpTokenizer(in, enc, 8192);
+      origTok = new SexpTokenizer(origIn, enc, 8192);
+    }
     catch (UnsupportedEncodingException uee) {
       System.err.println("error: encoding \"" + enc + "\" not supported");
       System.exit(1);
     }
-    Sexp curr = null;
+
+    Sexp curr = null, origCurr = null;
     try {
       while ((curr = Sexp.read(tok)) != null) {
+        origCurr = Sexp.read(origTok);
+        if (origCurr == null) {
+          System.err.println("error: ran out of sentences in original " +
+                             "sentence file!");
+          break;
+        }
+        if (curr == nullSym)
+          curr = origCurr;
         addFakePos(curr);
         System.out.println(curr);
       }

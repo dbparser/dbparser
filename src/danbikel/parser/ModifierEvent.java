@@ -25,7 +25,11 @@ public class ModifierEvent implements TrainerEvent, Cloneable {
   private Symbol parent;
   private Symbol head;
   private Subcat subcat;
+  private Word prevPunc;
+  private Word prevConj;
+  private boolean isConjPConj;
   private boolean verbIntervening;
+  private boolean headAdjacent;
   private boolean side;
 
   /**
@@ -116,6 +120,25 @@ public class ModifierEvent implements TrainerEvent, Cloneable {
         head, subcat, verbIntervening, side);
   }
 
+  public ModifierEvent(Word modHeadWord,
+		       Word headWord,
+		       Symbol modifier,
+		       SexpList previousMods,
+                       WordList previousWords,
+		       Symbol parent,
+		       Symbol head,
+		       Subcat subcat,
+		       Word prevPunc,
+		       Word prevConj,
+		       boolean isConjPConj,
+		       boolean verbIntervening,
+		       boolean headAdjacent,
+		       boolean side) {
+    set(modHeadWord, headWord, modifier, previousMods, previousWords, parent,
+        head, subcat, prevPunc, prevConj, isConjPConj, verbIntervening,
+	headAdjacent, side);
+  }
+
   // accessors
   /** Returns the head word of the modifier of this modifier event. */
   public Word modHeadWord() { return modHeadWord; }
@@ -139,11 +162,28 @@ public class ModifierEvent implements TrainerEvent, Cloneable {
    * generated.
    */
   public Subcat subcat() { return subcat; }
+
+  /** Returns the previously-generated punctuation word if this modifier
+      follows one, or <code>null</code>. */
+  public Word prevPunc() { return prevPunc; }
+
+  /** Returns the previously-generated conjunction if this modifier is conjoined
+      with the head of the phrase, or <code>null</code> if this modifier is
+      not conjoined. */
+  public Word prevConj() { return prevConj; }
+
+  /** Returns the boolean that indicates whether the modifier is a conjunction
+      that is part of a conjunction phrase. */
+  public boolean isConjPConj() { return isConjPConj; }
+
   /**
    * Returns whether a verb has been generated in any of the subtrees generated
    * between the current modifier and the head child.
    */
   public boolean verbIntervening() { return verbIntervening; }
+
+  public boolean headAdjacent() { return headAdjacent; }
+
   /**
    * Returns the value of {@link Constants#LEFT} if this modifier lies on the
    * left side of the head child, or the value of {@link Constants#RIGHT} if
@@ -176,6 +216,11 @@ public class ModifierEvent implements TrainerEvent, Cloneable {
   void setSubcat(Subcat subcat) {
     this.subcat = subcat;
   }
+
+  void setIsConjPConj(boolean isConjPConj) {
+    this.isConjPConj = isConjPConj;
+  }
+
   void setVerbIntervening(boolean verbIntervening) {
     this.verbIntervening = verbIntervening;
   }
@@ -204,6 +249,36 @@ public class ModifierEvent implements TrainerEvent, Cloneable {
     this.side = side;
   }
 
+  void set(Word modHeadWord,
+           Word headWord,
+           Symbol modifier,
+           SexpList previousMods,
+           WordList previousWords,
+           Symbol parent,
+           Symbol head,
+           Subcat subcat,
+	   Word prevPunc,
+	   Word prevConj,
+	   boolean isConjPConj,
+           boolean verbIntervening,
+	   boolean headAdjacent,
+           boolean side) {
+    this.modHeadWord = modHeadWord;
+    this.headWord = headWord;
+    this.modifier = modifier;
+    this.previousMods = SexpList.getCanonical(previousMods);
+    this.previousWords = previousWords;
+    this.parent = parent;
+    this.head = head;
+    this.subcat = subcat;
+    this.prevPunc = prevPunc;
+    this.prevConj = prevConj;
+    this.isConjPConj = isConjPConj;
+    this.verbIntervening = verbIntervening;
+    this.headAdjacent = headAdjacent;
+    this.side = side;
+  }
+
   /**
    * Returns <code>true</code> if the specified object is an instance of
    * a <code>ModifierEvent</code> object containing data members which are all
@@ -222,15 +297,25 @@ public class ModifierEvent implements TrainerEvent, Cloneable {
     boolean headWordsEqual =
       (headWord == null ? other.headWord == null :
        headWord.equals(other.headWord));
+    boolean prevPuncEqual =
+      (prevPunc == null ? other.prevPunc == null :
+       prevPunc.equals(other.prevPunc));
+    boolean prevConjEqual =
+      (prevConj == null ? other.prevConj == null :
+       prevConj.equals(other.prevConj));
     return (modHeadWordsEqual &&
 	    headWordsEqual &&
+	    prevPuncEqual &&
+	    prevConjEqual &&
 	    modifier == other.modifier &&
 	    previousMods.equals(other.previousMods) &&
             previousWords.equals(other.previousWords) &&
 	    parent == other.parent &&
 	    head == other.head &&
 	    subcat.equals(other.subcat) &&
+	    isConjPConj == other.isConjPConj &&
 	    verbIntervening == other.verbIntervening &&
+	    headAdjacent == other.headAdjacent &&
 	    side == other.side);
   }
 
@@ -256,6 +341,10 @@ public class ModifierEvent implements TrainerEvent, Cloneable {
       code = modHeadWord.hashCode();
     if (headWord != null)
       code = (code << 2) ^ headWord.hashCode();
+    if (prevPunc != null)
+      code = (code << 2) ^ prevPunc.hashCode();
+    if (prevConj != null)
+      code = (code << 2) ^ prevConj.hashCode();
     code = (code << 2) ^ modifier.hashCode();
     code = (code << 2) ^ previousMods.hashCode();
     code = (code << 2) ^ previousWords.hashCode();
@@ -264,6 +353,8 @@ public class ModifierEvent implements TrainerEvent, Cloneable {
     code = (code << 2) ^ subcat.hashCode();
     int booleansCode = (((verbIntervening ? 1 : 0) << 1) |
 			(side ? 1 : 0));
+    // doesn't matter if we leave out the head adjacent bit
+    // and the isConjPConj bit
     code = (code << 2) | booleansCode;
     return code;
   }
@@ -282,7 +373,11 @@ public class ModifierEvent implements TrainerEvent, Cloneable {
 			     parent,
 			     head,
 			     (Subcat)subcat.copy(),
+			     prevPunc,
+			     prevConj,
+			     isConjPConj,
 			     verbIntervening,
+			     headAdjacent,
 			     side);
   }
 

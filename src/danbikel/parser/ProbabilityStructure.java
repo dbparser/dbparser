@@ -16,6 +16,13 @@ import java.io.*;
  * interface may be used to record events in a concrete subclass of
  * this class.
  * <p>
+ * <b>Design note</b>: The probability estimates of a {@link Model} object
+ * using a {@link ProbabilityStructure} will be somewhat unpredictable if
+ * the history contexts at the back-off levels do not represent supersets
+ * of one another.  That is, the history context at back-off level
+ * <i>i</i>&nbsp;+&nbsp;1 <b><i>must</i></b> be a superset of the context
+ * at back-off level <i>i</i>.
+ * <p>
  * <b>Concurrency note</b>: A separate <code>ProbabiityStructure</code> object
  * needs to be constructed for each thread that needs to use its facilities,
  * to avoid concurrent access and modification of its data members (which
@@ -203,6 +210,126 @@ public abstract class ProbabilityStructure implements Serializable {
     */
     return (topLevelCacheSizeStr == null ?
 	    0 : Integer.parseInt(topLevelCacheSizeStr));
+  }
+
+  /**
+   * Returns a default name of the smoothing parameters file, which is the
+   * value of <code>getClass().getName()&nbsp;+&nbsp;".smoothingParams"</code>.
+   *
+   * @return a default name of the smoothing parameters file, which is the
+   * value of <code>getClass().getName()&nbsp;+&nbsp;".smoothingParams"</code>
+   *
+   * @see #smoothingParametersFile()
+   */
+  protected String defaultSmoothingParamsFilename() {
+    return getClass().getName() + ".smoothingParams";
+  }
+
+  /**
+   * Returns the name of the smoothing parameters file, either to be created
+   * if {@link #saveSmoothingParameters()} returns <code>true</code>, or
+   * read from and used if either {@link #dontAddNewParameters()} or
+   * {@link #useSmoothingParameters()} return <code>true</code>.
+   * <p>
+   * The name of the smoothing file returned by this method is
+   * the value of the setting
+   * <code>getClass().getName()&nbsp;+&nbsp;".smoothingParametersFile"</code>,
+   * or the value returned by {@link #defaultSmoothingParamsFilename()} if
+   * this property is not set.
+   *
+   * @return the name of the smoothing parameters file, either to be
+   * created or read from and used in a training run
+   *
+   * @see #saveSmoothingParameters()
+   * @see #dontAddNewParameters()
+   * @see #useSmoothingParameters()
+   */
+  public String smoothingParametersFile() {
+    String smoothingParamsFile =
+      Settings.get(getClass().getName() + ".smoothingParametersFile");
+    if (smoothingParamsFile == null)
+      smoothingParamsFile = defaultSmoothingParamsFilename();
+    return smoothingParamsFile;
+  }
+
+  /**
+   * Indicates that this probability structure's associated {@link Model}
+   * object should save the smoothing parameters to the file named by
+   * {@link #smoothingParametersFile()} when precomputing probabilities during
+   * training.  If the {@link Settings#precomputeProbs} setting is
+   * <code>false</code> then the value of this property is ignored.
+   * <p>
+   * The default implementation here gets the boolean value of the setting
+   * <code>getClass().getName()&nbsp;+&nbsp;".saveSoothingParameters"</code>,
+   * as determined by {@link Boolean#valueOf(String)}.
+   *
+   * @return whether or not this probability structure's associated
+   * {@link Model} object should save the smoothing parameters to the file
+   * named by {@link #smoothingParametersFile()}
+   *
+   * @see #smoothingParametersFile()
+   */
+  protected boolean saveSmoothingParameters() {
+    return
+      Settings.getBoolean(getClass().getName() + ".saveSmoothingParameters");
+  }
+
+  /**
+   * Indicates whether this probability structure's associated {@link Model}
+   * object should not add new parameters when deriving counts by consulting
+   * the smoothing parameters from {@link #smoothingParametersFile()}.
+   * Specifically, for each history context derived from a {@link TrainerEvent},
+   * a derived count will only be added for that history context if it has a
+   * non-zero smoothing parameter, as determined by the information contained
+   * in {@link #smoothingParametersFile}.  Effectively, when this method
+   * returns <code>true</code>, it indicates to use the smoothing parameters
+   * contained in {@link #smoothingParametersFile()} only to determine
+   * which histories have non-zero smoothing values.
+   * If {@link #useSmoothingParameters} returns <code>true</code>, then the
+   * <i>all</i> the smoothing parameters contained in
+   * {@link #smoothingParametersFile()} will be used, meaning that
+   * no new parameters will be added, making the return value of this
+   * method irrelevant (because it will implicitly be true).
+   * <p>
+   * The default implementation here gets the boolean value of the setting
+   * <code>getClass().getName()&nbsp;+&nbsp;".dontAddNewParameters"</code>,
+   * as determined by {@link Boolean#valueOf(String)}.
+   *
+   * @return whether this probability structure's associated {@link Model}
+   * object should not add new parameters when deriving counts by consulting
+   * the smoothing parameters from {@link #smoothingParametersFile()}
+   *
+   * @see #smoothingParametersFile
+   * @see #useSmoothingParameters()
+   */
+  protected boolean dontAddNewParameters() {
+    return
+      Settings.getBoolean(getClass().getName() + ".dontAddNewParameters");
+  }
+
+  /**
+   * Indicates whether this probability structure's associated {@link Model}
+   * object should use the smoothing parameters contained in the file
+   * {@link #smoothingParametersFile()} when deriving counts and precomputing
+   * probabilities.  Note that when this method returns <code>true</code, no
+   * new parameters will be added to the model when deriving counts, thus
+   * making the return value of {@link #dontAddNewParameters()} irrelevant.
+   * <p>
+   * The default implementation here gets the boolean value of the setting
+   * <code>getClass().getName()&nbsp;+&nbsp;".dontAddNewParameters"</code>,
+   * as determined by {@link Boolean#valueOf(String)}.
+   *
+   * @return whether this probability structure's associated {@link Model}
+   * object should use the smoothing parameters contained in the file
+   * {@link #smoothingParametersFile()} when deriving counts and precomputing
+   * probabilities
+   *
+   * @see #smoothingParametersFile
+   * @see #dontAddNewParameters
+   */
+  protected boolean useSmoothingParameters() {
+    return
+      Settings.getBoolean(getClass().getName() + ".useSmoothingParameters");
   }
 
   /**

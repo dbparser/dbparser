@@ -50,22 +50,25 @@ public class BaseNPAwareShifter implements Shift {
     Symbol currModSym = currMod.symbol();
     Symbol prevModSym = prevMod.symbol();
 
+    boolean doShift;
     // do not treat punctuation as a true "previous modifier" when inside
     // a base NP
-    if (event != null && event.parent() == baseNP &&
-	Language.treebank.isPunctuation(prevModSym))
-      return;
-    // treat punctuation and conjunction as conditionally independent:
-    // if one follows the other, the previous element is *not* shifted
-    // into the history list
-    if ((Language.treebank.isPunctuation(prevModSym) &&
-	 Language.treebank.isConjunction(currModSym)) ||
-	(Language.treebank.isConjunction(prevModSym) &&
-	 Language.treebank.isPunctuation(currModSym)))
-      return;
-
-    list.remove(list.length() - 1);
-    list.add(0, prevModSym);
+    if (event != null && event.parent() == baseNP) {
+      doShift = !Language.treebank.isPunctuation(prevModSym);
+    }
+    else {
+      // treat punctuation and conjunction as conditionally independent:
+      // if one follows the other, the previous element is *not* shifted
+      // into the history list
+      doShift = !((Language.treebank.isPunctuation(prevModSym) &&
+		   Language.treebank.isConjunction(currModSym)) ||
+		  (Language.treebank.isConjunction(prevModSym) &&
+		   Language.treebank.isPunctuation(currModSym)));
+    }
+    if (doShift) {
+      list.remove(list.length() - 1);
+      list.add(0, prevModSym);
+    }
   }
 
   /**
@@ -91,21 +94,23 @@ public class BaseNPAwareShifter implements Shift {
    */
   public void shift(TrainerEvent event, WordList wordList,
 		    Word prevWord, Word currWord) {
+    boolean doShift;
     // do not treat punctuation as a true "previous word" when inside
     // a base NP
-    if (event != null && event.parent() == baseNP &&
-	Language.treebank.isPunctuation(prevWord.tag()))
-      return;
-    // treat punctuation and conjunction as conditionally independent:
-    // if one follows the other, the previous element is *not* shifted
-    // into the history list
-    if ((Language.treebank.isPunctuation(prevWord.tag()) &&
-	 Language.treebank.isConjunction(currWord.tag())) ||
-	(Language.treebank.isConjunction(prevWord.tag()) &&
-	 Language.treebank.isPunctuation(currWord.tag())))
-      return;
-
-    wordList.shift(prevWord);
+    if (event != null && event.parent() == baseNP) {
+      doShift = !Language.treebank.isPunctuation(prevWord.tag());
+    }
+    else {
+      // treat punctuation and conjunction as conditionally independent:
+      // if one follows the other, the previous element is *not* shifted
+      // into the history list
+      doShift = !((Language.treebank.isPunctuation(prevWord.tag()) &&
+		   Language.treebank.isConjunction(currWord.tag())) ||
+		  (Language.treebank.isConjunction(prevWord.tag()) &&
+		   Language.treebank.isPunctuation(currWord.tag())));
+    }
+    if (doShift)
+      wordList.shift(prevWord);
   }
 
 

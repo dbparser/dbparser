@@ -28,6 +28,8 @@ import java.util.*;
  */
 public class Model implements Serializable {
   // constants
+  private final static boolean precomputeProbs =
+    Boolean.valueOf(Settings.get(Settings.precomputeProbs)).booleanValue();
   private final static boolean useCache = true;
   private final static int minCacheSize = 1000;
   private final static boolean doGCBetweenCanonicalizations = false;
@@ -47,11 +49,19 @@ public class Model implements Serializable {
   private String structureClassName;
   private int numLevels;
   private int specialLevel;
+  private double[] lambdaFudge;
   // the actual counts
   private CountsTrio[] counts;
   private int numCanonicalizableEvents = 0;
   // whether to report to stderr what this class is doing
   private boolean verbose = true;
+
+  // for the storage of precomputed probabilities and lambdas
+  private HashMapDouble[] precomputedProbs;
+  private HashMapDouble[] precomputedLambdas;
+  private transient int[] precomputedProbHits;
+  private transient int precomputedProbCalls;
+
   // for temporary storage of histories (so we don't have to copy histories
   // created by deriveHistories() to create transition objects)
   //private transient HashMap[] histories;
@@ -78,8 +88,19 @@ public class Model implements Serializable {
     counts = new CountsTrio[numLevels];
     for (int i = 0; i < counts.length; i++)
       counts[i] = new CountsTrio();
+    lambdaFudge = new double[numLevels];
+    for (int i = 0; i < lambdaFudge.length; i++)
+      lambdaFudge[i] = structure.lambdaFudge(i);
     if (useCache)
       setUpCaches();
+    if (precomputeProbs)
+      setUpPrecomputeProbStatTables();
+  }
+
+  private void setUpPrecomputeProbStatTables() {
+    precomputedProbHits = new int[numLevels];
+    for (int i = 0; i < numLevels; i++)
+      precomputedProbHits[i] = 0;
   }
 
   private void setUpCaches() {
@@ -159,6 +180,9 @@ public class Model implements Serializable {
     deriveDiversityCounts();
 
     deriveSpecialLevelDiversityCounts();
+
+    if (precomputeProbs)
+      precomputeProbs(trainerCounts, filter);
   }
 
   /**
@@ -219,7 +243,40 @@ public class Model implements Serializable {
         }
       }
     }
-    return Math.log(estimateProb(clientStructure, event));
+    return (precomputeProbs ?
+            estimateLogProbUsingPrecomputed(clientStructure, event) :
+            Math.log(estimateProb(clientStructure, event)));
+  }
+
+  /**
+   * Estimates the log prob using precomputed probabilities and lambdas.
+   */
+  protected double estimateLogProbUsingPrecomputed(ProbabilityStructure
+                                                     structure,
+                                                   TrainerEvent event) {
+    precomputedProbCalls++;
+    MapToPrimitive.Entry transEntry = null, lambdaEntry = null;
+    double logLambda = 0.0;
+    int lastLevel = numLevels - 1;
+    /*
+    Transition lastLevelTrans = structure.getTransition(event, lastLevel);
+    if (precomputedProbs[lastLevel].getEntry(lastLevelTrans) == null)
+      return Constants.logOfZero;
+    */
+    for (int level = 0; level < numLevels; level++) {
+      Transition transition = structure.getTransition(event, level);
+      transEntry = precomputedProbs[level].getEntry(transition);
+      if (transEntry != null) {
+        precomputedProbHits[level]++;
+        return logLambda + transEntry.getDoubleValue();
+      }
+      else if (level < lastLevel) {
+        Event history = transition.history();
+        lambdaEntry = precomputedLambdas[level].getEntry(history);
+        logLambda += lambdaEntry == null ? 0.0 : lambdaEntry.getDoubleValue();
+      }
+    }
+    return Constants.logOfZero;
   }
 
   protected double estimateProb(ProbabilityStructure probStructure,
@@ -240,7 +297,7 @@ public class Model implements Serializable {
 
     double[] lambdas = structure.lambdas;
     double[] estimates = structure.estimates;
-    structure.prevHistCount = 0;
+    //structure.prevHistCount = 0;
     for (int level = 0; level < numLevels; level++) {
       if (level == specialLevel)
 	estimateSpecialLevelProb(structure, event);
@@ -255,16 +312,16 @@ public class Model implements Serializable {
           System.err.print("getting prob for " + transition +
                            " at level " + level + ": ");
         }
-        double cacheProb = cache[level].getProb(transition);
+        MapToPrimitive.Entry cacheProbEntry = cache[level].getProb(transition);
         if (Debug.level >= 21) {
-          System.err.println(cacheProb);
+          System.err.println(cacheProbEntry);
         }
-        if (Double.isNaN(cacheProb) == false) {
+        if (cacheProbEntry != null) {
           if (Debug.level >= 21) {
             System.err.println("yea! " + structure.getClass().getName() +
                                "; level=" + level);
           }
-          estimates[level] = cacheProb;
+          estimates[level] = cacheProbEntry.getDoubleValue();
           cacheHits[level]++;
           highestCachedLevel = level;
           break;
@@ -284,7 +341,7 @@ public class Model implements Serializable {
                                histEntry.getIntValue(CountsTrio.diversity));
 
       double lambda, estimate; //, adjustment = 1.0;
-      double fudge = structure.lambdaFudge(level);
+      double fudge = lambdaFudge[level];
       if (historyCount == 0) {
 	lambda = 0;
 	estimate = 0;
@@ -521,6 +578,77 @@ public class Model implements Serializable {
 			 " in " + time + ".");
   }
 
+  protected void precomputeProbs(CountsTable trainerCounts, Filter filter) {
+    Time time = null;
+    if (verbose)
+      time = new Time();
+    precomputedProbs = new HashMapDouble[numLevels];
+    for (int i = 0; i < precomputedProbs.length; i++)
+      precomputedProbs[i] = new HashMapDouble();
+    precomputedLambdas = new HashMapDouble[numLevels - 1];
+    for (int i = 0; i < precomputedLambdas.length; i++)
+      precomputedLambdas[i] = new HashMapDouble();
+    Transition[] transitions = new Transition[numLevels];
+    Event[] histories = new Event[numLevels];
+    Iterator keys = trainerCounts.keySet().iterator();
+    while (keys.hasNext()) {
+      TrainerEvent event = (TrainerEvent)keys.next();
+      if (!filter.pass(event))
+	continue;
+      precomputeProbs(event, transitions, histories);
+    }
+    counts = null;
+    canonicalEvents = null;
+    if (verbose)
+      System.err.println("Precomputed probabilities and lambdas in " + time +
+                         ".");
+  }
+
+  protected void precomputeProbs(TrainerEvent event,
+                                 Transition[] transitions, Event[] histories) {
+    double[] lambdas = structure.lambdas;
+    double[] estimates = structure.estimates;
+    for (int level = 0; level < numLevels; level++) {
+      if (level == specialLevel)
+	precomputeSpecialLevelProb(event);
+
+      Transition transition = structure.getTransition(event, level);
+      Event history = transition.history();
+
+      CountsTrio trio = counts[level];
+      MapToPrimitive.Entry histEntry = trio.history().getEntry(history);
+      MapToPrimitive.Entry transEntry = trio.transition().getEntry(transition);
+
+      // the keys of the map entries are guaranteed to be canonical
+      histories[level] = (Event)histEntry.getKey();
+      transitions[level] = (Transition)transEntry.getKey();
+
+      double historyCount = histEntry.getIntValue(CountsTrio.hist);
+      double transitionCount = transEntry.getIntValue();
+      double diversityCount = histEntry.getIntValue(CountsTrio.diversity);
+
+      double fudge = lambdaFudge[level];
+      double lambda = historyCount / (historyCount + fudge * diversityCount);
+      double estimate = transitionCount / historyCount;
+      lambdas[level] = lambda;
+      estimates[level] = estimate;
+    }
+
+    double prob = 0.0;
+    int lastLevel = numLevels - 1;
+    for (int level = lastLevel; level >= 0; level--) {
+      double lambda = lambdas[level];
+      double estimate = estimates[level];
+      prob = lambda * estimate + ((1 - lambda) * prob);
+      precomputedProbs[level].put(transitions[level], Math.log(prob));
+      if (level < lastLevel)
+        precomputedLambdas[level].put(histories[level], Math.log(1 - lambda));
+    }
+  }
+
+  protected void precomputeSpecialLevelProb(TrainerEvent event) {
+  }
+
   /**
    * This method provides a hook for counting histories at the special level
    * of back-off, if one exists.
@@ -670,21 +798,40 @@ public class Model implements Serializable {
   private void readObject(ObjectInputStream in)
   throws IOException, ClassNotFoundException {
     in.defaultReadObject();
-    if (useCache)
+    if (useCache && !precomputeProbs)
       setUpCaches();
+    if (precomputeProbs)
+      setUpPrecomputeProbStatTables();
   }
 
   protected void finalize() throws Throwable {
     synchronized (Model.class) {
-      System.err.println("cache data for " + structure.getClass().getName() +
-                         ":");
-      for (int level = 0; level < cacheHits.length; level++) {
-        System.err.println("\tlevel " + level + ": " +
-                           cacheHits[level] + "/" + cacheAccesses[level] + "/" +
-                           ((float)cacheHits[level]/cacheAccesses[level]) +
-                           " (hits/accesses/hit rate)");
-        System.err.println("\t\t" + cache[level].getStats().
-                                    replace('\n', ' ').replace('\t', ' '));
+      if (precomputeProbs) {
+        System.err.println("precomputed prob data for " +
+                           structure.getClass().getName() + ":");
+        System.err.println("\ttotal No. of calls: " + precomputedProbCalls);
+        int total = 0;
+        int sum = 0;
+        for (int level = 0; level < precomputedProbHits.length; level++) {
+          int hitsThisLevel = precomputedProbHits[level];
+          total += hitsThisLevel;
+          if (level > 0)
+            sum += hitsThisLevel * level;
+          System.err.println("\tlevel " + level + ": " + hitsThisLevel);
+        }
+        System.err.println("\taverage hit level: " + ((float)sum/total));
+      }
+      else {
+        System.err.println("cache data for " + structure.getClass().getName() +
+                           ":");
+        for (int level = 0; level < cacheHits.length; level++) {
+          System.err.println("\tlevel " + level + ": " +
+                             cacheHits[level] + "/" + cacheAccesses[level] + "/" +
+                             ((float)cacheHits[level]/cacheAccesses[level]) +
+                             " (hits/accesses/hit rate)");
+          System.err.println("\t\t" + cache[level].getStats().
+                                      replace('\n', ' ').replace('\t', ' '));
+        }
       }
     }
   }

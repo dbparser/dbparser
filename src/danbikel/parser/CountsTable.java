@@ -63,11 +63,11 @@ public class CountsTable extends danbikel.util.HashMapDouble {
    * @param threshold the count threshold below which to remove items from
    * this table
    */
-  public void removeItemsBelow(int threshold) {
+  public void removeItemsBelow(double threshold) {
     Iterator it = entrySet().iterator();
     while (it.hasNext()) {
       MapToPrimitive.Entry entry = (MapToPrimitive.Entry)it.next();
-      if (entry.getIntValue() < threshold)
+      if (entry.getDoubleValue() < threshold)
         it.remove();
     }
   }

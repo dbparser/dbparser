@@ -155,6 +155,8 @@ public class Trainer implements Serializable {
   private Map posMap = new HashMap();
   private Map leftSubcatMap = new HashMap();
   private Map rightSubcatMap = new HashMap();
+  private Map leftModNonterminalMap = new HashMap();
+  private Map rightModNonterminalMap = new HashMap();
   // temporary map for canonicalizing subcat SexpList objects for
   // leftSubcatMap and rightSubcatMap data members
   transient private Map canonicalSubcatMap;
@@ -195,6 +197,11 @@ public class Trainer implements Serializable {
   Filter rightOnly = new Filter() {
       public boolean pass(Object obj) {
         return ((TrainerEvent)obj).side() == Constants.RIGHT;
+      }
+    };
+  Filter nonStop = new Filter() {
+      public boolean pass(Object obj) {
+        return ((ModifierEvent)obj).modifier() != stopSym;
       }
     };
 
@@ -618,9 +625,9 @@ public class Trainer implements Serializable {
 
     Iterator it = events.entrySet().iterator();
     while (it.hasNext()) {
-      HashMapInt.Entry entry = (HashMapInt.Entry)it.next();
+      MapToPrimitive.Entry entry = (MapToPrimitive.Entry)it.next();
       TrainerEvent event = (TrainerEvent)entry.getKey();
-      int count = entry.getIntValue();
+      int count = entry.getIntValue(0);
       boolean eventModified = alterLowFrequencyWords(tempEvents, event, count);
       if (eventModified) {
 	numModifiedEvents++;
@@ -870,7 +877,12 @@ public class Trainer implements Serializable {
       rightModWordModel.canonicalize(canonicalEventLists);
 
       deriveSubcatMaps(leftSubcatModel.getProbStructure(),
-		       rightSubcatModel.getProbStructure());
+		       rightSubcatModel.getProbStructure(),
+                       canonicalEventLists);
+
+      deriveModNonterminalMaps(leftModNonterminalModel.getProbStructure(),
+                               rightModNonterminalModel.getProbStructure(),
+                               canonicalEventLists);
 
       System.err.println("Canonical events HashMap stats: " +
                          canonicalEventLists.getStats());
@@ -896,6 +908,9 @@ public class Trainer implements Serializable {
       System.gc();
       System.err.println("done");
       */
+
+      if (leftModNonterminalMap == null)
+        System.err.println("aiiee!  it is null!");
       modelCollection.set(lexPriorModel,
 			  nonterminalPriorModel,
 			  topNonterminalModel,
@@ -914,6 +929,8 @@ public class Trainer implements Serializable {
 			  posMap,
 			  leftSubcatMap,
 			  rightSubcatMap,
+                          leftModNonterminalMap,
+                          rightModNonterminalMap,
                           Language.training.getPrunedPreterms(),
                           Language.training.getPrunedPunctuation(),
                           canonicalEventLists);
@@ -945,10 +962,11 @@ public class Trainer implements Serializable {
    * @param rightMS the right subcat model structure
    */
   private void deriveSubcatMaps(ProbabilityStructure leftMS,
-				ProbabilityStructure rightMS) {
+				ProbabilityStructure rightMS,
+                                FlexibleMap canonicalMap) {
     System.err.println("Deriving subcat maps.");
 
-    canonicalSubcatMap = new HashMap();
+    //canonicalSubcatMap = new HashMap();
 
     int leftMSLastLevel = leftMS.numLevels() - 1;
     int rightMSLastLevel = rightMS.numLevels() - 1;
@@ -961,43 +979,96 @@ public class Trainer implements Serializable {
         continue;
       Event leftContext =
 	leftMS.getHistory(headEvent, leftMSLastLevel).copy();
-      leftContext.canonicalize(canonicalSubcatMap);
+      leftContext.canonicalize(canonicalMap);
       Subcat canonicalLeftSubcat =
-	headEvent.leftSubcat().getCanonical(canonicalSubcatMap, false);
+	headEvent.leftSubcat().getCanonical(canonicalMap, false);
       addToValueSet(leftSubcatMap, leftContext, canonicalLeftSubcat);
 
       Event rightContext =
 	rightMS.getHistory(headEvent, rightMSLastLevel).copy();
-      rightContext.canonicalize(canonicalSubcatMap);
+      rightContext.canonicalize(canonicalMap);
       Subcat canonicalRightSubcat =
-	headEvent.rightSubcat().getCanonical(canonicalSubcatMap, false);
+	headEvent.rightSubcat().getCanonical(canonicalMap, false);
       addToValueSet(rightSubcatMap, rightContext, canonicalRightSubcat);
     }
 
     outputSubcatMaps();
 
-    canonicalSubcatMap = null; // it has served its purpose
+    //canonicalSubcatMap = null; // it has served its purpose
   }
 
-  // three utility methods to output subcat maps
+  /**
+   * Called by {@link #deriveCounts}.
+   *
+   * @param leftMS the left modifying nonterminal model structure
+   * @param rightMS the right modifying nonterminal model structure
+   */
+  private void deriveModNonterminalMaps(ProbabilityStructure leftMS,
+				        ProbabilityStructure rightMS,
+                                        FlexibleMap canonicalMap) {
+    System.err.println("Deriving modifying nonterminal maps.");
+
+    int leftMSLastLevel = leftMS.numLevels() - 1;
+    int rightMSLastLevel = rightMS.numLevels() - 1;
+
+    Filter filter = nonStop;
+    Iterator events = modifierEvents.keySet().iterator();
+    while (events.hasNext()) {
+      ModifierEvent modEvent = (ModifierEvent)events.next();
+      if (!filter.pass(modEvent))
+        continue;
+      if (modEvent.side() == Constants.LEFT) {
+        Event leftContext =
+  	  leftMS.getHistory(modEvent, leftMSLastLevel).copy();
+        leftContext.canonicalize(canonicalMap);
+        Event leftFuture =
+          leftMS.getFuture(modEvent, leftMSLastLevel).copy();
+        leftFuture.canonicalize(canonicalMap);
+        addToValueSet(leftModNonterminalMap, leftContext, leftFuture);
+      }
+      else {
+        Event rightContext =
+  	  rightMS.getHistory(modEvent, rightMSLastLevel).copy();
+        rightContext.canonicalize(canonicalMap);
+        Event rightFuture =
+          rightMS.getFuture(modEvent, rightMSLastLevel).copy();
+        rightFuture.canonicalize(canonicalMap);
+        addToValueSet(rightModNonterminalMap, rightContext, rightFuture);
+      }
+    }
+
+    outputModNonterminalMaps();
+  }
+
+  // four utility methods to output subcat and mod nonterminal maps
 
   /**
    * Outputs the subcat maps internal to this <code>Trainer</code> object
    * to <code>System.err</code>.
    */
   public void outputSubcatMaps() {
-    outputSubcatMaps(leftSubcatMap, rightSubcatMap);
+    outputMaps(leftSubcatMap, "left-subcat", rightSubcatMap, "right-subcat");
   }
 
-  /** Outputs both left and right subcat maps to <code>System.err</code>. */
-  public static void outputSubcatMaps(Map leftSubcatMap, Map rightSubcatMap) {
+  /**
+   * Outputs the modifier maps internal to this <code>Trainer</code> object
+   * to <code>System.err</code>.
+   */
+  public void outputModNonterminalMaps() {
+    outputMaps(leftModNonterminalMap, "left-mod",
+               rightModNonterminalMap, "right-mod");
+  }
+
+  /** Outputs both the specified maps to <code>System.err</code>. */
+  public static void outputMaps(Map leftMap, String leftMapName,
+                                Map rightMap, String rightMapName) {
     try {
       BufferedWriter systemErr =
 	new BufferedWriter(new OutputStreamWriter(System.err,
 						  Language.encoding()),
 			   Constants.defaultFileBufsize);
       try {
-	outputSubcatMaps(leftSubcatMap, rightSubcatMap, systemErr);
+	outputMaps(leftMap, leftMapName, rightMap, rightMapName, systemErr);
 	systemErr.flush();
       }
       catch (IOException ioe) {
@@ -1009,14 +1080,15 @@ public class Trainer implements Serializable {
     }
   }
 
-  /** Outputs both left and right subcat maps to the specified writer. */
-  public static void outputSubcatMaps(Map leftSubcatMap,
-                                      Map rightSubcatMap,
-                                      Writer writer) throws IOException {
-    SymbolicCollectionWriter.writeMap(leftSubcatMap,
-				      Symbol.add("left-subcat"), writer);
-    SymbolicCollectionWriter.writeMap(rightSubcatMap,
-				      Symbol.add("right-subcat"), writer);
+  /** Outputs both the specified maps to the specified writer. */
+  public static void outputMaps(Map leftMap, String leftMapName,
+                                Map rightMap, String rightMapName,
+                                Writer writer)
+  throws IOException {
+    SymbolicCollectionWriter.writeMap(leftMap,
+				      Symbol.add(leftMapName), writer);
+    SymbolicCollectionWriter.writeMap(rightMap,
+				      Symbol.add(rightMapName), writer);
   }
 
 
@@ -1034,7 +1106,7 @@ public class Trainer implements Serializable {
 
     Iterator it = headEvents.entrySet().iterator();
     while (it.hasNext()) {
-      HashMapInt.Entry entry = (HashMapInt.Entry)it.next();
+      MapToPrimitive.Entry entry = (MapToPrimitive.Entry)it.next();
       HeadEvent event = (HeadEvent)entry.getKey();
       int count = entry.getIntValue();
       if (isRealWord(event.headWord())) {
@@ -1045,7 +1117,7 @@ public class Trainer implements Serializable {
     }
     it = modifierEvents.entrySet().iterator();
     while (it.hasNext()) {
-      HashMapInt.Entry entry = (HashMapInt.Entry)it.next();
+      MapToPrimitive.Entry entry = (MapToPrimitive.Entry)it.next();
       ModifierEvent event = (ModifierEvent)entry.getKey();
       int count = entry.getIntValue();
       if (isRealWord(event.modHeadWord())) {

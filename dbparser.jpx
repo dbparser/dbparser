@@ -67,6 +67,29 @@
   <property category="sys" name="max.package.levels" value="6" />
   <property category="team" name="ignorePath.0" value="classes" />
   <property category="team" name="ignorePath.1" value="classes" />
+  <node type="Folder" name="Additional Settings">
+    <property category="sys" name="SettingsFolder" value="1" />
+    <file path="src/danbikel/switchboard/AbstractSwitchboardUser.java">
+      <property category="generated" name="JavaSoft.rmic.0" value="danbikel/switchboard/AbstractSwitchboardUser_Stub.java" />
+      <property category="idl" name="GenerateRMI" value="true" />
+      <property category="idl" name="OtherRMIOptions" value="-v1.2" />
+    </file>
+    <file path="src/danbikel/parser/DecoderServer.java">
+      <property category="generated" name="JavaSoft.rmic.0" value="danbikel/parser/DecoderServer_Stub.java" />
+      <property category="idl" name="GenerateRMI" value="true" />
+      <property category="idl" name="OtherRMIOptions" value="-v1.2" />
+    </file>
+    <file path="src/danbikel/parser/Parser.java">
+      <property category="generated" name="JavaSoft.rmic.0" value="danbikel/parser/Parser_Stub.java" />
+      <property category="idl" name="GenerateRMI" value="true" />
+      <property category="idl" name="OtherRMIOptions" value="-v1.2" />
+    </file>
+    <file path="src/danbikel/switchboard/Switchboard.java">
+      <property category="generated" name="JavaSoft.rmic.0" value="danbikel/switchboard/Switchboard_Stub.java" />
+      <property category="idl" name="GenerateRMI" value="true" />
+      <property category="idl" name="OtherRMIOptions" value="-v1.2" />
+    </file>
+  </node>
   <file path="dbparser.html" />
 </project>
 

@@ -89,50 +89,51 @@ public class Util {
   /**
    * Adds the nonterminals in the specified tree to the specified set.
    *
-   * @param set the set to which to add the nonterminals present in the
-   * specified tree
+   * @param counts the counts table to which to add the nonterminals present in
+   * the specified tree
    * @param tree the tree from which to collect nonterminals
    * @param includeTags indicates whether to treat part of speech tags
    * as nonterminals
-   * @return the specified set, modified to contain the nonterminals
-   * present in the specified tree
+   * @return the specified counts table, modified to contain the counts of the
+   * nonterminals present in the specified tree
    */
-  public static Set collectNonterminals(Set set, Sexp tree,
+  public static CountsTable collectNonterminals(CountsTable counts, Sexp tree,
 					boolean includeTags) {
-    return collectNonterminals(set, tree, includeTags, false);
+    return collectNonterminals(counts, tree, includeTags, false);
   }
 
   /**
    * Adds the part of speech tags in the specified tree to the specified set.
    *
-   * @param set the set to which to add the tags present in the specified tree
+   * @param counts the counts table to which to add the tags present in the
+   * specified tree
    * @param tree the tree from which to collect part of speech tags
-   * @return the specified set, modified to contain the part of speech tags
-   * present in the specified tree
+   * @return the specified counts table, modified to contain the counts of the
+   * part of speech tags present in the specified tree
    */
-  public static Set collectTags(Set set, Sexp tree) {
-    return collectNonterminals(set, tree, true, true);
+  public static CountsTable collectTags(CountsTable counts, Sexp tree) {
+    return collectNonterminals(counts, tree, true, true);
   }
 
-  private static Set collectNonterminals(Set set, Sexp tree,
-					boolean includeTags,
-					boolean onlyTags) {
+  private static CountsTable collectNonterminals(CountsTable counts, Sexp tree,
+                                                 boolean includeTags,
+                                                 boolean onlyTags) {
     if (Language.treebank().isPreterminal(tree)) {
       if (includeTags) {
 	Word word = Language.treebank().makeWord(tree);
-	set.add(word.tag());
+	counts.add(word.tag());
       }
     }
     else if (tree.isList()) {
       SexpList treeList = tree.list();
       int treeListLen = treeList.length();
       if (!onlyTags)
-	set.add(treeList.get(0));
+	counts.add(treeList.get(0));
       for (int i = 0; i < treeListLen; i++) {
-	collectNonterminals(set, treeList.get(i), includeTags, onlyTags);
+	collectNonterminals(counts, treeList.get(i), includeTags, onlyTags);
       }
     }
-    return set;
+    return counts;
   }
 
   /**

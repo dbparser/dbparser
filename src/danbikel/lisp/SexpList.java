@@ -258,7 +258,7 @@ public class SexpList extends Sexp implements Externalizable {
       return false;
     ensureCapacity(this.size + elementsToAdd.size);
     System.arraycopy(items, index, items, index + elementsToAdd.size,
-                     size - index);
+		     size - index);
     System.arraycopy(elementsToAdd.items, 0, items, index, elementsToAdd.size);
     size += elementsToAdd.size;
     return true;
@@ -321,10 +321,10 @@ public class SexpList extends Sexp implements Externalizable {
     if (items.length < minCapacity) {
       int newCapacity = size * 2;
       if (newCapacity < minCapacity)
-        newCapacity = minCapacity;
+	newCapacity = minCapacity;
       Sexp[] newItems = new Sexp[newCapacity];
       if (size > 0)
-        System.arraycopy(items, 0, newItems, 0, size);
+	System.arraycopy(items, 0, newItems, 0, size);
       items = newItems;
     }
   }
@@ -402,7 +402,7 @@ public class SexpList extends Sexp implements Externalizable {
   public int indexOf(Sexp toFind) {
     for (int i = 0; i < size; i++) {
       if (items[i].equals(toFind))
-        return i;
+	return i;
     }
     return -1;
   }
@@ -523,9 +523,9 @@ public class SexpList extends Sexp implements Externalizable {
     SexpList listCopy = new SexpList(size);
     for (int i = 0; i < size; i++) {
       if (items[i].isList())
-        listCopy.items[i] = items[i].deepCopy();
+	listCopy.items[i] = items[i].deepCopy();
       else
-        listCopy.items[i] = items[i];
+	listCopy.items[i] = items[i];
     }
     listCopy.size = size;
     return listCopy;
@@ -572,8 +572,8 @@ public class SexpList extends Sexp implements Externalizable {
       return false;
     for (int i = 0; i < size; i++)
       if (items[i] != otherList.items[i] &&
-          items[i].equals(otherList.items[i]) == false)
-        return false;
+	  items[i].equals(otherList.items[i]) == false)
+	return false;
     return true;
   }
 
@@ -585,11 +585,11 @@ public class SexpList extends Sexp implements Externalizable {
     int code = 0;
     if (size < 10) {
       for (int i = 0; i < size; i++)
-        code = (code << 2) ^ items[i].hashCode();
+	code = (code << 2) ^ items[i].hashCode();
     }
     else {
       for (int i = 0; i < size; i++)
-        code = 31*code + items[i].hashCode();
+	code = 31*code + items[i].hashCode();
     }
     return code;
   }
@@ -631,13 +631,16 @@ public class SexpList extends Sexp implements Externalizable {
       int currIdx = 0;
       public boolean hasNext() { return currIdx < size; }
       public Object next() {
-        if (currIdx < size)
-          return items[++currIdx];
-        else
-          throw new NoSuchElementException();
+	if (currIdx < size) {
+	  Sexp nextItem = items[currIdx];
+	  currIdx++;
+	  return nextItem;
+	}
+	else
+	  throw new NoSuchElementException();
       }
       public void remove() {
-        throw new UnsupportedOperationException();
+	throw new UnsupportedOperationException();
       }
     };
   }

@@ -171,6 +171,11 @@ public class EMItem extends CKYItem.MappedPrevModBaseNPAware {
   public int unaryLevel() { return unaryLevel; }
   public void setUnaryLevel(int unaryLevel) { this.unaryLevel = unaryLevel; }
 
+  public Item clear() {
+    antecedentPairs = null;
+    return this;
+  }
+
   public boolean equals(Object obj) {
     return super.equals(obj) && unaryLevel == ((EMItem)obj).unaryLevel();
   }

@@ -106,7 +106,10 @@ set jarFile = $parent/dbparser.jar
 
 # prepend parent of this script's directory to a shell variable version
 # of CLASSPATH, so we use jar file of this particular sandbox
-set classpath = $jarFile\:$CLASSPATH
+set classpath = $jarFile
+if ($?CLASSPATH) then
+    set classpath = $jarFile\:$CLASSPATH
+endif
 
 # the all-important output directory for this experiment
 set outputDir = ~/experiments/$date/$time

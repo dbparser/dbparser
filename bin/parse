@@ -24,7 +24,10 @@ set minHeap = $maxHeap
 set settingsFile = $2
 set settings = "-Dparser.settingsFile=$settingsFile"
 set jarFile = $parent/dbparser.jar
-set classpath = $jarFile\:$CLASSPATH
+set classpath = $jarFile
+if ($?CLASSPATH) then
+    set classpath = $jarFile\:$CLASSPATH
+endif
 set derivedDataFile = $3
 set inFile = $4
 

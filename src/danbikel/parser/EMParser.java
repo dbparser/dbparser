@@ -65,18 +65,18 @@ public class EMParser extends Parser {
   public CountsTable parseAndCollectEventCounts(SexpList sent)
     throws RemoteException {
     EMDecoder emdecoder = (EMDecoder)decoder;
-    if (sentContainsWordsAndTags(sent))
+    if (Language.training.isValidTree(sent) ||
+             Language.training.isValidTree(sent.get(0))) {
+      sent = preProcess(sent);
+      return emdecoder.parseAndCollectEventCounts(getWordsFromTree(sent),
+                                                  getTagListsFromTree(sent),
+                                                  getConstraintsFromTree(sent));
+    }
+    else if (sentContainsWordsAndTags(sent))
       return emdecoder.parseAndCollectEventCounts(getWords(sent),
 						  getTagLists(sent));
     else if (sent.isAllSymbols())
       return emdecoder.parseAndCollectEventCounts(sent);
-    else if (Language.training.isValidTree(sent) ||
-	     Language.training.isValidTree(sent.get(0))) {
-      sent = preProcess(sent);
-      return emdecoder.parseAndCollectEventCounts(getWordsFromTree(sent),
-						  getTagListsFromTree(sent),
-						  getConstraintsFromTree(sent));
-    }
     else {
       System.err.println(className + ": error: sentence \"" + sent +
 			 "\" has a bad format:\n\tmust either be all symbols " +

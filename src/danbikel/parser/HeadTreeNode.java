@@ -21,6 +21,9 @@ public class HeadTreeNode implements Serializable, SexpConvertible {
   // constants
   private final static String className = HeadTreeNode.class.getName();
 
+  private final static boolean baseNPsCannotContainVerbs =
+  Boolean.valueOf(Settings.get(Settings.baseNPsCannotContainVerbs)).booleanValue();
+
   // data members
 
   /** The nonterminal label of this node. */
@@ -120,8 +123,11 @@ public class HeadTreeNode implements Serializable, SexpConvertible {
 	containsVerb |= postMod.containsVerb;
       }
 
-      if (label == treebank.baseNPLabel())
-	containsVerb = false;
+      if (baseNPsCannotContainVerbs) {
+	if (label == treebank.baseNPLabel()) {
+	  containsVerb = false;
+	}
+      }
 
       rightIdx = wordCounter.get();
 
@@ -169,7 +175,7 @@ public class HeadTreeNode implements Serializable, SexpConvertible {
 
   public Sexp toSexp() {
     if (isPreterminal()) {
-      return headWord().toSexp();
+      return Language.treebank.constructPreterminal(headWord());
     }
     else {
       SexpList list = new SexpList(preMods.size() + postMods.size() + 2);
@@ -178,16 +184,16 @@ public class HeadTreeNode implements Serializable, SexpConvertible {
       // then, add premodifiers in reverse
       ListIterator it = preMods.listIterator(preMods.size());
       while (it.hasPrevious()) {
-        HeadTreeNode node = (HeadTreeNode)it.previous();
-        list.add(node.toSexp());
+	HeadTreeNode node = (HeadTreeNode)it.previous();
+	list.add(node.toSexp());
       }
       // next, add head child subtree
       list.add(headChild.toSexp());
       // finally, add postmodifiers in order
       it = postMods.listIterator();
       while (it.hasNext()) {
-        HeadTreeNode node = (HeadTreeNode)it.next();
-        list.add(node.toSexp());
+	HeadTreeNode node = (HeadTreeNode)it.next();
+	list.add(node.toSexp());
       }
       return list;
     }

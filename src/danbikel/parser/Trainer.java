@@ -2063,7 +2063,7 @@ public class Trainer implements Serializable {
     Settings.storeSorted(props, os, " " + Settings.progName + " v" +
 			 Settings.version);
     ps.println("------------------------------");
-    ps.println("Settings diferent during training than now");
+    ps.println("Settings different during training than now");
     ps.println("------------------------------");
     Iterator propIt = props.entrySet().iterator();
     while (propIt.hasNext()) {

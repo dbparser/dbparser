@@ -15,6 +15,7 @@ import java.io.Serializable;
 public abstract class Chart implements Serializable {
   // debugging constants
   private final static boolean debug = false;
+  private final static boolean debugPrune = true;
   private final static boolean debugAddToChart = false;
   private final static boolean debugPoolUsage = true;
   private final static boolean debugNumItemsGenerated = true;
@@ -61,6 +62,8 @@ public abstract class Chart implements Serializable {
   protected int totalItems = 0;
   protected transient ObjectPool itemPool;
   protected int totalItemsGenerated = 0;
+  protected int numPruned = 0;
+  protected int numPrePruned = 0;
 
   /**
    * Constructs a new chart with the default chart size.  This instructor
@@ -132,6 +135,9 @@ public abstract class Chart implements Serializable {
     if (debugNumItemsGenerated) {
       totalItemsGenerated = 0;
     }
+    if (debugPrune) {
+      numPrePruned = numPruned = 0;
+    }
     for (int i = 0; i < size; i++)
       for (int j = i; j < size; j++)
 	if (chart[i][j] == null)
@@ -154,12 +160,13 @@ public abstract class Chart implements Serializable {
    */
   protected boolean toPrune(int start, int end, Item item) {
     double topProb = chart[start][end].topLogProb;
-    if (debug) {
+    if (debugPrune) {
       System.err.println(className +
                          ": pruning away item: " + item + " because " +
                          "its prob " + item.logProb() +
                          " is less than " + topProb + " - " + pruneFact +
                          " = " + (topProb - pruneFact));
+      numPrePruned++;
     }
     return item.logProb() < (topProb - pruneFact);
   }
@@ -175,10 +182,11 @@ public abstract class Chart implements Serializable {
       while (it.hasNext()) {
 	CKYItem currItem = (CKYItem)it.next();
 	if (currItem.logProb() < lowestProbAllowed) {
-	  if (debug) {
+	  if (debugPrune) {
 	    System.err.println(className + ": pruning away item: " + currItem +
 			       " because its prob is less than " +
 			       lowestProbAllowed);
+            numPruned++;
 	  }
 	  totalItems--;
 	  it.remove();
@@ -292,11 +300,6 @@ public abstract class Chart implements Serializable {
           }
         }
       }
-      // WE NO LONGER PRUNE AS WE GO
-      /*
-      if (added)
-       added = !prune(start, end, items, item);
-      */
     }
     else {
       // item's logProb already below threshold, so *caller* should reclaim the
@@ -337,8 +340,24 @@ public abstract class Chart implements Serializable {
     itemPool.putBack(item);
   }
 
+  /**
+   * Called by <code>Decoder.parse</code> after parsing has finished for a
+   * particular sentence.  This default implementation simply calls
+   * {@link #reclaimItemsInChart}.
+   */
+  public void postParseCleanup() {
+    reclaimItemsInChart();
+  }
+
   protected void reclaimItemsInChart() {
     int numCells = 0, maxCellSize = 0;
+    if (debugPrune) {
+      System.err.println(className +
+                         ": number of items pre-pruned: " + numPrePruned);
+      System.err.println(className + ": number of items pruned: " + numPruned);
+      System.err.println(className + ": total number of pruned items: " +
+                         (numPrePruned + numPruned));
+    }
     if (debugCellSize) {
       System.err.println(className +
                          ": total No. of items in chart: " + totalItems);

@@ -15,7 +15,8 @@ import java.io.Serializable;
 public abstract class Chart implements Serializable {
   // debugging constants
   private final static boolean debug = false;
-  private final static boolean debugPrune = true;
+  private final static boolean debugPrune = false;
+  private final static boolean debugNumPrunedItems = true;
   private final static boolean debugAddToChart = false;
   private final static boolean debugPoolUsage = true;
   private final static boolean debugNumItemsGenerated = true;
@@ -135,7 +136,7 @@ public abstract class Chart implements Serializable {
     if (debugNumItemsGenerated) {
       totalItemsGenerated = 0;
     }
-    if (debugPrune) {
+    if (debugNumPrunedItems) {
       numPrePruned = numPruned = 0;
     }
     for (int i = 0; i < size; i++)
@@ -166,6 +167,8 @@ public abstract class Chart implements Serializable {
                          "its prob " + item.logProb() +
                          " is less than " + topProb + " - " + pruneFact +
                          " = " + (topProb - pruneFact));
+    }
+    if (debugNumPrunedItems) {
       numPrePruned++;
     }
     return item.logProb() < (topProb - pruneFact);
@@ -186,6 +189,8 @@ public abstract class Chart implements Serializable {
 	    System.err.println(className + ": pruning away item: " + currItem +
 			       " because its prob is less than " +
 			       lowestProbAllowed);
+	  }
+          if (debugNumPrunedItems) {
             numPruned++;
 	  }
 	  totalItems--;
@@ -351,7 +356,7 @@ public abstract class Chart implements Serializable {
 
   protected void reclaimItemsInChart() {
     int numCells = 0, maxCellSize = 0;
-    if (debugPrune) {
+    if (debugNumPrunedItems) {
       System.err.println(className +
                          ": number of items pre-pruned: " + numPrePruned);
       System.err.println(className + ": number of items pruned: " + numPruned);

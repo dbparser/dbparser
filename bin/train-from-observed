@@ -29,7 +29,11 @@ if ($?CLASSPATH) then
     set classpath = $jarFile\:$CLASSPATH
 endif
 set oFile = $3
-set odFile = $oFile:r.obj.gz
+if ($oFile:e == "gz") then
+    set odFile = $oFile:r:r.obj.gz
+else
+    set odFile = $oFile:r.obj.gz
+endif
 
 set command = ($java -Xms$minHeap\m -Xmx$maxHeap\m -cp $classpath $settings \
 	       $class -it -l $oFile -od $odFile)

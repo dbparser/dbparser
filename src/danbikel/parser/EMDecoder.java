@@ -441,7 +441,7 @@ public class EMDecoder extends Decoder {
     while (items.hasNext()) {
       EMItem item = (EMItem)items.next();
       // foreach antecedent singleton/pair
-      //   foreach event that produced the current item (consequent)
+      //   foreach event that yielded the current item (consequent)
       //      expected count of event =
       //        sentenceProbInverse *
       //        eventProb * ante1.insideProb() * ante2.insideProb() *
@@ -472,19 +472,20 @@ public class EMDecoder extends Decoder {
 	    System.err.println("(" + name + " " + event[i] + " " +
 			       expectedCount + ")");
 	    */
-	    if (event[i].parent() == topSym) {
-	      // create "fake" ModifierEvent with same count
-	      HeadEvent topHead = (HeadEvent)event[i];
-	      ModifierEvent topMod =
-		new ModifierEvent(topHead.headWord(), topHead.headWord(),
-				  topHead.head(), startList, startWordList,
-				  topSym, topHead.head(), emptySubcat,
-				  false, false);
-	      counts.add(topMod, expectedCount);
-	    }
+	    if (event[i].parent() == topSym)
+	      addSynthesizedTopModEvent(event[i], expectedCount, counts);
+
+            if (ante1.isPreterminal())
+	      addPretermHeadEvent(ante1, expectedCount, counts);
+	    if (ante2 != null && ante2.isPreterminal())
+	      addPretermHeadEvent(ante2, expectedCount, counts);
+
+	    if (ante1.isPreterminal() && ante2 != null && ante2.isPreterminal())
+	      System.err.println("WARNING: two preterminal antecedents");
 
 	    if (Double.isInfinite(expectedCount)) {
-	      System.err.println("WARNING: adding infinite count for " + event[i] + " of item " + item);
+	      System.err.println("WARNING: adding infinite count for " +
+				 event[i] + " of item " + item);
 	    }
 
 	    counts.add(event[i], expectedCount);
@@ -492,6 +493,56 @@ public class EMDecoder extends Decoder {
 	}
       }
     }
+  }
+
+  /**
+   * Adds an event as though a tree's non-hidden root is a modifier of
+   * <tt>+TOP+</tt> (in addition to being a head child).  Without these
+   * &ldquo;fake&rdquo; events, the last level of the modifier-word model (such
+   * as {@link ModWordModelStructure2}) would not contain counts for words that
+   * are the head of the entire sentence (since they are not generated as
+   * modifiers of anything). This enables the (now deprecated) count-sharing
+   * scheme to work, whereby the last back-off level of {@link
+   * TopLexModelStructure1} would use the <i>p</i>(<i>w</i>|<i>t</i>) counts
+   * from the last level of {@link ModWordModelStructure2}.
+   *
+   * @param event the {@link HeadEvent} instance for an observed tree root,
+   * from which a {@link ModifierEvent} is to be produced
+   * @param expectedCount the expected count of the specified head-generation
+   * event
+   *
+   * @see Settings#trainerShareCounts
+   */
+  protected void addSynthesizedTopModEvent(TrainerEvent event,
+					   double expectedCount,
+					   CountsTable counts) {
+    HeadEvent topHead = (HeadEvent)event;
+    ModifierEvent topMod =
+      new ModifierEvent(topHead.headWord(), topHead.headWord(),
+			topHead.head(), startList, startWordList,
+			topSym, topHead.head(), emptySubcat,
+			false, false);
+    counts.add(topMod, expectedCount);
+  }
+
+  /**
+   * Whenever a preterminal is generated, either as a head child or a modifier
+   * of some other item, a trivial head-generation event is added, generating
+   * the word from the lexicalized preterminal, which by design always
+   * generates its head word with probability 1.  These extra events allow
+   * the trainer to gather counts for all lexicalized nonterminals using
+   * only the head-generation event counts table, thereby eliminating the
+   * somewhat risky scheme of &ldquo;count sharing&rdquo;.
+   *
+   * @see Settings#trainerShareCounts
+   */
+  protected void addPretermHeadEvent(EMItem item, double expectedCount,
+				     CountsTable counts) {
+    Word headWord = item.headWord();
+    HeadEvent pretermHeadEvent =
+      new HeadEvent(headWord, (Symbol)item.label(), headWord.word(),
+		    emptySubcat, emptySubcat);
+    counts.add(pretermHeadEvent, expectedCount);
   }
 
   protected void addTopUnaries(int end) throws RemoteException {

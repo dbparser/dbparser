@@ -168,6 +168,7 @@ public abstract class Chart implements Serializable {
    * Constructs a new chart with the specified initial chart size, cell limit
    * and prune factor.
    *
+   * @param size the initial size of this chart
    * @param cellLimit the limit to the number of items per cell
    * @param pruneFact that log of the prune factor
    *
@@ -229,6 +230,20 @@ public abstract class Chart implements Serializable {
   }
 
   /**
+   * Returns whether the specified chart item is outside the beam given
+   * the specified top log prob.
+   *
+   * @param item the item to be tested for inclusion within the beam
+   * @param topProb the log prob of the top-ranked item for the specified
+   * item's span
+   * @return <tt>true</tt> if the specified item is outisde the beam
+   * given the specified top log prob, <tt>false</tt> otherwise
+   */
+  protected boolean outsideBeam(Item item, double topProb) {
+    return item.logProb() < (topProb - pruneFact);
+  }
+
+  /**
    * Returns <code>true</code> if the specified chart item should not
    * be added to the specified set of items because its probability is not
    * within {@link #pruneFact} of the highest-ranked item. This method is
@@ -239,6 +254,8 @@ public abstract class Chart implements Serializable {
    * @param start the start of the span for the specified item
    * @param end the end of the span for the specified item
    * @param item the item being added to <code>items</code>
+   * @return <code>true</code> if the specified chart item should not
+   * be added to the set of items covering the specified span
    */
   protected boolean toPrune(int start, int end, Item item) {
     if (!pruning)
@@ -246,8 +263,10 @@ public abstract class Chart implements Serializable {
 
     double topProb = chart[start][end].topLogProb;
 
+    boolean belowThreshold = outsideBeam(item, topProb);
+
     if (debugPrune || debugNumPrunedItems) {
-      boolean belowThreshold = item.logProb() < (topProb - pruneFact);
+      //boolean belowThreshold = item.logProb() < (topProb - pruneFact);
       if (debugPrune){
         if (belowThreshold)
           System.err.println(className +
@@ -262,7 +281,7 @@ public abstract class Chart implements Serializable {
       }
     }
 
-    return item.logProb() < (topProb - pruneFact);
+    return belowThreshold;
   }
 
   /**
@@ -287,8 +306,9 @@ public abstract class Chart implements Serializable {
       double lowestProbAllowed = topProb - pruneFact;
       Iterator it = items.keySet().iterator();
       while (it.hasNext()) {
-	CKYItem currItem = (CKYItem)it.next();
-	if (currItem.logProb() < lowestProbAllowed) {
+	Item currItem = (Item)it.next();
+	//if (currItem.logProb() < lowestProbAllowed) {
+	if (outsideBeam(currItem, topProb)) {
 	  if (debugPrune) {
 	    System.err.println(className + ": pruning away item: " + currItem +
 			       " because its prob is less than " +
@@ -361,6 +381,7 @@ public abstract class Chart implements Serializable {
    * item.
    *
    * @param item the item to be tested
+   * @return whether cell limiting should apply to the specified item
    */
   abstract protected boolean cellLimitShouldApplyTo(Item item);
 
@@ -420,13 +441,14 @@ public abstract class Chart implements Serializable {
       boolean itemExists = itemEntry != null;
       double oldItemProb =
         itemExists ? itemEntry.getDoubleValue() : Constants.logOfZero;
+      Item oldItem = null;
       if (!itemExists ||
           (itemExists && itemEntry.getDoubleValue() < item.logProb())) {
         boolean removedOldItem = false;
         if (itemExists) {
           // replace the key with the new item and set the new item's map
           // value to be its logProb
-          Item oldItem = (Item)itemEntry.getKey();
+          oldItem = (Item)itemEntry.getKey();
           boolean replaced = itemEntry.replaceKey(item);
           if (replaced) {
             itemEntry.set(0, item.logProb());
@@ -469,6 +491,10 @@ public abstract class Chart implements Serializable {
                                "item exists with lower prob; existing item " +
                                "prob=" + oldItemProb +
                                "; item to add prob=" + item.logProb());
+            System.err.println("\titem that was added(" +
+                               start + "," + end + "): " + item);
+	    System.err.println("\tequivalent lower prob item(" +
+			       start + "," + end +"): " + oldItem);
           }
           else if (itemProb == item.logProb()) {
             System.err.println(className + ": not adding item because " +
@@ -476,6 +502,8 @@ public abstract class Chart implements Serializable {
                                "equal prob; prob=" + itemProb);
             System.err.println("\titem that was to be added(" +
                                start + "," + end + "): " + item);
+	    System.err.println("\tequivalent equal-prob item(" +
+			       start + "," + end +"): " + itemEntry.getKey());
             if (added)
               System.err.println("bad: we set added to true when we didn't add");
           }
@@ -486,9 +514,11 @@ public abstract class Chart implements Serializable {
                                "; item to add prob=" + item.logProb());
             System.err.println("\titem that was to be added(" +
                                start + "," + end + "): " + item);
+	    System.err.println("\tequivalent higher-prob item(" +
+			       start + "," + end +"): " + itemEntry.getKey());
             if (added)
               System.err.println("bad: we set added to true when we didn't add");
-          }
+	  }
         }
       }
     }
@@ -508,6 +538,10 @@ public abstract class Chart implements Serializable {
 
   /**
    * Returns the highest log probability of an item covering the specified span.
+   *
+   * @param start the start of the span for which to get the top log prob
+   * @param end the end of the span for which to get the top log prob
+   * @return the top log prob for the specified span
    */
   public double getTopLogProb(int start, int end) {
     return chart[start][end].topLogProb;
@@ -516,6 +550,10 @@ public abstract class Chart implements Serializable {
   /**
    * Returns the item with the highest log probability covering the specified
    * span, or <code>null</code> if this span has no items.
+   *
+   * @param start the start of the span for which to get the top-ranked item
+   * @param end the end of the span for which to get the top-ranked item
+   * @return the top-ranked item for the specified span
    */
   public Item getTopItem(int start, int end) {
     return chart[start][end].topItem;
@@ -564,6 +602,8 @@ public abstract class Chart implements Serializable {
   /**
    * Reclaims this chart item.  This method returns the specified item
    * to the object pool of available items.
+   *
+   * @param item the item to be reclaimed
    */
   protected void reclaimItem(Item item) {
     itemPool.putBack(item);
@@ -672,6 +712,8 @@ public abstract class Chart implements Serializable {
   /**
    * A hook called by {@link #reclaimItemsInChart()} to allow subclasses
    * to reclaim each span's collection of chart items.
+   *
+   * @param c the collection of chart items to be reclaimed
    */
   protected abstract void reclaimItemCollection(Collection c);
 

@@ -52,7 +52,7 @@
 (sem-tag-arg-stop-list (ADV))
 
 ;;; a list of nodes to be pruned from training data parse trees
-(prune-nodes (`` '' .))
+(prune-words (¡£ £¡ £¿ ¡° ¡± ¡® ¡¯ £¼ £¾ ¡¶ ¡· ¡¸ ¡¹ ¡º ¡» £¢))
 
 ;;; THE FOLLOWING DATA IS CURRENTLY NOT USED BY danbikel.parser.english.Training
 

@@ -9,19 +9,19 @@ public class NonterminalPriorModelStructure1 extends ProbabilityStructure {
   public int numLevels() { return 2; }
 
   public Event getHistory(TrainerEvent trainerEvent, int backOffLevel) {
-    HeadEvent headEvent = (HeadEvent)trainerEvent;
+    PriorEvent priorEvent = (PriorEvent)trainerEvent;
 
     MutableEvent history = histories[backOffLevel];
     history.clear();
     switch (backOffLevel) {
     case 0:
       // for p(label | w,t)
-      history.add(headEvent.headWord().word());
-      history.add(headEvent.headWord().tag());
+      history.add(priorEvent.headWord().word());
+      history.add(priorEvent.headWord().tag());
       break;
     case 1:
       // for p(label | t)
-      history.add(headEvent.headWord().tag());
+      history.add(priorEvent.headWord().tag());
       break;
     }
     return history;
@@ -29,7 +29,7 @@ public class NonterminalPriorModelStructure1 extends ProbabilityStructure {
   public Event getFuture(TrainerEvent trainerEvent, int backOffLevel) {
     MutableEvent future = futures[backOffLevel];
     future.clear();
-    future.add(((HeadEvent)trainerEvent).head());
+    future.add(((PriorEvent)trainerEvent).label());
     return future;
   }
 

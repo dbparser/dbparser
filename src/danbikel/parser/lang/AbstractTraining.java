@@ -56,8 +56,10 @@ public abstract class AbstractTraining implements Training, Serializable {
   private static danbikel.util.HashMap fastArgMap = new danbikel.util.HashMap();
   private static boolean canUseFastArgMap = false;
 
-  // static set for storing arg nonterminals
-  private static Set argNonterminals = null;
+  /**
+   * Static set for storing argument nonterminals.
+   */
+  protected static Set argNonterminals = null;
 
   public void setUpFastArgMap(CountsTable nonterminals) {
     staticSetUpFastArgMap(nonterminals);
@@ -126,7 +128,6 @@ public abstract class AbstractTraining implements Training, Serializable {
    */
   protected int delimAndGapStrLen = delimAndGapStr.length();
 
-
   /**
    * The symbol that will be used to identify argument nonterminals.  This
    * method is used by {@link #stripAugmentations(Sexp)}, so that argument
@@ -136,22 +137,21 @@ public abstract class AbstractTraining implements Training, Serializable {
    * with an augmentation already used in a particular Treebank, this value
    * should be reassigned in the constructor of a subclass.
    */
-  protected Symbol argAugmentation = Symbol.add("A");
+  protected Symbol defaultArgAugmentation = Symbol.add("A");
 
   /**
-   * The string composed of the canonical augmentation delimiter prepended
-   * to the argument augmentation, for efficient lookup of whether or not
-   * a nonterminal label contains an argument augmentation.
+   * A list representing the set of all argument augmentations.  By default,
+   * this data member will be initialized to a new list containing only the
+   * {@linkplain #defaultArgAugmentation default argument augmentation}.
+   * Subclasses should add additional augmentations to this list in their
+   * constructors, or by invoking the {@link #createArgAugmentationsList}
+   * method after filling in the {@link #argContexts} map.
    *
-   * @see #isArgumentFast(Symbol)
+   * @see #argContexts
+   * @see #createArgAugmentationsList()
    */
-  protected String canonicalDelimPlusArgAug;
-
-  /**
-   * The length of {@link #canonicalDelimPlusArgAug}, cached here for
-   * efficiency and convenience.
-   */
-  protected int canonicalDelimPlusArgAugLen;
+  protected SexpList argAugmentations =
+    new SexpList().add(defaultArgAugmentation);
 
   /**
    * The symbol that gets assigned as the part of speech for null
@@ -211,8 +211,14 @@ public abstract class AbstractTraining implements Training, Serializable {
    * values of this map should be added in the constructor of a subclass.
    * The keys of this map must be of type {@link Symbol}, and the values of
    * this map must be of type {@link SexpList}.
+   * <p>
+   * Optionally, after this data member has been filled in by the constructor
+   * of a subclass, the method {@link #createArgAugmentationsList()} should
+   * be invoked to automatically fill in the {@link #argAugmentations} list.
    *
    * @see #identifyArguments(Sexp)
+   * @see #argAugmentations
+   * @see #createArgAugmentationsList()
    */
   protected Map argContexts;
   /**
@@ -287,8 +293,18 @@ public abstract class AbstractTraining implements Training, Serializable {
   // data member used by hasGap
   private ArrayList hasGapIndexStack = new ArrayList();
 
-  // data member used by isArgumentFast
-  //private Map isArgMap = Collections.synchronizedMap(new HashMap());
+  /**
+   * A synchronized map from nonterminals to their non-argument versions, used
+   * byte {@link #isArgumentFast(Symbol)} (unless {@link
+   * #setUpFastArgMap(CountsTable)} has been invoked).
+   */
+  private Map fastArgCache = Collections.synchronizedMap(new HashMap());
+
+  /**
+   * A synchronized map from nonterminals to their canonical-argument versions,
+   * used byte {@link #getCanonicalArg(Symbol)}.
+   */
+  private Map canonicalArgCache = Collections.synchronizedMap(new HashMap());
 
   /**
    * Default constructor for this abstract base class; sets {@link
@@ -303,9 +319,6 @@ public abstract class AbstractTraining implements Training, Serializable {
     nodesToPrune = new HashSet();
     canonicalAugDelimSym =
       Symbol.add(new String(new char[] {treebank.canonicalAugDelimiter()}));
-    canonicalDelimPlusArgAug =
-      canonicalAugDelimSym.toString() + argAugmentation.toString();
-    canonicalDelimPlusArgAugLen = canonicalDelimPlusArgAug.length();
   }
 
   /**
@@ -681,7 +694,7 @@ public abstract class AbstractTraining implements Training, Serializable {
 	  if (foundArg) {
 	    Nonterminal parsedChild =
 	      treebank.parseNonterminal(child, nonterminal);
-	    treebank.addAugmentation(parsedChild, argAugmentation);
+            addArgAugmentation(child, parsedChild);
 	    treeList.setChildLabel(argIdx, parsedChild.toSymbol());
 	  }
 	}
@@ -714,7 +727,7 @@ public abstract class AbstractTraining implements Training, Serializable {
 		  }
 		}
 		if (isArg) {
-		  treebank.addAugmentation(parsedChild, argAugmentation);
+                  addArgAugmentation(child, parsedChild);
 		  treeList.setChildLabel(childIdx, parsedChild.toSymbol());
 		}
 	      }
@@ -772,7 +785,7 @@ public abstract class AbstractTraining implements Training, Serializable {
 	    System.out.println(childIdx + "th child (" + parsedChild + ") of " + treeList +
 			       " is a head AND an arg!");
 	  */
-	  treebank.addAugmentation(parsedChild, argAugmentation);
+          addArgAugmentation(child, parsedChild);
 	  treeList.setChildLabel(childIdx, parsedChild.toSymbol());
 	}
       }
@@ -780,49 +793,93 @@ public abstract class AbstractTraining implements Training, Serializable {
   }
 
   /**
+   * Adds the default argument augmentation to the specified nonterminal
+   * if the specified label is not already an argument.
+   *
+   * @param label the label that has been parsed into the specified
+   * {@link Nonterminal} object
+   * @param nonterminal the parsed version of the specified label
+   * @return <tt>true</tt> if the specified {@link Nonterminal} object
+   * was modified, <tt>false</tt> otherwise
+   */
+  protected boolean addArgAugmentation(Symbol label, Nonterminal nonterminal) {
+    if (!isArgument(label, nonterminal, false)) {
+      treebank.addAugmentation(nonterminal, defaultArgAugmentation);
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * The symbol that is used to mark argument (required) nonterminals by
    * {@link #identifyArguments(Sexp)}.
    */
-  public Symbol argAugmentation() { return argAugmentation; }
+  public Symbol defaultArgAugmentation() { return defaultArgAugmentation; }
+
+  public Symbol getCanonicalArg(Symbol label) {
+    Symbol canonicalArgLabel = (Symbol)canonicalArgCache.get(label);
+    if (canonicalArgLabel == null) {
+      canonicalArgLabel = getCanonicalArg(label, new Nonterminal());
+      canonicalArgCache.put(label, canonicalArgLabel);
+    }
+    return canonicalArgLabel;
+  }
+
+  public Symbol getCanonicalArg(Symbol label, Nonterminal nonterminal) {
+    Nonterminal parsedLabel =
+      treebank.parseNonterminal(label, nonterminal);
+    // strip all augmentations except gap/arg augmentations
+    stripAugmentations(label, parsedLabel, false);
+    // canonicalize base (unaugmented) label
+    parsedLabel.base = treebank.getCanonical(parsedLabel.base);
+    return parsedLabel.toSymbol();
+  }
 
   /**
    * Returns <code>true</code> if and only if <code>label</code> has an
    * argument augmentation as added by {@link #identifyArguments(Sexp)}.
    */
   public boolean isArgument(Symbol label) {
-    Nonterminal parsedLabel = treebank.parseNonterminal(label, nonterminal);
-    return parsedLabel.augmentations.contains(argAugmentation);
+    return isArgument(label, nonterminal);
+  }
+  protected boolean isArgument(Symbol label, Nonterminal nonterminal) {
+    return isArgument(label, nonterminal, true);
+  }
+  protected boolean isArgument(Symbol label,
+                               Nonterminal nonterminal,
+                               boolean parseLabel) {
+    Nonterminal parsedLabel =
+      parseLabel ? treebank.parseNonterminal(label, nonterminal) : nonterminal;
+    // if any of this nonterminal's augmentations is a member of the set
+    // of argument augmentations (as contained in the SexpList argAugmentations)
+    // then return true; else, return false
+    SexpList augmentations = parsedLabel.augmentations;
+    for (int i = 0; i < augmentations.length(); i++) {
+      if (argAugmentations.contains(augmentations.get(i)))
+        return true;
+    }
+    return false;
   }
 
   /**
-   * Returns <code>true</code> if and only if the specified nonterminal
-   * label has an argument augmentation preceded by the canonical
-   * augmentaion delimiter.  Unlike {@link #isArgument(Symbol)}, this
-   * method is thread-safe.  Also, it is more efficient than
-   * {@link #isArgument(Symbol)}, as it does not actually parse the
-   * specified nonterminal label.
-   * <p>
-   * <b>Bugs</b>: This method will return a false positive if
-   * {@link #canonicalDelimPlusArgAug} is contained within any of the
-   * print-names of the symbols in the array
-   * {@link AbstractTreebank#nonterminalExceptionSet}.  This case is unlikely
-   * to occur, but is possible.
+   * Returns <code>true</code> if the specified nonterminal label has an
+   * argument augmentation.  Unlike {@link #isArgument(Symbol)}, this
+   * method is thread-safe.  Also, after {@link #setUpFastArgMap(CountsTable)
+   * has been invoked, this method is much more efficient than
+   * {@link #isArgument(Symbol)}.
+   *
+   * @see #setUpFastArgMap(CountsTable)
    */
   public boolean isArgumentFast(Symbol label) {
-    /*
-    Boolean isArgBool = (Boolean)isArgMap.get(label);
-    if (isArgBool == null) {
-      boolean isArg =
-	label.toString().indexOf(canonicalDelimPlusArgAug, 1) != -1;
-      isArgBool = isArg ? Boolean.TRUE : Boolean.FALSE;
-      isArgMap.put(label, isArgBool);
-    }
-    return isArgBool == Boolean.TRUE;
-    */
     if (canUseFastArgMap)
       return fastArgMap.containsKey(label);
-    else
-      return label.toString().indexOf(canonicalDelimPlusArgAug, 1) != -1;
+
+    Symbol nonArgLabel = (Symbol)fastArgCache.get(label);
+    if (nonArgLabel == null) {
+      nonArgLabel = removeArgAugmentation(label);
+      fastArgCache.put(label, nonArgLabel);
+    }
+    return  label != nonArgLabel;
   }
 
   /**
@@ -1195,21 +1252,39 @@ public abstract class AbstractTraining implements Training, Serializable {
       return tree;
     if (tree.isList()) {
       Symbol label = tree.list().first().symbol();
-      treebank.parseNonterminal(label, nonterminal);
-      boolean isArg = nonterminal.augmentations.contains(argAugmentation);
-      boolean hasGap = nonterminal.augmentations.contains(gapAugmentation);
-      nonterminal.augmentations.clear();
-      if (isArg)
-	treebank.addAugmentation(nonterminal, argAugmentation);
-      if (hasGap)
-	treebank.addAugmentation(nonterminal, gapAugmentation);
-      nonterminal.index = -1; // effectively strips off index
-      tree.list().set(0, nonterminal.toSymbol());
+      tree.list().set(0, stripAugmentations(label));
       int treeListLen = tree.list().length();
       for (int i = 1; i < treeListLen; i++)
 	stripAugmentations(tree.list().get(i));
     }
     return tree;
+  }
+
+  protected Symbol stripAugmentations(Symbol label) {
+    stripAugmentations(label, nonterminal, true);
+    return nonterminal.toSymbol();
+  }
+
+  protected void stripAugmentations(Symbol label, Nonterminal nonterminal,
+                                    boolean parseLabel) {
+    if (parseLabel)
+      treebank.parseNonterminal(label, nonterminal);
+    SexpList augmentations = nonterminal.augmentations;
+    for (int i = 0; i < augmentations.length(); i++) {
+      Sexp thisAug = augmentations.get(i);
+      if (!Language.treebank().isAugDelim(thisAug) &&
+          thisAug != gapAugmentation &&
+          !argAugmentations.contains(thisAug)) {
+        i--; // move index to delimeter that preceded this arg augmentation
+        augmentations.remove(i);  // remove delimeter
+        augmentations.remove(i);  // remove arg augmentation
+        i--; // decrement index again to offset increment in for loop
+      }
+    }
+    // if there's an index, make sure to strip delimeter that precedes it
+    if (nonterminal.index >= 0)
+      augmentations.remove(augmentations.size() - 1);
+    nonterminal.index = -1; // effectively strips off index
   }
 
   /**
@@ -1735,40 +1810,75 @@ public abstract class AbstractTraining implements Training, Serializable {
   public Symbol headPostSym() { return headPostSym; }
 
   /**
-   * Returns a static set of possible argument nonterminals, without their
-   * argument augmentations.  The default implementation here scans the
-   * {@link #argContexts} list, and adds every nonterminal child for a given
-   * context to the set.  This default implementation, therefore, does not
-   * necessarily return a complete set of all possible arg nonterminals, but
-   * merely those that are explicitly named in the argument-finding contexts.
-   * As this method is primarily intended to be used by {@link SubcatBag}
-   * when setting up its static resources for categorizing argument
-   * nonterminals, this implementation is sufficient, as all nonterminals
-   * that are not explicitly named will be thrown into the miscellaneous
-   * category.
+   * A helper method that runs through every nonterminal "pattern" for each
+   * context in {@link #argContexts}, parses the pattern using {@link
+   * Treebank#parseNonterminal}, runs through the resulting list of
+   * augmentations and adds each augmentation symbol to the {@link
+   * #argAugmentations} list.
+   */
+  protected void createArgAugmentationsList() {
+    Iterator args = argContexts.values().iterator();
+    while (args.hasNext()) {
+      SexpList argList = (SexpList)args.next();
+      Symbol first = argList.symbolAt(0);
+      if (first != headSym && first != headPreSym && first != headPostSym) {
+        int argListLen = argList.length();
+        for (int i = 0; i < argListLen; i++) {
+          Symbol argLabel = argList.symbolAt(i);
+          Nonterminal parsedArgLabel = treebank.parseNonterminal(argLabel);
+          SexpList augmentations = parsedArgLabel.augmentations;
+          for (int augIdx = 0; augIdx < augmentations.length(); augIdx++) {
+            Sexp thisAug = augmentations.get(augIdx);
+            if (!Language.treebank().isAugDelim(thisAug))
+              argAugmentations.add(thisAug);
+          }
+        }
+      }
+    }
+  }
+
+  protected void createArgNonterminalsSet() {
+    argNonterminals = new HashSet();
+    Iterator args = argContexts.values().iterator();
+    while (args.hasNext()) {
+      SexpList argList = (SexpList)args.next();
+      Symbol first = argList.symbolAt(0);
+      if (first != headSym && first != headPreSym && first != headPostSym) {
+        int argListLen = argList.length();
+        for (int i = 0; i < argListLen; i++) {
+          Symbol argLabel = argList.symbolAt(i);
+          Nonterminal parsedArgLabel = treebank.parseNonterminal(argLabel);
+          // if this is not an arg label indicating to look for a semantic tag
+          if (parsedArgLabel.base != Constants.kleeneStarSym) {
+            if (addArgAugmentation(argLabel, parsedArgLabel))
+              argLabel = parsedArgLabel.toSymbol();
+            argNonterminals.add(argLabel);
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Returns a static set of possible argument nonterminals.  The default
+   * implementation here scans the {@link #argContexts} list, and adds every
+   * nonterminal "pattern" for a given context to the set.  If the nonterminal
+   * to be added is not already an argument as determined by
+   * {@link #isArgument}, then the {@link Treebank#canonicalAugDelimeter}
+   * and {@link #defaultArgAugmentation} are appended before it is added to
+   * the set. This default implementation, therefore, does not necessarily
+   * return a complete set of all possible arg nonterminals, but merely those
+   * that are explicitly named in the argument-finding contexts. As this
+   * method is primarily intended to be used by {@link SubcatBag} when setting
+   * up its static resources for categorizing argument nonterminals, this
+   * implementation is sufficient, as all nonterminals that are not
+   * explicitly named will be thrown into the miscellaneous category.
    *
-   * @return a static set of possible argument nonterminals, without their
-   * argument augmentations
+   * @return a static set of possible argument nonterminals
    */
   public synchronized Set argNonterminals() {
     if (argNonterminals == null) {
-      argNonterminals = new HashSet();
-      Iterator args = argContexts.values().iterator();
-      while (args.hasNext()) {
-	SexpList argList = (SexpList)args.next();
-	Symbol first = argList.symbolAt(0);
-	if (first != headSym && first != headPreSym && first != headPostSym) {
-	  int argListLen = argList.length();
-	  for (int i = 0; i < argListLen; i++) {
-	    Symbol argLabel = argList.symbolAt(i);
-	    Nonterminal parsedArgLabel = treebank.parseNonterminal(argLabel);
-	    // if this is not an arg label indicating to look for a semantic tag
-	    if (parsedArgLabel.base != Constants.kleeneStarSym) {
-	      argNonterminals.add(argLabel);
-	    }
-	  }
-	}
-      }
+      createArgNonterminalsSet();
       argNonterminals = Collections.unmodifiableSet(argNonterminals);
     }
     return argNonterminals;
@@ -1782,26 +1892,40 @@ public abstract class AbstractTraining implements Training, Serializable {
       Map.Entry entry = fastArgMap.getEntry(label);
       return entry == null ? label : (Symbol)entry.getValue();
     }
-    int argAugIdx = label.toString().indexOf(canonicalDelimPlusArgAug, 1);
 
-    // if we found the argument augmentation in this label...
-    if (argAugIdx != -1) {
-      String labelStr = label.toString();
-      // if arg augmentation appears at end of label's string, grab substring
-      if (argAugIdx == labelStr.length() - canonicalDelimPlusArgAugLen) {
-	return Symbol.get(labelStr.substring(0, argAugIdx));
-      }
-      // otherwise, need to grab substring before and after the augmentation
-      else {
-	StringBuffer sb =
-	  new StringBuffer(labelStr.length() - canonicalDelimPlusArgAugLen).
-	    append(labelStr.substring(0, argAugIdx)).
-	    append(labelStr.substring(argAugIdx + canonicalDelimPlusArgAugLen));
-	return Symbol.get(sb.toString());
+    Symbol nonArgLabel = (Symbol)fastArgCache.get(label);
+    if (nonArgLabel == null) {
+      nonArgLabel = removeArgAugmentation(label, new Nonterminal());
+      fastArgCache.put(label, nonArgLabel);
+    }
+    return nonArgLabel;
+  }
+
+  /**
+   * Parses label into the specified {@link Nonterminal} object and then
+   * removes all argument augmentations.
+   *
+   * @param label the label from which to remove argument augmentations
+   * @param nonterminal the object to use as temporary storage during
+   * execution of this method
+   * @return the symbol that is the specified label removed of its
+   * argument augmentations
+   */
+  protected Symbol removeArgAugmentation(Symbol label,
+                                         Nonterminal nonterminal) {
+    Nonterminal parsedLabel = treebank.parseNonterminal(label, nonterminal);
+    boolean removedSomething = false;
+    SexpList augmentations = parsedLabel.augmentations;
+    for (int i = 0; i < augmentations.length(); i++) {
+      if (argAugmentations.contains(augmentations.get(i))) {
+        i--; // move index to delimeter that preceded this arg augmentation
+        augmentations.remove(i);  // remove delimeter
+        augmentations.remove(i);  // remove arg augmentation
+        removedSomething = true;
+        i--; // decrement index again to offset increment in for loop
       }
     }
-    else
-      return label;
+    return removedSomething ? parsedLabel.toSymbol() : label;
   }
 
   /**

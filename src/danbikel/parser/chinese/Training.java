@@ -26,6 +26,7 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
   private final static Symbol semTagArgStopListSym =
     Symbol.add("sem-tag-arg-stop-list");
   private final static Symbol nodesToPruneSym = Symbol.add("prune-nodes");
+  private final static Symbol wordsToPruneSym = Symbol.add("prune-words");
   private final static Symbol VP = Symbol.get("VP");
 
   /**
@@ -89,6 +90,11 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
 	SexpList nodesToPruneList = metadata.get(1).list();
 	for (int i = 0; i < nodesToPruneList.length(); i++)
 	  nodesToPrune.add(nodesToPruneList.get(i));
+      }
+      else if (dataType == wordsToPruneSym) {
+        SexpList wordsToPruneList = metadata.get(1).list();
+        for (int i = 0; i < wordsToPruneList.length(); i++)
+          wordsToPrune.add(wordsToPruneList.get(i));
       }
       else {
 	// unrecognized data type

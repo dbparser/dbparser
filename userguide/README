@@ -200,17 +200,25 @@ commands:
    mkdir ~/.db-parser
    cp <parser home>/settings/collins.properties ~/.db-parser/settings
 
-The Java class used for training is danbikel.parser.Trainer.  You can see its
-usage by executing
+The Java class used for training is danbikel.parser.Trainer.  A typical usage
+is as follows (assumes you have dbparser.jar in your class path):
+	java -Xms800m -Xmx800m -Dparser.settingsFile=<settings> \
+		danbikel.parser.Trainer -i <training file> \
+		-o <observed file> -od <derived data file>
+You can see its full usage by executing
 	java danbikel.parser.Trainer -help
 
-The Java class used for parsing is danbikel.parser.Parser.  You can see its
-usage by executing
+The Java class used for parsing is danbikel.parser.Parser.  A typical usage
+is as follows (assumes you have dbparser.jar in your class path):
+	java -Xms400m -Xmx400m -Dparser.settingsFile=<settings> \
+		danbikel.parser.Parser -is <derived data file> \
+		-sa <sentence input file>
+You can see its full usage by executing
 	java danbikel.parser.Parser -help
 
 The Java class used for starting the switchboard, which is the central
 component in a distributed-computing run, is danbikel.parser.StartSwitchboard.
-You can see its usage by executing
+You can see its full usage by executing
 	java danbikel.parser.StartSwitchboard -help
 
 Developer-level documentation is available in the <parser home>/doc directory.

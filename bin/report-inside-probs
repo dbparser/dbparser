@@ -1,0 +1,26 @@
+#!/usr/bin/perl
+
+if (@ARGV < 1) {
+    print "usage: <reestimate.pl log file>\n";
+    exit 1;
+}
+
+$logfile = $ARGV[0];
+
+open(IN, $logfile) or die "file $logfile does not exist";
+
+while (<IN>) {
+    if (m/cummulative inside log prob\: (.*)$/) {
+	$lastCumm = $1;
+    }
+    if (m/Beginning iteration No. ([0-9]+)/) {
+        # we add zero to remove initial zeroes: iteration "01" becomes "1"
+	$newIteration = $1 + 0;
+	if ($newIteration > 1) {
+	    print $currIteration, " ", $lastCumm, "\n";
+	}
+	$currIteration = $newIteration;
+    }
+}
+
+print $currIteration, " ", $lastCumm, "\n";

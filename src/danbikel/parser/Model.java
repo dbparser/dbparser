@@ -30,7 +30,6 @@ import java.util.*;
 public class Model implements Serializable {
   // constants
   private final static boolean useCache = true;
-  private final static int topLevelCacheSize = 50000;
   private final static int minCacheSize = 1000;
 
   // data members
@@ -53,6 +52,12 @@ public class Model implements Serializable {
   private transient HashMap[] histories;
   private transient ProbabilityCache topLevelCache;
   private transient ProbabilityCache[] cache;
+  private transient int[] cacheHits;
+  private transient int[] cacheAccesses;
+
+  private Map canonicalEvents;
+  static int numCacheAdds = 0;
+  static int numCanonicalHits = 0;
 
   /**
    * Constructs a new object for deriving all counts using the specified
@@ -73,17 +78,22 @@ public class Model implements Serializable {
   }
 
   private void setUpCaches() {
-    int cacheSize = topLevelCacheSize;
-    topLevelCache = new ProbabilityCache(cacheSize, cacheSize);
-    cacheSize /= 2;
-    if (cacheSize < minCacheSize)
-      cacheSize = minCacheSize;
+    int cacheSize = Math.max(structure.cacheSize(0), minCacheSize);
+    //topLevelCache = new ProbabilityCache(cacheSize, cacheSize / 4 + 1);
+
+    cacheHits = new int[numLevels];
+    cacheAccesses = new int[numLevels];
+
     cache = new ProbabilityCache[numLevels];
     for (int i = 0; i < cache.length; i++) {
-      cache[i] = new ProbabilityCache(cacheSize, cacheSize);
-      cacheSize /= 2;
-      if (cacheSize < minCacheSize)
-        cacheSize = minCacheSize;
+      cacheSize = Math.max(structure.cacheSize(i), minCacheSize);
+      /*
+      System.err.println("setting up " + structure.getClass().getName() +
+                         " cache at level " + i + "\n\tto have max. cap. of " +
+                         cacheSize + " and init. cap. of " +
+                         (cacheSize / 4 + 1));
+      */
+      cache[i] = new ProbabilityCache(cacheSize, cacheSize / 4 + 1);
     }
   }
 
@@ -105,9 +115,9 @@ public class Model implements Serializable {
 
     Iterator entries = trainerCounts.entrySet().iterator();
     while (entries.hasNext()) {
-      Map.Entry entry = (Map.Entry)entries.next();
+      HashMapInt.Entry entry = (HashMapInt.Entry)entries.next();
       TrainerEvent event = (TrainerEvent)entry.getKey();
-      IntCounter count = (IntCounter)entry.getValue();
+      int count = entry.getIntValue();
       if (!filter.pass(event))
 	continue;
 
@@ -131,7 +141,7 @@ public class Model implements Serializable {
 	  Event history = (Event)histories[level].get(lookupHistory);
 	  Event future = structure.getFuture(event, level);
 	  Transition transition = new Transition(future.copy(), history);
-	  counts[level].transition().add(transition, count.get());
+	  counts[level].transition().add(transition, count);
 
 	  /*
 	  System.err.println("level: " + level +
@@ -177,12 +187,13 @@ public class Model implements Serializable {
       System.err.println(structure.getClass().getName() + "\n\t" + event);
     }
 
+    /*
     if (useCache) {
       Double cacheProb = topLevelCache.getProb(event);
       if (cacheProb != null)
         return cacheProb.doubleValue();
     }
-
+    */
     int highestCachedLevel = numLevels;
 
     structure.prevHistCount = 0;
@@ -195,20 +206,22 @@ public class Model implements Serializable {
 
       // check cache here!!!!!!!!!!!!
       if (useCache) {
+        cacheAccesses[level]++;
         if (Debug.level >= 21) {
           System.err.print("getting prob for " + transition +
                            " at level " + level + ": ");
         }
-        Double cacheProb = cache[level].getProb(transition);
+        double cacheProb = cache[level].getProb(transition);
         if (Debug.level >= 21) {
           System.err.println(cacheProb);
         }
-        if (cacheProb != null) {
+        if (Double.isNaN(cacheProb) == false) {
           if (Debug.level >= 21) {
             System.err.println("yea! " + structure.getClass().getName() +
                                "; level=" + level);
           }
-          structure.estimates[level] = cacheProb.doubleValue();
+          structure.estimates[level] = cacheProb;
+          cacheHits[level]++;
           highestCachedLevel = level;
           break;
         }
@@ -264,16 +277,43 @@ public class Model implements Serializable {
 	  System.err.println("adding " + transition + " to cache at level " +
 			     level);
 	}
-        if (!cache[level].containsKey(transition))
-  	  cache[level].put(transition.copy(), prob);
+
+        if (!cache[level].containsKey(transition)) {
+          numCacheAdds++;
+          // don't want to copy history and future if we don't have to
+          Event transHist = transition.history();
+          Event transFuture = transition.future();
+          CountsTrio trio = counts[level];
+          Event hist = (Event)canonicalEvents.get(transHist);
+          if (hist == null) {
+            hist = transHist.copy();
+            //System.err.println("no hit: " + hist);
+          }
+          else {
+            numCanonicalHits++;
+            //System.err.println("hit: " + hist);
+          }
+          Event future = (Event)canonicalEvents.get(transFuture);
+          if (future == null) {
+            future = transFuture.copy();
+            //System.err.println("no hit: " + future);
+          }
+          else {
+            numCanonicalHits++;
+            //System.err.println("hit: " + future);
+          }
+          cache[level].put(new Transition(future, hist), prob);
+          //cache[level].put(transition.copy(), prob);
+        }
       }
     }
 
+    /*
     if (useCache && prob > Constants.logOfZero) {
       if (!topLevelCache.containsKey(event))
         topLevelCache.put(event.copy(), prob);
     }
-
+    */
     return prob;
   }
 
@@ -371,7 +411,7 @@ public class Model implements Serializable {
    * level of back-off of the model, if one exists.
    */
   protected void deriveSpecialLevelTransitions(TrainerEvent event,
-					       IntCounter count) {
+					       int count) {
   }
 
   private void deriveHistories(CountsTable trainerCounts, Filter filter) {
@@ -385,9 +425,9 @@ public class Model implements Serializable {
 
     Iterator entries = trainerCounts.entrySet().iterator();
     while (entries.hasNext()) {
-      Map.Entry entry = (Map.Entry)entries.next();
+      HashMapInt.Entry entry = (HashMapInt.Entry)entries.next();
       TrainerEvent event = (TrainerEvent)entry.getKey();
-      IntCounter count = (IntCounter)entry.getValue();
+      int count = entry.getIntValue();
       if (!filter.pass(event))
 	continue;
       // store all histories for all non-special back-off levels
@@ -395,7 +435,7 @@ public class Model implements Serializable {
 	if (level == specialLevel)
 	  continue;
 	Event history = structure.getHistory(event, level).copy();
-	counts[level].history().add(history, count.get());
+	counts[level].history().add(history, count);
 	histories[level].put(history, history);
 
 	/*
@@ -418,7 +458,7 @@ public class Model implements Serializable {
    * of back-off, if one exists.
    */
   protected void deriveSpecialLevelHistories(TrainerEvent event,
-					     IntCounter count) {
+					     int count) {
   }
 
   /**
@@ -446,12 +486,25 @@ public class Model implements Serializable {
    * events structures canonicalized with respect to each other
    */
   public void canonicalize(Map map) {
+    canonicalEvents = map;
     int prevMapSize = map.size();
     for (int level = 0; level < numLevels; level++) {
       CountsTrio trio = counts[level];
       canonicalize(trio.history(), map);
       canonicalize(trio.unique(), map);
       canonicalize(trio.transition(), map);
+    }
+
+    if (verbose) {
+      System.err.println("Canonicalized Sexp objects; " +
+                         "now canonicalizing Event objects");
+    }
+
+    for (int level = 0; level < numLevels; level++) {
+      CountsTrio trio = counts[level];
+      canonicalizeEvents(trio.history(), map);
+      canonicalizeEvents(trio.unique(), map);
+      canonicalizeEvents(trio.transition(), map);
     }
     int increase = map.size() - prevMapSize;
 
@@ -487,6 +540,15 @@ public class Model implements Serializable {
     }
   }
 
+  private void canonicalizeEvents(CountsTable table, Map map) {
+    Iterator it = table.keySet().iterator();
+    while (it.hasNext()) {
+      Object histOrTrans = it.next();
+      if (map.containsKey(histOrTrans) == false)
+        map.put(histOrTrans, histOrTrans);
+    }
+    numCanonicalizableEvents += table.size();
+  }
 
   // accessors
   /**
@@ -522,5 +584,20 @@ public class Model implements Serializable {
     in.defaultReadObject();
     if (useCache)
       setUpCaches();
+  }
+
+  protected void finalize() throws Throwable {
+    synchronized (Model.class) {
+      System.err.println("cache data for " + structure.getClass().getName() +
+                         ":");
+      for (int level = 0; level < cacheHits.length; level++) {
+        System.err.println("\tlevel " + level + ": " +
+                           cacheHits[level] + "/" + cacheAccesses[level] + "/" +
+                           ((float)cacheHits[level]/cacheAccesses[level]) +
+                           " (hits/accesses/hit rate)");
+        System.err.println("\t\t" + cache[level].getStats().
+                                    replace('\n', ' ').replace('\t', ' '));
+      }
+    }
   }
 }

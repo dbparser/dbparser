@@ -20,7 +20,7 @@ public class Decoder implements Serializable {
   private final static boolean debugJoin = false;
   private final static boolean debugStops = false;
   private final static boolean debugUnaries = false;
-  private final static boolean debugUnariesAndStopProbs = false;
+  private final static boolean debugUnariesAndStopProbs = true;
   private final static boolean debugOutputChart = false;
   private final static boolean debugCommaConstraint = false;
   private final static Symbol S = Symbol.add("S");
@@ -783,8 +783,9 @@ public class Decoder implements Serializable {
         addStopProbs((CKYItem)it.next(), prevItemsAdded);
     }
 
-    //for (int i = 0; i < 5; i++) {
-    while (prevItemsAdded.size() > 0) {
+    int i = -1;
+    //for (i = 0; i < 5; i++) {
+    for (i = 0; prevItemsAdded.size() > 0; i++) {
       Iterator prevItems = prevItemsAdded.iterator();
       while (prevItems.hasNext()) {
         CKYItem item = (CKYItem)prevItems.next();
@@ -801,6 +802,9 @@ public class Decoder implements Serializable {
       }
       exchangePrevAndCurrItems();
       currItemsAdded.clear();
+    }
+    if (debugUnariesAndStopProbs) {
+      System.err.println("added unaries and stop probs " + i + " times");
     }
   }
 

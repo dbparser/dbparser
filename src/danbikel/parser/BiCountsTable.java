@@ -56,6 +56,25 @@ public class BiCountsTable extends danbikel.util.HashMapTwoInts {
   }
 
   /**
+   * Removes items in this table whose counts are less than the specified
+   * threshold.
+   *
+   * @param threshold the count threshold below which to remove items from
+   * this table
+   * @param atIndex the index at which to check an item's count to see if
+   * it falls below the specified threshold; the value of this argument
+   * must be either 0 or 1
+   */
+  public void removeItemsBelow(int threshold, int atIndex) {
+    Iterator it = entrySet().iterator();
+    while (it.hasNext()) {
+      MapToPrimitive.Entry entry = (MapToPrimitive.Entry)it.next();
+      if (entry.getIntValue(atIndex) < threshold)
+        it.remove();
+    }
+  }
+
+  /**
    * Outputs all the mappings of this map in as S-expressions of the form
    * <pre>(name key value)</pre>
    */

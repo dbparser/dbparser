@@ -16,7 +16,7 @@ set scriptDir = `cd $dir  ; echo $cwd`
 set rmiregistryScript = $scriptDir/no-cp-rmiregistry
 
 echo Starting rmiregistry on $host
-$RSH -n $host $rmiregistryScript
+$RSH -n $host $rmiregistryScript &
 set registryPid = $!
 
 echo Creating rmiregistry pid file $pidOutputFile

@@ -68,7 +68,7 @@ public class Treebank extends danbikel.parser.Treebank {
       puncToRaise.add(Symbol.add(puncToRaiseElements[i]));
   }
 
-  private static String[] verbTagStrings = {"MD", "VB", "VBD", "VBG", "VBN",
+  private static String[] verbTagStrings = {"VB", "VBD", "VBG", "VBN",
 					    "VBP", "VBZ"};
   private static Set verbTags = new HashSet();
   static {
@@ -137,6 +137,10 @@ public class Treebank extends danbikel.parser.Treebank {
 	    puncToRaise.contains(preterm.list().first()));
   }
 
+  public boolean isPunctuation(Symbol tag) {
+    return puncToRaise.contains(stripAugmentation(tag));
+  }
+
   /**
    * Returns <code>true</code> if the specified S-expression represents
    * a preterminal that is the possessive part of speech.  This method is
@@ -190,12 +194,10 @@ public class Treebank extends danbikel.parser.Treebank {
 
   /**
    * Returns <code>true</code> if <code>preterminal</code> represents a
-   * terminal with one of the following parts of speech: <tt>MD, VB, VBD, VBG,
+   * terminal with one of the following parts of speech: <tt>VB, VBD, VBG,
    * VBN, VBP</tt> or <tt>VBZ</tt>.  It is an error to call this method
    * with a <code>Sexp</code> object for which {@link #isPreterminal(Sexp)}
    * returns <code>false</code>.<br>
-   * <b>N.B.</b>: It is unclear if <tt>MD</tt> should be in this list
-   * (contact Mike Collins for more information on this!!!!).
    *
    * @param preterminal the preterminal to test
    * @return <code>true</code> if <code>preterminal</code> is a verb

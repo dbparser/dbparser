@@ -16,11 +16,19 @@ class WordArrayList extends FixedSizeArrayList implements WordList {
     return (Word)get(index);
   }
 
+  /**
+   * Returns a copy of this list.
+   * <p>
+   * <b>Warning</b>: The returned copy is <i>not</i> a deep copy.  That is,
+   * the <code>Word</code> objects in the returned list are not copies of the
+   * <code>Word</code> objects from the this list.
+   */
   public WordList copy() {
     int size = data.length;
     WordList newList = new WordArrayList(size);
     for (int i = 0; i < size; i++)
-      newList.set(i, getWord(i).copy());
+      //newList.set(i, getWord(i).copy());
+      newList.set(i, getWord(i));
     return newList;
   }
 

@@ -138,7 +138,8 @@ if (`tail -1 $0` != "$timeStamp") then
     # the shell will process the sed expression before sed processes it
     set sedDDF = `echo $derivedDataFile | sed -e 's/\//\\\//g'`
     set sedSettingsFile = `echo $settingsFile | sed -e 's/\//\\\//g'`
-    sed -e "s/^\(set date = \).*/\1$date/" -e "s/^\(set time = \).*/\1$time/" \
+    sed -e "s/^\(set dir = \).*/\1$dir/" \
+	-e "s/^\(set date = \).*/\1$date/" -e "s/^\(set time = \).*/\1$time/" \
 	-e 's/^\(set inFiles = \).*)/\1(`cat $outputDir\/inFilenames`)/' \
         -e "s/^\(set derivedDataFile = \).*/\1$sedDDF/" \
 	-e "s/^\(set settingsFile = \).*/\1$sedSettingsFile/" $0 > $scriptFile

@@ -34,12 +34,13 @@ import java.io.*;
  * nonterminal will <i><b>not</b></i> be correctly identified by
  * the {@link Training#isArgumentFast(Symbol)} method after the
  * {@link Training#setUpFastArgMap(CountsTable)} method has been invoked
- * (unless this fake nonterminal is contained in the keys of the map passed to
- * {@link Training#isArgumentFast(Symbol)}.  It is therefore important
- * <i><b>not</b></i> to invoke the {@link Training#setUpFastArgMap(CountsTable)}
- * method during training, when requirements are added individually
- * by {@link #add(Symbol)}, which calls {@link #validRequirement(Symbol)}
- * which in turn invokes {@link Training#isArgumentFast(Symbol)}.
+ * (unless this fake nonterminal happens to be one of the keys of the map
+ * passed to {@link Training#isArgumentFast(Symbol)}).  It is therefore
+ * important <i><b>not</b></i> to invoke the
+ * {@link Training#setUpFastArgMap(CountsTable)} method during training,
+ * when requirements are added individually by {@link #add(Symbol)}, which
+ * calls {@link #validRequirement(Symbol)} which in turn invokes
+ * {@link Training#isArgumentFast(Symbol)}.
  * <li>This class cannot collect more than 127 total occurrences of
  * requirements.  This is well beyond the number of arguments ever postulated
  * in any human language, but <i>not</i> necessarily beyond the number

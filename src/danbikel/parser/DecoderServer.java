@@ -140,7 +140,7 @@ public class DecoderServer
       Sexp word = (downcaseWords ?
                    Symbol.get(sentence.get(i).toString().toLowerCase()) :
                    sentence.get(i));
-      int freq = vocabCounter.count(word);
+      int freq = (int)vocabCounter.count(word);
       if (freq < unknownWordThreshold) {
         Symbol features =
           Language.wordFeatures.features(sentence.symbolAt(i), i==0);
@@ -194,12 +194,8 @@ public class DecoderServer
     return modelCollection.rightSubcatMap();
   }
 
-  public Map leftModNonterminalMap() throws RemoteException {
-    return modelCollection.leftModNonterminalMap();
-  }
-
-  public Map rightModNonterminalMap() throws RemoteException {
-    return modelCollection.rightModNonterminalMap();
+  public Map modNonterminalMap() throws RemoteException {
+    return modelCollection.modNonterminalMap();
   }
 
   public Set prunedPreterms() throws RemoteException {
@@ -339,6 +335,43 @@ public class DecoderServer
 
   public double logProbGap(int id, TrainerEvent event) {
     return modelCollection.gapModel().estimateLogProb(id, event);
+  }
+
+  // non-log prob methods
+  public double probHead(int id, TrainerEvent event) throws RemoteException {
+    return modelCollection.headModel().estimateProb(id, event);
+  }
+  public double probMod(int id, TrainerEvent event) throws RemoteException {
+    Model modNTModel = modelCollection.modNonterminalModel();
+    Model modWordModel = modelCollection.modWordModel();
+    double modNTProb = modNTModel.estimateProb(id, event);
+    if (modNTProb == 0.0)
+      return 0.0;
+    if (stopWord.equals(event.modHeadWord()))
+      return modNTProb;
+    double modWordProb = modWordModel.estimateProb(id, event);
+    if (modWordProb == 0.0)
+      return 0.0;
+    return modNTProb * modWordProb;
+  }
+  public double probLeftSubcat(int id, TrainerEvent event)
+    throws RemoteException {
+    return modelCollection.leftSubcatModel().estimateProb(id, event);
+  }
+  public double probRightSubcat(int id, TrainerEvent event)
+    throws RemoteException {
+    return modelCollection.rightSubcatModel().estimateProb(id, event);
+  }
+  public double probTop(int id, TrainerEvent event) throws RemoteException {
+    Model topNTModel = modelCollection.topNonterminalModel();
+    Model topLexModel = modelCollection.topLexModel();
+    double ntProb = topNTModel.estimateProb(id, event);
+    if (ntProb == 0.0)
+      return 0.0;
+    double lexProb = topLexModel.estimateProb(id, event);
+    if (lexProb == 0.0)
+      return 0.0;
+    return ntProb * lexProb;
   }
 
   /**

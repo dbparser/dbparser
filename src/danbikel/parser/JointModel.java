@@ -74,8 +74,8 @@ public class JointModel extends Model {
    * Derives counts for this <code>Model</code>, as well as for all
    * internal <code>Model</code> instances.
    *
-   * @param trainerCounts a <code>CountsTable</code> containing
-   * {@link TrainerEvent} objects from which to derive counts
+   * @param trainerCounts a map from {@link TrainerEvent} objects to
+   * their counts (as <code>double</code>s) from which to derive counts
    * @param filter used to filter out <code>TrainerEvent</code> objects
    * whose derived counts should not be derived for this model
    * @param threshold a (currently unused) count cut-off threshold
@@ -91,8 +91,8 @@ public class JointModel extends Model {
    * Derives counts for this <code>Model</code> and optionally for
    * all internal <code>Model</code> instances.
    *
-   * @param trainerCounts a <code>CountsTable</code> containing
-   * {@link TrainerEvent} objects from which to derive counts
+   * @param trainerCounts a map from {@link TrainerEvent} objects to
+   * their counts (as <code>double</code>s) from which to derive counts
    * @param filter used to filter out <code>TrainerEvent</code> objects
    * whose derived counts should not be derived for this model
    * @param threshold a (currently unused) count cut-off threshold

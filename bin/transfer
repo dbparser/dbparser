@@ -2,6 +2,10 @@
 
 set remoteHost = alpha.nlp.liniac
 
+if ($#argv == 1) then
+    set remoteHost = $1
+endif
+
 set noglob
 set localDirs = (~/jbproject/dbparser/src ~/jbproject/dbparser/classes)
 
@@ -20,3 +24,10 @@ foreach dir ($localDirs)
     echo "Unpacking on $remoteHost"
     ssh $remoteHost "cd $dir:h ; /bin/rm -rf $dir:t-old ; mv $dir:t $dir:t-old ; tar zxf $dir:t.tgz ; /bin/rm -f $dir:t.tgz"
 end
+
+set noglob
+set jarFile = ~/jbproject/dbparser/dbparser.jar
+set jarFileDir = $jarFile:h
+unset noglob
+echo "Copying $jarFile to $jarFileDir on $remoteHost"
+scp -C $jarFile dbikel@$remoteHost\:$jarFileDir

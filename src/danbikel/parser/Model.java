@@ -40,13 +40,13 @@ public class Model implements Serializable {
     deficientEstimation =
       Boolean.valueOf(deficientEstimationString).booleanValue();
   }
-  private final static boolean useCache = true;
+  protected final static boolean useCache = true;
   private final static int minCacheSize = 1000;
   private final static boolean doGCBetweenCanonicalizations = false;
 
   private final static int structureMapArrSize = 1000;
 
-  private final static Symbol baseNPLabel = Language.treebank().baseNPLabel();
+  protected final static Symbol baseNPLabel = Language.treebank().baseNPLabel();
 
   // data members
 
@@ -61,9 +61,10 @@ public class Model implements Serializable {
   protected String structureClassName;
   protected String shortStructureClassName;
   protected int numLevels;
-  protected int specialLevel;
   protected double[] lambdaFudge;
   protected double[] lambdaFudgeTerm;
+  protected double[] lambdaPenalty;
+  protected double[] logOneMinusLambdaPenalty;
   // the actual counts
   protected CountsTrio[] counts;
   private int numCanonicalizableEvents = 0;
@@ -71,21 +72,21 @@ public class Model implements Serializable {
   protected boolean verbose = true;
 
   // for the storage of precomputed probabilities and lambdas
-  private HashMapDouble[] precomputedProbs;
-  private HashMapDouble[] precomputedLambdas;
-  private transient int[] precomputedProbHits;
-  private transient int precomputedProbCalls;
-  private transient int[] precomputedNPBProbHits;
-  private transient int precomputedNPBProbCalls;
+  protected HashMapDouble[] precomputedProbs;
+  protected HashMapDouble[] precomputedLambdas;
+  protected transient int[] precomputedProbHits;
+  protected transient int precomputedProbCalls;
+  protected transient int[] precomputedNPBProbHits;
+  protected transient int precomputedNPBProbCalls;
 
   // for temporary storage of histories (so we don't have to copy histories
   // created by deriveHistories() to create transition objects)
-  private transient ProbabilityCache topLevelCache;
-  private transient ProbabilityCache[] cache;
-  private transient int[] cacheHits;
-  private transient int[] cacheAccesses;
+  protected transient ProbabilityCache topLevelCache;
+  protected transient ProbabilityCache[] cache;
+  protected transient int[] cacheHits;
+  protected transient int[] cacheAccesses;
 
-  private transient FlexibleMap canonicalEvents;
+  protected transient FlexibleMap canonicalEvents;
 
   protected transient String smoothingParamsFile;
   protected transient boolean saveSmoothingParams;
@@ -110,13 +111,17 @@ public class Model implements Serializable {
     shortStructureClassName =
       structureClassName.substring(structureClassNameBegin);
     numLevels = structure.numLevels();
-    specialLevel = structure.specialLevel();
     counts = new CountsTrio[numLevels];
     for (int i = 0; i < counts.length; i++)
       counts[i] = new CountsTrio();
     lambdaFudge = new double[numLevels];
-    for (int i = 0; i < lambdaFudge.length; i++)
+    lambdaPenalty = new double[numLevels];
+    logOneMinusLambdaPenalty = new double[numLevels];
+    for (int i = 0; i < lambdaFudge.length; i++) {
       lambdaFudge[i] = structure.lambdaFudge(i);
+      lambdaPenalty[i] = structure.lambdaPenalty(i);
+      logOneMinusLambdaPenalty[i] = Math.log(1 - lambdaPenalty[i]);
+    }
     lambdaFudgeTerm = new double[numLevels];
 
     if (precomputeProbs)
@@ -222,7 +227,7 @@ public class Model implements Serializable {
     if (useSmoothingParams || dontAddNewParams)
       readSmoothingParams();
     setCanonicalEvents(canonical);
-    deriveHistories(trainerCounts, filter, canonical);
+    //deriveHistories(trainerCounts, filter, canonical);
 
     Time time = null;
     if (verbose)
@@ -238,32 +243,28 @@ public class Model implements Serializable {
       if (!filter.pass(event))
 	continue;
 
-      // store all non-special level transitions
+      // store all transitions for all levels
       for (int level = 0; level < numLevels; level++) {
-	if (level == specialLevel)
-	  continue;
-	Event lookupHistory = structure.getHistory(event, level);
+        Event history = structure.getHistory(event, level);
+        if (useSmoothingParams || dontAddNewParams)
+          if (smoothingParams[level].containsKey(history) == false)
+            continue;
+        history = canonicalizeEvent(history, canonical);
+        counts[level].history().add(history, CountsTrio.hist, count);
 
-	MapToPrimitive.Entry histEntry =
-	  counts[level].history().getEntry(lookupHistory);
-	if (histEntry != null) {
-	  Event history = (Event)histEntry.getKey(); // already canonical!
-	  Event future = structure.getFuture(event, level);
-	  trans.setFuture(canonicalizeEvent(future, canonical));
-	  trans.setHistory(history);
+        Event future = structure.getFuture(event, level);
+        trans.setFuture(canonicalizeEvent(future, canonical));
+        trans.setHistory(history);
 
-	  if (verboseDebug)
-	    System.err.println(shortStructureClassName +
-			       "(" + level + "): " + trans +
-			       "; count=" + (float)count);
+        if (verboseDebug)
+          System.err.println(shortStructureClassName +
+                             "(" + level + "): " + trans +
+                             "; count=" + (float)count);
 
-	  counts[level].transition().add(getCanonical(trans, canonical), count);
-	}
+        if (counts[level].transition().count(trans) == 0)
+          counts[level].history().add(trans.history(), CountsTrio.diversity);
+        counts[level].transition().add(getCanonical(trans, canonical), count);
       }
-
-      // store all special level transitions, if a special level exists
-      if (specialLevel >= 0)
-	deriveSpecialLevelTransitions(event, count);
     }
 
     if (verbose)
@@ -276,9 +277,7 @@ public class Model implements Serializable {
     }
     */
 
-    deriveDiversityCounts();
-
-    deriveSpecialLevelDiversityCounts();
+    //deriveDiversityCounts();
 
     if (precomputeProbs)
       precomputeProbs(trainerCounts, filter);
@@ -446,7 +445,8 @@ public class Model implements Serializable {
       else if (level < lastLevel) {
 	Event history = transition.history();
 	lambdaEntry = precomputedLambdas[level].getEntry(history);
-	logLambda += lambdaEntry == null ? 0.0 : lambdaEntry.getDoubleValue();
+	logLambda += (lambdaEntry == null ? logOneMinusLambdaPenalty[level] :
+		      lambdaEntry.getDoubleValue());
       }
     }
     return Constants.logOfZero;
@@ -473,9 +473,6 @@ public class Model implements Serializable {
     double[] estimates = structure.estimates;
     //structure.prevHistCount = 0;
     for (int level = 0; level < numLevels; level++) {
-      if (level == specialLevel)
-	estimateSpecialLevelProb(structure, event);
-
       Transition transition = structure.getTransition(event, level);
       Event history = transition.history();
 
@@ -521,12 +518,12 @@ public class Model implements Serializable {
 	  estimate = transitionCount / historyCount;
 	}
 	else {
-	  lambda = 0;
+	  lambda = lambdaPenalty[level];
 	  estimate = 0;
 	}
       }
       else if (historyCount == 0) {
-	lambda = 0;
+	lambda = lambdaPenalty[level];
 	estimate = 0;
       }
       else {
@@ -627,9 +624,6 @@ public class Model implements Serializable {
 				   int level, double prevHistCount) {
     if (level == numLevels)
       return 0.0;
-    if (level == specialLevel)
-      return estimateSpecialLevelProb(structure, event);
-
     // check cache here!!!!!!!!!!!!!!!!!!!!!!!
 
     Transition transition = structure.getTransition(event, level);
@@ -646,7 +640,7 @@ public class Model implements Serializable {
     double fudge = structure.lambdaFudge(level);
     double fudgeTerm = structure.lambdaFudgeTerm(level);
     if (historyCount == 0.0) {
-      lambda = 0.0;
+      lambda = lambdaPenalty[level];
       estimate = 0.0;
     }
     else {
@@ -667,17 +661,6 @@ public class Model implements Serializable {
   }
 
   /**
-   * If a special level exists, this method should be overridden to
-   * fill in values at <code>structure.probs[level]</code>,
-   * <code>structure.lambdas[level]</code> and
-   * <code>structure.prevHistCount</code>.
-   */
-  protected double estimateSpecialLevelProb(ProbabilityStructure structure,
-					    TrainerEvent event) {
-    return 1.0;
-  }
-
-  /**
    * Called by
    * {@link #deriveCounts(CountsTable,Filter,double,FlexibleMap)}, for each
    * type of transition observed, this method derives the number of
@@ -687,14 +670,12 @@ public class Model implements Serializable {
    * version of Witten-Bell smoothing.
    */
   protected void deriveDiversityCounts() {
-    // derive diversity counts for non-special levels
+    // derive diversity counts for all levels
     Time time = null;
     if (verbose)
       time = new Time();
 
     for (int level = 0; level < numLevels; level++) {
-      if (level == specialLevel)
-	continue;
       Iterator it = counts[level].transition().keySet().iterator();
       while (it.hasNext()) {
 	Transition transition = (Transition)it.next();
@@ -705,23 +686,6 @@ public class Model implements Serializable {
     if (verbose)
       System.err.println("Derived diversity counts for " + structureClassName +
 			 " in " + time + ".");
-  }
-
-  /**
-   * Called by {@link #deriveDiversityCounts}, this method provides a hook
-   * to count unique transitions at the special back-off level of a model,
-   * if one exists.
-   */
-  protected void deriveSpecialLevelDiversityCounts() {
-  }
-
-  /**
-   * Called by {@link #deriveCounts(CountsTable,Filter,double,FlexibleMap)},
-   * this method provides a hook to count transition(s) for the special
-   * level of back-off of the model, if one exists.
-   */
-  protected void deriveSpecialLevelTransitions(TrainerEvent event,
-					       double count) {
   }
 
   /**
@@ -747,10 +711,8 @@ public class Model implements Serializable {
       double count = entry.getDoubleValue();
       if (!filter.pass(event))
 	continue;
-      // store all histories for all non-special back-off levels
+      // store all histories for all back-off levels
       for (int level = 0; level < numLevels; level++) {
-	if (level == specialLevel)
-	  continue;
 	Event history = structure.getHistory(event, level);
         if (useSmoothingParams || dontAddNewParams)
           if (smoothingParams[level].containsKey(history) == false)
@@ -758,10 +720,6 @@ public class Model implements Serializable {
 	history = canonicalizeEvent(history, canonical);
 	counts[level].history().add(history, CountsTrio.hist, count);
       }
-
-      // store all histories for the special back-off level (if one exists)
-      if (specialLevel >= 0)
-	deriveSpecialLevelHistories(event, count);
     }
 
     if (verbose)
@@ -830,9 +788,6 @@ public class Model implements Serializable {
     double[] estimates = structure.estimates;
     int lastLevel = numLevels - 1;
     for (int level = 0; level < numLevels; level++) {
-      if (level == specialLevel)
-	precomputeSpecialLevelProb(event);
-
       Transition transition = structure.getTransition(event, level);
       Event history = transition.history();
 
@@ -887,9 +842,6 @@ public class Model implements Serializable {
       if (saveSmoothingParams)
         smoothingParams[level].put(histories[level], lambda);
     }
-  }
-
-  protected void precomputeSpecialLevelProb(TrainerEvent event) {
   }
 
   // I/O methods for smoothing parameters file
@@ -948,14 +900,6 @@ public class Model implements Serializable {
     catch (IOException ioe) {
       System.err.println(ioe);
     }
-  }
-
-  /**
-   * This method provides a hook for counting histories at the special level
-   * of back-off, if one exists.
-   */
-  protected void deriveSpecialLevelHistories(TrainerEvent event,
-					     double count) {
   }
 
   /**

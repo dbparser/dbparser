@@ -226,31 +226,6 @@ public class EMChart extends CKYChart {
     return (EMItem)super.getNewItem();
   }
 
-  /**
-   * Reclaims this chart item.  This method returns the specified item
-   * to the object pool of available items, after clearing its antecedent
-   * list.
-   *
-   * @param item the item to be reclaimed
-   */
-  protected void reclaimItem(Item item) {
-    EMItem emItem = (EMItem)item;
-    emItem.antecedentPairs = null;
-    itemPool.putBack(item);
-  }
-
-  protected void reclaimItemCollection(Collection c) {
-    if (c.size() > 0) {
-      Iterator it  = c.iterator();
-      while (it.hasNext()) {
-	EMItem item = (EMItem)it.next();
-	item.antecedentPairs = null;
-      }
-      super.reclaimItemCollection(c);
-    }
-  }
-
-
   public int numUnaryLevels(int start, int end) {
     return chart[start][end].numLevels;
   }

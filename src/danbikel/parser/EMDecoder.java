@@ -409,7 +409,8 @@ public class EMDecoder extends Decoder {
 
     if (Double.isInfinite(sentenceProbInverse)) {
       System.err.println(className + ": warning: skipping sentence because " +
-			 "1 / sentenceProb is infinite (underflow)");
+			 "1 / sentenceProb is infinite (underflow); " +
+			 "sentenceProb=" + sentenceProb);
       return eventCounts;
     }
 
@@ -443,9 +444,8 @@ public class EMDecoder extends Decoder {
       // foreach antecedent singleton/pair
       //   foreach event that yielded the current item (consequent)
       //      expected count of event =
-      //        sentenceProbInverse *
-      //        eventProb * ante1.insideProb() * ante2.insideProb() *
-      //        item.outsideProb()
+      //        sentenceProbInverse * eventProb *
+      //        ante1.insideProb() * ante2.insideProb() * item.outsideProb(),
       if (item.outsideProb() > probImpossible) {
 	EMItem.AntecedentPair pair = item.antecedentPairs();
 	for ( ; pair != null; pair = pair.next()) {
@@ -776,16 +776,11 @@ public class EMDecoder extends Decoder {
     boolean debugFlag = false;
     if (debugJoin) {
       Symbol modificandLabel = (Symbol)modificand.label();
-      boolean modificandLabelP = modificandLabel == PP;
-      boolean modLabelP = modLabel == VPA;
-      /*
-      debugFlag = (modificandLabelP && side == Constants.LEFT &&
-		   ((modificand.start() >= 3 && modificand.end() <= 4 &&
-		     modifier.start() >= 3 && modifier.end() <= 4)));
-      */
-      debugFlag = (side == Constants.LEFT &&
-		   ((modificand.start() == 4 && modificand.end() == 4) &&
-		    (modifier.start() == 3 && modifier.end() == 3)));
+      boolean modificandLabelP = modificandLabel == VP;
+      boolean modLabelP = modLabel == VP;
+      debugFlag = (side == Constants.RIGHT &&
+		   ((modificand.start() == 10 && modificand.end() == 28) &&
+		    (modifier.start() == 29 && modifier.end() == 168)));
       if (debugFlag) {
 	System.err.println(className + ".join: trying to extend modificand\n" +
 			   modificand + "\nwith modifier\n" + modifier);
@@ -817,7 +812,10 @@ public class EMDecoder extends Decoder {
     if (debugJoin) {
       if (debugFlag) {
 	System.err.println(className + ".join: trying to extend modificand\n" +
-			   modificand + "\nwith modifier\n" + modifier);
+			   modificand + "\nwith modifier\n" + modifier +
+			   "\n\twith modProb=" + modProb + " for event " +
+			   modEvent + " for a combined inside prob of " +
+			   insideProb);
       }
     }
 

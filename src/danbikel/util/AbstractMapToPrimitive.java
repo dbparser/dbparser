@@ -753,11 +753,6 @@ abstract public class AbstractMapToPrimitive
     throw new UnsupportedOperationException();
   }
 
-  // FlexibleMap methods
-  public abstract int getCapacity();
-  public abstract float getLoadFactor();
-  public abstract String getStats();
-
   // overridden version of java.util.AbstractMap.toString method
     /**
      * Returns a string representation of this map.  The string representation

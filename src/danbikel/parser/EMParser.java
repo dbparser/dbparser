@@ -3,6 +3,7 @@ package danbikel.parser;
 import danbikel.util.*;
 import danbikel.lisp.*;
 import danbikel.switchboard.*;
+import danbikel.parser.constraints.*;
 import danbikel.parser.util.*;
 import java.util.*;
 import java.net.MalformedURLException;

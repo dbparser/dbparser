@@ -2,6 +2,7 @@ package danbikel.parser;
 
 import danbikel.util.*;
 import danbikel.lisp.*;
+import danbikel.parser.constraints.*;
 import java.io.Serializable;
 import java.util.*;
 import java.text.*;

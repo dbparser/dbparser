@@ -703,15 +703,24 @@ public class Decoder implements Serializable {
 
     chart.setSizeAndClear(sentence.length());
     initialize(sentence, tags);
+
     if (debugSentenceSize) {
       System.err.println(className + ": current sentence length: " + sentLen +
-                         " word" + (sentLen > 1 ? "s" : ""));
+                         " word" + (sentLen == 1 ? "" : "s"));
       numSents++;
       avgSentLen = ((numSents - 1)/(float)numSents) * avgSentLen +
                    (float)sentLen / numSents;
       System.err.println(className + ": cummulative average length: " +
                          avgSentLen + " words");
     }
+
+    if (sentLen == 0) {         // preprocessing could have removed all words!
+      chart.postParseCleanup(); // get rid of seed items from initialize()
+      sentence.clear();
+      sentence.addAll(originalSentence); // restore original sentence
+      return null;
+    }
+
     for (int span = 2; span <= sentLen; span++) {
       if (debugSpans)
         System.err.println(className + ": span: " + span);

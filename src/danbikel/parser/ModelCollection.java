@@ -31,10 +31,8 @@ public class ModelCollection implements Serializable {
   private transient Model gapModel;
   private transient Model leftSubcatModel;
   private transient Model rightSubcatModel;
-  private transient Model leftModNonterminalModel;
-  private transient Model rightModNonterminalModel;
-  private transient Model leftModWordModel;
-  private transient Model rightModWordModel;
+  private transient Model modNonterminalModel;
+  private transient Model modWordModel;
   private transient CountsTable vocabCounter;
   private transient CountsTable wordFeatureCounter;
   private transient CountsTable nonterminals;
@@ -75,18 +73,14 @@ public class ModelCollection implements Serializable {
    * @param gapModel the gap-generation model
    * @param leftSubcatModel the left subcat-generation model
    * @param rightSubcatmodel the right subcat-generation mode,l
-   * @param leftModNonterminalModel the left modifying nonterminal-generation
-   * model
-   * @param rightModNonterminalModel the right modifying nonterminal-generation
-   * model
-   * @param leftModWordModel the left modifying word-generation model
+   * @param modNonterminalModel the modifying nonterminal-generation model
+   * @param modWordModel the modifying word-generation model
    * @param vocabCounter a table of counts of all "known" words of the
    * training data
    * @param wordFeatureCounter a table of counts of all word features ("unknown"
    * words) of the training data
    * @param nonterminals a table of counts of all nonterminals occurring in
    * the training data
-   * @param rightModWordModel the right modifying word-generation model
    * @param posMap a mapping from lexical items to all of their possible parts
    * of speech
    * @param leftSubcatMap a mapping from left subcat-prediction conditioning
@@ -104,10 +98,8 @@ public class ModelCollection implements Serializable {
 		  Model gapModel,
 		  Model leftSubcatModel,
 		  Model rightSubcatModel,
-		  Model leftModNonterminalModel,
-		  Model rightModNonterminalModel,
-		  Model leftModWordModel,
-		  Model rightModWordModel,
+		  Model modNonterminalModel,
+		  Model modWordModel,
 		  CountsTable vocabCounter,
 		  CountsTable wordFeatureCounter,
 		  CountsTable nonterminals,
@@ -127,10 +119,8 @@ public class ModelCollection implements Serializable {
     this.gapModel = gapModel;
     this.leftSubcatModel = leftSubcatModel;
     this.rightSubcatModel = rightSubcatModel;
-    this.leftModNonterminalModel = leftModNonterminalModel;
-    this.rightModNonterminalModel = rightModNonterminalModel;
-    this.leftModWordModel = leftModWordModel;
-    this.rightModWordModel = rightModWordModel;
+    this.modNonterminalModel = modNonterminalModel;
+    this.modWordModel = modWordModel;
     this.vocabCounter = vocabCounter;
     this.wordFeatureCounter = wordFeatureCounter;
     this.nonterminals = nonterminals;
@@ -171,10 +161,8 @@ public class ModelCollection implements Serializable {
   public Model gapModel() { return gapModel; }
   public Model leftSubcatModel() { return leftSubcatModel; }
   public Model rightSubcatModel() { return rightSubcatModel; }
-  public Model leftModNonterminalModel() { return leftModNonterminalModel; }
-  public Model rightModNonterminalModel() { return rightModNonterminalModel; }
-  public Model leftModWordModel() { return leftModWordModel; }
-  public Model rightModWordModel() { return rightModWordModel; }
+  public Model modNonterminalModel() { return modNonterminalModel; }
+  public Model modWordModel() { return modWordModel; }
   public CountsTable vocabCounter() { return vocabCounter; }
   public CountsTable wordFeatureCounter() { return wordFeatureCounter; }
   public CountsTable nonterminals() { return nonterminals; }
@@ -280,31 +268,17 @@ public class ModelCollection implements Serializable {
     if (verbose)
       System.err.println("done (" + tempTimer + ").");
     if (verbose) {
-      System.err.print("Writing out leftModNonterminalModel...");
+      System.err.print("Writing out modNonterminalModel...");
       tempTimer.reset();
     }
-    s.writeObject(leftModNonterminalModel);
+    s.writeObject(modNonterminalModel);
     if (verbose)
       System.err.println("done (" + tempTimer + ").");
     if (verbose) {
-      System.err.print("Writing out rightModNonterminalModel...");
+      System.err.print("Writing out modWordModel...");
       tempTimer.reset();
     }
-    s.writeObject(rightModNonterminalModel);
-    if (verbose)
-      System.err.println("done (" + tempTimer + ").");
-    if (verbose) {
-      System.err.print("Writing out leftModWordModel...");
-      tempTimer.reset();
-    }
-    s.writeObject(leftModWordModel);
-    if (verbose)
-      System.err.println("done (" + tempTimer + ").");
-    if (verbose) {
-      System.err.print("Writing out rightModWordModel...");
-      tempTimer.reset();
-    }
-    s.writeObject(rightModWordModel);
+    s.writeObject(modWordModel);
     if (verbose)
       System.err.println("done (" + tempTimer + ").");
     if (verbose) {
@@ -468,35 +442,19 @@ public class ModelCollection implements Serializable {
     if (verbose)
       System.err.println("done (" + tempTimer + ").");
     if (verbose) {
-      System.err.print("Reading leftModNonterminalModel...");
+      System.err.print("Reading modNonterminalModel...");
       tempTimer.reset();
     }
-    leftModNonterminalModel = (Model)s.readObject();
-    leftModNonterminalModel.setCanonicalEvents(canonicalEvents);
+    modNonterminalModel = (Model)s.readObject();
+    modNonterminalModel.setCanonicalEvents(canonicalEvents);
     if (verbose)
       System.err.println("done (" + tempTimer + ").");
     if (verbose) {
-      System.err.print("Reading rightModNonterminalModel...");
+      System.err.print("Reading modWordModel...");
       tempTimer.reset();
     }
-    rightModNonterminalModel = (Model)s.readObject();
-    rightModNonterminalModel.setCanonicalEvents(canonicalEvents);
-    if (verbose)
-      System.err.println("done (" + tempTimer + ").");
-    if (verbose) {
-      System.err.print("Reading leftModWordModel...");
-      tempTimer.reset();
-    }
-    leftModWordModel = (Model)s.readObject();
-    leftModWordModel.setCanonicalEvents(canonicalEvents);
-    if (verbose)
-      System.err.println("done (" + tempTimer + ").");
-    if (verbose) {
-      System.err.print("Reading rightModWordModel...");
-      tempTimer.reset();
-    }
-    rightModWordModel = (Model)s.readObject();
-    rightModWordModel.setCanonicalEvents(canonicalEvents);
+    modWordModel = (Model)s.readObject();
+    modWordModel.setCanonicalEvents(canonicalEvents);
     if (verbose)
       System.err.println("done (" + tempTimer + ").");
     if (verbose) {

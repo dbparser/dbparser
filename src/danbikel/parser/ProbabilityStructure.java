@@ -36,6 +36,7 @@ import java.lang.reflect.*;
  */
 public abstract class ProbabilityStructure implements Serializable {
   protected transient int topLevelCacheSize;
+  protected transient boolean doPruning;
 
   protected final static String defaultModelClassName =
     Settings.get(Settings.defaultModelClass);
@@ -206,6 +207,7 @@ public abstract class ProbabilityStructure implements Serializable {
     transitionHashCodes = new int[numLevels()];
 
     topLevelCacheSize = getTopLevelCacheSize();
+    doPruning = Settings.getBoolean(getClass().getName() + ".doPruning");
   }
 
   /**
@@ -229,6 +231,8 @@ public abstract class ProbabilityStructure implements Serializable {
     return (topLevelCacheSizeStr == null ?
 	    0 : Integer.parseInt(topLevelCacheSizeStr));
   }
+
+  public boolean doPruning() { return doPruning; }
 
   /**
    * Returns a default name of the smoothing parameters file, which is the

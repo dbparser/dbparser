@@ -1008,6 +1008,23 @@ abstract public class HashMapPrimitive extends AbstractMapToPrimitive
     count++;
   }
 
+  /**
+   * Adds the specified entry to the beginning of the singly-linked list
+   * at its bucket index (indicating it is the most-recently used entry).
+   * <b>Warning</b>: This method does not check whether the specified entry's
+   * key already is in the map; subclasses should only invoke this method
+   * when it has already been ascertained that the entry's key is not in
+   * the map.
+   *
+   * @param entry the entry to add as most-recently used in its bucket
+   */
+  protected void addEntryMRU(Entry entry) {
+    Entry tab[] = table;
+    int index = (entry.hash & 0x7FFFFFFF) % tab.length;
+    entry.next = tab[index];
+    tab[index] = entry;
+  }
+
   /*
   public final void add(Object key) {
     add(key, 1);
@@ -1106,6 +1123,35 @@ abstract public class HashMapPrimitive extends AbstractMapToPrimitive
       }
     }
 
+    return null;
+  }
+
+  protected MapToPrimitive.Entry removeLRU(Object key) {
+    return removeLRU(key.hashCode());
+  }
+
+  /**
+   * Removes the last entry at the specified bucket index, if that bucket
+   * contains at least one entry.
+   *
+   * @param hashCode the hashCode of an object whose bucket is to be emptied
+   * of its least-recently-used entry
+   * @return the removed entry, or <code>null</code> if no entry was removed
+   */
+  protected MapToPrimitive.Entry removeLRU(int hashCode) {
+    Entry tab[] = table;
+    int index = (hashCode & 0x7FFFFFFF) % tab.length;
+    for (Entry e = tab[index], prev = null; e != null;
+         prev = e, e = e.next) {
+      if (e.next == null) {
+        Entry oldEntry = e;
+        if (prev != null)
+          prev.next = null;
+        else
+          tab[index] = null;
+        return e;
+      }
+    }
     return null;
   }
 
@@ -1371,10 +1417,6 @@ abstract public class HashMapPrimitive extends AbstractMapToPrimitive
     }
 
     // Map.Entry Ops
-
-    public Object getKey() {
-      return key;
-    }
 
     public Object getValue() {
       throw new UnsupportedOperationException();

@@ -54,6 +54,7 @@ public class SubcatBag implements Subcat, Externalizable {
   private static Symbol stopSym = Language.training.stopSym();
   private static Symbol[] symbols;
   static {
+    Treebank treebank = Language.treebank();
     Symbol headSym = Language.training.headSym();
     Symbol headPreSym = Language.training.headPreSym();
     Symbol headPostSym = Language.training.headPostSym();
@@ -75,7 +76,10 @@ public class SubcatBag implements Subcat, Externalizable {
 	int argListLen = argList.length();
 	for (int i = 0; i < argListLen; i++) {
           Symbol argLabel = argList.symbolAt(i);
-	  if (symbolsToInts.containsKey(argLabel) == false) {
+          Nonterminal parsedArgLabel = treebank.parseNonterminal(argLabel);
+          // if this is not an arg label indicating to look for a semantic tag
+	  if (parsedArgLabel.base != Constants.kleeneStarSym &&
+              symbolsToInts.containsKey(argLabel) == false) {
             /*
             argLabel =
               Symbol.get(argLabel.toString() + delimChar + argAugmentation);

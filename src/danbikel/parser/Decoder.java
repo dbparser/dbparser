@@ -33,8 +33,7 @@ public class Decoder implements Serializable {
    * type of list that should be used when there are zero real previous
    * modifiers (to start the Markov modifier process).
    */
-  private final SexpList startList =
-    new SexpList(1).add(Language.training.startSym());
+  private final SexpList startList = Trainer.newStartList();
 
   private final static String className = Decoder.class.getName();
 

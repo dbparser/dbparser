@@ -115,19 +115,19 @@ public class SLNode implements Serializable {
       private SLNode curr = SLNode.this;
       private boolean nextCalled = false;
       public boolean hasNext() {
-        nextCalled = true;
-        return curr.next() != null;
+	nextCalled = true;
+	return curr != null;
       }
       public Object next() {
-        Object currData = curr.data();
-        curr = curr.next();
-        return currData;
+	Object currData = curr.data();
+	curr = curr.next();
+	return currData;
       }
       public void remove() {
-        if (!nextCalled || !hasNext())
-          throw new IllegalStateException();
-        curr.setNext(curr.next().next());
-        curr = curr.next();
+	if (!nextCalled || !hasNext())
+	  throw new IllegalStateException();
+	curr.setNext(curr.next().next());
+	curr = curr.next();
       }
     };
   }
@@ -179,10 +179,10 @@ public class SLNode implements Serializable {
     SLNode curr = this;
     while (curr != null && other != null) {
       if ((curr.data == null && other.data != null) ||
-          (curr.data != null && other.data == null))
-        return false;
+	  (curr.data != null && other.data == null))
+	return false;
       if (curr.data != null && curr.data.equals(other.data) == false)
-        return false;
+	return false;
       curr = curr.next;
       other = other.next;
     }

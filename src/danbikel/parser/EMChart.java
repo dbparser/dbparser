@@ -24,16 +24,12 @@ public class EMChart extends CKYChart {
     Entry() { super(); }
   }
 
-  // additional data member
-  protected Entry[][] chart;
-
   // constructors
   /**
    * Constructs a new chart with the default chart size.
    */
   public EMChart() {
     super();
-    super.chart = chart;
   }
   /**
    * Constructs a new chart with the specified chart size.
@@ -42,7 +38,6 @@ public class EMChart extends CKYChart {
    */
   public EMChart(int size) {
     super(size);
-    super.chart = chart;
   }
 
   /**
@@ -77,8 +72,8 @@ public class EMChart extends CKYChart {
 	  chart[i][j] = new Entry();
 	else {
 	  chart[i][j].clear();
-	  chart[i][j].numLevels = 0;
-	  int[] levelCounts = chart[i][j].numItemsAtLevel;
+	  ((Entry)chart[i][j]).numLevels = 0;
+	  int[] levelCounts = ((Entry)chart[i][j]).numItemsAtLevel;
 	  for (int k = 0; k < levelCounts.length; k++)
 	    levelCounts[k] = 0;
 	}
@@ -187,7 +182,7 @@ public class EMChart extends CKYChart {
 
     boolean added = false;
 
-    Entry chartEntry = chart[start][end];
+    Entry chartEntry = (Entry)chart[start][end];
     MapToPrimitive items = chartEntry.map;
     MapToPrimitive.Entry itemEntry = items.getEntry(item);
     boolean itemExists = itemEntry != null;
@@ -259,10 +254,10 @@ public class EMChart extends CKYChart {
   }
 
   public int numUnaryLevels(int start, int end) {
-    return chart[start][end].numLevels;
+    return ((Entry)chart[start][end]).numLevels;
   }
 
   public int[] unaryLevelCounts(int start, int end) {
-    return chart[start][end].numItemsAtLevel;
+    return ((Entry)chart[start][end]).numItemsAtLevel;
   }
 }

@@ -1,6 +1,7 @@
 package danbikel.lisp;
 
 import java.io.*;
+import java.util.zip.*;
 import java.net.URL;
 
 /**
@@ -10,6 +11,17 @@ import java.net.URL;
  * character is a semicolon (the character ';').
  */
 public class SexpTokenizer extends WordTokenizer {
+
+  private static InputStream streamFromFile(File file)
+    throws FileNotFoundException, IOException {
+    InputStream is = new FileInputStream(file);
+    return file.getName().endsWith(".gz") ? new GZIPInputStream(is) : is;
+  }
+  private static InputStream streamFromFile(String filename)
+    throws FileNotFoundException, IOException {
+    InputStream is = new FileInputStream(filename);
+    return filename.endsWith(".gz") ? new GZIPInputStream(is) : is;
+  }
 
   /**
    * Constructs a <code>SexpTokenizer</code> with the specified stream
@@ -51,8 +63,8 @@ public class SexpTokenizer extends WordTokenizer {
    * @throws FileNotFoundException if the specified file does not exist
    */
   public SexpTokenizer(String filename, String encoding, int bufSize)
-    throws UnsupportedEncodingException, FileNotFoundException {
-    this(new BufferedReader(new InputStreamReader(new FileInputStream(filename),
+    throws UnsupportedEncodingException, FileNotFoundException, IOException {
+    this(new BufferedReader(new InputStreamReader(streamFromFile(filename),
 						  encoding),
 			    bufSize));
   }
@@ -73,8 +85,8 @@ public class SexpTokenizer extends WordTokenizer {
    */
   public SexpTokenizer(String filename, String encoding, int bufSize,
 		       boolean comments)
-    throws UnsupportedEncodingException, FileNotFoundException {
-    this(new BufferedReader(new InputStreamReader(new FileInputStream(filename),
+    throws UnsupportedEncodingException, FileNotFoundException, IOException {
+    this(new BufferedReader(new InputStreamReader(streamFromFile(filename),
 						  encoding),
 			    bufSize),
 	 comments);
@@ -95,8 +107,8 @@ public class SexpTokenizer extends WordTokenizer {
    * @throws FileNotFoundException if the specified file does not exist
    */
   public SexpTokenizer(File file, String encoding, int bufSize)
-    throws UnsupportedEncodingException, FileNotFoundException {
-    this(new BufferedReader(new InputStreamReader(new FileInputStream(file),
+    throws UnsupportedEncodingException, FileNotFoundException, IOException {
+    this(new BufferedReader(new InputStreamReader(streamFromFile(file),
 						  encoding),
 			    bufSize));
   }
@@ -117,8 +129,8 @@ public class SexpTokenizer extends WordTokenizer {
    */
   public SexpTokenizer(File file, String encoding, int bufSize,
 		       boolean comments)
-    throws UnsupportedEncodingException, FileNotFoundException {
-    this(new BufferedReader(new InputStreamReader(new FileInputStream(file),
+    throws UnsupportedEncodingException, FileNotFoundException, IOException {
+    this(new BufferedReader(new InputStreamReader(streamFromFile(file),
 						  encoding),
 			    bufSize),
 	 comments);

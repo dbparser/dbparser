@@ -247,6 +247,22 @@ public abstract class AbstractTreebank implements Treebank, Serializable {
   public abstract Symbol baseNPLabel();
 
   /**
+   * Returns whether the specified label is for a base NP.  The default
+   * implementation here simply tests for object equality between the
+   * specified label and the label returned by {@#baseNPLabel}.  If
+   * a particular language package can have various types of base NP labels
+   * (such as those bearing node augmentations), then this method
+   * should be overridden.
+   *
+   * @param label the label to test
+   *
+   * @return whether the specified label is for a base NP.
+   */
+  public boolean isBaseNP(Symbol label) {
+    return label == baseNPLabel();
+  }
+
+  /**
    * Returns <code>true</code> if the canonical version of the specified label
    * is an NP that undergoes WH-movement in a particular Treebank.  This method
    * is used by {@link Training#addGapInformation(Sexp)}.  If a particular

@@ -162,7 +162,7 @@ public abstract class Chart implements Serializable {
     double topProb = chart[start][end].topLogProb;
 
     if (debugPrune || debugNumPrunedItems) {
-      boolean belowTheshold = item.logProb() < (topProb - pruneFact);
+      boolean belowThreshold = item.logProb() < (topProb - pruneFact);
       if (debugPrune){
         if (belowThreshold)
           System.err.println(className +
@@ -172,7 +172,7 @@ public abstract class Chart implements Serializable {
                              " = " + (topProb - pruneFact));
       }
       if (debugNumPrunedItems) {
-        if (belowTheshold)
+        if (belowThreshold)
           numPrePruned++;
       }
     }

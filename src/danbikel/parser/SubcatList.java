@@ -149,11 +149,12 @@ public class SubcatList extends SexpList implements Subcat, Externalizable {
   }
 
 
-  public Subcat getCanonical(Map map, boolean unused) {
+  public Subcat getCanonical(boolean copyInto, Map map) {
     Subcat mapElt = (Subcat)map.get(this);
     if (mapElt == null) {
-      map.put(this, this);
-      return this;
+      Subcat putInMap = copyInto ? (Subcat)this.copy() : this;
+      map.put(putInMap, putInMap);
+      return putInMap;
     }
     else {
       return mapElt;

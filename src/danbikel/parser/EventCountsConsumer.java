@@ -95,8 +95,8 @@ public class EventCountsConsumer implements Consumer, Runnable {
     this.asynchronousWrite = asynchronousWrite;
     this.strictWriteInterval = strictWriteInterval;
     if (asynchronousWrite) {
-      events = new CountsTable();
-      eventsSwap = new CountsTable();
+      events = new CountsTableImpl();
+      eventsSwap = new CountsTableImpl();
       timeToDie = false;
     }
   }
@@ -163,6 +163,8 @@ public class EventCountsConsumer implements Consumer, Runnable {
   }
 
   public void consume(NumberedObject obj) {
+    if (!obj.processed())
+      return;
     if (asynchronousWrite)
       consumeForDumper(obj);
     else {

@@ -80,7 +80,7 @@ public class PrintCFG {
    * Reads in parse trees either from a specified file or from standard input,
    * collects all CFG expansions and prints them, one per line, in the form
    * <tt>LHS -> RHS</tt>, to standard output.
-   * <pre>usage: [- | <filename>] [-ct | --convert-tags]</pre>
+   * <pre>usage: [- | &lt;filename&gt;] [-ct | --convert-tags]</pre>
    * where the <tt>-ct|--convert-tags</tt> option indicates to convert all
    * part-of-speech tags to the string <tt>POS</tt>.
    */

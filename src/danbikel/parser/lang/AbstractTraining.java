@@ -191,6 +191,8 @@ public abstract class AbstractTraining implements Training, Serializable {
    */
   protected Set nodesToPrune;
 
+  protected Set wordsToPrune;
+
   /**
    * The set of preterminals (<code>Sexp</code> objects) that have been pruned
    * away.
@@ -317,6 +319,7 @@ public abstract class AbstractTraining implements Training, Serializable {
     argContexts = new HashMap();
     semTagArgStopSet = new HashSet();
     nodesToPrune = new HashSet();
+    wordsToPrune = new HashSet();
     canonicalAugDelimSym =
       Symbol.add(new String(new char[] {treebank.canonicalAugDelimiter()}));
   }
@@ -384,6 +387,18 @@ public abstract class AbstractTraining implements Training, Serializable {
     stripAugmentations(tree);
     //fixSubjectlessSentences(tree);  this method now in English lang. package
     return tree;
+  }
+
+  public boolean removeWord(Symbol word, Symbol tag, int idx, SexpList sentence,
+			    SexpList tags, SexpList originalTags,
+			    Set prunedPretermsPosSet,
+			    Map prunedPretermsPosMap) {
+    /*
+    return (tag != null ?
+	    prunedPretermsPosSet.contains(tag) :
+	    prunedPretermsPosMap.containsKey(word));
+    */
+    return prunedPretermsPosMap.containsKey(word);
   }
 
   /**
@@ -523,13 +538,24 @@ public abstract class AbstractTraining implements Training, Serializable {
       return tree;
     if (tree.isList()) {
       SexpList treeList = tree.list();
-      for (int i = 1; i < treeList.length(); i++)
-	if (nodesToPrune.contains(treeList.getChildLabel(i))) {
-	  collectPreterms(prunedPreterms, treeList.get(i));
-	  treeList.remove(i--);
-	}
-	else
-	  prune(treeList.get(i));
+      for (int i = 1; i < treeList.length(); i++) {
+        SexpList curr = treeList.listAt(i);
+        if (nodesToPrune.contains(curr.get(0)) ||
+            (treebank.isPreterminal(curr) &&
+             wordsToPrune.contains(curr.get(1)))) {
+          collectPreterms(prunedPreterms, treeList.get(i));
+          treeList.remove(i--);
+        }
+        else {
+          prune(treeList.get(i));
+          // if pruning nodes from the current child of treeList leaves
+          // a childless child, then remove the current child
+          if (treeList.get(i).isList() &&
+              treeList.get(i).list().length() == 1) {
+            treeList.remove(i--);
+          }
+        }
+      }
     }
     return tree;
   }
@@ -571,12 +597,30 @@ public abstract class AbstractTraining implements Training, Serializable {
       for (int childIdx = 1; childIdx < treeListLen; childIdx++)
 	identifyArguments(treeList.get(childIdx));
 
-      Symbol parent =
-	treebank.getCanonical(tree.list().first().symbol());
-      SexpList candidatePatterns = (SexpList)argContexts.get(parent);
+      // collect *all* candidate pattern lists in argContexts that apply to the
+      // current parent: run through each key in argContexts map, and see if it
+      // subsumes current parent; if so, add to allCandidatePatterns, which is
+      // a list of lists
+      Symbol parent = tree.list().first().symbol();
+      Nonterminal parsedParent =
+	treebank.parseNonterminal(parent, nonterminal);
+      SexpList allCandidatePatterns = new SexpList();
+      Iterator entries = argContexts.entrySet().iterator();
+      while (entries.hasNext()) {
+	Map.Entry entry = (Map.Entry)entries.next();
+	Symbol key = (Symbol)entry.getKey();
+	SexpList currPatternList = (SexpList)entry.getValue();
+	Nonterminal parsedKey = treebank.parseNonterminal(key, nonterminal2);
+	if (parsedKey.subsumes(parsedParent))
+	  allCandidatePatterns.add(currPatternList);
+      }
 
       int headIdx = headFinder.findHead(treeList);
-      if (candidatePatterns != null) {
+
+      for (int patternIdx = 0; patternIdx < allCandidatePatterns.length();
+	   patternIdx++) {
+	SexpList candidatePatterns = allCandidatePatterns.listAt(patternIdx);
+      
 	Symbol headChild = (headIdx == 0 ? null :
 			    treeList.get(headIdx).list().first().symbol());
 
@@ -608,8 +652,8 @@ public abstract class AbstractTraining implements Training, Serializable {
 
 	      // if the arg is actually a conjunction or punctuation,
 	      // OR ANY KIND OF PRETERMINAL,
-	      // if possible, find the first child to the left or right of argIdx that
-	      // is not a preterminal
+	      // if possible, find the first child to the left or right of
+	      // argIdx that is not a preterminal
 	      if (treebank.isPreterminal(child) ||
 		  treebank.isConjunction(child) || treebank.isPunctuation(child)) {
 		if (headOffset > 0) {
@@ -703,45 +747,11 @@ public abstract class AbstractTraining implements Training, Serializable {
 
 	  // the following line means we only find arguments in situations
 	  // where the head child's label is different from the parent label
-	  if (treebank.getCanonical(headChild) != parent) {
+	  if (treebank.getCanonical(headChild) !=
+	      treebank.getCanonical(parent)) {
 	  //if (true) {
 	    relabelArgChildren(treeList, headIdx, candidatePatterns);
-	    /*
-	    for (int childIdx = 1; childIdx < treeListLen; childIdx++) {
-	      if (!relabelHeadChildrenAsArgs)
-		if (childIdx == headIdx)
-		  continue;
-	      Symbol child = treeList.getChildLabel(childIdx);
-	      int candidateChildIdx =
-		candidatePatterns.indexOf(treebank.getCanonical(child));
-	      if (candidateChildIdx != -1) {
-		Nonterminal parsedChild =
-		  treebank.parseNonterminal(child, nonterminal);
-		SexpList augmentations = parsedChild.augmentations;
-		int augLen = augmentations.length();
-		boolean isArg = true;
-		for (int i = 0; i < augLen; i++) {
-		  if (semTagArgStopSet.contains(augmentations.get(i))) {
-		    isArg = false;
-		    break;
-		  }
-		}
-		if (isArg) {
-                  addArgAugmentation(child, parsedChild);
-		  treeList.setChildLabel(childIdx, parsedChild.toSymbol());
-		}
-	      }
-	    }
-	    */
 	  }
-	}
-      }
-      else {
-	// the current parent had no arg-finding rule, so we need to use
-	// the default rule, if one exists
-	candidatePatterns = (SexpList)argContexts.get(Constants.kleeneStarSym);
-	if (candidatePatterns != null) {
-	  relabelArgChildren(treeList, headIdx, candidatePatterns);
 	}
       }
     }
@@ -1579,7 +1589,7 @@ public abstract class AbstractTraining implements Training, Serializable {
       Symbol lastChild = treeList.getChildLabel(treeListLen - 1);
       boolean thereAreAtLeastTwoChildren = treeListLen > 2;
       if (thereAreAtLeastTwoChildren &&
-	  treeList.first().symbol() == baseNP &&
+	  treebank.isBaseNP(treeList.first().symbol()) &&
 	  isTypeOfSentence(lastChild)) {
 	if (grandparent != null) {
 	  // add the final S of this base NP as a sibling immediately
@@ -1594,6 +1604,48 @@ public abstract class AbstractTraining implements Training, Serializable {
       }
       for (int i = 1; i < treeList.length(); i++)
 	repairBaseNPs(tree, i, treeList.get(i));
+    }
+    return tree;
+  }
+
+  /**
+   * Adds any argument augmentations on an NP to its head child, continuing
+   * recursively until reaching a preterminal.
+   */
+  protected Sexp threadNPArgAugmentations(Sexp tree) {
+    if (treebank.isPreterminal(tree))
+      return tree;
+    if (tree.isList()) {
+      SexpList treeList = tree.list();
+      int treeListLen = treeList.length();
+      Symbol parent  = treeList.symbolAt(0);
+      if (treebank.isNP(parent) && isArgumentFast(parent)) {
+	int headIdx = headFinder.findHead(treeList);
+	Symbol headChildLabel = treeList.getChildLabel(headIdx);
+	if (treebank.isNP(headChildLabel) && !isArgumentFast(headChildLabel)) {
+	  // smash head child's tree's root label to have same arg augmentation
+	  // as current parent
+	  Nonterminal parsedParent =
+	    treebank.parseNonterminal(parent, nonterminal);
+	  Nonterminal parsedHeadChild =
+	    treebank.parseNonterminal(headChildLabel, nonterminal2);
+	  // go through each aug of parsedParent: if it is an arg aug,
+	  // add to aug list of head child
+	  SexpList parentAugs = parsedParent.augmentations;
+	  SexpList headAugs = parsedHeadChild.augmentations;
+	  for (int augIdx = 0; augIdx < parentAugs.length(); augIdx++) {
+	    if (argAugmentations.contains(parentAugs.get(augIdx))) {
+	      // add both delimiter and arg aug to headChild's aug list
+	      headAugs.add(parentAugs.get(augIdx - 1));
+	      headAugs.add(parentAugs.get(augIdx));
+	    }
+	  }
+	  // finally, smash label of head child subtree
+	  treeList.listAt(headIdx).set(0, parsedHeadChild.toSymbol());
+	}
+      }
+      for (int i = 1; i < treeListLen; i++)
+	threadNPArgAugmentations(treeList.get(i));
     }
     return tree;
   }
@@ -1829,7 +1881,7 @@ public abstract class AbstractTraining implements Training, Serializable {
           SexpList augmentations = parsedArgLabel.augmentations;
           for (int augIdx = 0; augIdx < augmentations.length(); augIdx++) {
             Sexp thisAug = augmentations.get(augIdx);
-            if (!Language.treebank().isAugDelim(thisAug))
+            if (!treebank.isAugDelim(thisAug))
               argAugmentations.add(thisAug);
           }
         }
@@ -2012,7 +2064,7 @@ public abstract class AbstractTraining implements Training, Serializable {
 	  if (parentLabel == treebank.NPLabel()) {
 	    Symbol childLabel =
 	      treebank.stripAugmentation(currChild.list().symbolAt(0));
-	    if (childLabel == treebank.baseNPLabel()) {
+	    if (treebank.isBaseNP(childLabel)) {
 	      // we've got an NP dominating an only child base NP!
 	      // first, remove baseNP from parent
 	      currChildRemoved = true;
@@ -2100,7 +2152,7 @@ public abstract class AbstractTraining implements Training, Serializable {
 					    Constants.defaultFileBufsize);
       OutputStreamWriter errosw =
 	new OutputStreamWriter(System.err, Language.encoding());
-      PrintWriter err = new PrintWriter(new BufferedWriter(errosw), true);
+      PrintWriter err = new PrintWriter(errosw, true);
       OutputStreamWriter osw =
 	new OutputStreamWriter(System.out, Language.encoding());
       PrintWriter out = new PrintWriter(new BufferedWriter(osw), true);

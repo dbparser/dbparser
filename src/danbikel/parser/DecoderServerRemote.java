@@ -28,9 +28,15 @@ public interface DecoderServerRemote extends Server {
   public Set prunedPunctuation() throws RemoteException;
 
   /**
-   * Replaces every low-frequency or "unknown" word of the specified sentence
-   * with a two-element <code>SexpList</code> object, whose first element
-   * is the original word and whose second element is the word feature vector.
+   * Replaces all unknown words in the specified sentence with
+   * three-element lists, where the first element is the word itself, the
+   * second element is a word-feature vector, as determined by the
+   * implementation of {@link WordFeatures#features(Symbol,boolean)}, and
+   * the third element is {@link Constants#trueSym} if this word was never
+   * observed during training or {@link Constants#falseSym} if it was
+   * observed at least once during training.
+   *
+   * @param sentence a list of symbols representing a sentence to be parsed
    */
   public SexpList convertUnknownWords(SexpList sentence) throws RemoteException;
 
@@ -52,15 +58,39 @@ public interface DecoderServerRemote extends Server {
   public double logPrior(int id, TrainerEvent event) throws RemoteException;
 
   /**
-   * Returns the log of the probability of generating a new head (and possibly
-   * its left- and right-subcat frames.
+   * Returns the log of the probability of generating a new head and
+   * its left and right subcat frames.
    *
    * @param id the unique id of the client invoking the method
    * @param event the top-level <code>TrainerEvent</code>, containing the
    * complete context needed to compute the requested probability
-   * @return the log of the probability of generating a new head
+   * @return the log of the probability of generating a new head and its
+   * left and right subcat frames
    */
+  public double logProbHeadWithSubcats(int id, TrainerEvent event) throws RemoteException;
+
   public double logProbHead(int id, TrainerEvent event) throws RemoteException;
+
+  public double logProbLeftSubcat(int id, TrainerEvent event)
+    throws RemoteException;
+
+  public double logProbRightSubcat(int id, TrainerEvent event)
+    throws RemoteException;
+
+  public double logProbSubcat(int id, TrainerEvent event, boolean side)
+    throws RemoteException;
+
+  /**
+   * Returns the log of the probability of generating the head nonterminal
+   * of an entire sentence.
+   *
+   * @param id the unique id of the client invoking the method
+   * @param event the top-level <code>TrainerEvent</code>, containing the
+   * complete context needed to compute the requested probability
+   * @return the log of the probability of generating the head nonterminal
+   * of an entire sentence
+   */
+  public double logProbTop(int id, TrainerEvent event) throws RemoteException;
 
   /**
    * Returns the log of the probability of generating a right modifier.
@@ -72,6 +102,9 @@ public interface DecoderServerRemote extends Server {
    */
   public double logProbRight(int id, TrainerEvent event) throws RemoteException;
 
+  public double logProbRightModNT(int id, TrainerEvent event)
+    throws RemoteException;
+
   /**
    * Returns the log of the probability of generating a left modifier.
    *
@@ -82,7 +115,13 @@ public interface DecoderServerRemote extends Server {
    */
   public double logProbLeft(int id, TrainerEvent event) throws RemoteException;
 
+  public double logProbLeftModNT(int id, TrainerEvent event)
+    throws RemoteException;
+
   public double logProbMod(int id, TrainerEvent event, boolean side)
+    throws RemoteException;
+
+  public double logProbModNT(int id, TrainerEvent event, boolean side)
     throws RemoteException;
 
   /**

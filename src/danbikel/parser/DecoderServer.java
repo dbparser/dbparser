@@ -23,6 +23,7 @@ public class DecoderServer
     Boolean.valueOf(Settings.get(Settings.downcaseWords)).booleanValue();
   private Word stopWord = Language.training.stopWord();
 
+
   /**
    * Constructs a non-exported <code>DecoderServer</code> object.
    */
@@ -121,10 +122,13 @@ public class DecoderServer
   }
 
   /**
-   * Replaces all unknown (low-frequency) words in the specified sentence with
-   * two-element lists, where the first element is the word itself and the
+   * Replaces all unknown words in the specified sentence with
+   * three-element lists, where the first element is the word itself, the
    * second element is a word-feature vector, as determined by the
-   * implementation of {@link WordFeatures#features(Symbol,boolean)}.
+   * implementation of {@link WordFeatures#features(Symbol,boolean)}, and
+   * the third element is {@link Constants#trueSym} if this word was never
+   * observed during training or {@link Constants#falseSym} if it was
+   * observed at least once during training.
    *
    * @param sentence a list of symbols representing a sentence to be parsed
    */
@@ -136,11 +140,14 @@ public class DecoderServer
       Sexp word = (downcaseWords ?
                    Symbol.get(sentence.get(i).toString().toLowerCase()) :
                    sentence.get(i));
-      if (vocabCounter.count(word) < unknownWordThreshold) {
+      int freq = vocabCounter.count(word);
+      if (freq < unknownWordThreshold) {
         Symbol features =
           Language.wordFeatures.features(sentence.symbolAt(i), i==0);
+	Symbol neverObserved =
+	  (freq == 0 ? Constants.trueSym : Constants.falseSym);
         SexpList wordAndFeatures =
-          new SexpList(2).add(sentence.get(i)).add(features);
+          new SexpList(3).add(sentence.get(i)).add(features).add(neverObserved);
         sentence.set(i, wordAndFeatures);
       }
     }
@@ -278,23 +285,37 @@ public class DecoderServer
     return lexPriorProb + nonterminalPriorProb;
   }
 
+  public double logProbHeadWithSubcats(int id, TrainerEvent event) {
+    double headProb = modelCollection.headModel().estimateLogProb(id, event);
+    if (headProb == Constants.logOfZero)
+      return Constants.logOfZero;
+    double leftSubcatProb =
+      modelCollection.leftSubcatModel().estimateLogProb(id, event);
+    if (leftSubcatProb == Constants.logOfZero)
+      return Constants.logOfZero;
+    double rightSubcatProb =
+      modelCollection.rightSubcatModel().estimateLogProb(id, event);
+    if (rightSubcatProb == Constants.logOfZero)
+      return Constants.logOfZero;
+    return headProb + leftSubcatProb + rightSubcatProb;
+  }
+
   public double logProbHead(int id, TrainerEvent event) {
-    if (event.parent() == topSym)
-      return logProbTop(id, event);
-    else {
-      double headProb = modelCollection.headModel().estimateLogProb(id, event);
-      if (headProb == Constants.logOfZero)
-	return Constants.logOfZero;
-      double leftSubcatProb =
-	modelCollection.leftSubcatModel().estimateLogProb(id, event);
-      if (leftSubcatProb == Constants.logOfZero)
-	return Constants.logOfZero;
-      double rightSubcatProb =
-	modelCollection.rightSubcatModel().estimateLogProb(id, event);
-      if (rightSubcatProb == Constants.logOfZero)
-	return Constants.logOfZero;
-      return headProb + leftSubcatProb + rightSubcatProb;
-    }
+    return modelCollection.headModel().estimateLogProb(id, event);
+  }
+
+  public double logProbLeftSubcat(int id, TrainerEvent event) {
+    return modelCollection.leftSubcatModel().estimateLogProb(id, event);
+  }
+
+  public double logProbRightSubcat(int id, TrainerEvent event) {
+    return modelCollection.rightSubcatModel().estimateLogProb(id, event);
+  }
+
+  public double logProbSubcat(int id, TrainerEvent event, boolean side) {
+    return (side == Constants.LEFT ?
+	    modelCollection.leftSubcatModel().estimateLogProb(id, event) :
+	    modelCollection.rightSubcatModel().estimateLogProb(id, event));
   }
 
   public double logProbTop(int id, TrainerEvent event) {
@@ -323,6 +344,11 @@ public class DecoderServer
     return leftModNTProb + leftWordProb;
   }
 
+  public double logProbLeftModNT(int id, TrainerEvent event) {
+    Model leftModNTModel = modelCollection.leftModNonterminalModel();
+    return leftModNTModel.estimateLogProb(id, event);
+  }
+
   public double logProbRight(int id, TrainerEvent event) {
     Model rightModNTModel = modelCollection.rightModNonterminalModel();
     Model rightModWordModel = modelCollection.rightModWordModel();
@@ -337,10 +363,21 @@ public class DecoderServer
     return rightModNTProb + rightWordProb;
   }
 
+  public double logProbRightModNT(int id, TrainerEvent event) {
+    Model rightModNTModel = modelCollection.rightModNonterminalModel();
+    return rightModNTModel.estimateLogProb(id, event);
+  }
+
   public double logProbMod(int id, TrainerEvent event, boolean side) {
     return (side == Constants.LEFT ?
             logProbLeft(id, event) :
             logProbRight(id, event));
+  }
+
+  public double logProbModNT(int id, TrainerEvent event, boolean side) {
+    return (side == Constants.LEFT ?
+	    logProbLeftModNT(id, event) :
+	    logProbRightModNT(id, event));
   }
 
   public double logProbGap(int id, TrainerEvent event) {

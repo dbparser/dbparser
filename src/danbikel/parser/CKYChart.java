@@ -132,8 +132,14 @@ public class CKYChart extends Chart {
   }
 
   protected void reclaimItemCollection(Collection c) {
-    if (c.size() > 0)
+    if (c.size() > 0) {
+      Iterator it  = c.iterator();
+      while (it.hasNext()) {
+        Item item = (Item)it.next();
+        item.clear();
+      }
       itemPool.putBackAll(c);
+    }
   }
 
   /**

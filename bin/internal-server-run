@@ -1,9 +1,13 @@
 #!/bin/tcsh -f
 
 # check that required args are present
-if ($#argv != 2) then
-    echo "usage: <derived data file> <input file>"
+if ($#argv != 2 && $#argv != 3) then
+    echo "usage: [host] <derived data file> <input file>"
     exit 1
+endif
+
+if ($#argv == 3) then
+    shift
 endif
 
 # date and time variables, upon which $outputDir is based

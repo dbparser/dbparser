@@ -75,6 +75,6 @@ public class ModNonterminalModelStructure2 extends ProbabilityStructure {
   }
 
   public ProbabilityStructure copy() {
-    return new ModNonterminalModelStructure1();
+    return new ModNonterminalModelStructure2();
   }
 }

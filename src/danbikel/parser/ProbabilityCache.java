@@ -179,6 +179,29 @@ public class ProbabilityCache extends danbikel.util.HashMapDouble {
     return;
   }
 
+  public synchronized void put(Object key, int hashCode, double probability) {
+    if (size() >= maxCapacity) {
+      switch (strategy) {
+      case RANDOM:
+        removeRandom();
+        break;
+      case BUCKET_LRU:
+        //return super.putAndRemove(key, new Double(probability));
+        super.putAndRemove(key, hashCode, probability);
+        return;
+      case HALF_LIFE:
+        clearHalf();
+        break;
+      case CLEAR_ALL:
+        clear();
+        break;
+      }
+    }
+    //return super.put(key, new Double(probability));
+    super.put(key, hashCode, probability);
+    return;
+  }
+
   /**
    * Throws an <code>UnsupportedOperationException</code>, as the only
    * way to get values from this specialized cache is through the
@@ -203,6 +226,12 @@ public class ProbabilityCache extends danbikel.util.HashMapDouble {
     return (strategy == BUCKET_LRU ?
             super.getAndMakeMRU(key) :
             super.getDouble(key));
+  }
+
+  public synchronized double getProb(Object key, int hashCode) {
+    return (strategy == BUCKET_LRU ?
+            super.getAndMakeMRU(key, hashCode) :
+            super.getDouble(key, hashCode));
   }
 
   public synchronized boolean containsKey(Object key) {

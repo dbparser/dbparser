@@ -4,9 +4,11 @@ set host = $1
 set logDir = $2
 set args = ($argv[3-$#argv])
 
+set parent = `dirname $0`/..
+
 # set up shell variables cl and sb for client and switchboard, respectively
 # (we only need cl for this script)
-source $HOME/db-parser/var.tcsh
+source $parent/policy.tcsh
 
 # start the parser
 java -server -Xms330m -Xmx330m $cl danbikel.parser.Parser $args >& \

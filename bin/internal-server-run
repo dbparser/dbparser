@@ -1,5 +1,8 @@
 #!/bin/tcsh -f
 
+set thisScriptDir = `dirname $0`
+set parent = $thisScriptDir/..
+
 # date and time variables, upon which $outputDir is based
 # --these will be modified when this script is time-stamped and copied
 # to $outputDir
@@ -22,12 +25,14 @@ set inFile = $2
 set goldFile = $inFile.gold
 
 # the all-important output directory for this experiment
-set outputDir = $HOME/db-parser/experiments/$date/$time
+cd $parent
+set outputDir = $cwd/experiments/$date/$time
+cd -
 
 # scripts used by this script
-set startClientScript = $HOME/db-parser/bin/start-client
-set printNodesScript = $HOME/db-parser/bin/print-nodes
-set rmiregistryScript = $HOME/db-parser/bin/start-rmiregistry
+set startClientScript = $thisScriptDir/start-client
+set printNodesScript = $thisScriptDir/print-nodes
+set rmiregistryScript = $thisScriptDir/start-rmiregistry
 
 # bookkeeping output files (pid files, node file script file)
 set pidFile = $outputDir/pids
@@ -41,13 +46,13 @@ set outFile = $outputDir/$inFile:t.parsed
 set logFile = $outputDir/$inFile:t.log
 
 # scoring variables
-set scorer = $HOME/db-parser/scoring/EVALB/evalb
-set scorerParam = $HOME/db-parser/scoring/EVALB/COLLINS.prm
+set scorer = $parent/scoring/EVALB/evalb
+set scorerParam = $parent/scoring/EVALB/COLLINS.prm
 
 # set up shell variables sb and cl for switchboard and clients, respectively
 # (startClientScript also does this, so we're only doing it here to get
 # the proper setting of the sb variable)
-source $HOME/db-parser/var.tcsh
+source $parent/policy.tcsh
 
 set nodes = `$printNodesScript`
 

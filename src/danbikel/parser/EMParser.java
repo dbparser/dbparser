@@ -232,7 +232,8 @@ public class EMParser extends Parser {
 			    Constants.defaultFileBufsize);
 	Time totalTime = new Time();
 	Time time = new Time();
-	CountsTable eventCounts = new CountsTable();
+        /*
+        CountsTable eventCounts = new CountsTableImpl();
 	int outputCounter = 0;
 	for (int i = 1; ((sent = Sexp.read(tok)) != null); i++) {
 	  System.err.println("processing sentence No. " + i);
@@ -250,10 +251,10 @@ public class EMParser extends Parser {
 	    }
 	    outputCounter++;
 	  }
-	  /*
-	  if (flushAfterEverySentence)
-	    out.flush();
-	  */
+
+	  // if (flushAfterEverySentence)
+	  //  out.flush();
+
 	  if (outputCounter == outputInterval) {
 	    eventCounts.removeItemsBelow(countThreshold);
 	    EventCountsWriter.outputEvents(eventCounts, out);
@@ -264,11 +265,31 @@ public class EMParser extends Parser {
 	eventCounts.removeItemsBelow(countThreshold);
 	EventCountsWriter.outputEvents(eventCounts, out);
 	out.flush();
-	System.err.println("\ntotal elapsed time: " + totalTime);
-	System.err.println("\nHave a nice day!");
+       */
+        CountsTable eventCounts = new CountsTableImpl();
+        EventCountsConsumer eventConsumer = new EventCountsConsumer();
+        eventConsumer.useCountThreshold();
+        eventConsumer.newFile(inputFilename, outputFilename);
+        for (int i = 1; ((sent = Sexp.read(tok)) != null); i++) {
+          System.err.println("processing sentence No. " + i);
+          time.reset();
+          CountsTable currEvents =
+            parser.parseAndCollectEventCounts(sent.list());
+          boolean processed = currEvents != null;
+          NumberedObject numObj = new NumberedObject(i, processed, currEvents);
+          System.err.println("elapsed time: " + time);
+          System.err.println("cummulative average elapsed time: " +
+                             Time.elapsedTime(totalTime.elapsedMillis() / i));
+          eventConsumer.consume(numObj);
+        }
+
+        eventConsumer.processingComplete(inputFilename, outputFilename);
+
+        System.err.println("\ntotal elapsed time: " + totalTime);
+        System.err.println("\nHave a nice day!");
       }
       catch (InstantiationException ie) {
-	System.err.println(ie);
+        System.err.println(ie);
       }
       catch (IllegalAccessException iae) {
 	System.err.println(iae);

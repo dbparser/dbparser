@@ -22,9 +22,16 @@ and the Ant output directory might be "classes.ant".-->
     <include name="bin/train"/>
     <include name="bin/wrapper"/>
   </patternset>
-  <patternset id="src.and.resources">
+  <property name="deploy.custom.tasks" value="${deploy}/custom-ant-tasks"/>
+  <property name="deploy.custom.tasks.src" value="${deploy.custom.tasks}/src"/>
+  <property name="deploy.custom.tasks.dest" value="${deploy.custom.tasks}/classes"/>
+  <patternset id="src.files">
     <include name="${src}/**/*.java"/>
+  </patternset>
+  <patternset id="props.files">
     <include name="${src}/**/*.properties"/>
+  </patternset>
+  <patternset id="lisp.files">
     <include name="${src}/**/*.lisp"/>
   </patternset>	   
   <patternset id="deploy.files">
@@ -39,6 +46,7 @@ and the Ant output directory might be "classes.ant".-->
   <property name="deploy.to" value="${deploy}/dbparser"/>
   <property name="deploy.tar" value="${deploy}/dbparser.tgz"/>
   <property name="deploy.license" value="${deploy}/LICENSE"/>
+  <property name="deploy.short.license" value="${deploy}/short-license"/>
   <property name="deploy.install.header.template"
             value="${deploy}/install-header-template"/>
   <property name="deploy.install.header" value="${deploy}/install-header"/>
@@ -56,7 +64,7 @@ and the Ant output directory might be "classes.ant".-->
     <exclude name="jsp cache/"/>
   </patternset>
   <target depends="init" name="javacompile">
-    <javac debug="true" deprecation="true" destdir="${dest}" nowarn="false" target="1.1">
+    <javac debug="true" deprecation="true" destdir="${dest}" nowarn="false">
       <src path="${src}"/>
       <src path="${Generated.Source}"/>
     </javac>
@@ -182,7 +190,95 @@ and the Ant output directory might be "classes.ant".-->
 	  <arg value="README"/>
     </exec>
   </target>
-  <target name="setup_deploy">
+  <target name="build_deploy_tasks">
+    <mkdir dir="${deploy.custom.tasks.dest}"/>
+    <javac debug="true" deprecation="true" destdir="${deploy.custom.tasks.dest}"
+           nowarn="false">
+      <src path="${deploy.custom.tasks.src}"/>
+    </javac>
+  </target>
+  <target depends="build_deploy_tasks" name="deploy_sources_and_resources">
+    <!-- create versions of short license for inclusion in source code,
+         properties files and lisp files -->
+    <!-- first, copy through prefixlines filter -->
+    <copy file="${deploy.short.license}"
+          tofile="${deploy.short.license}-starred"
+          overwrite="true">
+      <filterchain>
+        <prefixlines prefix=" * "/>
+      </filterchain>
+    </copy>
+    <concat destfile="${deploy.short.license}-src">/*</concat>
+    <concat destfile="${deploy.short.license}-src" append="true">
+       <filelist dir="." files="${deploy.short.license}-starred"/>
+    </concat>
+    <concat destfile="${deploy.short.license}-src" append="true"> */
+    </concat>
+    <copy file="${deploy.short.license}"
+          tofile="${deploy.short.license}-semicolon">
+      <filterchain>
+        <prefixlines prefix="; "/>
+      </filterchain>
+    </copy>
+    <copy file="${deploy.short.license}"
+          tofile="${deploy.short.license}-hashmark">
+      <filterchain>
+        <prefixlines prefix="# "/>
+      </filterchain>
+    </copy>
+    <!-- copy source files, prepending license comment -->
+    <copy todir="${deploy.to}" overwrite="true">
+      <fileset dir=".">
+        <patternset refid="src.files"/>
+      </fileset>
+      <filterchain>
+        <filterreader classname="org.apache.tools.ant.filters.ConcatReader">
+	  <classpath>
+	    <pathelement path="${deploy.custom.tasks.dest}"/>
+	  </classpath>
+	  <param name="before" value="${deploy.short.license}-src"/>
+	</filterreader>
+      </filterchain>
+    </copy>
+    <!-- copy properties files -->
+    <copy todir="${deploy.to}" overwrite="true">
+      <fileset dir=".">
+        <patternset refid="props.files"/>
+      </fileset>
+      <filterchain>
+        <filterreader classname="org.apache.tools.ant.filters.ConcatReader">
+	  <classpath>
+	    <pathelement path="${deploy.custom.tasks.dest}"/>
+	  </classpath>
+	  <param name="before" value="${deploy.short.license}-hashmark"/>
+	</filterreader>
+      </filterchain>
+    </copy>
+    <!-- copy lisp files -->
+    <copy todir="${deploy.to}" overwrite="true">
+      <fileset dir=".">
+        <patternset refid="lisp.files"/>
+      </fileset>
+      <filterchain>
+        <filterreader classname="org.apache.tools.ant.filters.ConcatReader">
+	  <classpath>
+	    <pathelement path="${deploy.custom.tasks.dest}"/>
+	  </classpath>
+	  <param name="before" value="${deploy.short.license}-semicolon"/>
+	</filterreader>
+      </filterchain>
+    </copy>
+    <!-- clean up temporary files -->
+    <delete>
+      <fileset dir=".">
+         <include name="${deploy.short.license}-src"/>
+         <include name="${deploy.short.license}-starred"/>
+         <include name="${deploy.short.license}-semicolon"/>
+         <include name="${deploy.short.license}-hashmark"/>
+      </fileset>
+    </delete>
+  </target>
+  <target depends="build_deploy_tasks" name="setup_deploy">
     <delete dir="${deploy.to}"/>
     <mkdir dir="${deploy.to}"/>
     <copy todir="${deploy.to}" file="dbparser.jar"/>
@@ -196,6 +292,7 @@ and the Ant output directory might be "classes.ant".-->
     </chmod>
     <available file="${deploy.to}/README" property="readme.ln.present"/>
     <copy todir="${deploy.to}" file="${deploy.license}"/>
+    <antcall target="deploy_sources_and_resources"/>
   </target>
   <target depends="rebuild,javadoc,setup_deploy,ln_deploy_readme,create_install_header" name="deploy">
     <!-- Can't use tar task: Ant filesets don't respect symbolic links -->

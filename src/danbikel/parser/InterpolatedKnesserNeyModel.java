@@ -260,9 +260,16 @@ public class InterpolatedKnesserNeyModel extends Model {
   public void precomputeProbs() {
     if (!precomputeProbs)
       return;
+
     Time time = null;
     if (verbose)
       time = new Time();
+
+    if (saveSmoothingParams && smoothingParams == null)
+      initializeSmoothingParams();
+    else if (useSmoothingParams)
+      readSmoothingParams(); // only reads from file if smoothingParams != null
+
     // go through all transitions at each level of counts array, grabbing
     // histories and getting to next level via backOffMap
 

@@ -31,6 +31,27 @@ import java.util.*;
 public class Model implements Serializable {
   // constants
   private final static boolean verboseDebug = false;
+  /**
+   * When using smoothing parameters from another training run, it is typical
+   * to be operating with a model trained from the same data.  In such a case,
+   * the set of history contexts observed during the training run that produced
+   * the smoothing parameters would be identical to the set of history contexts
+   * encountered when trainiing again on that same data.  However, there are
+   * circumstances when a history context observed in the smoothing training
+   * run would not be observed in the subsequent training run, such as when
+   * performing EM there is, for example, a long sentence with lots of
+   * structure whose total inside probability mass is less than {@link
+   * Double#MIN_VALUE}.  In such a case, the {@link EMDecoder} will issue an
+   * underflow warning and not emit any expected events for that sentence.  If
+   * a history context was only observed in the one or more sentences that have
+   * underflow problems in a particular EM iteration, then it will effectively
+   * not be observed in that iteration.  The value of this constant determines
+   * whether {@link #estimateProb(ProbabilityStructure,TrainerEvent)} emits a
+   * warning when it encounters a history for which there is a saved smoothing
+   * parameter but was not an observed history as far as the current model
+   * is concerned.
+   */
+  protected final static boolean warnSmoothingHasHistoryNotInTraining = false;
   protected final static boolean precomputeProbs =
     Boolean.valueOf(Settings.get(Settings.precomputeProbs)).booleanValue();
   private final static boolean deficientEstimation;
@@ -546,11 +567,16 @@ public class Model implements Serializable {
       if (useSmoothingParams) {
         MapToPrimitive.Entry smoothingParamEntry =
           smoothingParams[level].getEntry(history);
-        if (smoothingParamEntry != null) {
+        if (smoothingParamEntry != null && historyCount > 0) {
           lambda = smoothingParamEntry.getDoubleValue();
 	  estimate = transitionCount / historyCount;
 	}
 	else {
+	  if (warnSmoothingHasHistoryNotInTraining &&
+	      smoothingParamEntry != null)
+	    System.err.println(structureClassName +
+			       ": warning: smoothing parameter exists for a " +
+			       "history not seen in training: " + history);
 	  lambda = lambdaPenalty[level];
 	  estimate = 0;
 	}

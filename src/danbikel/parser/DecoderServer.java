@@ -15,13 +15,13 @@ public class DecoderServer
   extends AbstractServer implements DecoderServerRemote {
 
   // data members
-  private ModelCollection modelCollection;
-  private Symbol topSym = Language.training.topSym();
-  private int unknownWordThreshold =
+  protected ModelCollection modelCollection;
+  protected Symbol topSym = Language.training.topSym();
+  protected Word stopWord = Language.training.stopWord();
+  protected int unknownWordThreshold =
     Integer.parseInt(Settings.get(Settings.unknownWordThreshold));
-  private boolean downcaseWords =
+  protected boolean downcaseWords =
     Boolean.valueOf(Settings.get(Settings.downcaseWords)).booleanValue();
-  private Word stopWord = Language.training.stopWord();
 
 
   /**
@@ -116,9 +116,34 @@ public class DecoderServer
    * Sets the model collection from the specified filename, which should
    * be the path to a Java object file.
    */
-  private void setModelCollection(String mcFilename)
+  protected void setModelCollection(String mcFilename)
     throws ClassNotFoundException, IOException, OptionalDataException {
     modelCollection = Trainer.loadModelCollection(mcFilename);
+  }
+
+  public String getModelCacheStats() {
+    return modelCollection.getModelCacheStats();
+  }
+
+  public Sexp convertUnknownWord(Symbol originalWord, int index)
+    throws RemoteException {
+    CountsTable vocabCounter = modelCollection.vocabCounter();
+    Sexp word = (downcaseWords ?
+		 Symbol.get(originalWord.toString().toLowerCase()) :
+		 originalWord);
+    int freq = (int)vocabCounter.count(word);
+    if (freq < unknownWordThreshold) {
+      Symbol features =
+	Language.wordFeatures.features(originalWord, index == 0);
+      Symbol neverObserved =
+	(freq == 0 ? Constants.trueSym : Constants.falseSym);
+      SexpList wordAndFeatures =
+	new SexpList(3).add(originalWord).add(features).add(neverObserved);
+      return wordAndFeatures;
+    }
+    else {
+      return originalWord;
+    }
   }
 
   /**
@@ -137,19 +162,7 @@ public class DecoderServer
     CountsTable vocabCounter = modelCollection.vocabCounter();
     int sentLen = sentence.length();
     for (int i = 0; i < sentLen; i++) {
-      Sexp word = (downcaseWords ?
-                   Symbol.get(sentence.get(i).toString().toLowerCase()) :
-                   sentence.get(i));
-      int freq = (int)vocabCounter.count(word);
-      if (freq < unknownWordThreshold) {
-        Symbol features =
-          Language.wordFeatures.features(sentence.symbolAt(i), i==0);
-	Symbol neverObserved =
-	  (freq == 0 ? Constants.trueSym : Constants.falseSym);
-        SexpList wordAndFeatures =
-          new SexpList(3).add(sentence.get(i)).add(features).add(neverObserved);
-        sentence.set(i, wordAndFeatures);
-      }
+      sentence.set(i, convertUnknownWord(sentence.symbolAt(i), i));
     }
     return sentence;
   }
@@ -170,6 +183,10 @@ public class DecoderServer
    */
   public Map posMap() throws RemoteException {
     return modelCollection.posMap();
+  }
+
+  public Map headToParentMap() throws RemoteException {
+    return modelCollection.headToParentMap();
   }
 
   /**
@@ -232,8 +249,8 @@ public class DecoderServer
    * The probability structure for the submodel that generates modifiers
    * of head constituents.  This structure is needed to derive most-general
    * contexts (using the last level of back-off) in order to determine all
-   * possible modifiers for a given context, using the either the
-   * {@link #leftModNonterminalMap()} or the {@link #rightModNonterminalMap()}.
+   * possible modifiers for a given context, using the
+   * {@link #modNonterminalMap()}.
    */
   public ProbabilityStructure modNonterminalProbStructure()
   throws RemoteException {
@@ -386,19 +403,31 @@ public class DecoderServer
   }
 
   /**
-   * Starts a decoder server and registers it with the switchboard.  Accepts a
-   * single argument, the RMI binding name of the switchboard.
+   * Starts a decoder server and registers it with the switchboard.
+   * usage: [switchboard binding name] <derived data file>
    */
   public static void main(String[] args) {
     String switchboardName = Switchboard.defaultBindingName;
-    if (args.length > 1)
+    String derivedDataFilename = null;
+    if (args.length != 1 && args.length != 2) {
+      System.err.println("usage: [switchboard binding name] " +
+			 "<derived data file>");
+      System.exit(1);
+    }
+    if (args.length == 2) {
       switchboardName = args[0];
+      derivedDataFilename = args[1];
+    }
+    if (args.length == 1) {
+      derivedDataFilename = args[0];
+    }
     //Create and install a security manager
     if (System.getSecurityManager() == null)
       System.setSecurityManager(new RMISecurityManager());
     DecoderServer decoderServer = null;
     try {
       decoderServer = new DecoderServer(DecoderServer.getTimeout());
+      decoderServer.setModelCollection(derivedDataFilename);
       decoderServer.register(switchboardName);
       Settings.setSettings(decoderServer.switchboard.getSettings());
       decoderServer.startAliveThread();
@@ -415,6 +444,15 @@ public class DecoderServer
     }
     catch (MalformedURLException mue) {
       System.err.println(mue);
+    }
+    catch (OptionalDataException ode) {
+      System.err.println(ode);
+    }
+    catch (IOException ioe) {
+      System.err.println(ioe);
+    }
+    catch (ClassNotFoundException cnfe) {
+      System.err.println(cnfe);
     }
   }
 }

@@ -137,13 +137,22 @@ public class Model implements Serializable {
    * whose derived counts should not be derived for this model
    */
   public void deriveCounts(CountsTable trainerCounts, Filter filter,
-                           FlexibleMap canonical) {
+                           int threshold, FlexibleMap canonical) {
     setCanonicalEvents(canonical);
     deriveHistories(trainerCounts, filter, canonical);
 
     Time time = null;
     if (verbose)
       time = new Time();
+
+    if (threshold > 1) {
+      int lastLevel = numLevels - 1;
+      for (int level = 0; level < lastLevel; level++) {
+	if (level == specialLevel)
+	  continue;
+	counts[level].history().removeItemsBelow(threshold, CountsTrio.hist);
+      }
+    }
 
     Transition trans = new Transition(null, null);
 
@@ -180,6 +189,12 @@ public class Model implements Serializable {
     if (verbose)
       System.err.println("Derived transitions for " + structureClassName +
 			 " in " + time + ".");
+
+    /*
+    if (threshold > 1) {
+      pruneHistoriesAndTransitions(threshold);
+    }
+    */
 
     deriveDiversityCounts();
 
@@ -582,6 +597,28 @@ public class Model implements Serializable {
 			 " in " + time + ".");
   }
 
+  private void pruneHistoriesAndTransitions(int threshold) {
+    for (int level = 0; level < numLevels; level++) {
+      Iterator it = counts[level].transition().entrySet().iterator();
+      while (it.hasNext()) {
+        MapToPrimitive.Entry transEntry = (MapToPrimitive.Entry)it.next();
+        Transition trans = (Transition)transEntry.getKey();
+        int transCount = transEntry.getIntValue();
+        if (transCount < threshold) {
+          MapToPrimitive.Entry histEntry =
+            counts[level].history().getEntry(trans.history());
+          histEntry.add(CountsTrio.hist, -transCount);
+          if (histEntry.getIntValue(CountsTrio.hist) <= 0) {
+            if (histEntry.getIntValue(CountsTrio.hist) < 0)
+              System.err.println("yikes!!!");
+            counts[level].history().remove(histEntry.getKey());
+          }
+          it.remove();
+        }
+      }
+    }
+  }
+
   protected void precomputeProbs(CountsTable trainerCounts, Filter filter) {
     Time time = null;
     if (verbose)
@@ -622,12 +659,22 @@ public class Model implements Serializable {
       MapToPrimitive.Entry histEntry = trio.history().getEntry(history);
       MapToPrimitive.Entry transEntry = trio.transition().getEntry(transition);
 
+      // take care of case where history was removed due to its low count
+      if (histEntry == null) {
+        estimates[level] = lambdas[level] = 0.0;
+        histories[level] = null;
+        transitions[level] = null;
+        continue;
+      }
+
       // the keys of the map entries are guaranteed to be canonical
       histories[level] = (Event)histEntry.getKey();
-      transitions[level] = (Transition)transEntry.getKey();
+      transitions[level] =
+	transEntry == null ? null : (Transition)transEntry.getKey();
 
       double historyCount = histEntry.getIntValue(CountsTrio.hist);
-      double transitionCount = transEntry.getIntValue();
+      double transitionCount =
+	transEntry == null ? 0.0 : transEntry.getIntValue();
       double diversityCount = histEntry.getIntValue(CountsTrio.diversity);
 
       double fudge = lambdaFudge[level];
@@ -643,8 +690,9 @@ public class Model implements Serializable {
       double lambda = lambdas[level];
       double estimate = estimates[level];
       prob = lambda * estimate + ((1 - lambda) * prob);
-      precomputedProbs[level].put(transitions[level], Math.log(prob));
-      if (level < lastLevel)
+      if (transitions[level] != null)
+        precomputedProbs[level].put(transitions[level], Math.log(prob));
+      if (level < lastLevel && histories[level] != null)
         precomputedLambdas[level].put(histories[level], Math.log(1 - lambda));
     }
   }

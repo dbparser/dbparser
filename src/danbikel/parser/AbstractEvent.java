@@ -8,10 +8,35 @@ package danbikel.parser;
  * being compared are both instances of <code>Event</code> but are not
  * of identical run-time types (this is the strategy employed by
  * <code>SexpEvent</code>).
+ *
+ * @see SexpEvent#equals(Object)
  */
 abstract public class AbstractEvent implements Event {
   AbstractEvent() { }
 
+  /**
+   * Compares this <tt>Event</tt> object to the specified object for equality.
+   * Two <tt>Event</tt> objects are equal if the following conditions are met:
+   * <ul>
+   * <li>they both accept the same number of types, as deteremined by their
+   * {@link Event#numTypes()} methods
+   * <li>they both have the same number of components, as determined by their
+   * {@link Event#numComponents()} methods
+   * <li>for each type, the two objects' corresponding sequences are of the same
+   * size (that is, contain the same number of components, as determined by
+   * their {@link Event#numComponents(int)} methods)
+   * <li>for each type, the two objects' corresponding sequences of components
+   * are equal, where two sequences are defined to be equal if their elements
+   * are pairwise equal (as determined by the <tt>equals(Object)</tt> method
+   * of one object in the pair applied to the other)
+   * </ul>
+   * <b>N.B.</b>: For efficiency, subclasses are encouraged to override this
+   * method, using its result only when the two objects being compared are both
+   * instaces of <tt>Event</tt> but are not of identical run-time types.
+   *
+   * @param obj the object to be tested for equality to this object
+   * @return whether this <tt>Event</tt> is equal to the specified object
+   */
   public boolean genericEquals(Object obj) {
     if (!(obj instanceof Event))
       return false;

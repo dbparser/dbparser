@@ -1,0 +1,3 @@
+#!/bin/tcsh -f
+
+busage | grep dbikel | gawk '{print $1}' | tr '\012' ' '

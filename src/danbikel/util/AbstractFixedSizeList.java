@@ -10,6 +10,12 @@ public abstract class AbstractFixedSizeList
   extends AbstractList implements FixedSizeList {
 
   /**
+   * No-arg constructor, for use only for Serialization of derived, concrete
+   * classes.
+   */
+  protected AbstractFixedSizeList() { }
+
+  /**
    * Initializes this new list to have the specified number of elements.
    * As per the contract of <code>FixedSizeList</code>, all elements will
    * initially be <code>null</code>.

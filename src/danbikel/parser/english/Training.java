@@ -7,6 +7,7 @@ import danbikel.parser.HeadFinder;
 import danbikel.parser.Language;
 import danbikel.parser.Treebank;
 import danbikel.parser.Settings;
+import danbikel.parser.Nonterminal;
 import danbikel.lisp.*;
 
 /**
@@ -18,6 +19,10 @@ import danbikel.lisp.*;
  * {@link danbikel.parser.Training#nodesToPrune} data members using
  * a metadata resource.  If this capability is desired in another language
  * package, this class may be subclassed.
+ * <p>
+ * This class also re-defined the method
+ * {@link danbikel.parser.Training#addBaseNPs(Sexp)}, with an important change
+ * that is possibly only relevant to the Penn Treebank.
  */
 public class Training extends danbikel.parser.Training {
   // constants
@@ -26,6 +31,7 @@ public class Training extends danbikel.parser.Training {
   private final static Symbol semTagArgStopListSym =
     Symbol.add("sem-tag-arg-stop-list");
   private final static Symbol nodesToPruneSym = Symbol.add("prune-nodes");
+  private final static Symbol VP = Symbol.get("VP");
 
   /**
    * The prefix of the property to get the resource required by the default
@@ -34,6 +40,9 @@ public class Training extends danbikel.parser.Training {
    */
   protected final static String metadataPropertyPrefix =
     "parser.training.metadata.";
+
+  // data members
+  private Nonterminal nonterminal = new Nonterminal();
 
   /**
    * The default constructor, to be invoked by {@link danbikel.parser.Language}.
@@ -109,6 +118,110 @@ public class Training extends danbikel.parser.Training {
     }
     System.out.println(")");
   }
+
+  /**
+   * We override {@link
+   * danbikel.parser.Training#relabelSubjectlessSentences(Sexp)} so
+   * that we can make the definition of a subjectless sentence
+   * slightly more restrictive: a subjectless sentence not only must
+   * have a null-element child that is marked with the subject
+   * augmentation, but also its head must be a <tt>VP</tt> (this is
+   * Mike Collins' definition of a subjectless sentence).
+   */
+  public Sexp relabelSubjectlessSentences(Sexp tree) {
+    if (tree.isSymbol())
+      return tree;
+    if (treebank.isPreterminal(tree))
+      return tree;
+    if (tree.isList()) {
+      SexpList treeList = tree.list();
+      int treeListLen = treeList.length();
+
+      // first, make recursive call
+      for (int i = 1; i < treeList.length(); i++)
+	relabelSubjectlessSentences(treeList.get(i));
+
+      Symbol parent = treeList.symbolAt(0);
+      int headIdx = headFinder.findHead(treeList);
+      if (headIdx == 0)
+	System.err.println(tree);
+      Symbol headChildLabel = treeList.getChildLabel(headIdx);
+      Symbol sg = treebank.subjectlessSentenceLabel();
+      /*
+      if (treebank.isSentence(parent) &&
+	  isCoordinatedPhrase(treeList, headIdx) &&
+	  treebank.stripAugmentation(headChildLabel) == sg) {
+	// this is a subjectless sentence, because it is an S that is
+	// a coordinated phrase and whose head is a subjectless
+	// sentence	
+	Nonterminal parsedParent = treebank.parseNonterminal(parent,
+							     nonterminal);
+	parsedParent.base = treebank.subjectlessSentenceLabel();
+	treeList.set(0, parsedParent.toSymbol());
+      }
+      else */if (treebank.isSentence(parent) &&
+	  treebank.getCanonical(headChildLabel) == VP) {
+	for (int i = 1; i < treeListLen; i++) {
+	  SexpList child = treeList.listAt(i);
+	  Symbol childLabel = treeList.getChildLabel(i);
+	  Nonterminal parsedChild =
+	    treebank.parseNonterminal(childLabel, nonterminal);
+	  Symbol subjectAugmentation = treebank.subjectAugmentation();
+
+	  if (parsedChild.augmentations.contains(subjectAugmentation) &&
+	      unaryProductionsToNull(child.get(1))) {
+	    // we've got ourselves a subjectless sentence!
+	    Nonterminal parsedParent = treebank.parseNonterminal(parent,
+								 nonterminal);
+	    parsedParent.base = treebank.subjectlessSentenceLabel();
+	    treeList.set(0, parsedParent.toSymbol());
+	    break;
+	  }
+	}
+      }
+    }
+    return tree;
+  }
+
+  protected boolean isTypeOfSentence(Symbol label) {
+    return label.toString().charAt(0) == 'S';
+  }
+
+  protected Sexp unrepairBaseNPs(Sexp tree) {
+    if (tree.isSymbol())
+      return tree;
+    if (treebank.isPreterminal(tree))
+      return tree;
+    if (tree.isList()) {
+      SexpList treeList = tree.list();
+      // if we find a base NP followed by any type of S, unhook the S
+      // from its parent and put as new final child of base NP subtree
+      boolean thereAreAtLeastTwoChildren = treeList.length() > 2;
+      if (thereAreAtLeastTwoChildren) {
+	for (int i = 1; i < treeList.length() - 1; i++) {
+	  Symbol currLabel = treeList.getChildLabel(i);
+	  Symbol nextLabel = treeList.getChildLabel(i + 1);
+	  if (currLabel == baseNP && isTypeOfSentence(nextLabel)) {
+	    SexpList npbTree = treeList.listAt(i);
+	    Sexp sentence = treeList.remove(i + 1); // unhook S from its parent
+	    npbTree.add(sentence);
+	    break;
+	  }
+	}
+      }
+
+      int treeListLen = treeList.length();
+      for (int i = 1; i < treeListLen; i++)
+	unrepairBaseNPs(treeList.get(i));
+    }
+    return tree;
+  }
+
+  protected void postProcess(Sexp tree) {
+    //unrepairBaseNPs(tree);
+    super.postProcess(tree);
+  }
+
 
   /** Test driver for this class. */
   public static void main(String[] args) {

@@ -132,7 +132,7 @@ public interface Training {
    * The symbol that is used to mark argument (required) nonterminals by
    * {@link #identifyArguments(Sexp)}.
    */
-  public Symbol argAugmentation();
+  public Symbol defaultArgAugmentation();
 
   /**
    * Returns <code>true</code> if and only if <code>label</code> has an
@@ -149,6 +149,8 @@ public interface Training {
    * specified nonterminal label.
    */
   public boolean isArgumentFast(Symbol label);
+
+  public Symbol getCanonicalArg(Symbol argLabel);
 
   /**
    * Augments nonterminals to include gap information for WHNP's that have
@@ -405,11 +407,9 @@ public interface Training {
 */
 
   /**
-   * Returns a static set of possible argument nonterminals, without their
-   * argument augmentations.
+   * Returns a static set of possible argument nonterminals.
    *
-   * @return a static set of possible argument nonterminals, without their
-   * argument augmentations
+   * @return a static set of possible argument nonterminals
    */
   public Set argNonterminals();
 

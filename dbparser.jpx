@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--JBuilder XML Project-->
+<project>
+  <property category="com.gillmerderge.jbuilder.wizard.javadoc.JavadocOptions" name="javaFlags.1" value="-Xmx200m" />
+  <property category="com.gillmerderge.jbuilder.wizard.javadoc.standard.StandardDocletOptions" name=".packagePatterns.1" value="danbikel.*" />
+  <property category="com.gillmerderge.jbuilder.wizard.javadoc.standard.StandardDocletOptions" name="bottom" value="Author: &lt;a target=&quot;_blank&quot; href=&quot;http://www.cis.upenn.edu/~dbikel&quot;&gt;Dan Bikel&lt;/a&gt;." />
+  <property category="com.gillmerderge.jbuilder.wizard.javadoc.standard.StandardDocletOptions" name="docTitle" value="WordNet Parser" />
+  <property category="com.gillmerderge.jbuilder.wizard.javadoc.standard.StandardDocletOptions" name="footer" value="" />
+  <property category="com.gillmerderge.jbuilder.wizard.javadoc.standard.StandardDocletOptions" name="header" value="WordNet Parser" />
+  <property category="com.gillmerderge.jbuilder.wizard.javadoc.standard.StandardDocletOptions" name="links" value="http://java.sun.com/products/jdk/1.3/docs/api" />
+  <property category="com.gillmerderge.jbuilder.wizard.javadoc.standard.StandardDocletOptions" name="windowTitle" value="WordNet Parser" />
+  <property category="idl" name="ProcessIDL" value="false" />
+  <property category="runtime.0" name="RunnableType" value="com.borland.jbuilder.runtime.ApplicationRunner" />
+  <property category="runtime.0" name="application.class" value="danbikel.parser.Trainer" />
+  <property category="runtime.0" name="application.parameters" value="-i /scratch2/allwsj.mrg -o /scratch2/allwsj.observed -od /scratch2/allwsj.obj" />
+  <property category="runtime.0" name="application.vmparameters" value="-server -Xms100m -Xmx800m" />
+  <property category="runtime.0" name="appserver.ejbJarsSaved" value="1" />
+  <property category="runtime.0" name="appserver.parameters" value="-jts -jns -jss -jdb" />
+  <property category="runtime.0" name="appserver.servername" value="ejbcontainer" />
+  <property category="runtime.0" name="appserver.vmparameters" value="" />
+  <property category="runtime.0" name="jsprunner.docbase" value="." />
+  <property category="runtime.0" name="jsprunner.jspfile" value="../../../pkg/jbuilder4/bin" />
+  <property category="sys" name="AuthorLabel" value="@author" />
+  <property category="sys" name="BackupPath" value="bak" />
+  <property category="sys" name="BeansInstantiate" value="false" />
+  <property category="sys" name="BraceStyle" value="0" />
+  <property category="sys" name="CheckStable" value="1" />
+  <property category="sys" name="Company" value="" />
+  <property category="sys" name="CompanyLabel" value="Company:" />
+  <property category="sys" name="Copyright" value="Copyright (c) 2001" />
+  <property category="sys" name="CopyrightLabel" value="Copyright:" />
+  <property category="sys" name="DefaultPackage" value="dbparser" />
+  <property category="sys" name="Description" value="" />
+  <property category="sys" name="DescriptionLabel" value="Description:" />
+  <property category="sys" name="DocPath" value="doc" />
+  <property category="sys" name="EventMatch" value="false" />
+  <property category="sys" name="EventStyle" value="1" />
+  <property category="sys" name="ExcludeClassEnabled" value="0" />
+  <property category="sys" name="InstanceVisibility" value="0" />
+  <property category="sys" name="JDK" value="java 1.3.0_02" />
+  <property category="sys" name="LastTag" value="0" />
+  <property category="sys" name="Libraries" value="beanshell" />
+  <property category="sys" name="MakeStable" value="0" />
+  <property category="sys" name="OutPath" value="classes" />
+  <property category="sys" name="SourcePath" value="src" />
+  <property category="sys" name="Title" value="" />
+  <property category="sys" name="TitleLabel" value="Title:" />
+  <property category="sys" name="Version" value="1.0" />
+  <property category="sys" name="VersionLabel" value="@version" />
+  <property category="sys" name="WorkingDirectory" value="." />
+  <property category="sys" name="javadoc.author" value="0" />
+  <property category="sys" name="javadoc.deprectated" value="1" />
+  <property category="sys" name="javadoc.deprectatedlist" value="1" />
+  <property category="sys" name="javadoc.exclude" value="" />
+  <property category="sys" name="javadoc.index" value="1" />
+  <property category="sys" name="javadoc.jdk11format" value="0" />
+  <property category="sys" name="javadoc.navbar" value="1" />
+  <property category="sys" name="javadoc.outdir" value="/home/dbikel/jbproject/db-parser/doc" />
+  <property category="sys" name="javadoc.packages" value="danbikel" />
+  <property category="sys" name="javadoc.scope" value="protected" />
+  <property category="sys" name="javadoc.splitindex" value="0" />
+  <property category="sys" name="javadoc.tree" value="1" />
+  <property category="sys" name="javadoc.use" value="0" />
+  <property category="sys" name="javadoc.version" value="0" />
+  <property category="sys" name="max.package.levels" value="6" />
+  <property category="team" name="ignorePath.0" value="classes" />
+  <property category="team" name="ignorePath.1" value="classes" />
+  <file path="dbparser.html" />
+</project>
+

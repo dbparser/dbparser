@@ -1,0 +1,178 @@
+package danbikel.parser.english;
+
+import java.util.*;
+import java.io.*;
+import danbikel.parser.Constants;
+import danbikel.parser.HeadFinder;
+import danbikel.parser.Language;
+import danbikel.parser.Treebank;
+import danbikel.parser.Settings;
+import danbikel.lisp.*;
+
+/**
+ * Provides methods for language-specific processing of training parse trees.
+ * Even though this subclass of {@link danbikel.parser.Training} is
+ * in the default English language package, its primary purpose is simply
+ * to fill in the {@link danbikel.parser.Training#argContexts},
+ * {@link danbikel.parser.Training#semTagArgStopSet} and
+ * {@link danbikel.parser.Training#nodesToPrune} data members using
+ * a metadata resource.  If this capability is desired in another language
+ * package, this class may be subclassed.
+ */
+public class Training extends danbikel.parser.Training {
+  // constants
+  private final static String className = Training.class.getName();
+  private final static Symbol argContextsSym = Symbol.add("arg-contexts");
+  private final static Symbol semTagArgStopListSym =
+    Symbol.add("sem-tag-arg-stop-list");
+  private final static Symbol nodesToPruneSym = Symbol.add("prune-nodes");
+
+  /**
+   * The prefix of the property to get the resource required by the default
+   * constructor.  The value of this constant is
+   * <code>&quot;parser.training.metadata.&quot;</code>.
+   */
+  protected final static String metadataPropertyPrefix =
+    "parser.training.metadata.";
+
+  /**
+   * The default constructor, to be invoked by {@link danbikel.parser.Language}.
+   * This constructor looks for a resource named by the property
+   * <code>metadataPropertyPrefix + language</code>
+   * where <code>metadataPropertyPrefix</code> is the value of
+   * the constant {@link #metadataPropertyPrefix} and <code>language</code>
+   * is the value of <code>Settings.get(Settings.language)</code>.
+   * For example, the property for English is
+   * <code>&quot;parser.training.metadata.english&quot;</code>.
+   */
+  public Training() throws FileNotFoundException, IOException {
+    String language = Settings.get(Settings.language);
+    String metadataResource = Settings.get(metadataPropertyPrefix + language);
+    InputStream is = Settings.getFileOrResourceAsStream(this.getClass(),
+							metadataResource);
+    int bufSize = Constants.defaultFileBufsize;
+    SexpTokenizer metadataTok =
+      new SexpTokenizer(is, Language.encoding(), bufSize);
+    readMetadata(metadataTok);
+  }
+
+  /**
+   * Reads metadata to fill in {@link danbikel.parser.Training#argContexts} and
+   * {@link danbikel.parser.Training#semTagArgStopSet}.  Does no format
+   * checking on the S-expressions of the metadata resource.
+   *
+   * @param metadata S-expressions containing metadata for this class
+   */
+  protected void readMetadata(SexpTokenizer metadataTok) throws IOException {
+    Sexp metadataSexp = null;
+    while ((metadataSexp = Sexp.read(metadataTok)) != null) {
+      SexpList metadata = metadataSexp.list();
+      int metadataLen = metadata.length();
+      Symbol dataType = metadata.first().symbol();
+      if (dataType == argContextsSym) {
+	for (int i = 1; i < metadataLen; i++) {
+	  SexpList context = metadata.get(i).list();
+	  argContexts.put(context.get(0), context.get(1));
+	}
+      }
+      else if (dataType == semTagArgStopListSym) {
+	SexpList semTagArgStopList = metadata.get(1).list();
+	for (int i = 0; i < semTagArgStopList.length(); i++)
+	  semTagArgStopSet.add(semTagArgStopList.get(i));
+      }
+      else if (dataType == nodesToPruneSym) {
+	SexpList nodesToPruneList = metadata.get(1).list();
+	for (int i = 0; i < nodesToPruneList.length(); i++)
+	  nodesToPrune.add(nodesToPruneList.get(i));
+      }
+      else {
+	// unrecognized data type
+      }
+    }
+  }
+
+  /** Debugging method to print the metadata used by this class. */
+  public void printMetadata() {
+    Iterator argContextsIt = argContexts.keySet().iterator();
+    while (argContextsIt.hasNext()) {
+      Sexp parent = (Sexp)argContextsIt.next();
+      System.out.println("parent: " + parent + "\t" +
+			 "children: " + argContexts.get(parent));
+    }
+    Iterator argStopSetIt = semTagArgStopSet.iterator();
+    System.out.print("(");
+    if (argStopSetIt.hasNext())
+      System.out.print(argStopSetIt.next());
+    while (argStopSetIt.hasNext()) {
+      System.out.print(' ');
+      System.out.print(argStopSetIt.next());
+    }
+    System.out.println(")");
+  }
+
+  /** Test driver for this class. */
+  public static void main(String[] args) {
+    String filename = null;      
+    boolean raisePunc = false, idArgs = false, subjectlessS = false;
+    boolean stripAug = false, addBaseNPs = false;
+
+    for (int i = 0; i < args.length; i++) {
+      if (args[i].charAt(0) == '-') {
+	if (args[i].equals("-r"))
+	  raisePunc = true;
+	else if (args[i].equals("-i"))
+	  idArgs = true;
+	else if (args[i].equals("-s"))
+	  subjectlessS = true;
+	else if (args[i].equals("-a"))
+	  stripAug = true;
+	else if (args[i].equals("-n"))
+	  addBaseNPs = true;
+      }
+      else
+	filename = args[i];
+    }
+
+    if (filename == null) {
+      System.err.println("usage: [-risan] <filename>\n" +
+			 "where\n\t" +
+			 "-r: raise punctuation\n\t" +
+			 "-i: identify arguments\n\t" +
+			 "-s: relabel subjectless sentences\n\t" +
+			 "-a: strip augmentations\n\t" +
+			 "-n: add/relabel base NPs");
+      System.exit(1);
+    }
+
+    Training training = (Training)Language.training();
+    training.printMetadata();
+
+    try {
+      SexpTokenizer tok = new SexpTokenizer(filename, Language.encoding(),
+					    Constants.defaultFileBufsize);
+      Sexp curr = null;
+      while ((curr = Sexp.read(tok)) != null) {
+	if (raisePunc)
+	  System.out.println(training.raisePunctuation(curr));
+	if (idArgs)
+	  System.out.println(training.identifyArguments(curr));
+	if (subjectlessS)
+	  System.out.println(training.relabelSubjectlessSentences(curr));
+	if (stripAug)
+	  System.out.println(training.stripAugmentations(curr));
+	if (addBaseNPs)
+	  System.out.println(training.addBaseNPs(curr));
+      }
+      System.out.println("\n\n");
+    }
+    catch (UnsupportedEncodingException uee) {
+      System.err.println(uee);
+    }
+    catch (FileNotFoundException fnfe) {
+      System.err.println(fnfe);
+    }
+    catch (IOException ioe) {
+      System.err.println(ioe);
+    }
+  }
+}

@@ -1,0 +1,239 @@
+package danbikel.parser;
+
+import danbikel.lisp.*;
+import java.util.Random;
+import java.net.MalformedURLException;
+import java.rmi.*;
+import java.rmi.server.*;
+
+/**
+ * A parsing client.  This class provides the RMI wrapper around a
+ * <code>Decoder</code> object: it communicates with the switchboard,
+ * which doles out probability servers (<code>DecoderServer</code> objects)
+ * and sentences to be parsed.
+ */
+public class Parser
+  extends AbstractSwitchboardUser implements ParserRemote {
+
+  // constants
+  private final static boolean debug = false;
+
+  // inner class
+  private final class ReRegisterThread implements Runnable {
+    public void run() {
+      reRegisterWhenNeeded();
+    }
+  }
+
+  protected volatile DecoderServer server = null;
+  protected Random rand = new Random(System.currentTimeMillis());
+
+  /**
+   * Allows {@link #reRegister} method to return in a non-blocking manner,
+   * as per the contract of {@link Client}.  The {@link #reRegister} method
+   * simply wakes up the thread that has been waiting on this object,
+   * looking for the timeToReRegister condition to be true.
+   */
+  protected Object reRegisterSynch = new Object();
+  /**
+   * Allows processSentences to wait (with a timeout) on completion of
+   * re-registration operation, via {@link #reRegisterWhenNeeded} method.
+   */
+  protected Object reRegisterWaiter = new Object();
+  protected volatile boolean timeToReRegister = false;
+  protected volatile boolean registered = false;
+
+  public Parser(int timeout) throws RemoteException {
+    super(timeout);
+    new Thread(new ReRegisterThread()).start();
+  }
+  public Parser(int timeout, int port) throws RemoteException {
+    super(timeout, port);
+    new Thread(new ReRegisterThread()).start();
+  }
+  public Parser(int port,
+		RMIClientSocketFactory csf, RMIServerSocketFactory ssf)
+    throws RemoteException {
+    super(port, csf, ssf);
+    new Thread(new ReRegisterThread()).start();
+  }
+
+  protected void register(SwitchboardRemote switchboard)
+    throws RemoteException {
+    this.switchboard = switchboard;
+    id = switchboard.register((Client)this);
+    registered = true;
+  }
+
+  private void reRegisterWhenNeeded() {
+    while (!timeToDie && !timeToReRegister) {
+      synchronized (reRegisterSynch) {
+	while (!timeToDie && !timeToReRegister) {
+	  try {
+	    reRegisterSynch.wait();
+	  }
+	  catch (InterruptedException ie) {}
+	}
+	if (!timeToDie) {
+	  if (debug)
+	    System.err.println("client No. " + id + " re-registering!");
+
+	  try {
+	    id = switchboard.register((Client)this);
+	    getServer();
+	    timeToReRegister = false;
+	    registered = true;
+	    synchronized (reRegisterWaiter) {
+	      reRegisterWaiter.notifyAll();
+	    }
+	  }
+	  catch (RemoteException re) {
+	    if (debug)
+	      System.err.println("aiieee! couldn't re-register!");
+	  }
+	}
+      }
+    }
+  }
+
+  public void reRegister() throws RemoteException {
+    synchronized (reRegisterSynch) {
+      timeToReRegister = true;
+      registered = false;
+      server = null;
+      reRegisterSynch.notifyAll();
+    }
+  }
+
+  private void getServer() throws RemoteException {
+    while (!timeToDie && server == null) {
+      if (debug)
+	System.err.println("waiting for new server...");
+      server = (DecoderServer)switchboard.getServer(id);
+      sleepRandom(5000);
+    }
+    if (debug)
+      System.err.println("got it!");
+  }
+
+  protected int sleepRandom(int maxMillis) {
+    int randMillis = rand.nextInt(maxMillis);
+    try { Thread.sleep(randMillis); }
+    catch (InterruptedException ie) {}
+    return randMillis;
+  }
+
+  protected void cleanup() {
+    server = null;
+    synchronized (reRegisterSynch) {
+      // to wake up potentially sleeping ReRegisterThread, which will
+      // exit its loop, finding timeToDie to be true
+      reRegisterSynch.notifyAll();
+    }
+  }
+
+  private SexpList parse(SexpList sent) throws RemoteException {
+    if (server == null)
+      throw new RemoteException();
+    double prob = server.testProb();
+    if (debug)
+      System.err.println("server returned prob. of " + prob);
+    return sent;
+  }
+
+  private void processSentences() throws RemoteException {
+    int numProcessed = 0;
+
+    NumberedSentence sent = null;
+    while (!timeToDie) {
+      try {
+	sent = switchboard.nextSentence(id);
+	if (sent == null)
+	  break;
+
+	SexpList parsed = parse((SexpList)sent.sentence());
+
+	if (parsed != null) {
+	  sent.setProcessed(true);
+	  sent.setSentence(parsed);
+	}
+
+	switchboard.putSentence(id, sent, sleepRandom(5000));
+	numProcessed++;
+      }
+      catch (RemoteException re) {
+	if (re instanceof UnrecognizedClientException) {
+	  // need to re-register: wait on reRegistration object, but
+	  // if nothing happens in timeout millis, then commit suicide
+	  if (debug)
+	    System.err.println("got UnrecognizedClientException; waiting for " +
+			       "up to " + nonZeroTimeout() + " to re-register");
+
+	}
+	else {
+	  // either server or switchboard went down
+	  // IMPLEMENT MAX RETRIES!
+	  if (debug)
+	    System.err.println("either server or switchboard went down;" +
+			       " waiting for up to " + nonZeroTimeout() +
+			       " to re-register");
+	}
+	synchronized (reRegisterWaiter) {
+	  try { reRegisterWaiter.wait(nonZeroTimeout()); }
+	  catch (InterruptedException ie) {}
+	}
+	if (registered == false) {
+	  if (debug)
+	    System.err.println("didn't re-register in time; " +
+			       "committing suicide");
+	  die(false);
+	}
+      }
+    }
+  }
+
+  /**
+   * Contacts the switchboard, registers this parsing client and
+   * gets sentences from the switchboard, parses them and returns them,
+   * until the switchboard indicates there are no more sentences to
+   * process.  Multiple such clients may be created.
+   */
+  public static void main(String[] args) {
+    String switchboardName = Switchboard.defaultBindingName;
+    if (args.length > 1)
+      switchboardName = args[0];
+    //Create and install a security manager
+    if (System.getSecurityManager() == null)
+      System.setSecurityManager(new RMISecurityManager());
+    Parser parser = null;
+    try {
+      SwitchboardRemote switchboard =
+	(SwitchboardRemote)Naming.lookup(switchboardName);
+      Settings.setSettings(switchboard.getSettings()); 
+
+      parser = new Parser(Parser.getTimeout());
+      parser.register(switchboard);
+      parser.getServer();
+      parser.processSentences();
+      parser.unexportWhenDead();
+    }
+    catch (RemoteException re) {
+      System.err.println(re);
+      if (parser != null) {
+	try { parser.die(true); }
+	catch (RemoteException re2) {
+	  System.err.println("couldn't die! (" + re + ")");
+	}
+      }
+    }
+    catch (NotBoundException nbe) {
+      // IMPLEMENT RETRIES ???
+      System.err.println(nbe);
+    }
+    catch (MalformedURLException mue) {
+      System.err.println(mue);
+    }
+    if (debug)
+      System.err.println("main ending!");
+  }
+}

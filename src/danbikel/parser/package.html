@@ -1,0 +1,24 @@
+<html>
+<body>
+<p>
+Implements a framework for developing statistical syntactic parsers
+that, unlike previous approaches, uses a language/Treebank module for
+a great deal of language-independence and supports models that
+incorporate <a target="_blank"
+href="http://www.cogsci.princeton.edu/~wn">WordNet</a> information.
+</p>
+<p>
+Several of the classes in this package, particularly the smaller
+classes that serve primarily as record data structures, implement a
+<code>copy</code> method.  The general contract of this method is to
+return a deep copy of the object.  Java does not permit this sort of
+semantics to be formally specified, as there is no way for an abstract
+class or interface to specify that a method of an implementing class
+must return its own type, because types are not parameterized; hence,
+we are specifying the contract for this method name here.  However,
+all classes that implement <code>copy</code> also implement the {@link
+java.lang.Cloneable Cloneable} interface, where the <code>clone</code>
+method simply calls the class' <code>copy</code> method.
+</p>
+</body>
+</html>

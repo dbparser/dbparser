@@ -1,0 +1,22 @@
+<html>
+<body>
+Provides classes to implement a distributed client-server environment,
+with a central switchboard responsible for assigning clients to
+servers and for doling out objects to clients for processing.  The
+switchboard obtains objects for processing from one or more input
+files.  When clients finish processing an object, they return it to
+the switchboard, and when all the objects of an input file have been
+processed, the switchboard assembles them in the order in which they
+appeared in the input file and outputs them to an output file.
+<p>
+The distributed system implemented by this package is <i>fault
+tolerant</i>, in that any client or server can fail, and the rest of
+the system will recover gracefully.  If a client fails in the middle
+of processing an object, the switchboard pushes the unprocessed object
+onto an internal stack, so that another client may processs it.  If a
+server fails, clients will be notified to request a new server.  If
+the switchboard itself fails, a new switchboard may be brought up and
+effectively recover the same state at the time of the crash, without
+having to restart clients and servers.
+</body>
+</html>

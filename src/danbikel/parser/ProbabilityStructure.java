@@ -1,0 +1,250 @@
+package danbikel.parser;
+
+import danbikel.lisp.*;
+import java.io.Serializable;
+
+/**
+ * Abstract class to represent the probability structure--the entire
+ * set of of back-off levels, including the top level--for the
+ * estimation of a particular parameter class in the overall parsing
+ * model (using "class" in the statistical, non-Java sense of the
+ * word).  Providing this abstract structure is intended to facilitate
+ * the experimentation with differing smoothing or back-off schemes.
+ * Various data members are provided to enable efficient construction
+ * of <code>SexpEvent</code> objects to represent events in the
+ * back-off scheme, but any class that implements the {@link Event}
+ * interface may be used to record events in a concrete subclass of
+ * this class.
+ * <p>
+ * <b>Concurrency note</b>: A separate <code>ProbabiityStructure</code> object
+ * needs to be constructed for each thread that needs to use its facilities,
+ * to avoid concurrent access and modification of its data members (which
+ * are intended to improve efficiency and are thus not designed for
+ * concurrent access via <code>synchronized</code> blocks).
+ *
+ * @see Model
+ * @see Trainer
+ */
+public abstract class ProbabilityStructure implements Serializable {
+  /**
+   * A reusable list to enable efficient construction of <code>SexpEvent</code>
+   * objects of various sizes to represent history contexts.
+   *
+   * @deprecated Ever since the <code>Event</code> and
+   * <code>MutableEvent</code> interfaces were re-worked to include
+   * methods to add and iterate over event components and the
+   * <code>SexpEvent</code> class was retrofitted to these new
+   * specifications, this object became superfluous, as
+   * <code>SexpEvent</code> objects can now be efficiently constructed
+   * directly, by using the <code>SexpEvent.add(Object)</code> method.
+   *
+   * @see SexpEvent#add(Object)
+   * @see #history
+   * @see #historyWithSubcat
+   */
+  protected SexpList historyList;
+
+  /**
+   * A reusable list to enable efficient construction of <code>SexpEvent</code>
+   * objects of various sizes to represent futures.
+   *
+   * @deprecated Ever since the <code>Event</code> and
+   * <code>MutableEvent</code> interfaces were re-worked to include
+   * methods to add and iterate over event components and the
+   * <code>SexpEvent</code> class was retrofitted to these new
+   * specifications, this object became superfluous, as
+   * <code>SexpEvent</code> objects can now be efficiently constructed
+   * directly, by using the <code>SexpEvent.add(Object)</code> method.
+   *
+   * @see SexpEvent#add(Object)
+   * @see #future
+   * @see #futureWithSubcat
+   */
+  protected SexpList futureList;
+
+  /**
+   * A reusable <code>SexpEvent</code> object to represent a history
+   * context.  This may be used as the return object of
+   * <code>getHistory(TrainerEvent,int)</code>.
+   * @see #getHistory(TrainerEvent,int)
+   */
+  protected MutableEvent history;
+  /**
+   * A reusable <code>SexpEvent</code> object to represent a future.
+   * This may be used as the return object of
+   * <code>getFuture(TrainerEvent,int)</code>.
+   * @see #getFuture(TrainerEvent,int)
+   */
+  protected MutableEvent future;
+
+  /**
+   * A reusable <code>SexpSubcatEvent</code> object to represent a history.
+   * This may be used as the return object of
+   * <code>getHistory(TrainerEvent,int)</code>.
+   * @see #getHistory(TrainerEvent,int)
+   */
+  protected MutableEvent historyWithSubcat;
+
+  /**
+   * A reusable <code>SexpSubcatEvent</code> object to represent a future.
+   * This may be used as the return object of
+   * <code>getFuture(TrainerEvent,int)</code>.
+   * @see #getFuture(TrainerEvent,int)
+   */
+  protected MutableEvent futureWithSubcat;
+
+  /**
+   * A reusable <code>Transition</code> object to represent a transition.
+   * This may be used as the return object of
+   * {@link #getTransition(TrainerEvent,int)}.
+   */
+  protected Transition transition = new Transition(null, null);
+
+  /**
+   * An array used only during the computation of top-level probabilities,
+   * used to store the ML estimates of all the levels of back-off.
+   *
+   * @see Model#estimateLogProb(int,TrainerEvent)
+   *
+   */
+  public double[] estimates;
+  /**
+   * An array used only during the computation of top-level probabilities,
+   * used to store the lambdas calculated at all the levels of back-off.
+   *
+   * @see Model#estimateLogProb(int,TrainerEvent)
+   */
+  public double[] lambdas;
+  /**
+   * A temporary value used in the computation of top-level probabilities,
+   * used in the computation of lambdas.
+   *
+   * @see Model#estimateLogProb(int,TrainerEvent)
+   */
+  public double prevHistCount;
+
+  /**
+   * Usually called implicitly, this constructor initializes the
+   * internal, reusable {@link #historyList} to have an initial capacity of
+   * the return value of <code>maxEventComponents</code>.
+   *
+   * @see #historyList
+   * @see #futureList
+   * @see #maxEventComponents
+   */
+  protected ProbabilityStructure() {
+    history = new SexpEvent(maxEventComponents());
+    future = new SexpEvent(maxEventComponents());
+    historyWithSubcat = new SexpSubcatEvent(maxEventComponents());
+    futureWithSubcat = new SexpSubcatEvent(maxEventComponents());
+
+    ///////////////////////////////////////////////////////////////////////////
+    // no longer needed
+    historyList = new SexpList(maxEventComponents());
+    futureList = new SexpList(maxEventComponents());
+    ///////////////////////////////////////////////////////////////////////////
+
+    estimates = new double[numLevels()];
+    lambdas = new double[numLevels()];
+  }
+
+  /**
+   * Allows subclasses to specify the maximum number of event components,
+   * so that the constructor of this class may pre-allocate space in its
+   * internal, reusable <code>MutableEvent</code> objects (used for efficient
+   * event construction).  The default implementation simply returns 0.
+   *
+   * @return 0 (subclasses should override this method)
+   * @see MutableEvent#ensureCapacity
+   */
+  protected int maxEventComponents() { return 0; }
+
+  /**
+   * Returns the number of back-off levels.
+   */
+  abstract public int numLevels();
+
+  /**
+   * Returns a distinguished level of back-off, or -1 if there is no
+   * such distinguished level (the default implementation returns -1).
+   */
+  public int specialLevel() { return -1; }
+
+
+  /**
+   * Returns the level that corresponds to the prior for
+   * that which is being predicted (the future); if there is no such
+   * level, this method returns -1 (the default implementation returns -1).
+   */
+  public int priorLevel() { return -1; }
+
+  /**
+   * Returns the "fudge factor" for the lambda computation for
+   * <code>backOffLevel</code>.  The default implementation returns
+   * <code>5.0</code>.
+   *
+   * @param backOffLevel the back-off level for which to return a "fudge
+   * factor"
+   */
+  public double lambdaFudge(int backOffLevel) { return 5.0; }
+
+  /**
+   * Extracts the history context for the specified back-off level
+   * from the specified trainer event.
+   *
+   * @param trainerEvent the event for which a history context is desired
+   * for the specified back-off level
+   * @param backOffLevel the back-off level for which to get a history context
+   * from the specified trainer event
+   * @return an <code>Event</code> object that represents the history context
+   * for the specified back-off level
+   */
+  abstract public Event getHistory(TrainerEvent trainerEvent,
+				   int backOffLevel);
+
+  /**
+   * Extracts the future for the specified level of back-off from the specified
+   * trainer event.  Typically, futures remain the same regardless of back-off
+   * level.
+   *
+   * @param trainerEvent the event from which a future is to be extracted
+   * @param backOffLevel the back-off level for which to get the future event
+   * @return an <code>Event</code> object that represents the future
+   * for the specified back-off level
+   */
+  abstract public Event getFuture(TrainerEvent trainerEvent,
+				  int backOffLevel);
+
+
+  /**
+   * Returns the reusable transition object, with its history set to the result
+   * of calling <code>getHistory(trainerEvent, backOffLevel)</code> and its
+   * future the result of <code>getFuture(trainerEvent, backOffLevel)</code>.
+   *
+   * @param trainerEvent the event from which a transition is to be extracted
+   * @param backOffLevel the back-off level for which to get the transition
+   * @return the reusable transition object containing the history and future
+   * of the specified back-off level
+   */
+  public Transition getTransition(TrainerEvent trainerEvent,
+				  int backOffLevel) {
+    transition.setHistory(getHistory(trainerEvent, backOffLevel));
+    transition.setFuture(getFuture(trainerEvent, backOffLevel));
+    return transition;
+  }
+
+  /**
+   * Returns a deep copy of this object.  Currently, all data members
+   * of <code>ProbabilityStructure</code> objects are used solely as
+   * temporary storage during certain method invocations; therefore,
+   * this copy method should simply return a new instance of the runtime
+   * type of this <code>ProbabilityStructure</code> object, with
+   * freshly-created data members that are <i>not</i> deep copies of
+   * the data members of this object.  The general contract of the
+   * copy method is slightly violated here, but without undue harm,
+   * given the lack of persistent data of these types of objects. If a
+   * concrete subclass has specific requirements for its data members
+   * to be deeply copied, this method should be overridden.
+   */
+  public abstract ProbabilityStructure copy();
+}

@@ -2,15 +2,21 @@
   (string-match ".*/" this-file)
   (setq parent-dir (substring this-file 0 (1- (match-end 0)))))
 
-(setq relative-src-dirs '("src/danbikel/lisp"
-			  "src/danbikel/parser"
-			  "src/danbikel/parser/english"
-			  "src/danbikel/parser/util"
-			  "src/danbikel/switchboard"
-			  "src/danbikel/util"
-			  "src/danbikel/util/proxy"))
-(setq absolute-src-dirs (mapcar '(lambda (arg) (concat parent-dir "/" arg))
-				relative-src-dirs))
+(setq relative-src-dirs '("danbikel/lisp"
+			  "danbikel/parser"
+			  "danbikel/parser/english"
+			  "danbikel/parser/util"
+			  "danbikel/switchboard"
+			  "danbikel/util"
+			  "danbikel/util/proxy"))
+
+(setq wn-src-dir '("~/wn/src/danbikel/wordnet"))
+
+(setq absolute-src-dirs
+      (append (mapcar '(lambda (arg) (concat parent-dir "/" arg))
+				relative-src-dirs)
+	      wn-src-dir))
+
 (setq
  jde-global-classpath (list (concat parent-dir path-separator
 				    (getenv "CLASSPATH")))

@@ -26,9 +26,11 @@ public class SexpList extends Sexp implements Externalizable {
     public boolean addAll(int index, SexpList elementsToAdd) {
       throw new UnsupportedOperationException();
     }
+    /*
     public Sexp deepCopy() {
       return this;
     }
+    */
     public void ensureCapacity(int minCapacity) {}
     public void trimToSize() {}
     //public boolean equals(Object o) { return this == o; }
@@ -113,6 +115,18 @@ public class SexpList extends Sexp implements Externalizable {
       items[i] = (Sexp)it.next();
     }
   }
+
+  /**
+   * Returns <code>true</code>, because this class and any of its subclasses
+   * represent lists.
+   */
+  public final boolean isList() { return true; }
+
+  /**
+   * Returns <code>false</code>, because this class and any of its subclasses
+   * represent lists, not symbols.
+   */
+  public final boolean isSymbol() { return false; }
 
   /**
    * Appends <code>sexp</code> to the end of this list.
@@ -399,11 +413,17 @@ public class SexpList extends Sexp implements Externalizable {
     get(index).list().set(0, newLabel);
   }
 
-  public Sexp deepCopy() {
-    int thisSize = size();
-    SexpList listCopy = new SexpList(thisSize);
-    for (int i = 0; i < thisSize; i++)
-      listCopy.add(get(i).deepCopy());
+  public final Sexp deepCopy() {
+    if (this == emptyList)
+      return this;
+    SexpList listCopy = new SexpList(size);
+    for (int i = 0; i < size; i++) {
+      if (items[i].isList())
+        listCopy.items[i] = items[i].deepCopy();
+      else
+        listCopy.items[i] = items[i];
+    }
+    listCopy.size = size;
     return listCopy;
   }
 
@@ -450,7 +470,7 @@ public class SexpList extends Sexp implements Externalizable {
    */
   public int hashCode() {
     int code = 0;
-    if (size < 7) {
+    if (size < 10) {
       for (int i = 0; i < size; i++)
         code = (code << 2) ^ items[i].hashCode();
     }

@@ -86,6 +86,13 @@ public class Model implements Serializable {
   private transient int[] cacheAccesses;
 
   private transient FlexibleMap canonicalEvents;
+
+  protected transient String smoothingParamsFile;
+  protected transient boolean saveSmoothingParams;
+  protected transient boolean dontAddNewParams;
+  protected transient boolean useSmoothingParams;
+  protected transient CountsTable[] smoothingParams;
+
   static int numCacheAdds = 0;
   static int numCanonicalHits = 0;
 
@@ -111,12 +118,42 @@ public class Model implements Serializable {
     for (int i = 0; i < lambdaFudge.length; i++)
       lambdaFudge[i] = structure.lambdaFudge(i);
     lambdaFudgeTerm = new double[numLevels];
+
+    if (precomputeProbs)
+      setUpPrecomputedProbTables();
+
+    setUpSmoothingParamsSettings();
+
     for (int i = 0; i < lambdaFudgeTerm.length; i++)
       lambdaFudgeTerm[i] = structure.lambdaFudgeTerm(i);
     if (useCache)
       setUpCaches();
     if (precomputeProbs)
       setUpPrecomputeProbStatTables();
+  }
+
+  private void setUpSmoothingParamsSettings() {
+    smoothingParamsFile = structure.smoothingParametersFile();
+    String smoothingParamsDir = Settings.get(Settings.smoothingParamsDir);
+    if (smoothingParamsDir != null)
+      smoothingParamsFile =
+        smoothingParamsDir + File.separator + smoothingParamsFile;
+    saveSmoothingParams = Settings.getBoolean(Settings.saveSmoothingParams) ||
+                          structure.saveSmoothingParameters();
+    dontAddNewParams = Settings.getBoolean(Settings.dontAddNewParams) ||
+                       structure.dontAddNewParameters();
+    useSmoothingParams = Settings.getBoolean(Settings.useSmoothingParams) ||
+                         structure.useSmoothingParameters();
+
+  }
+
+  private void setUpPrecomputedProbTables() {
+    precomputedProbs = new HashMapDouble[numLevels];
+    for (int i = 0; i < precomputedProbs.length; i++)
+      precomputedProbs[i] = new HashMapDouble();
+    precomputedLambdas = new HashMapDouble[numLevels - 1];
+    for (int i = 0; i < precomputedLambdas.length; i++)
+      precomputedLambdas[i] = new HashMapDouble();
   }
 
   private void setUpPrecomputeProbStatTables() {
@@ -152,15 +189,15 @@ public class Model implements Serializable {
    * Derives all counts from the specified counts table, using the
    * probability structure specified in the constructor.
    *
-   * @param trainerCounts a <code>CountsTable</code> containing
-   * {@link TrainerEvent} objects from which to derive counts
+   * @param trainerCounts a map from {@link TrainerEvent} objects to
+   * their counts (as <code>double</code>s) from which to derive counts
    * @param filter used to filter out <code>TrainerEvent</code> objects
    * whose derived counts should not be derived for this model
    * @param threshold a (currently unused) count cut-off threshold
    * @param canonical a reflexive map used to canonicalize objects
    * created when deriving counts
    */
-  public void deriveCounts(MapToPrimitive trainerCounts, Filter filter,
+  public void deriveCounts(CountsTable trainerCounts, Filter filter,
 			   double threshold, FlexibleMap canonical) {
     deriveCounts(trainerCounts, filter, threshold, canonical, false);
   }
@@ -169,8 +206,8 @@ public class Model implements Serializable {
    * Derives all counts from the specified counts table, using the
    * probability structure specified in the constructor.
    *
-   * @param trainerCounts a <code>CountsTable</code> containing
-   * {@link TrainerEvent} objects from which to derive counts
+   * @param trainerCounts a map from {@link TrainerEvent} objects to
+   * their counts (as <code>double</code>s) from which to derive counts
    * @param filter used to filter out <code>TrainerEvent</code> objects
    * whose derived counts should not be derived for this model
    * @param threshold a (currently unused) count cut-off threshold
@@ -179,9 +216,11 @@ public class Model implements Serializable {
    * @param deriveOtherModelCounts an unused parameter, as this class
    * does not contain other, internal <code>Model</code> instances
    */
-  public void deriveCounts(MapToPrimitive trainerCounts, Filter filter,
+  public void deriveCounts(CountsTable trainerCounts, Filter filter,
 			   double threshold, FlexibleMap canonical,
 			   boolean deriveOtherModelCounts) {
+    if (useSmoothingParams || dontAddNewParams)
+      readSmoothingParams();
     setCanonicalEvents(canonical);
     deriveHistories(trainerCounts, filter, canonical);
 
@@ -474,7 +513,19 @@ public class Model implements Serializable {
       double lambda, estimate; //, adjustment = 1.0;
       double fudge = lambdaFudge[level];
       double fudgeTerm = lambdaFudgeTerm[level];
-      if (historyCount == 0) {
+      if (useSmoothingParams) {
+        MapToPrimitive.Entry smoothingParamEntry =
+          smoothingParams[level].getEntry(history);
+        if (smoothingParamEntry != null) {
+          lambda = smoothingParamEntry.getDoubleValue();
+	  estimate = transitionCount / historyCount;
+	}
+	else {
+	  lambda = 0;
+	  estimate = 0;
+	}
+      }
+      else if (historyCount == 0) {
 	lambda = 0;
 	estimate = 0;
       }
@@ -500,7 +551,7 @@ public class Model implements Serializable {
 	*/
 	System.err.println(transitionCount + "    " +
 			   historyCount + "    " + diversityCount + "    " +
-			   + estimate);
+			   lambda + "    " + estimate);
       }
 
       lambdas[level] = lambda;
@@ -677,14 +728,14 @@ public class Model implements Serializable {
    * Derives all history-context counts from the specified counts table, using
    * this <code>Model</code> object's probability structure.
    *
-   * @param trainerCounts a <code>CountsTable</code> containing
-   * {@link TrainerEvent} objects from which to derive counts
+   * @param trainerCounts a map from {@link TrainerEvent} objects to
+   * their counts (as <code>double</code>s) from which to derive counts
    * @param filter used to filter out <code>TrainerEvent</code> objects
    * whose derived counts should not be derived for this model
    * @param canonical a reflexive map used to canonicalize objects
    * created when deriving counts
    */
-  protected void deriveHistories(MapToPrimitive trainerCounts, Filter filter,
+  protected void deriveHistories(CountsTable trainerCounts, Filter filter,
 				 FlexibleMap canonical) {
     Time time = null;
     if (verbose)
@@ -701,6 +752,9 @@ public class Model implements Serializable {
 	if (level == specialLevel)
 	  continue;
 	Event history = structure.getHistory(event, level);
+        if (useSmoothingParams || dontAddNewParams)
+          if (smoothingParams[level].containsKey(history) == false)
+            continue;
 	history = canonicalizeEvent(history, canonical);
 	counts[level].history().add(history, CountsTrio.hist, count);
       }
@@ -737,16 +791,20 @@ public class Model implements Serializable {
     }
   }
 
-  protected void precomputeProbs(MapToPrimitive trainerCounts, Filter filter) {
+  protected void initializeSmoothingParams() {
+    smoothingParams = new CountsTableImpl[numLevels];
+    for (int i = 0; i < numLevels; i++)
+      smoothingParams[i] = new CountsTableImpl();
+  }
+
+  protected void precomputeProbs(CountsTable trainerCounts, Filter filter) {
     Time time = null;
     if (verbose)
       time = new Time();
-    precomputedProbs = new HashMapDouble[numLevels];
-    for (int i = 0; i < precomputedProbs.length; i++)
-      precomputedProbs[i] = new HashMapDouble();
-    precomputedLambdas = new HashMapDouble[numLevels - 1];
-    for (int i = 0; i < precomputedLambdas.length; i++)
-      precomputedLambdas[i] = new HashMapDouble();
+    if (saveSmoothingParams && smoothingParams == null)
+      initializeSmoothingParams();
+    else if (useSmoothingParams)
+      readSmoothingParams(); // only reads from file if smoothingParams != null
     Transition[] transitions = new Transition[numLevels];
     Event[] histories = new Event[numLevels];
     Iterator keys = trainerCounts.keySet().iterator();
@@ -756,7 +814,11 @@ public class Model implements Serializable {
 	continue;
       precomputeProbs(event, transitions, histories);
     }
-    counts = null;
+    if (saveSmoothingParams) {
+      writeSmoothingParams();
+      smoothingParams = null;
+    }
+    //counts = null;
     if (verbose)
       System.err.println("Precomputed probabilities and lambdas in " + time +
 			 ".");
@@ -779,8 +841,8 @@ public class Model implements Serializable {
       MapToPrimitive.Entry transEntry = trio.transition().getEntry(transition);
 
       // take care of case where history was removed due to its low count
+      // or because we are using smoothing parameters gotten from a file
       if (histEntry == null) {
-	System.err.println("shouldn't happen");
 	estimates[level] = lambdas[level] = 0.0;
 	histories[level] = null;
 	transitions[level] = null;
@@ -802,6 +864,12 @@ public class Model implements Serializable {
       double lambda = ((!deficientEstimation && level == lastLevel) ? 1.0 :
 		       historyCount /
 		       (historyCount + fudgeTerm + fudge * diversityCount));
+      if (useSmoothingParams) {
+        MapToPrimitive.Entry smoothingParamEntry =
+          smoothingParams[level].getEntry(history);
+        if (smoothingParamEntry != null)
+          lambda = smoothingParamEntry.getDoubleValue();
+      }
       double estimate = transitionCount / historyCount;
       lambdas[level] = lambda;
       estimates[level] = estimate;
@@ -816,10 +884,70 @@ public class Model implements Serializable {
 	precomputedProbs[level].put(transitions[level], Math.log(prob));
       if (level < lastLevel && histories[level] != null)
 	precomputedLambdas[level].put(histories[level], Math.log(1 - lambda));
+      if (saveSmoothingParams)
+        smoothingParams[level].put(histories[level], lambda);
     }
   }
 
   protected void precomputeSpecialLevelProb(TrainerEvent event) {
+  }
+
+  // I/O methods for smoothing parameters file
+
+  protected void readSmoothingParams() {
+    readSmoothingParams(true);
+  }
+
+  protected void readSmoothingParams(boolean verboseOutput) {
+    if (smoothingParams != null)
+      return;
+    try {
+      if (verboseOutput)
+	System.err.println("Reading smoothing parameters from \"" +
+			   smoothingParamsFile + "\" for " +
+			   structureClassName + ".");
+      int bufSize = Constants.defaultFileBufsize;
+      BufferedInputStream bis =
+        new BufferedInputStream(new FileInputStream(smoothingParamsFile),
+                                bufSize);
+      ObjectInputStream ois = new ObjectInputStream(bis);
+      smoothingParams = (CountsTable[])ois.readObject();
+    }
+    catch (FileNotFoundException fnfe) {
+      System.err.println(fnfe);
+    }
+    catch (IOException ioe) {
+      System.err.println(ioe);
+    }
+    catch (ClassNotFoundException cnfe) {
+      System.err.println(cnfe);
+    }
+  }
+
+  protected void writeSmoothingParams() {
+    writeSmoothingParams(true);
+  }
+
+  protected void writeSmoothingParams(boolean verboseOutput) {
+    try {
+      if (verboseOutput)
+	System.err.println("Writing smoothing parameters to \"" +
+			   smoothingParamsFile + "\" for " +
+			   structureClassName + ".");
+      int bufSize = Constants.defaultFileBufsize;
+      BufferedOutputStream bos =
+        new BufferedOutputStream(new FileOutputStream(smoothingParamsFile),
+                                 bufSize);
+      ObjectOutputStream oos = new ObjectOutputStream(bos);
+      oos.writeObject(smoothingParams);
+      oos.close();
+    }
+    catch (FileNotFoundException fnfe) {
+      System.err.println(fnfe);
+    }
+    catch (IOException ioe) {
+      System.err.println(ioe);
+    }
   }
 
   /**
@@ -848,7 +976,7 @@ public class Model implements Serializable {
    * from this model)
    */
   public void share(int backOffLevel,
-		       Model otherModel, int otherModelBackOffLevel) {
+                    Model otherModel, int otherModelBackOffLevel) {
     if (precomputeProbs) {
       otherModel.precomputedProbs[otherModelBackOffLevel] =
 	this.precomputedProbs[backOffLevel];
@@ -1018,6 +1146,18 @@ public class Model implements Serializable {
       setUpCaches();
     if (precomputeProbs)
       setUpPrecomputeProbStatTables();
+    setUpSmoothingParamsSettings();
+    if (useSmoothingParams) {
+      System.err.print("reading smoothing parameters...");
+      readSmoothingParams(false);
+    }
+  }
+
+  private void writeObject(java.io.ObjectOutputStream s)
+    throws IOException {
+    if (precomputeProbs)
+      counts = null;
+    s.defaultWriteObject();
   }
 
   public String getCacheStats() {

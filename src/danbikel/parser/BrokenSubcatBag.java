@@ -56,7 +56,7 @@ public class BrokenSubcatBag implements Subcat, Externalizable {
   static {
     Treebank treebank = Language.treebank();
     Symbol gapAugmentation = Language.training.gapAugmentation();
-    Symbol argAugmentation = Language.training.argAugmentation();
+    Symbol argAugmentation = Language.training.defaultArgAugmentation();
     char delimChar = Language.treebank.canonicalAugDelimiter();
 
     int uid = gapIdx; // depends on gapIdx being equal to firstRealUid
@@ -81,7 +81,10 @@ public class BrokenSubcatBag implements Subcat, Externalizable {
     // just a little bit of (sometimes necessary) defensive programming
     Set argLabelSet = new HashSet();
     for (int i = 0; i < argLabels.length; i++) {
-      argLabelSet.add(Language.treebank.getCanonical(Symbol.get(argLabels[i])));
+      String argLabelStr = argLabels[i] + "-A";
+      Symbol canonicalArg =
+	Language.training.getCanonicalArg(Symbol.get(argLabelStr));
+      argLabelSet.add(canonicalArg);
     }
     Iterator argLabelIt = argLabelSet.iterator();
     while (argLabelIt.hasNext()) {
@@ -96,9 +99,11 @@ public class BrokenSubcatBag implements Subcat, Externalizable {
       Map.Entry entry = (Map.Entry)entries.next();
       Symbol symbol = (Symbol)entry.getKey();
       uid = ((Integer)entry.getValue()).intValue();
+      /*
       // for arg nonterminals, we re-add arg augmentation for output purposes
       if (uid > gapIdx)
 	symbol = Symbol.get(symbol.toString() + delimChar + argAugmentation);
+      */
       symbols[uid] = symbol;
     }
     symbols[miscIdx] = Symbol.get(stopSym.toString() +
@@ -233,7 +238,7 @@ public class BrokenSubcatBag implements Subcat, Externalizable {
       return fastUidMapEntry == null ? miscIdx : fastUidMapEntry.getIntValue();
     }
     Integer uidInteger =
-      (Integer)symbolsToInts.get(Language.treebank.getCanonical(requirement));
+      (Integer)symbolsToInts.get(Language.training.getCanonicalArg(requirement));
     if (uidInteger == null)
       return miscIdx;
     else

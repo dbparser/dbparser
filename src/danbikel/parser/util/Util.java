@@ -2,6 +2,7 @@ package danbikel.parser.util;
 
 import danbikel.lisp.*;
 import danbikel.parser.*;
+import java.util.*;
 
 /**
  * Contains basic utility functions for <code>Sexp</code> objects that
@@ -39,29 +40,99 @@ public class Util {
     return taggedWords;
   }
 
-  private static void collectLeaves(Sexp tree, SexpList leaves,
-                                    boolean withTags) {
+  public static ArrayList collectWordObjects(Sexp tree) {
+    return collectWordObjects(tree, new ArrayList());
+  }
+
+  private static ArrayList collectWordObjects(Sexp tree, ArrayList words) {
     if (Language.treebank().isPreterminal(tree)) {
       if (!Language.treebank().isNullElementPreterminal(tree)) {
-        Word word = Language.treebank().makeWord(tree);
-        Sexp leaf = null;
-        if (withTags) {
-          SexpList tagList = new SexpList(1).add(word.tag());
-          leaf = new SexpList(2).add(word.word()).add(tagList);
-        }
-        else
-          leaf = word.word();
-
-        leaves.add(leaf);
+	Word word = Language.treebank().makeWord(tree);
+	words.add(word);
       }
     }
     else if (tree.isList()) {
       SexpList treeList = tree.list();
       int treeListLen = treeList.length();
       for (int i = 0; i < treeListLen; i++) {
-        collectLeaves(treeList.get(i), leaves, withTags);
+	collectWordObjects(treeList.get(i), words);
       }
     }
+    return words;
+  }
+
+  private static void collectLeaves(Sexp tree, SexpList leaves,
+				    boolean withTags) {
+    if (Language.treebank().isPreterminal(tree)) {
+      if (!Language.treebank().isNullElementPreterminal(tree)) {
+	Word word = Language.treebank().makeWord(tree);
+	Sexp leaf = null;
+	if (withTags) {
+	  SexpList tagList = new SexpList(1).add(word.tag());
+	  leaf = new SexpList(2).add(word.word()).add(tagList);
+	}
+	else
+	  leaf = word.word();
+
+	leaves.add(leaf);
+      }
+    }
+    else if (tree.isList()) {
+      SexpList treeList = tree.list();
+      int treeListLen = treeList.length();
+      for (int i = 0; i < treeListLen; i++) {
+	collectLeaves(treeList.get(i), leaves, withTags);
+      }
+    }
+  }
+
+  /**
+   * Adds the nonterminals in the specified tree to the specified set.
+   *
+   * @param set the set to which to add the nonterminals present in the
+   * specified tree
+   * @param tree the tree from which to collect nonterminals
+   * @param includeTags indicates whether to treat part of speech tags
+   * as nonterminals
+   * @return the specified set, modified to contain the nonterminals
+   * present in the specified tree
+   */
+  public static Set collectNonterminals(Set set, Sexp tree,
+					boolean includeTags) {
+    return collectNonterminals(set, tree, includeTags, false);
+  }
+
+  /**
+   * Adds the part of speech tags in the specified tree to the specified set.
+   *
+   * @param set the set to which to add the tags present in the specified tree
+   * @param tree the tree from which to collect part of speech tags
+   * @return the specified set, modified to contain the part of speech tags
+   * present in the specified tree
+   */
+  public static Set collectTags(Set set, Sexp tree) {
+    return collectNonterminals(set, tree, true, true);
+  }
+
+  private static Set collectNonterminals(Set set, Sexp tree,
+					boolean includeTags,
+					boolean onlyTags) {
+    if (Language.treebank().isPreterminal(tree)) {
+      if (includeTags) {
+	Word word = Language.treebank().makeWord(tree);
+	set.add(word.tag());
+      }
+    }
+    else if (tree.isList()) {
+      SexpList treeList = tree.list();
+      int treeListLen = treeList.length();
+      if (!onlyTags)
+	set.add(treeList.get(0));
+      for (int i = 0; i < treeListLen; i++) {
+	collectNonterminals(set, treeList.get(i), includeTags, onlyTags);
+      }
+    }
+    return set;
   }
 
   /**
@@ -89,17 +160,17 @@ public class Util {
       sb.append("(").append(treeList.symbolAt(0));
       boolean prevChildWasSmall = true;
       for (int i = 1; i < treeListLen; i++) {
-        Sexp child = treeList.get(i);
-        if (prevChildWasSmall &&
-            (child.isSymbol() || Language.treebank().isPreterminal(child))) {
-          sb.append(" ").append(child);
-          prevChildWasSmall = true;
-        }
-        else {
-          sb.append("\n");
-          prettyPrint(treeList.get(i), sb, level + 1);
-          prevChildWasSmall = false;
-        }
+	Sexp child = treeList.get(i);
+	if (prevChildWasSmall &&
+	    (child.isSymbol() || Language.treebank().isPreterminal(child))) {
+	  sb.append(" ").append(child);
+	  prevChildWasSmall = true;
+	}
+	else {
+	  sb.append("\n");
+	  prettyPrint(treeList.get(i), sb, level + 1);
+	  prevChildWasSmall = false;
+	}
       }
       sb.append(")");
     }

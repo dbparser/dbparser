@@ -1,5 +1,7 @@
 package danbikel.parser;
 
+import danbikel.lisp.*;
+
 public class NonterminalPriorModelStructure1 extends ProbabilityStructure {
   public NonterminalPriorModelStructure1() {
     super();
@@ -16,8 +18,11 @@ public class NonterminalPriorModelStructure1 extends ProbabilityStructure {
     switch (backOffLevel) {
     case 0:
       // for p(label | w,t)
-      history.add(priorEvent.headWord().word());
-      history.add(priorEvent.headWord().tag());
+      Word headWord = priorEvent.headWord();
+      Symbol word =
+	headWord.features() != null ? headWord.features() : headWord.word();
+      history.add(word);
+      history.add(headWord.tag());
       break;
     case 1:
       // for p(label | t)

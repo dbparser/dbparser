@@ -351,18 +351,25 @@ public class CKYItem extends Item implements SexpConvertible {
     if (this == obj)
       return true;
     CKYItem other = (CKYItem)obj;
-    return (this.isPreterminal() == other.isPreterminal() &&
-	    this.label == other.label &&
-	    this.headWord.equals(other.headWord) &&
-            (this.headChild == null ||
-	     this.headChild.label == other.headChild.label) &&
-	    this.leftPrevMods.equals(other.leftPrevMods) &&
-            this.rightPrevMods.equals(other.rightPrevMods) &&
-            this.leftSubcat.equals(other.leftSubcat) &&
-            this.rightSubcat.equals(other.rightSubcat) &&
-	    this.leftVerb == other.leftVerb &&
-            this.rightVerb == other.rightVerb &&
-            this.stop == other.stop);
+    if (stop && other.stop) {
+      return (this.isPreterminal() == other.isPreterminal() &&
+              this.label == other.label &&
+              this.headWord.equals(other.headWord));
+    }
+    else {
+      return (this.isPreterminal() == other.isPreterminal() &&
+              this.stop == other.stop &&
+  	      this.leftVerb == other.leftVerb &&
+              this.rightVerb == other.rightVerb &&
+   	      this.label == other.label &&
+  	      this.headWord.equals(other.headWord) &&
+              (this.headChild == null ||
+  	       this.headChild.label == other.headChild.label) &&
+  	      this.leftPrevMods.equals(other.leftPrevMods) &&
+              this.rightPrevMods.equals(other.rightPrevMods) &&
+              this.leftSubcat.equals(other.leftSubcat) &&
+              this.rightSubcat.equals(other.rightSubcat));
+    }
   }
 
   /**

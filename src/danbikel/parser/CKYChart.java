@@ -13,6 +13,22 @@ public class CKYChart extends Chart {
   // constants
   private final static boolean collinsNPPruneHack =
     Boolean.valueOf(Settings.get(Settings.collinsNPPruneHack)).booleanValue();
+  private final static double log10 = Math.log(10);
+  private final static double log100 = 2 * Math.log(10);
+
+  private final static double[] variablePruneFact = new double[200];
+
+  private final static double variablePruneFn(int span) {
+    if (span < 5)
+      return 4.0;
+    else
+      return Math.log(10) * Math.max(2.0, (-0.08 * span + 3.8));
+  }
+  static {
+    for (int i = 0; i < variablePruneFact.length; i++) {
+      variablePruneFact[i] = variablePruneFn(i);
+    }
+  }
 
   // constructors
 
@@ -39,6 +55,30 @@ public class CKYChart extends Chart {
     super(size, cellLimit, pruneFact);
   }
 
+  public void clearNonPreterminals() {
+    for (int i = 0; i < size; i++) {
+      for (int j = i; j < size; j++) {
+        if (chart[i][j] == null)
+          chart[i][j] = new Entry();
+        else {
+          if (i == j) {
+            // remove non preterminal items
+            Iterator it = chart[i][j].map.keySet().iterator();
+            while (it.hasNext()) {
+              CKYItem item = (CKYItem)it.next();
+              if (!item.isPreterminal())
+                it.remove();
+            }
+            chart[i][j].setTopInfo();
+          }
+          else {
+            chart[i][j].clear();
+          }
+        }
+      }
+    }
+  }
+
   protected boolean outsideBeam(Item item, double topProb) {
     CKYItem currItem = (CKYItem)item;
     Symbol label = (Symbol)currItem.label();
@@ -54,6 +94,16 @@ public class CKYChart extends Chart {
 	Language.treebank.stripAugmentation(label) ==
 	Language.treebank.NPLabel())
       return item.logProb() < topProb - pruneFact - 3;
+    /*
+    else if (currItem.stop()) {
+      // much smaller beam for stopped items
+      int span = currItem.end() - currItem.start();
+      if (span < variablePruneFact.length)
+        return item.logProb() < topProb - variablePruneFact[span];
+      else
+        return item.logProb() < topProb - variablePruneFn(span);
+    }
+    */
     else
       return item.logProb() < topProb - pruneFact;
   }

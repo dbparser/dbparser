@@ -868,6 +868,7 @@ public class CKYItem extends Item implements SexpConvertible {
     this.logTreeProb = other.logTreeProb;
     this.logProb = other.logProb;
     this.logPrior = other.logPrior;
+    this.constraint = other.constraint;
     containsVerb = containsVerbUndefined;
     return this;
   }

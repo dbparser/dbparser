@@ -35,12 +35,12 @@ abstract public class Sexp implements Externalizable {
    * Returns <code>true</code> if this is an instance of a
    * <code>SexpList</code>, <code>false</code> otherwise.
    */
-  public boolean isList() { return this instanceof SexpList; }
+  public abstract boolean isList();
   /**
    * Returns <code>true</code> if this is an instance of a <code>Symbol</code>,
    * <code>false</code> otherwise.
    */
-  public boolean isSymbol() { return this instanceof Symbol; }
+  public abstract boolean isSymbol();
 
   /**
    * Returns a deep copy of this S-expression.
@@ -76,12 +76,19 @@ abstract public class Sexp implements Externalizable {
 	  this.list().trimToSize();
           // make sure if any elements are themselves lists, that they are
           // canonicalized
-          int size = this.list().size();
+	  SexpList thisList = this.list();
+          int size = thisList.size();
           for (int i = 0; i < size; i++) {
-            Sexp curr = this.list().get(i);
+            Sexp curr = thisList.get(i);
             if (curr.isList())
-              this.list().set(i, curr.getCanonical(map));
+              thisList.set(i, curr.getCanonical(map));
           }
+
+          /*
+	  SexpList newList = new SexpList.HashCache(thisList, true);
+	  map.put(newList, newList);
+	  return newList;
+          */
 	  map.put(this, this);
 	  return this;
 	}

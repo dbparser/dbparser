@@ -590,10 +590,10 @@ public class Settings implements Serializable {
   /**
    * The property to specify the factor by which the decoder should prune
    * away chart entries.  The value of this property should be a floating
-   * point number that is the natural logarithm of the desired factor
+   * point number that is the logarithm (base 10) of the desired factor
    * (i.e., the factor employed will effectively be
-   * <code>Math.exp(value)</code>, where <code>value</code> is the value of
-   * this property).  This form of pruning will only occur if the value of
+   * <code>Math.pow(value, 10.0)</code>, where <code>value</code> is the value
+   * of this property).  This form of pruning will only occur if the value of
    * {@link #decoderUsePruneFactor} is <code>true</code>.
    * <p>
    * The value of this constant is

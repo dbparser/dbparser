@@ -2,7 +2,7 @@ package danbikel.parser;
 
 import danbikel.lisp.*;
 
-class Collins {
+public class Collins {
   private static Symbol startSym = Language.training().startSym();
   private static Symbol conjSym = Symbol.add("CC");
   private static Symbol puncSym = Symbol.add(",");
@@ -17,5 +17,5 @@ class Collins {
       return puncSym;
     else
       return miscSym;
-  }  
+  }
 }

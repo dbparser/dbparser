@@ -90,7 +90,7 @@ public class EMDecoder extends Decoder {
   /**
    * The map of events to their expected counts (cleared after every sentence).
    */
-  protected CountsTable eventCounts = new CountsTable();
+  protected CountsTable eventCounts = new CountsTableImpl();
 
   /** The parsing chart. */
   protected EMChart chart;
@@ -171,10 +171,11 @@ public class EMDecoder extends Decoder {
 						   ConstraintSet constraints)
     throws RemoteException {
 
+    sentenceIdx++;
+
     if (debugOutputAllCounts)
       Debug.level = 21;
 
-    sentenceIdx++;
     if (maxSentLen > 0 && sentence.length() > maxSentLen) {
       if (debugSentenceSize)
 	System.err.println(className + ": current sentence length " +
@@ -726,9 +727,14 @@ public class EMDecoder extends Decoder {
       Symbol modificandLabel = (Symbol)modificand.label();
       boolean modificandLabelP = modificandLabel == PP;
       boolean modLabelP = modLabel == VPA;
+      /*
       debugFlag = (modificandLabelP && side == Constants.LEFT &&
 		   ((modificand.start() >= 3 && modificand.end() <= 4 &&
 		     modifier.start() >= 3 && modifier.end() <= 4)));
+      */
+      debugFlag = (side == Constants.LEFT &&
+		   ((modificand.start() == 4 && modificand.end() == 4) &&
+		    (modifier.start() == 3 && modifier.end() == 3)));
       if (debugFlag) {
 	System.err.println(className + ".join: trying to extend modificand\n" +
 			   modificand + "\nwith modifier\n" + modifier);
@@ -1027,7 +1033,8 @@ public class EMDecoder extends Decoder {
 
     chart.reclaimItem(newItem);
 
-    Debug.level = 0;
+    if (debugUnaries)
+      Debug.level = 0;
 
     return itemsAdded;
   }
@@ -1066,6 +1073,12 @@ public class EMDecoder extends Decoder {
 		 item.rightSubcat(), item.rightVerb(), Constants.RIGHT);
 
     if (debugStops) {
+      //if (item.start() == 3 && item.end() == 4) {
+      if (true) {
+	System.err.println(className +
+			   ".addStopProbs: trying to add stops to item " +
+			   item);
+      }
     }
 
     if (isomorphicTreeConstraints) {
@@ -1087,9 +1100,11 @@ public class EMDecoder extends Decoder {
       item.insideProb() * leftProb * rightProb;
 
     if (debugStops) {
-      if (item.start() == 0 && item.end() == 5 && item.label() == baseNP) {
+      //if (item.start() == 3 && item.end() == 4) {
+      if (true) {
 	System.err.println(className + ".addStopProbs: adding stops to item " +
 			   item);
+        System.err.println("\tnew inside prob: " + insideProb);
       }
     }
 

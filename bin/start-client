@@ -7,10 +7,9 @@ set args = ($argv[4-$#argv])
 
 set parent = `dirname $0`/..
 
-# set up shell variables cl and sb for client and switchboard, respectively
-# (we only need cl for this script)
-source $parent/policy.tcsh
+set clientPolicy = "-Djava.security.policy=$parent/policy-files/client.policy"
+set clientCodebase = "-Djava.rmi.server.codebase=file://$parent/"
 
 # start the parser
-java -server -cp $classpath -Xms330m -Xmx330m $cl danbikel.parser.Parser \
-    $args >& $logDir/$host.log
+java -server -cp $classpath -Xms350m -Xmx350m $clientPolicy $clientCodebase \
+    danbikel.parser.Parser $args >& $logDir/$host.log

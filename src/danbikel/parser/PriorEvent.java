@@ -29,6 +29,7 @@ public class PriorEvent implements TrainerEvent, Cloneable {
   // accessors
   public Word headWord() { return headWord; }
   public Symbol label() { return label; }
+
   /**
    * Returns the same symbol for all instances of this class, so that priors
    * may be computed via the same mechanism as conditional probabilities: if
@@ -38,17 +39,16 @@ public class PriorEvent implements TrainerEvent, Cloneable {
    * via counting, P(X | Y) = P_prior(X) if Y is always the same.
    */
   public Symbol history() { return Language.training().stopSym(); }
-  public Symbol parent() { throw new UnsupportedOperationException(); }
-  public Symbol head() { throw new UnsupportedOperationException(); }
-  public Word modHeadWord() { throw new UnsupportedOperationException(); }
+  public Symbol parent() { return null; }
+  public Word modHeadWord() { return null; }
 
 
   // mutators
-  void set(Word headWord, Symbol label) {
+  public void set(Word headWord, Symbol label) {
     this.headWord = headWord;
     this.label = label;
   }
-  void setHeadWord(Word headWord) { this.headWord = headWord; }
+  public void setHeadWord(Word headWord) { this.headWord = headWord; }
   void setLabel(Symbol label) { this.label = label; }
 
   /**

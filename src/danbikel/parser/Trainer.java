@@ -9,8 +9,8 @@ import java.io.*;
 
 /**
  * Derives all counts necessary to compute the probabilities for this parser,
- * including the top-level counts and all derived counts.  The two main
- * functionalities provided by this class are the loading and storing
+ * including the top-level counts and all derived counts.  The two additional
+ * functions of this class are the loading and storing
  * of a text file containing top-level event counts and the loading and storing
  * of a Java object file containing all derived event counts.
  * <p>
@@ -46,6 +46,37 @@ public class Trainer implements Serializable {
 
   // constants
   //static boolean secretFlag;
+
+  /**
+   * One must set the unknownWordThreshold to 1 in order to perfectly emulate
+   * Collins' trainer's output file.
+   */
+  private final static boolean outputCollins = false;
+  private final static Symbol collinsTop = Symbol.add("TOP");
+  /** This should only be true if training on the 39832 sentences of
+      the WSJ Penn Treebank, Sections 02-21 (and if emulation of Mike
+      Collins' trainer is desired). */
+  private final static boolean useCollinsSkipArr;
+  static {
+    String collinsSkipStr = Settings.get(Settings.collinsSkipWSJSentences);
+    useCollinsSkipArr = Boolean.valueOf(collinsSkipStr).booleanValue();
+  }
+  /** The sentence numbers of sentences that Mike Collins' trainer skips,
+      due to a strange historical reason of a pre-processing Perl script
+      of his. */
+  private final static int[] collinsSkipArr =
+    {167, 557, 581, 687, 698, 863, 914, 1358, 1406, 1869, 1873, 1884, 1887,
+     2617, 2700, 2957, 3241, 3939, 3946, 3959, 4613, 4645, 4669, 5021, 5312,
+     5401, 6151, 6161, 6165, 6173, 6340, 6342, 6347, 6432, 6704, 6850, 7162,
+     7381, 7778, 7941, 8053, 8076, 8229, 10110, 10525, 10676, 11361, 11593,
+     11716, 11727, 11737, 12286, 12871, 12902, 13182, 13409, 13426, 13868,
+     13909, 13918, 14252, 14255, 16488, 16489, 16822, 17112, 17566, 17644,
+     18414, 19663, 20105, 20213, 20308, 20653, 22565, 23053, 23226, 23483,
+     24856, 24928, 24930, 25179, 25193, 25200, 26821, 26967, 27051, 27862,
+     28081, 28680, 28827, 29254, 29261, 29348, 30110, 30142, 31287, 31739,
+     31940, 32001, 32010, 32015, 32378, 34173, 34544, 34545, 34573, 35105,
+     35247, 35390, 35865, 35868, 36281, 37653, 38403, 38545, 39182, 39197,
+     39538, 39695};
 
   private final static String className = Trainer.class.getName();
   // constants for default classname prefixes for ProbabilityStructure
@@ -97,6 +128,21 @@ public class Trainer implements Serializable {
   /** The label for word feature (unknown vocabulary) counts.  This
       symbol has the print-name <tt>&quot;word-feature&quot;</tt>. */
   public final static Symbol wordFeatureSym = Symbol.add("word-feature");
+  /**
+   * The label for the set of pruned preterminals.  This symbol has the
+   * print-name <tt>&quot;pruned-preterm&quot;</tt>.
+   *
+   * @see Training#prune(Sexp)
+   */
+  public final static Symbol prunedPretermSym = Symbol.add("pruned-preterm");
+  /**
+   * The label for the set of pruned punctuation preterminals.  This
+   * symbol has the print-name <tt>&quot;pruned-preterm&quot;</tt>.
+   *
+   * @see Training#raisePunctuation(Sexp)
+   * @see Training#getPrunedPunctuation()
+   */
+  public final static Symbol prunedPuncSym = Symbol.add("pruned-punc");
 
   // integer types for mapping the above symbols to ints for a switch statement
   private final static int nonterminalEventType = 1;
@@ -106,6 +152,8 @@ public class Trainer implements Serializable {
   private final static int posMapType = 5;
   private final static int vocabType = 6;
   private final static int wordFeatureType = 7;
+  private final static int prunedPretermType = 8;
+  private final static int prunedPuncType = 9;
 
   private final static Object[][] eventsToTypesArr = {
     {nonterminalEventSym, new Integer(nonterminalEventType)},
@@ -115,6 +163,8 @@ public class Trainer implements Serializable {
     {posMapSym, new Integer(posMapType)},
     {vocabSym, new Integer(vocabType)},
     {wordFeatureSym, new Integer(wordFeatureType)},
+    {prunedPretermSym, new Integer(prunedPretermType)},
+    {prunedPuncSym, new Integer(prunedPuncType)},
   };
 
   private final static Map eventsToTypes = new HashMap();
@@ -132,6 +182,7 @@ public class Trainer implements Serializable {
   private int numPrevMods;
   private int numPrevWords;
   private boolean keepAllWords;
+  private boolean keepLowFreqTags;
   private boolean downcaseWords;
 
   // data storage for training
@@ -148,6 +199,8 @@ public class Trainer implements Serializable {
   private Map rightSubcatMap = new HashMap();
   private Map leftModNonterminalMap = new HashMap();
   private Map rightModNonterminalMap = new HashMap();
+  private Set prunedPreterms;
+  private Set prunedPunctuation;
   // temporary map for canonicalizing subcat SexpList objects for
   // leftSubcatMap and rightSubcatMap data members
   transient private Map canonicalSubcatMap;
@@ -226,6 +279,8 @@ public class Trainer implements Serializable {
 
     String keepAllWordsStr = Settings.get(Settings.keepAllWords);
     keepAllWords = Boolean.valueOf(keepAllWordsStr).booleanValue();
+    String keepLowFreqTagsStr = Settings.get(Settings.keepLowFreqTags);
+    keepLowFreqTags = Boolean.valueOf(keepLowFreqTagsStr).booleanValue();
     String downcaseWordsStr = Settings.get(Settings.downcaseWords);
     downcaseWords = Boolean.valueOf(downcaseWordsStr).booleanValue();
   }
@@ -257,6 +312,8 @@ public class Trainer implements Serializable {
     Sexp tree = null;
     int sentNum = 0, intervalCounter = 0;
     ArrayList headTrees = new ArrayList();
+    int collinsSkipIdx = 0;
+    int numSents = 0;
     System.err.println("Phase 0: reading trees and finding heads");
     for ( ; (tree = Sexp.read(tok)) != null; sentNum++, intervalCounter++) {
       //System.err.println(tree);
@@ -267,11 +324,23 @@ public class Trainer implements Serializable {
 	intervalCounter = 0;
       }
 
+      if (useCollinsSkipArr) {
+	if (collinsSkipIdx < collinsSkipArr.length &&
+	    sentNum + 1 == collinsSkipArr[collinsSkipIdx]) {
+	  System.err.println("Skipping sentence " + (sentNum + 1) +
+			     " (to emulate Collins' trainer)");
+	  collinsSkipIdx++;
+	  continue;
+	}
+      }
+
+      /*
       if (!tree.isList()) {
         System.err.println(className + ": error: invalid format for training " +
                            "parse tree: " + tree + " ...skipping");
         continue;
       }
+      */
 
       // parenthesis-stripping is indicated if the training tree is a list
       // containing one element that is also a list
@@ -281,7 +350,19 @@ public class Trainer implements Serializable {
       if (stripOuterParens)
 	tree = tree.list().get(0);
 
+      String skipStr = Language.training.skip(tree);
+      if (skipStr != null) {
+        System.err.println(className + ": skipping tree No. " +
+                           (sentNum + 1) + ": " + skipStr);
+        continue;
+      }
+
+      if (outputCollins)
+	tree = new SexpList(2).add(collinsTop).add(tree);
+
       //System.err.println(tree);
+
+      numSents++;
 
       Language.training.preProcess(tree);
 
@@ -292,7 +373,9 @@ public class Trainer implements Serializable {
 	downcaseWords(headTree);
       headTrees.add(headTree);
     }
-    int numSents = sentNum;
+
+    prunedPreterms = Language.training.getPrunedPreterms();
+    prunedPunctuation = Language.training.getPrunedPunctuation();
 
     // phase 1: go through all sentences and set up vocabulary counts
     System.err.println("Phase 1: vocabulary counts");
@@ -325,6 +408,14 @@ public class Trainer implements Serializable {
 		       origVocabSize + "; new vocab size is " +
 		       vocabCounter.size() + ".");
 
+    /*
+    Iterator vocabItems = vocabCounter.keySet().iterator();
+    while (vocabItems.hasNext()) {
+      Symbol word = (Symbol)vocabItems.next();
+      System.out.println("count: " + word + "=" + vocabCounter.count(word));
+    }
+    */
+
     // phase 3: finally go through all sentences and collect stats
     System.err.println("Phase 3: collect stats");
     intervalCounter = 0;
@@ -346,7 +437,7 @@ public class Trainer implements Serializable {
     System.err.print("Creating part-of-speech map...");
     System.err.flush();
     createPosMap();
-    System.err.println("done.");
+    System.err.println("done (map has " + posMap.size() + " entries).");
 
     //countUniqueBigrams();
 
@@ -393,12 +484,20 @@ public class Trainer implements Serializable {
       if (tree.headWord().tag() != traceTag) {
 	Word headWord = tree.headWord();
 	if (vocabCounter.count(headWord.word()) < unknownWordThreshold) {
+	  if (keepLowFreqTags)
+	    addToPosMap(posMap, headWord);
 	  boolean isFirstWord = tree.leftIdx() == 0;
 	  Symbol oldWord = tree.originalHeadWord();
 	  if (oldWord == null)
 	    oldWord = headWord.word();
 	  Symbol features = wordFeatures.features(oldWord, isFirstWord);
-	  headWord.setWord(features);
+	  // if we want to keep all words, we simply *add* to this
+	  // Word's information by setting its features field; otherwise,
+	  // we simply *replace* the word itself with its feature vector
+	  if (keepAllWords)
+	    headWord.setFeatures(features);
+	  else
+	    headWord.setWord(features);
 	  wordFeatureCounter.add(features);
 	}
       }
@@ -426,10 +525,29 @@ public class Trainer implements Serializable {
    *
    */
   private void collectStats(Sexp orig, HeadTreeNode tree, boolean isRoot) {
+    SexpList startList = newStartList();
+    WordList startWordList = newStartWordList();
     if (isRoot) {
       // add special head transition from +TOP+ to actual root of tree
-      headEvents.add(new HeadEvent(tree.headWord(), topSym, tree.label(),
-				   emptySubcat, emptySubcat));
+      HeadEvent topToRoot = new HeadEvent(tree.headWord(), topSym, tree.label(),
+					  emptySubcat, emptySubcat);
+      headEvents.add(topToRoot);
+
+      // kind of a hack: we manufacture a "modification event", as
+      // though the root node modifies +TOP+, so as to gather more counts
+      // for the last level of back-off of the modification model,
+      // which is p(w | t)
+      ModifierEvent topMod = new ModifierEvent(tree.headWord(),
+					       tree.headWord(),
+					       tree.label(),
+					       startList,
+					       startWordList,
+					       topSym,
+					       tree.label(),
+					       emptySubcat,
+					       false, false);
+      modifierEvents.add(topMod);
+
       //nonterminals.add(topSym); // +TOP+ is a nonterminal, too!
     }
     if (tree.isPreterminal()) {
@@ -483,6 +601,9 @@ public class Trainer implements Serializable {
 					  leftSubcat, rightSubcat);
       headEvents.add(headEvent);
 
+      if (outputCollins)
+	outputCollins(headEvent);
+
       collectModifierStats(tree, leftSubcat, leftGapIdx, Constants.LEFT);
       collectModifierStats(tree, rightSubcat, rightGapIdx, Constants.RIGHT);
 
@@ -526,7 +647,7 @@ public class Trainer implements Serializable {
     return newStartWordList(numPrevWords);
   }
 
-  public static WordList newStartWordList(int numPrevWords) {
+  private static WordList newStartWordList(int numPrevWords) {
     WordList wordList = WordListFactory.newList(numPrevWords);
     for (int i = 0; i < numPrevWords; i++)
       wordList.add(Language.training.startWord());
@@ -546,8 +667,12 @@ public class Trainer implements Serializable {
     Iterator mods = (side == Constants.LEFT ?
 		     tree.preMods().iterator() : tree.postMods().iterator());
 
+    ModifierEvent prevModEvent = null;
+
     SexpList prevModList = newStartList(numPrevMods);
+    Sexp prevMod = prevModList.first();
     WordList prevWordList = newStartWordList(numPrevWords);
+    Word prevWord = prevWordList.getWord(0);
     Subcat dynamicSubcat = (Subcat)subcat.copy();
     // if there's a gap to generate, add as requirement to end of subcat list
     if (gapIdx != -1)
@@ -565,9 +690,29 @@ public class Trainer implements Serializable {
       (side == Constants.LEFT ?
        tree.headChild().leftIdx() < tree.headWordIdx() :
        tree.headChild().rightIdx() > tree.headWordIdx() + 1);
+
+    Symbol prevRealModifier = null;
+    Word prevPunc = null, prevConj = null;
+
     for (int modIdx = 0; mods.hasNext(); modIdx++) {
       HeadTreeNode currMod = (HeadTreeNode)mods.next();
       Symbol modifier = currMod.label();
+
+      Shifter.shift(prevModEvent, prevModList, prevMod, modifier);
+      Shifter.shift(prevModEvent, prevWordList, prevWord, currMod.headWord());
+
+      boolean isConj = Language.treebank.isConjunction(modifier);
+      boolean isConjPConj =
+	isConj && side == Constants.RIGHT &&
+	parent != Language.treebank.baseNPLabel() && mods.hasNext();
+
+      if (isConjPConj && prevConj != null)
+	System.err.println(className +
+			   ": warning: more than one conjunction in a row: " +
+			   tree.toSexp());
+
+      boolean headAdjacent = prevRealModifier == null;
+
       verbIntervening |= prevModHadVerb;
       wordsIntervening = (modIdx > 0 ? true : headAlreadyHasMods);
       Subcat canonicalDynamicSubcat =
@@ -580,9 +725,16 @@ public class Trainer implements Serializable {
 						 parent,
 						 head,
 						 canonicalDynamicSubcat,
+						 prevPunc,
+						 prevConj,
+						 isConjPConj,
 						 verbIntervening,
+						 headAdjacent,
 						 side);
       modifierEvents.add(modEvent);
+
+      if (outputCollins)
+	outputCollins(modEvent);
 
       if (modIdx == gapIdx) {
 	Symbol direction = (side == Constants.LEFT ?
@@ -603,15 +755,27 @@ public class Trainer implements Serializable {
 	}
       }
 
+      prevModEvent = modEvent;
+
       if (dynamicSubcat.contains(modifier)) {
 	dynamicSubcat = (Subcat)dynamicSubcat.copy();
 	dynamicSubcat.remove(modifier);
       }
 
       prevModHadVerb = currMod.containsVerb();
-      prevModList.remove(prevModList.length() - 1);
-      prevModList.add(0, modifier); // an O(n) op (list is usu. len. 1)
-      prevWordList.shift(currMod.headWord());
+
+      prevWord = currMod.headWord();
+      prevMod = modifier;
+
+      if (Language.treebank.isPunctuation(modifier))
+	prevPunc = currMod.headWord();
+      else if (isConjPConj)
+	prevConj = currMod.headWord();
+      else {
+	prevRealModifier = modifier;
+	prevPunc = null;
+	prevConj = null;
+      }
     }
 
     if (!dynamicSubcat.empty())
@@ -622,6 +786,9 @@ public class Trainer implements Serializable {
 
     // transition to stop symbol
     verbIntervening |= prevModHadVerb;
+    // need to shift in final mod and modWord
+    Shifter.shift(prevModEvent, prevModList, prevMod, stopSym);
+    Shifter.shift(prevModEvent, prevWordList, prevWord, stopWord);
     ModifierEvent modEvent = new ModifierEvent(stopWord,
 					       headWord,
 					       stopSym,
@@ -630,9 +797,16 @@ public class Trainer implements Serializable {
 					       parent,
 					       head,
 					       emptySubcat,
+					       null,
+					       null,
+					       false,
 					       verbIntervening,
+					       prevRealModifier == null,
 					       side);
     modifierEvents.add(modEvent);
+
+    if (outputCollins)
+      outputCollins(modEvent);
   }
 
   public void createPosMap() {
@@ -787,6 +961,20 @@ public class Trainer implements Serializable {
 				   Settings.modWordModelStructureNumber,
 				   Settings.modWordModelStructureClass));
 
+      // since the left- and right-nonterminal generation models use
+      // identical probability structures, as well as the left- and right-word
+      // generation models, we set the additional data field, so that
+      // the probability structures can be made "aware" of which side
+      // of the head they model generation; see javadoc comment for
+      // ModWordModelStructure2.removeHistory(int,Event) method to find out why
+      // this is useful and necessary
+      Symbol leftSym = Constants.leftSym;
+      Symbol rightSym = Constants.rightSym;
+      leftModNonterminalModel.getProbStructure().setAdditionalData(leftSym);
+      rightModNonterminalModel.getProbStructure().setAdditionalData(rightSym);
+      leftModWordModel.getProbStructure().setAdditionalData(leftSym);
+      rightModWordModel.getProbStructure().setAdditionalData(rightSym);
+
       danbikel.util.HashMap canonical = new danbikel.util.HashMap(1003, 1.5f);
 
       System.err.print("Deriving events for prior probability computations...");
@@ -806,8 +994,26 @@ public class Trainer implements Serializable {
                                            canonical);
       rightModNonterminalModel.deriveCounts(modifierEvents, rightOnly, th,
                                             canonical);
-      leftModWordModel.deriveCounts(modifierEvents, leftOnly, th, canonical);
-      rightModWordModel.deriveCounts(modifierEvents, rightOnly, th, canonical);
+      leftModWordModel.deriveCounts(modifierEvents, allPass, th, canonical);
+      rightModWordModel.deriveCounts(modifierEvents, allPass, th, canonical);
+
+      // somewhat of a hack: we allow counts for a back-off level from
+      // one model to be shared with another model; in this case, the
+      // last level of back-off from the leftModWordModel is being
+      // shared (i.e., will be used) as the last level of back-off for
+      // rightModWordModel and for topLexModel, as the last levels of
+      // all these models should just be estimating p(w | t)
+      System.err.println("Sharing last level of leftModWordModel to be " +
+			 "last level of rightModWordModel\n\tand last level " +
+			 "of topLexModel.");
+      int modWordLastLevel =
+	leftModWordModel.getProbStructure().numLevels() - 1;
+      leftModWordModel.share(modWordLastLevel,
+			     rightModWordModel, modWordLastLevel);
+      int topLexLastLevel =
+	topLexModel.getProbStructure().numLevels() - 1;
+      leftModWordModel.share(modWordLastLevel, topLexModel, topLexLastLevel);
+
 
       deriveSubcatMaps(leftSubcatModel.getProbStructure(),
 		       rightSubcatModel.getProbStructure(),
@@ -864,8 +1070,8 @@ public class Trainer implements Serializable {
 			  rightSubcatMap,
                           leftModNonterminalMap,
                           rightModNonterminalMap,
-                          Language.training.getPrunedPreterms(),
-                          Language.training.getPrunedPunctuation(),
+                          prunedPreterms,
+                          prunedPunctuation,
                           canonical);
 
       // finally, remove handles to all top-level TrainerEvent objects
@@ -951,6 +1157,7 @@ public class Trainer implements Serializable {
     int rightMSLastLevel = rightMS.numLevels() - 1;
 
     Filter filter = nonStop;
+    //Filter filter = allPass;
     Iterator events = modifierEvents.keySet().iterator();
     while (events.hasNext()) {
       ModifierEvent modEvent = (ModifierEvent)events.next();
@@ -1200,6 +1407,8 @@ public class Trainer implements Serializable {
     vocabCounter.output(vocabSym.toString(), writer);
     wordFeatureCounter.output(wordFeatureSym.toString(), writer);
     SymbolicCollectionWriter.writeMap(posMap, posMapSym, writer);
+    SymbolicCollectionWriter.writeSet(prunedPreterms, prunedPretermSym, writer);
+    SymbolicCollectionWriter.writeSet(prunedPunctuation, prunedPuncSym, writer);
   }
 
   /**
@@ -1227,7 +1436,8 @@ public class Trainer implements Serializable {
     Sexp curr = null;
     for (int i = 1; (curr = Sexp.read(tok)) != null; i++) {
       if (curr.isSymbol() ||
-	  (curr.isList() && curr.list().length() != 3)) {
+	  (curr.isList() &&
+           curr.list().length() != 2 && curr.list().length() != 3)) {
 	System.err.println(className + ": error: S-expression No. " + i +
 			   " is not in the correct format:\n\t" + curr);
 	continue;
@@ -1235,7 +1445,7 @@ public class Trainer implements Serializable {
       SexpList event = curr.list();
       Symbol name = event.symbolAt(0);
       int count = -1;
-      switch(((Integer)eventsToTypes.get(name)).intValue()) {
+      switch (((Integer)eventsToTypes.get(name)).intValue()) {
       case nonterminalEventType:
 	count = Integer.parseInt(event.symbolAt(2).toString());
 	nonterminals.add(event.get(1), count);
@@ -1263,6 +1473,20 @@ public class Trainer implements Serializable {
 	count = Integer.parseInt(event.symbolAt(2).toString());
 	wordFeatureCounter.add(event.get(1), count);
 	break;
+      case prunedPretermType:
+        prunedPreterms = new HashSet();
+        SexpList pretermList = event.listAt(1);
+        int pretermListLen = pretermList.length();
+        for (int j = 0; j < pretermListLen; j++)
+          prunedPreterms.add(pretermList.get(j));
+        break;
+      case prunedPuncType:
+        prunedPunctuation = new HashSet();
+        SexpList puncList = event.listAt(1);
+        int puncListLen = puncList.length();
+        for (int j = 0; j < puncListLen; j++)
+          prunedPunctuation.add(puncList.get(j));
+        break;
       }
     }
   }
@@ -1662,10 +1886,18 @@ public class Trainer implements Serializable {
       MapToPrimitive.Entry entry = (MapToPrimitive.Entry)modEvents.next();
       TrainerEvent event = (TrainerEvent)entry.getKey();
       int count = entry.getIntValue();
-      String collinsStr =
-        danbikel.parser.util.TrainerEventToCollins.trainerEventToCollins(event);
-      for (int i = 0; i < count; i++)
-        System.out.println(collinsStr);
+      outputCollins(event, count);
     }
+  }
+
+  private void outputCollins(TrainerEvent event) {
+    outputCollins(event, 1);
+  }
+  private void outputCollins(TrainerEvent event, int count) {
+    String collinsStr =
+      danbikel.parser.util.TrainerEventToCollins.trainerEventToCollins(event);
+    if (collinsStr != null)
+      for (int i = 0; i < count; i++)
+	System.out.println(collinsStr);
   }
 }

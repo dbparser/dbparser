@@ -244,7 +244,7 @@ public class AnalyzeDisns {
     int disnLen = 1000;
     double[] disn = new double[disnLen];
     Transition tmpTrans = new Transition(null,null);
-    Set futuresSet = new HashSet();
+    Set futuresSet = new LinkedHashSet();
 
     // foreach back-off level
     //   foreach history context at level
@@ -310,7 +310,7 @@ public class AnalyzeDisns {
     int disnLen = 1000;
     double[] disn = new double[disnLen];
     Transition tmpTrans = new Transition(null,null);
-    Set futuresSet = new HashSet();
+    Set futuresSet = new LinkedHashSet();
 
     // foreach back-off level
     //   foreach history at level
@@ -373,7 +373,7 @@ public class AnalyzeDisns {
     // set up temporary data structures for getFutures and getLogProbDisn
     // methods
     Transition tmpTrans = new Transition(null,null);
-    Set futures = getFutures(new HashSet(), model, 0);
+    Set futures = getFutures(new LinkedHashSet(), model, 0);
     double[] zeroLevelDisn = new double[futures.size()];
     double[] currDisn = null;
     double[] prevDisn = null;
@@ -510,7 +510,7 @@ public class AnalyzeDisns {
     // set up temporary data structures for getFutures and getLogProbDisn
     // methods
     Transition tmpTrans = new Transition(null,null);
-    Set futures = getFutures(new HashSet(), model, 0);
+    Set futures = getFutures(new LinkedHashSet(), model, 0);
     double[] zeroLevelDisn = new double[futures.size()];
     double[] currDisn = null;
     double[] prevDisn = null;
@@ -639,7 +639,7 @@ public class AnalyzeDisns {
   public static void main(String[] args) {
     String mcFilename = args[0];
     // collect any additional args into a set
-    Set structureNames = new HashSet();
+    Set structureNames = new LinkedHashSet();
     for (int argIdx = 1; argIdx < args.length; argIdx++)
       structureNames.add(args[argIdx]);
     try {

@@ -155,8 +155,8 @@ public class Parser
     "usage: [-nc <numClients> | -num-clients <numClients>]",
     "\t[-is <derived data file> | -internal-server <derived data file>] ",
     "\t[ [-sa <sentence input file> | --stand-alone <sentence input file> ",
-    "\t  [-out <parse output file>] ] |",
-    "\t  [switchboard binding name] ]"
+    "\t       [-out <parse output file>] ] |",
+    "\t  <switchboard binding name> ]"
   };
 
   private static final void usage() {

@@ -214,7 +214,7 @@ public class SexpEvent extends AbstractEvent
       Sexp otherEvent = ((SexpEvent)o).event;
       if (event.isList()) {
 	if (otherEvent.isList())
-	  return event.equals(otherEvent);
+	  return (event == otherEvent || event.equals(otherEvent));
 	else
 	  return event.list().size() == 1 && event.list().get(0) == otherEvent;
       }
@@ -260,7 +260,7 @@ public class SexpEvent extends AbstractEvent
       event.list().add(newComponent);
     }
     else {
-      SexpList newEvent = new SexpList().add(event).add(newComponent);
+      SexpList newEvent = new SexpList(4).add(event).add(newComponent);
       event = newEvent;
     }
     return this;

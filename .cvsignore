@@ -5,3 +5,5 @@ classes
 doc
 util-doc
 deploy
+classes.ant
+danbikel.util.jar

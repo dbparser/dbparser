@@ -237,7 +237,7 @@ int EQ_word_n = 0;
 /************************/
 /* Function return-type */
 /************************/
-void main();
+int main();
 void init_global();
 void print_head();
 void init();
@@ -279,7 +279,7 @@ int sscanf();
 			 fprintf(stderr,"Missing argument: %s\n",st); \
 		      }
 
-void
+int
 main(argc,argv)
 int argc;
 char *argv[];
@@ -383,6 +383,7 @@ char *argv[];
     }
 
     print_total();
+    return Error_count;
 }
 
 

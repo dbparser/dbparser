@@ -31,7 +31,7 @@ public class CountsTrio implements Serializable {
   BiCountsTable histAndDiversity;
 
   CountsTrio() {
-    trans = new CountsTable();
+    trans = new CountsTableImpl();
     histAndDiversity = new BiCountsTable();
   }
   /**

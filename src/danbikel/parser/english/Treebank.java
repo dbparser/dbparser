@@ -9,7 +9,7 @@ import danbikel.lisp.*;
 import danbikel.parser.Language;
 import danbikel.parser.Nonterminal;
 
-/**
+/*
  * Provides data and methods speciifc to the structures found in the English
  * Treebank (the
  * <a target="_blank"
@@ -19,6 +19,12 @@ import danbikel.parser.Nonterminal;
  * and
  * <a target="_blank"
  * href="ftp://ftp.cis.upenn.edu/pub/treebank/doc/manual/">bracketing</a>.
+ */
+
+/**
+ * Provides data and methods speciifc to the structures found in the English
+ * Treebank (the Penn Treebank) or any other treebank that conforms to the
+ * Treebank II annotation guidelines for part-of-speech tagging and bracketing.
  */
 public class Treebank extends danbikel.parser.Treebank {
 
@@ -38,6 +44,10 @@ public class Treebank extends danbikel.parser.Treebank {
   static final Symbol WHNP = Symbol.add("WHNP");
   static final Symbol CC = Symbol.add("CC");
   static final Symbol comma = Symbol.add(",");
+  static final Symbol lrb = Symbol.add("-LRB-");
+  static final Symbol lcb = Symbol.add("-LCB-");
+  static final Symbol rrb = Symbol.add("-RRB-");
+  static final Symbol rcb = Symbol.add("-RCB-");
 
   // null element
   static final Symbol nullElementPreterminal = Symbol.add("-NONE-");
@@ -45,8 +55,7 @@ public class Treebank extends danbikel.parser.Treebank {
   static final Symbol possessivePos = Symbol.add("POS");
 
   // exception nonterminals for defaultParseNonterminal
-  static final Symbol[] nonterminalExceptionArr = {Symbol.add("-LRB-"),
-						   Symbol.add("-RRB-")};
+  static final Symbol[] nonterminalExceptionArr = {lrb, rrb};
 
   private static Symbol[][] canonicalLabelMapData = {
     {baseNP, NP},
@@ -68,7 +77,7 @@ public class Treebank extends danbikel.parser.Treebank {
       puncToRaise.add(Symbol.add(puncToRaiseElements[i]));
   }
 
-  private static String[] verbTagStrings = {"MD", "VB", "VBD", "VBG", "VBN",
+  private static String[] verbTagStrings = {"VB", "VBD", "VBG", "VBN",
 					    "VBP", "VBZ"};
   private static Set verbTags = new HashSet();
   static {
@@ -102,14 +111,15 @@ public class Treebank extends danbikel.parser.Treebank {
    * Returns <code>true</code> is the specified nonterminal label represents a
    * sentence in the Penn Treebank, that is, if the canonical version of
    * <code>label</code> is equal to <code>&quot;S&quot;</code>.
-   * @see danbikel.parser.english.Training#relabelSubjectlessSentences(Sexp)
+   * @see Training#relabelSubjectlessSentences(Sexp)
    */
   public boolean isSentence(Symbol label) { return getCanonical(label) == S; }
 
+  public Symbol sentenceLabel() { return S; }
+
   /**
    * Returns the symbol that
-   * {@link danbikel.parser.english.Training#relabelSubjectlessSentences(Sexp)
-   * relabelSubjectlessSentences}
+   * {@link Training#relabelSubjectlessSentences(Sexp)}
    * will use for sentences that have no subjects.
    */
   public Symbol subjectlessSentenceLabel() { return subjectlessS; }
@@ -120,7 +130,7 @@ public class Treebank extends danbikel.parser.Treebank {
    * Returns <code>true</code> if the specified S-expression represents a
    * preterminal whose terminal element is the null element
    * (<code>&quot;-NONE-&quot;</code>) for the Penn Treebank.
-   * @see danbikel.parser.english.Training#relabelSubjectlessSentences(Sexp)
+   * @see Training#relabelSubjectlessSentences(Sexp)
    */
   public boolean isNullElementPreterminal(Sexp tree) {
     return (isPreterminal(tree) &&
@@ -130,7 +140,7 @@ public class Treebank extends danbikel.parser.Treebank {
   /**
    * Returns <code>true</code> if the specified S-expression is a preterminal
    * whose part of speech is <code>&quot;,&quot;</code> or
-   * <code>&quot;.&quot;</code>.
+   * <code>&quot;:&quot;</code>.
    */
   public boolean isPuncToRaise(Sexp preterm) {
     return (isPreterminal(preterm) &&
@@ -212,6 +222,14 @@ public class Treebank extends danbikel.parser.Treebank {
 
   public boolean isComma(Symbol word) {
     return word == comma;
+  }
+
+  public boolean isLeftParen(Symbol word) {
+    return word == lrb || word == lcb;
+  }
+
+  public boolean isRightParen(Symbol word) {
+    return word == rrb || word == rcb;
   }
 
   /**

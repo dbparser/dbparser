@@ -160,17 +160,23 @@ public abstract class Chart implements Serializable {
    */
   protected boolean toPrune(int start, int end, Item item) {
     double topProb = chart[start][end].topLogProb;
-    if (debugPrune) {
-      if (item.logProb() < (topProb - pruneFact))
-        System.err.println(className +
-                           ": pruning away item: " + item + " because " +
-                           "its prob " + item.logProb() +
-                           " is less than " + topProb + " - " + pruneFact +
-                           " = " + (topProb - pruneFact));
+
+    if (debugPrune || debugNumPrunedItems) {
+      boolean belowTheshold = item.logProb() < (topProb - pruneFact);
+      if (debugPrune){
+        if (belowThreshold)
+          System.err.println(className +
+                             ": pruning away item: " + item + " because " +
+                             "its prob " + item.logProb() +
+                             " is less than " + topProb + " - " + pruneFact +
+                             " = " + (topProb - pruneFact));
+      }
+      if (debugNumPrunedItems) {
+        if (belowTheshold)
+          numPrePruned++;
+      }
     }
-    if (debugNumPrunedItems) {
-      numPrePruned++;
-    }
+
     return item.logProb() < (topProb - pruneFact);
   }
 

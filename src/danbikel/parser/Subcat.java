@@ -55,7 +55,7 @@ public interface Subcat extends MutableEvent, SexpConvertible {
    * an argument nonterminal)
    * @return this <code>Subcat</code> object
    *
-   * @see Training#argAugmentation()
+   * @see Training#defaultArgAugmentation()
    * @see Training#gapAugmentation()
    * @see Training#isArgumentFast(Symbol)
    */

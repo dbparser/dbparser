@@ -24,10 +24,13 @@ set minHeap = $maxHeap
 set settingsFile = $2
 set settings = "-Dparser.settingsFile=$settingsFile"
 set jarFile = $parent/dbparser.jar
-set classpath = $jarFile\:$CLASSPATH
+set classpath = $jarFile
+if ($?CLASSPATH) then
+    set classpath = $jarFile\:$CLASSPATH
+endif
 set inFile = $3
-set oFile = $inFile:r.observed
-set odFile = $inFile:r.obj
+set oFile = $inFile:r.observed.gz
+set odFile = $inFile:r.obj.gz
 
 set command = ($java -Xms$minHeap\m -Xmx$maxHeap\m -cp $classpath $settings \
 	       $class -i $inFile -o $oFile -od $odFile)

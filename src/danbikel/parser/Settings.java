@@ -278,23 +278,49 @@ public class Settings implements Serializable {
    * probabilities (as per Mike Collins' bug in his thesis parser).
    * Specifically, if this property is <tt>true</tt>, then all
    * deleted-interpolation probabilities are estimated using a lambda
-   * weight for the final level of back-off, as per for the formula<br>
-   * <i>l</i><sub>1</sub>*<i>e</i><sub>1</sub> +
-   * (1 - <i>l</i><sub>1</sub>) * (<i>l</i><sub>2</sub>*<i>e</i><sub>2</sub> +
-   * (1 - <i>l</i><sub>2</sub>) * <i>l</i><sub>3</sub>*<i>e</i><sub>3</sub>)
-   * where <i>l<sub>i</sub></i> is a lambda for backoff level <i>i</i>
-   * and <i>e<sub>i</sub></i> is an estimate for backoff level <i>i</i>.
-   * If this property is <tt>false</tt>, then the formula is estimated in
-   * the correct fashion:<br>
-   * <i>l</i><sub>1</sub>*<i>e</i><sub>1</sub> +
-   * (1 - <i>l</i><sub>1</sub>) * (<i>l</i><sub>2</sub>*<i>e</i><sub>2</sub> +
-   * (1 - <i>l</i><sub>2</sub>) * <i>e</i><sub>3</sub>)
+   * weight for the final level of back-off, as per for the formula
+   * <blockquote>
+   * <i>&lambda;</i><sub>1</sub>&sdot;<i>e</i><sub>1</sub> +
+   * (1 &minus; <i>&lambda;</i><sub>1</sub>) &sdot;
+   * (<i>&lambda;</i><sub>2</sub>&sdot;<i>e</i><sub>2</sub> +
+   * (1 &minus; <i>&lambda;</i><sub>2</sub>) &sdot;
+   * <i>&lambda;</i><sub>3</sub>&sdot;<i>e</i><sub>3</sub>)
+   * </blockquote>
+   * where <i>&lambda;<sub>i</sub></i> is the smoothing weight for backoff
+   * level <i>i</i> and <i>e<sub>i</sub></i> is an estimate for backoff
+   * level <i>i</i>.  If this property is <tt>false</tt>, then the formula
+   * is estimated in the correct fashion:
+   * <blockquote>
+   * <i>&lambda;</i><sub>1</sub>&sdot;<i>e</i><sub>1</sub> +
+   * (1 &minus; <i>&lambda;</i><sub>1</sub>) &sdot;
+   * (<i>&lambda;</i><sub>2</sub>&sdot;<i>e</i><sub>2</sub> +
+   * (1 &minus; <i>&lambda;</i><sub>2</sub>) &sdot; <i>e</i><sub>3</sub>)
+   * </blockquote>
    * <p>
    * The value of this constant is
    * <code>"parser.model.collinsDeficientEstimation"</code>.
    */
   public final static String collinsDeficientEstimation =
     "parser.model.collinsDeficientEstimation";
+
+  /**
+   *
+   */
+  public final static String saveSmoothingParams =
+    "parser.model.saveSmoothingParameters";
+
+  public final static String dontAddNewParams =
+    "parser.model.dontAddNewParameters";
+
+  public final static String useSmoothingParams =
+    "parser.model.useSmoothingParameters";
+
+  /**
+   * The property to specify the directory from which {@link Model} objects
+   * are to read smoothing parameters files.
+   */
+  public final static String smoothingParamsDir =
+    "parser.model.smoothingParametersDir";
 
   /**
    * The property to specify whether or not the <code>ModelCollection</code>
@@ -831,6 +857,55 @@ public class Settings implements Serializable {
     "parser.trainer.collinsSkipWSJSentences";
 
   /**
+   * The property to specify how many events the trainer should read
+   * from an observations file before deriving counts (for use only
+   * when using a trainer output file; see {@link Trainer#main(String[])}).
+   * The value of this property should be (the string representation of)
+   * an integer.
+   * <p>
+   * The value of this constant is
+   * <code>"parser.trainer.maxEventChunkSize"</code>.
+   */
+  public final static String maxEventChunkSize =
+    "parser.trainer.maxEventChunkSize";
+
+  /**
+   * The property to specify whether the trainer should output the
+   * head-to-parent nonterminal map that it derives from its top-level
+   * observations.  This property should be (the string representation of)
+   * a boolean.
+   * <p>
+   * The value of this constant is
+   * <code>"parser.trainer.outputHeadToParentMap"</code>.
+   */
+  public final static String outputHeadToParentMap =
+    "parser.trainer.outputHeadToParentMap";
+
+  /**
+   * The property to specify whether the trainer should output the subcat
+   * maps that it derives from its top-level observations.  This property
+   * should be (the string representation of) a boolean.
+   * <p>
+   * The value of this constant is
+   * <code>"parser.trainer.outputSubcatMaps"</code>.
+
+   */
+  public final static String outputSubcatMaps =
+    "parser.trainer.outputSubcatMaps";
+
+  /**
+   * The property to specify whether the trainer should output the
+   * modifying nonterminal map that it derives from its top-level
+   * observations.  This property should be (the string representation of)
+   * a boolean.
+   * <p>
+   * The value of this constant is
+   * <code>"parser.trainer.outputModNonterminalMap"</code>.
+   */
+  public final static String outputModNonterminalMap =
+    "parser.trainer.outputModNonterminalMap";
+
+  /**
    * The property to specify the fully-qualified name of the subclass
    * of {@link Item} to be used for chart items.
    * <p>
@@ -1285,6 +1360,28 @@ public class Settings implements Serializable {
 	set(property, System.getProperty(property));
       }
     }
+  }
+
+  /**
+   * Returns the integer value of the specified setting, as determined by
+   * {@link Integer#parseInt(String)}.
+   *
+   * @param setting the setting whose value is to be gotten
+   * @return the integer value of the specified setting
+   */
+  public static int getInteger(String setting) {
+    return Integer.parseInt(get(setting));
+  }
+
+  /**
+   * Returns the boolean value of the specified setting, as determined by
+   * {@link Boolean#valueOf(String)}.
+   *
+   * @param setting the setting whose value is to be gotten
+   * @return the boolean value of the specified setting
+   */
+  public static boolean getBoolean(String setting) {
+    return Boolean.valueOf(get(setting)).booleanValue();
   }
 
   /**

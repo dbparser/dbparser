@@ -1,6 +1,6 @@
 package danbikel.parser;
 
-import danbikel.util.ObjectPool;
+import danbikel.util.*;
 import danbikel.lisp.*;
 import java.io.Serializable;
 import java.util.*;
@@ -43,7 +43,17 @@ public class CKYChart extends Chart {
   }
 
   public CKYItem getNewItem() {
-    return (CKYItem)itemPool.get();
     // return new CKYItem();
+    /*
+    CKYItem newItem = (CKYItem)itemPool.get();
+    if (newItem.garbage())
+      throw new RuntimeException();
+    */
+    return newItem;
+  }
+
+  protected void reclaimItemCollection(Collection c) {
+    if (c.size() > 0)
+      itemPool.putBackAll(c);
   }
 }

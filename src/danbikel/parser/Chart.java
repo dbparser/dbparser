@@ -361,7 +361,7 @@ public abstract class Chart implements Serializable {
   }
 
   protected void reclaimItemsInChart() {
-    int numCells = 0, maxCellSize = 0;
+    int numCells = 0, maxCellSize = 0, maxCellStart = -1, maxCellEnd = -1;
     if (debugNumPrunedItems) {
       System.err.println(className +
                          ": number of items pre-pruned: " + numPrePruned);
@@ -391,8 +391,11 @@ public abstract class Chart implements Serializable {
           if (debugCellSize) {
             if (map.size() > 0)
               numCells++;
-            if (map.size() > maxCellSize)
+            if (map.size() > maxCellSize) {
               maxCellSize = map.size();
+              maxCellStart = i;
+              maxCellEnd = j;
+            }
           }
         }
       }
@@ -406,8 +409,21 @@ public abstract class Chart implements Serializable {
 	System.err.println(className + ": num. cells: " + numCells +
 			   "; avg. cell size: " +
                            (totalItems / (float)numCells) +
-			   "; max. cell size: " + maxCellSize);
+			   "; max. cell size: " + maxCellSize +
+                           "; max cell at [" + maxCellStart + "," +
+                           maxCellEnd + "]");
+      /*
+      if (maxCellStart == maxCellEnd) {
+        Iterator it = chart[maxCellStart][maxCellEnd].map.keySet().iterator();
+        while (it.hasNext())
+          System.err.println(it.next());
+      }
+      */
     }
+
+    System.err.println("num cache adds: " + Model.numCacheAdds +
+                       "; num canonical hits: " + Model.numCanonicalHits);
+    Model.numCacheAdds = Model.numCanonicalHits = 0;
   }
 
   /**

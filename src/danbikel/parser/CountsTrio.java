@@ -5,33 +5,39 @@ import java.io.Serializable;
 /**
  * Class for grouping the three <code>CountsTable</code>
  * objects necessary for counting transitions, histories and
- * unique transitions.
+ * unique transitions (or <i>diversity</i> counts for the history events).
  */
 public class CountsTrio implements Serializable {
-  // constants
-  private static final int TRANS = 0;
-  private static final int HIST = 1;
-  private static final int UNIQUE = 2;
-  private static final int NUM_COUNTS_TABLES = 3;
+  // public constants
+  /**
+   * The constant to be used as an index when adding or retrieving
+   * history counts from the <code>BiCountsTable</code>.
+   */
+  public final static int hist = 0;
+  /**
+   * The constant to be used as an index when adding or retrieving
+   * diversity counts from the <code>BiCountsTable</code>.
+   */
+  public final static int diversity = 1;
 
-  CountsTable[] trio = new CountsTable[NUM_COUNTS_TABLES];
+
+  // data members
+  CountsTable trans;
+  BiCountsTable histAndDiversity;
+
   CountsTrio() {
-    for (int i = 0; i < trio.length; i++)
-      trio[i] = new CountsTable();
+    trans = new CountsTable();
+    histAndDiversity = new BiCountsTable();
   }
   /**
    * Gets the <code>CountsTable</code> for transitions.
    * @return the transitions <code>CountsTable</code>.
    */
-  public CountsTable transition() { return trio[TRANS]; }
+  public CountsTable transition() { return trans; }
   /**
-   * Gets the <code>CountsTable</code> for histories.
+   * Gets the <code>CountsTable</code> for histories counts and diversity
+   * statistics.
    * @return the histories <code>CountsTable</code>.
    */
-  public CountsTable history() { return trio[HIST]; }
-  /**
-   * Gets the <code>CountsTable</code> for unique transitions.
-   * @return the unique transitions <code>CountsTable</code>.
-   */
-  public CountsTable unique() { return trio[UNIQUE]; }
+  public BiCountsTable history() { return histAndDiversity; }
 }

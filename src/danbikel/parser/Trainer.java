@@ -180,7 +180,8 @@ public class Trainer implements Serializable {
 
   // settings
   private int unknownWordThreshold;
-  private int countThreshold;
+  private double countThreshold;
+  private double derivedCountThreshold;
   private int reportingInterval;
   private int numPrevMods;
   private int numPrevWords;
@@ -255,6 +256,7 @@ public class Trainer implements Serializable {
    *
    * @see Settings#unknownWordThreshold
    * @see Settings#countThreshold
+   * @see Settings#derivedCountThreshold
    * @see Settings#trainerReportingInterval
    * @see Settings#numPrevMods
    */
@@ -262,7 +264,9 @@ public class Trainer implements Serializable {
     unknownWordThreshold =
       Integer.parseInt(Settings.get(Settings.unknownWordThreshold));
     countThreshold =
-      Integer.parseInt(Settings.get(Settings.countThreshold));
+      Double.parseDouble(Settings.get(Settings.countThreshold));
+    derivedCountThreshold =
+      Double.parseDouble(Settings.get(Settings.derivedCountThreshold));
     reportingInterval =
       Integer.parseInt(Settings.get(Settings.trainerReportingInterval));
     numPrevMods =
@@ -431,6 +435,14 @@ public class Trainer implements Serializable {
     System.err.flush();
     createPosMap();
     System.err.println("done (map has " + posMap.size() + " entries).");
+
+    if (countThreshold > 0.0) {
+      System.err.println(className + ": removing all TrainerEvent objects " +
+                         "with counts less than " + countThreshold);
+      headEvents.removeItemsBelow(countThreshold);
+      modifierEvents.removeItemsBelow(countThreshold);
+      gapEvents.removeItemsBelow(countThreshold);
+    }
 
     //countUniqueBigrams();
 
@@ -950,7 +962,7 @@ public class Trainer implements Serializable {
       derivePriors();
       System.err.println("done.");
 
-      int th = countThreshold;
+      double th = derivedCountThreshold;
       lexPriorModel.deriveCounts(priorEvents, allPass, th, canonical);
       nonterminalPriorModel.deriveCounts(priorEvents, allPass, th, canonical);
       topNonterminalModel.deriveCounts(headEvents, topOnly, th, canonical);
@@ -1405,15 +1417,18 @@ public class Trainer implements Serializable {
 	break;
       case headEventType:
 	count = Double.parseDouble(event.symbolAt(2).toString());
-	headEvents.add(new HeadEvent(event.get(1)), count);
+        if (count >= countThreshold)
+	  headEvents.add(new HeadEvent(event.get(1)), count);
 	break;
       case modEventType:
 	count = Double.parseDouble(event.symbolAt(2).toString());
-	modifierEvents.add(new ModifierEvent(event.get(1)), count);
+        if (count >= countThreshold)
+	  modifierEvents.add(new ModifierEvent(event.get(1)), count);
 	break;
       case gapEventType:
 	count = Double.parseDouble(event.symbolAt(2).toString());
-	gapEvents.add(new GapEvent(event.get(1)), count);
+        if (count >= countThreshold)
+	  gapEvents.add(new GapEvent(event.get(1)), count);
 	break;
       case posMapType:
 	posMap.put(event.get(1), event.get(2));

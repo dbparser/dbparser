@@ -4,7 +4,7 @@ import danbikel.lisp.*;
 import danbikel.parser.*;
 
 /**
- * Contains asic utility functions for <code>Sexp</code> objects that
+ * Contains basic utility functions for <code>Sexp</code> objects that
  * represent parse trees.
  * @author Dan Bikel
  * @version 1.0

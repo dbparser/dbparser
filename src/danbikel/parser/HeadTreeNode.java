@@ -27,6 +27,12 @@ public class HeadTreeNode implements Serializable, SexpConvertible {
   private Symbol label;
   /** The head word of this node. */
   private Word headWord;
+  /** The index of the head word of this node. */
+  private int headWordIdx;
+  /** The original head word observed in the training data, before any
+      downcasing or transformation to an unknown word token or a low-frequency
+      word feature vector. */
+  private Symbol originalHeadWord;
   /** The head child of this node. */
   private HeadTreeNode headChild;
   /** A list of the premodifiers of the head child of this node. */
@@ -70,7 +76,7 @@ public class HeadTreeNode implements Serializable, SexpConvertible {
       preMods = Collections.EMPTY_LIST;
       postMods = Collections.EMPTY_LIST;
       headWord = treebank.makeWord(tree);
-      headWord.setIndex(wordCounter.increment());
+      headWordIdx = wordCounter.increment();
       label = headWord.tag();
       containsVerb = treebank.isVerb(tree);
       rightIdx = wordCounter.get();
@@ -118,6 +124,7 @@ public class HeadTreeNode implements Serializable, SexpConvertible {
 
       // finally, set head word
       headWord = headChild.headWord;
+      headWordIdx = headChild.headWordIdx;
       return;
     }
 
@@ -134,6 +141,10 @@ public class HeadTreeNode implements Serializable, SexpConvertible {
   public Symbol label() { return label; }
   /** Gets the head word for this node. */
   public Word headWord() { return headWord; }
+  /** Gets the index of the head word for this node. */
+  public int headWordIdx() { return headWordIdx; }
+  /** Gets the original version of the head word. */
+  public Symbol originalHeadWord() { return originalHeadWord; }
   /** Indicates whether this subtree contains a verb. */
   public boolean containsVerb() { return containsVerb; }
   /** Gets the head child of this node. */
@@ -146,6 +157,12 @@ public class HeadTreeNode implements Serializable, SexpConvertible {
   public int leftIdx() { return leftIdx; }
   /** Gets the index of the rightmost word in this subtree plus 1. */
   public int rightIdx() { return rightIdx; }
+
+
+  // mutators
+  public void setOriginalHeadWord(Symbol originalHeadWord) {
+    this.originalHeadWord = originalHeadWord;
+  }
 
   public Sexp toSexp() {
     if (isPreterminal()) {

@@ -1,0 +1,33 @@
+#!/bin/tcsh -f
+
+if ($#argv < 1) then
+   echo "usage: <settings file>"
+   exit 1
+endif
+
+set settingsFile = $1
+set args = ($argv[2-$#argv])
+
+set class = danbikel.parser.StartSwitchboard
+set logDir = /tmp
+set logFile = $logDir/sb.log
+set pidFile = $logDir/sb-pid
+set settingsProp = "-Dparser.settingsFile=$settingsFile"
+
+set mem = (-Xms100m -Xmx100m)
+
+set parent = `dirname $0`/..
+set classes = $parent/classes
+
+set sbPolicy = "-Djava.security.policy=$parent/policy-files/all.policy"
+set sbCodebase = "-Djava.rmi.server.codebase=file://$classes/"
+set disableHttp = "-Djava.rmi.server.disableHttp=true"
+
+# start the switchboard
+echo log file is $logFile
+echo pid file is $pidFile
+
+java -server $mem $settingsProp $sbPolicy $sbCodebase $disableHttp \
+    $class $args >& $logFile &
+
+echo $! > $pidFile

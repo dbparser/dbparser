@@ -2047,8 +2047,8 @@ public class Trainer implements Serializable {
     System.exit(1);
   }
 
-  protected static void incrementalTrain(Trainer trainer,
-                                         String inputFilename)
+  protected static void incrementallyTrain(Trainer trainer,
+                                           String inputFilename)
     throws FileNotFoundException, UnsupportedEncodingException, IOException {
     int eventChunkSize = Settings.getInteger(Settings.maxEventChunkSize);
     SexpTokenizer inputFileTok =
@@ -2206,7 +2206,7 @@ public class Trainer implements Serializable {
         if (incrementalTraining) {
           // user can only specify to do incremental training when user
           // wants to derive counts
-          incrementalTrain(trainer, inputFilename);
+          incrementallyTrain(trainer, inputFilename);
         }
         else {
           trainer.readStats(new File(inputFilename));
@@ -2215,7 +2215,7 @@ public class Trainer implements Serializable {
           // user may only specify a trainer event input filename along with
           // an object output file, so we know that user must want to derive
           // counts from this trainer event input file
-          incrementalTrain(trainer, trainerEventInputFilename);
+          incrementallyTrain(trainer, trainerEventInputFilename);
         }
         System.err.println("Finished reading observations in " + time + ".");
       }

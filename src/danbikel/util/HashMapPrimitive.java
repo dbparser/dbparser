@@ -109,6 +109,18 @@ import java.io.*;
 
 abstract public class HashMapPrimitive extends AbstractMapToPrimitive
   implements FlexibleMap, Cloneable, java.io.Serializable {
+
+  // constants
+  /**
+   * The default load factor, <tt>0.75f</tt>.
+   */
+  protected final static float DEFAULT_LOAD_FACTOR = 0.75f;
+
+  /**
+   * The default size, <tt>11</tt>.
+   */
+  protected final static int DEFAULT_SIZE = 11;
+
   /**
    * The hash table data.
    */
@@ -168,34 +180,34 @@ abstract public class HashMapPrimitive extends AbstractMapToPrimitive
 
   /**
    * Constructs a new, empty map with the specified initial capacity
-   * and default load factor, which is <tt>0.75</tt>.
+   * and {@link #DEFAULT_LOAD_FACTOR default load factor}.
    *
    * @param   initialCapacity   the initial capacity of the HashMap.
    * @throws    IllegalArgumentException if the initial capacity is less
    *              than zero.
    */
   public HashMapPrimitive(int initialCapacity) {
-    this(initialCapacity, 0.75f);
+    this(initialCapacity, DEFAULT_LOAD_FACTOR);
   }
 
   /**
-   * Constructs a new, empty map with a default capacity and load
-   * factor, which is <tt>0.75</tt>.
+   * Constructs a new, empty map with {@link #DEFAULT_SIZE a default capacity}
+   * and {@link #DEFAULT_LOAD_FACTOR load factor}.
    */
   public HashMapPrimitive() {
-    this(11, 0.75f);
+    this(DEFAULT_SIZE, DEFAULT_LOAD_FACTOR);
   }
 
   /**
    * Constructs a new map with the same mappings as the given map.  The
    * map is created with a capacity of twice the number of mappings in
-   * the given map or 11 (whichever is greater), and a default load factor,
-   * which is <tt>0.75</tt>.
+   * the given map or {@link #DEFAULT_SIZE the default size} (whichever
+   * is greater), and {@link #DEFAULT_LOAD_FACTOR a default load factor}.
    *
    * @param t the map whose mappings are to be placed in this map.
    */
   public HashMapPrimitive(Map t) {
-    this(Math.max(2*t.size(), 11), 0.75f);
+    this(Math.max(2*t.size(), DEFAULT_SIZE), DEFAULT_LOAD_FACTOR);
     putAll(t);
   }
 

@@ -117,34 +117,36 @@ public class HashMapDouble extends HashMapPrimitive
 
   /**
    * Constructs a new, empty map with the specified initial capacity
-   * and default load factor, which is <tt>0.75</tt>.
+   * and {@link HashMapPrimitive#DEFAULT_LOAD_FACTOR default load factor}.
    *
    * @param   initialCapacity   the initial capacity of the HashMap.
    * @throws    IllegalArgumentException if the initial capacity is less
    *              than zero.
    */
   public HashMapDouble(int initialCapacity) {
-    this(initialCapacity, 0.75f);
+    this(initialCapacity, DEFAULT_LOAD_FACTOR);
   }
 
   /**
-   * Constructs a new, empty map with a default capacity and load
-   * factor, which is <tt>0.75</tt>.
+   * Constructs a new, empty map with a
+   * {@link HashMapPrimitive#DEFAULT_SIZE default capacity} and
+   * {@link HashMapPrimitive#DEFAULT_LOAD_FACTOR load factor}.
    */
   public HashMapDouble() {
-    this(11, 0.75f);
+    this(DEFAULT_SIZE, DEFAULT_LOAD_FACTOR);
   }
 
   /**
    * Constructs a new map with the same mappings as the given map.  The
    * map is created with a capacity of twice the number of mappings in
-   * the given map or 11 (whichever is greater), and a default load factor,
-   * which is <tt>0.75</tt>.
+   * the given map or {@link HashMapPrimitive#DEFAULT_SIZE the default size}
+   * (whichever is greater), and a
+   * {@link HashMapPrimitive#DEFAULT_LOAD_FACTOR default load factor}.
    *
    * @param t the map whose mappings are to be placed in this map.
    */
   public HashMapDouble(Map t) {
-    this(Math.max(2*t.size(), 11), 0.75f);
+    this(Math.max(2*t.size(), DEFAULT_SIZE), DEFAULT_LOAD_FACTOR);
     putAll(t);
   }
 

@@ -30,6 +30,10 @@ public interface Training {
    * <b>N.B.</b>: This method is necessarily thread-safe, as it is expected
    * to be invoked by every {@link Decoder} as it starts up, and since there
    * can be multiple {@link Decoder} instances within a given VM.
+   * <b><i>However</i></b>, note that it is <b>inappropriate to invoke this
+   * method</b> if the set of nonterminals in the specified counts table
+   * is incomplete (see the documentation for the {@link SubcatBag} class
+   * for an instance where this will be the case).
    *
    * @param nonterminals a counts table whose keys form a complete set of
    * all possible nonterminal labels, as is obtained from

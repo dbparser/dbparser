@@ -59,7 +59,7 @@ public abstract class Chart implements Serializable {
   protected int cellLimit = -1;
   protected double pruneFact = 0.0;
   protected int totalItems = 0;
-  protected ObjectPool itemPool;
+  protected transient ObjectPool itemPool;
   protected int totalItemsGenerated = 0;
 
   /**

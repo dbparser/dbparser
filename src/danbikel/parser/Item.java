@@ -44,6 +44,24 @@ public abstract class Item implements Serializable, Comparable {
   /** Sets the log probability of this chart item. */
   public void setLogProb(double logProb) { this.logProb = logProb; }
 
+  /**
+   * Returns whether this item has been eliminated from the chart because
+   * another, equivalent item was added (meaning that this item could not
+   * be immediately reclaimed, since the caller of
+   * <code>Chart.add</code> may have a handle onto this item).
+   *
+   * @see Chart#add(int,int,Item)
+   */
+  public abstract boolean garbage();
+
+  /**
+   * Sets the value of this item's garbage status.
+   *
+   * @see #garbage()
+   * @see Chart#add(int,int,Item)
+   */
+  public abstract void setGarbage(boolean garbage);
+
   public int compareTo(Object o) {
     Item otherItem = (Item)o;
     return (logProb < otherItem.logProb ? -1 :

@@ -26,6 +26,7 @@ public class Parser
 
   // private constants
   private final static boolean debug = false;
+  private final static boolean debugCacheStats = true;
   private final static String className = Parser.class.getName();
 
   // public constants
@@ -348,6 +349,8 @@ public class Parser
           time.reset();
           Sexp parsedSent = parser.parse(sent.list());
           System.err.println("elapsed time: " + time);
+          System.err.println("cummulative average elapsed time: " +
+                             Time.elapsedTime(totalTime.elapsedMillis() / i));
           out.write(String.valueOf(parsedSent));
           out.write("\n");
         }
@@ -420,8 +423,11 @@ public class Parser
     }
     if (debug)
       System.err.println(className + ": main ending!");
-    parser = null;
-    System.gc();
-    System.runFinalization();
+
+    if (debugCacheStats) {
+      parser = null;
+      System.gc();
+      System.runFinalization();
+    }
   }
 }

@@ -54,7 +54,7 @@ public class WordTokenizer {
   private int lineno = 1;
   private int linenoOfLastToken = 0;
   private int lineSepMatchIdx = 0;
-  private StringBuffer sb = new StringBuffer();
+  private char[] buf = new char[100];
 
   /**
    * Creates a new tokenizer object.
@@ -156,14 +156,20 @@ public class WordTokenizer {
     else {
       ttype = StreamTokenizer.TT_WORD;
       linenoOfLastToken = lineno;
-      sb.setLength(0);
+      int bufIdx = 0;
       while (lastChar != -1 &&
 	     !Character.isWhitespace((char)lastChar) &&
 	     !ordinary.get(lastChar)) {
-	sb.append((char)lastChar);
+        buf[bufIdx++] = (char)lastChar;
+        if (bufIdx == buf.length) {
+          int newBufLen = buf.length * 2;
+          char[] newBuf = new char[newBufLen];
+          System.arraycopy(buf, 0, newBuf, 0, buf.length);
+          buf = newBuf;
+        }
 	lastChar = readChar();
       }
-      sval = sb.toString();
+      sval = new String(buf, 0, bufIdx);
     }
     return ttype;
   }

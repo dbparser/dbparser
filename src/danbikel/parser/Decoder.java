@@ -40,16 +40,6 @@ public class Decoder implements Serializable {
 
   private final static String className = Decoder.class.getName();
 
-  // static data members (so multiple decoders running in the same VM can
-  // share data resources
-  // (bad idea?)
-  /*
-  protected static volatile Map posMap;
-  protected static volatile CountsTable nonterminals;
-  protected static volatile Map leftSubcatMap;
-  protected static volatile Map rightSubcatMap;
-  */
-
   // data members
   protected int id;
   protected DecoderServerRemote server;
@@ -208,40 +198,6 @@ public class Decoder implements Serializable {
     this.id = id;
     this.server = server;
     try {
-      // for static data members
-      /*
-      if (posMap == null) {
-        synchronized (Decoder.class) {
-          if (posMap == null)
-            posMap = Collections.synchronizedMap(server.posMap());
-        }
-      }
-      if (nonterminals == null) {
-        synchronized (Decoder.class) {
-          if (nonterminals == null) {
-            CountsTable nonterminalTable = server.nonterminals();
-            nonterminals = new Symbol[nonterminalTable.size()];
-            Iterator it = nonterminalTable.keySet().iterator();
-            for (int i = 0; it.hasNext(); i++)
-              nonterminals[i] = (Symbol)it.next();
-          }
-        }
-      }
-      if (leftSubcatMap == null) {
-        synchronized (Decoder.class) {
-          if (leftSubcatMap == null)
-            leftSubcatMap =
-              Collections.synchronizedMap(server.leftSubcatMap());
-        }
-      }
-      if (rightSubcatMap == null) {
-        synchronized (Decoder.class) {
-          if (rightSubcatMap == null)
-            rightSubcatMap =
-              Collections.synchronizedMap(server.rightSubcatMap());
-        }
-      }
-      */
       this.posMap = server.posMap();
       CountsTable nonterminalTable = server.nonterminals();
       if (Subcats.get() instanceof SubcatBag)

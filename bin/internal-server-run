@@ -74,7 +74,7 @@ endif
 if ($?linkOutputFiles || $?copyOutputFiles) then
     if ($?linkOutputFiles) then
 	echo -n "Putting links to output files in "
-    else if ($?copyOutputFiles) then
+    else
 	echo -n "Copying output files to "
     endif
     if ($?copyOutputDir) then

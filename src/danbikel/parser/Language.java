@@ -11,7 +11,7 @@ import danbikel.lisp.*;
  * this class.  This scheme means that <code>Language.setLanguage</code> should
  * be called before any language-specific resources or methods are required,
  * typically early in the execution of a program.  A language package must
- * provide concrete subclasses for the following abstract classes:
+ * provide implementations for the following interfaces:
  * <ul>
  * <li>{@link WordFeatures}
  * <li>{@link Treebank}
@@ -50,7 +50,7 @@ public class Language implements Serializable {
   public final static Training training() { return training; }
 
   private final static String fileEncodingProperty =
-    Settings.fileEncodingPrefix + Settings.language;
+    Settings.fileEncodingPrefix + Settings.get(Settings.language);
 
   static String encoding;
   static {

@@ -1,11 +1,10 @@
 <html>
 <body>
 <p>
-Implements a framework for developing statistical syntactic parsers
-that, unlike previous approaches, uses a language/Treebank module for
-a great deal of language-independence and supports models that
-incorporate a lexical semantic hierarchy, such as <a target="_blank"
-href="http://www.cogsci.princeton.edu/~wn">WordNet</a>.
+Provides the core framework of this extensible statistical parsing engine.
+Unlike previous approaches, the framework encapsulates all language- and
+Treebank-specific information in a language package extension, providing a
+great deal of language-independence.
 </p>
 <p>
 Several of the classes in this package, particularly the smaller
@@ -18,7 +17,7 @@ must return its own type, because types are not parameterized; hence,
 we are specifying the contract for this method name here.  However,
 all classes that implement <code>copy</code> also implement the {@link
 java.lang.Cloneable Cloneable} interface, where the <code>clone</code>
-method simply calls the class' <code>copy</code> method.
+method simply calls the class&rsquo; <code>copy</code> method.
 </p>
 </body>
 </html>

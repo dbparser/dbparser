@@ -15,9 +15,11 @@ public class EMDecoder extends Decoder {
   // debugging constants
   // debugging code will be optimized away when the following booleans are false
   private final static boolean debug = false;
+  private final static boolean debugConvertSubcatMaps = false;
   private final static boolean debugPrunedPretermsPosMap = false;
   private final static boolean debugPrunedPunctuationPosMap = false;
-  private final static boolean debugSentenceSize = false;
+  private final static boolean debugSentenceSize = true;
+  private final static boolean debugMaxParseTime = true;
   private final static boolean debugSpans = false;
   private final static boolean debugInit = false;
   private final static boolean debugTop = false;
@@ -42,15 +44,22 @@ public class EMDecoder extends Decoder {
    * megabytes, if not larger.
    */
   private final static boolean debugOutputAllCounts = false;
+  private final static boolean debugInsideProbs = true;
+
   private final static Symbol ADJP = Symbol.add("ADJP");
   private final static Symbol S = Symbol.add("S");
+  private final static Symbol SQ = Symbol.add("SQ");
   private final static Symbol SINV = Symbol.add("SINV");
+  private final static Symbol SGA = Symbol.add("SG-A");
   private final static Symbol PRN = Symbol.add("PRN");
   private final static Symbol RRB = Symbol.add("-RRB-");
   private final static Symbol NP = Symbol.add("NP");
+  private final static Symbol PP = Symbol.add("PP");
   private final static Symbol NPA = Symbol.add("NP-A");
+  private final static Symbol NPB = Symbol.add("NPB");
   private final static Symbol RRC = Symbol.add("RRC");
   private final static Symbol VP = Symbol.add("VP");
+  private final static Symbol VPA = Symbol.add("VP-A");
   private final static Symbol CC = Symbol.add("CC");
   private final static Symbol comma = Symbol.add(",");
   private final static Symbol FRAG = Symbol.add("FRAG");
@@ -68,16 +77,11 @@ public class EMDecoder extends Decoder {
   protected final static double probCertain = Constants.probCertain;
   protected final static double probImpossible = Constants.probImpossible;
 
-  /**
-   * A list containing only {@link Training#startSym()}, which is the
-   * type of list that should be used when there are zero real previous
-   * modifiers (to start the Markov modifier process).
-   */
-  private final SexpList startList = Trainer.newStartList();
-  private final WordList startWordList = Trainer.newStartWordList();
+  protected final static Subcat[] zeroSubcatArr = new Subcat[0];
 
   // data members
   protected Set topProbItemsToAdd = new HashSet();
+  protected double cummulativeInsideLogProb = 0.0;
   // data members used when debugSentenceSize is true
   private float avgSentLen = 0.0f;
   private int numSents = 0;
@@ -107,138 +111,48 @@ public class EMDecoder extends Decoder {
     useCommaConstraint = false;
   }
 
-  /**
-   * Initializes the chart for parsing the specified sentence.  Specifically,
-   * this method will add a chart item for each possible part of speech for
-   * each word.
-   *
-   * @param sentence the sentence to parse, which must be a list containing
-   * only symbols as its elements
-   */
-  protected void initialize(SexpList sentence) throws RemoteException {
-    initialize(sentence, null);
-  }
+  protected void seedChart(Symbol word, int wordIdx, Symbol features,
+			   boolean neverObserved, SexpList tagSet,
+			   boolean wordIsUnknown, Symbol origWord,
+			   ConstraintSet constraints) throws RemoteException {
+    int i = wordIdx;
+    int numTags = tagSet.length();
+    for (int tagIdx = 0; tagIdx < numTags; tagIdx++) {
+      Symbol tag = tagSet.symbolAt(tagIdx);
+      if (!posSet.contains(tag))
+	System.err.println(className + ": warning: part of speech tag " +
+			   tag + " not seen during training");
+      if (useCommaConstraint)
+	if (Language.treebank.isConjunction(tag))
+	  conjForPruning[i] = true;
+      Word headWord = neverObserved ?
+		      Words.get(word, tag, features) :
+		      getCanonicalWord(lookupWord.set(word, tag, features));
+      EMItem item = chart.getNewEMItem();
+      item.set(tag, headWord,
+	       emptySubcat, emptySubcat, null, null,
+	       null,
+	       startList, startList,
+	       i, i,
+	       false, false, true, 0,
+	       probCertain);
 
-  /**
-   * Initializes the chart for parsing the specified sentence, using the
-   * specified coordinated list of part-of-speech tags when assigning parts
-   * of speech to unknown words.
-   *
-   * @param sentence the sentence to parse, which must be a list containing
-   * only symbols as its elements
-   * @param tags a list that is the same length as <code>sentence</code> that
-   * will be used when seeding the chart with the parts of speech for unknown
-   * words; each element <i>i</i> of <code>tags</code> should itself be a
-   * <code>SexpList</code> containing all possible parts of speech for the
-   * <i>i</i><sup>th</sup> word in <code>sentence</code>; if the value of this
-   * argument is <code>null</code>, then for each unknown word (or feature
-   * vector), all possible parts of speech observed in the training data for
-   * that unknown word will be used
-   */
-  protected void initialize(SexpList sentence, SexpList tags)
-  throws RemoteException {
-
-    preProcess(sentence, tags);
-
-    if (debugInit) {
-      System.err.println(className + ": sentence to parse: " + sentence);
-    }
-
-    this.sentence = sentence;
-    sentLen = sentence.length();
-
-    if (useCommaConstraint)
-      setCommaConstraintData();
-
-    HashSet tmpSet = new HashSet();
-
-    for (int i = 0; i < sentLen; i++) {
-      boolean wordIsUnknown = sentence.get(i).isList();
-      boolean neverObserved = false;
-      Symbol word = null, features = null;
-      if (wordIsUnknown) {
-	SexpList wordInfo = sentence.listAt(i);
-        neverObserved = wordInfo.symbolAt(2) == Constants.trueSym;
-	if (keepAllWords) {
-	  features = wordInfo.symbolAt(1);
-	  word = neverObserved ? features : wordInfo.symbolAt(0);
+      if (findAtLeastOneSatisfyingConstraint) {
+	Constraint constraint = constraints.constraintSatisfying(item);
+	if (constraint != null) {
+	  if (debugConstraints)
+	    System.err.println("assigning satisfied constraint " +
+			       constraint + " to item " + item);
+	  item.setConstraint(constraint);
 	}
 	else {
-	  // we *don't* set features, since when keepAllWords is false,
-	  // we simply replace unknown words with their word feature vectors
-	  word = wordInfo.symbolAt(1);
+	  if (debugConstraints)
+	    System.err.println("no satisfying constraint for item " + item);
+	  continue;
 	}
       }
-      else {
-	// word is a known word, so just grab it
-	word = sentence.symbolAt(i);
-      }
-
-      Symbol origWord = (wordIsUnknown ? sentence.listAt(i).symbolAt(0) : null);
-      SexpList tagSet = null;
-      if (wordIsUnknown) {
-	if (useLowFreqTags && posMap.containsKey(origWord)) {
-	  tagSet = (SexpList)posMap.get(origWord);
-	  if (tags != null)
-	    tagSet = setUnion(tagSet, tags.listAt(i), tmpSet);
-	}
-	else if (tags != null)
-	  tagSet = tags.listAt(i);
-	else
-	  tagSet = (SexpList)posMap.get(word);
-      }
-      else {
-	tagSet = (SexpList)posMap.get(word);
-      }
-
-      if (tagSet == null) {
-	Symbol defaultFeatures = Language.wordFeatures.defaultFeatureVector();
-	tagSet = (SexpList)posMap.get(defaultFeatures);
-      }
-      if (tagSet == null) {
-	tagSet = SexpList.emptyList;
-	System.err.println(className + ": warning: no tags for default " +
-			   "feature vector " + word);
-      }
-      int numTags = tagSet.length();
-      for (int tagIdx = 0; tagIdx < numTags; tagIdx++) {
-        Symbol tag = tagSet.symbolAt(tagIdx);
-        if (!posSet.contains(tag))
-          System.err.println(className + ": warning: part of speech tag " +
-                             tag + " not seen during training");
-	if (useCommaConstraint)
-	  if (Language.treebank.isConjunction(tag))
-	    conjForPruning[i] = true;
-        Word headWord = neverObserved ?
-                        new Word(word, tag, features) :
-                        getCanonicalWord(lookupWord.set(word, tag, features));
-        EMItem item = chart.getNewEMItem();
-        item.set(tag, headWord,
-                 emptySubcat, emptySubcat, null, null,
-                 null,
-                 startList, startList,
-                 i, i,
-                 false, false, true, 0,
-                 probCertain);
-
-        if (findAtLeastOneSatisfyingConstraint) {
-          Constraint constraint = constraints.constraintSatisfying(item);
-          if (constraint != null) {
-            if (debugConstraints)
-              System.err.println("assigning satisfied constraint " +
-                                 constraint + " to item " + item);
-            item.setConstraint(constraint);
-          }
-          else {
-            if (debugConstraints)
-              System.err.println("no satisfying constraint for item " + item);
-            continue;
-          }
-        }
-        chart.add(i, i, item);
-      } // end for each tag
-      addUnariesAndStopProbs(i, i);
-    } // end for each word index
+      chart.add(i, i, item);
+    } // end for each tag
   }
 
   protected CountsTable parseAndCollectEventCounts(SexpList sentence)
@@ -252,8 +166,8 @@ public class EMDecoder extends Decoder {
   }
 
   protected CountsTable parseAndCollectEventCounts(SexpList sentence,
-                                                   SexpList tags,
-                                                   ConstraintSet constraints)
+						   SexpList tags,
+						   ConstraintSet constraints)
     throws RemoteException {
 
     if (debugOutputAllCounts)
@@ -274,33 +188,43 @@ public class EMDecoder extends Decoder {
     else {
       this.constraints = constraints;
       findAtLeastOneSatisfyingConstraint =
-        constraints.findAtLeastOneSatisfying();
+	constraints.findAtLeastOneSatisfying();
       isomorphicTreeConstraints =
-        findAtLeastOneSatisfyingConstraint && constraints.hasTreeStructure();
+	findAtLeastOneSatisfyingConstraint && constraints.hasTreeStructure();
       if (debugConstraints)
-        System.err.println(className + ": constraints: " + constraints);
+	System.err.println(className + ": constraints: " + constraints);
     }
 
     chart.setSizeAndClear(sentence.length());
     initialize(sentence, tags);
+
     if (debugSentenceSize) {
       System.err.println(className + ": current sentence length: " + sentLen +
-                         " word" + (sentLen > 1 ? "s" : ""));
+			 " word" + (sentLen == 1 ? "" : "s"));
       numSents++;
       avgSentLen = ((numSents - 1)/(float)numSents) * avgSentLen +
-                   (float)sentLen / numSents;
+		   (float)sentLen / numSents;
       System.err.println(className + ": cummulative average length: " +
-                         avgSentLen + " words");
+			 avgSentLen + " words");
     }
-    for (int span = 2; span <= sentLen; span++) {
-      if (debugSpans)
-        System.err.println(className + ": span: " + span);
-      int split = sentLen - span + 1;
-      for (int start = 0; start < split; start++) {
-        int end = start + span - 1;
-        if (debugSpans)
-          System.err.println(className + ": start: " + start + "; end: " + end);
-        complete(start, end);
+
+    try {
+      for (int span = 2; span <= sentLen; span++) {
+	if (debugSpans)
+	  System.err.println(className + ": span: " + span);
+	int split = sentLen - span + 1;
+	for (int start = 0; start < split; start++) {
+	  int end = start + span - 1;
+	  if (debugSpans)
+	    System.err.println(className + ": start: " + start +
+			       "; end: " + end);
+	  complete(start, end);
+	}
+      }
+    }
+    catch (TimeoutException te) {
+      if (debugMaxParseTime) {
+	System.err.println(te.getMessage());
       }
     }
 
@@ -314,7 +238,7 @@ public class EMDecoder extends Decoder {
 
     if (eventCounts.size() == 0) {
       System.err.println(className + ": warning: zero event counts for " +
-                         "sentence " + sentence);
+			 "sentence " + sentence);
     }
 
     // the chart mixes two types of items that cover the entire span
@@ -332,16 +256,16 @@ public class EMDecoder extends Decoder {
 
     if (debugTop)
       System.err.println(className + ": top-ranked +TOP+ item: " +
-                         topRankedItem);
+			 topRankedItem);
     */
 
     if (debugConstraints) {
       Iterator it = constraints.iterator();
       while (it.hasNext()) {
-        Constraint c = (Constraint)it.next();
-        System.err.println(className + ": constraint " + c + " has" +
-                           (c.hasBeenSatisfied() ? " " : " NOT ") +
-                           "been satisfied");
+	Constraint c = (Constraint)it.next();
+	System.err.println(className + ": constraint " + c + " has" +
+			   (c.hasBeenSatisfied() ? " " : " NOT ") +
+			   "been satisfied");
       }
     }
 
@@ -365,22 +289,22 @@ public class EMDecoder extends Decoder {
       try {
 	String chartFilename =
 	  debugChartFilenamePrefix + "-" + id + "-" + sentenceIdx + ".obj";
-        System.err.println(className +
-                           ": outputting chart to Java object file " +
-                           "\"" + chartFilename + "\"");
+	System.err.println(className +
+			   ": outputting chart to Java object file " +
+			   "\"" + chartFilename + "\"");
 	BufferedOutputStream bos =
 	  new BufferedOutputStream(new FileOutputStream(chartFilename),
 				   Constants.defaultFileBufsize);
 	ObjectOutputStream os = new ObjectOutputStream(bos);
-        os.writeObject(chart);
-        //os.writeObject(topRankedItem);
-        os.writeObject(null);
-        os.writeObject(sentence);
+	os.writeObject(chart);
+	//os.writeObject(topRankedItem);
+	os.writeObject(null);
+	os.writeObject(sentence);
 	os.writeObject(originalWords);
-        os.close();
+	os.close();
       }
       catch (IOException ioe) {
-        System.err.println(ioe);
+	System.err.println(ioe);
       }
     }
 
@@ -406,8 +330,8 @@ public class EMDecoder extends Decoder {
     for (int span = sentLen; span > 0; span--) {
       int split = sentLen - span + 1;
       for (int start = 0; start < split; start++) {
-        int end = start + span - 1;
-        computeOutsideProbs(start, end);
+	int end = start + span - 1;
+	computeOutsideProbs(start, end);
       }
     }
   }
@@ -431,39 +355,39 @@ public class EMDecoder extends Decoder {
     // let's do a sanity check
     for (int i = 0; i < numLevels; i++)
       if (levelCounts[i] != index[i])
-        System.err.println(className + ": error: expected " + levelCounts[i] +
-                           " items at [" + start + "," + end + "], " +
-                           "unary level " + i + " but only found " + index[i]);
+	System.err.println(className + ": error: expected " + levelCounts[i] +
+			   " items at [" + start + "," + end + "], " +
+			   "unary level " + i + " but only found " + index[i]);
 
     // now, starting with items at the highest level, compute outside probs
     for (int level = numLevels - 1; level >= 0; level--) {
       int numItems = sortedItems[level].length;
       for (int itemIdx = 0; itemIdx < numItems; itemIdx++) {
-        EMItem item = sortedItems[level][itemIdx];
-        // handle base case
-        if (item.label() == topSym)
-          item.setOutsideProb(probCertain);
-        if (item.outsideProb() > probImpossible) {
-          EMItem.AntecedentPair pair = item.antecedentPairs();
-          for ( ; pair != null; pair = pair.next()) {
-            EMItem ante1 = pair.first();
-            EMItem ante2 = pair.second();
-            double eventProbMass = 1.0; // set to multiplicative identity
-            double[] probs = pair.probs();
-            for (int i = 0; i < probs.length; i++)
-              eventProbMass *= probs[i];
-            double ante2InsideProb =
-              ante2 == null ? probCertain : ante2.insideProb();
-            double ante1OutsideProbMass =
-              item.outsideProb() * eventProbMass * ante2InsideProb;
-            ante1.increaseOutsideProb(ante1OutsideProbMass);
-            if (ante2 != null) {
-              double ante2OutsideProbMass =
-                item.outsideProb() * eventProbMass * ante1.insideProb();
-              ante2.increaseOutsideProb(ante2OutsideProbMass);
-            }
-          }
-        }
+	EMItem item = sortedItems[level][itemIdx];
+	// handle base case
+	if (item.label() == topSym)
+	  item.setOutsideProb(probCertain);
+	if (item.outsideProb() > probImpossible) {
+	  EMItem.AntecedentPair pair = item.antecedentPairs();
+	  for ( ; pair != null; pair = pair.next()) {
+	    EMItem ante1 = pair.first();
+	    EMItem ante2 = pair.second();
+	    double eventProbMass = 1.0; // set to multiplicative identity
+	    double[] probs = pair.probs();
+	    for (int i = 0; i < probs.length; i++)
+	      eventProbMass *= probs[i];
+	    double ante2InsideProb =
+	      ante2 == null ? probCertain : ante2.insideProb();
+	    double ante1OutsideProbMass =
+	      item.outsideProb() * eventProbMass * ante2InsideProb;
+	    ante1.increaseOutsideProb(ante1OutsideProbMass);
+	    if (ante2 != null) {
+	      double ante2OutsideProbMass =
+		item.outsideProb() * eventProbMass * ante1.insideProb();
+	      ante2.increaseOutsideProb(ante2OutsideProbMass);
+	    }
+	  }
+	}
       }
     }
   }
@@ -476,23 +400,40 @@ public class EMDecoder extends Decoder {
     while (sentSpanItems.hasNext()) {
       EMItem item = (EMItem)sentSpanItems.next();
       if (item.label() == topSym)
-        sentenceProb += item.insideProb();
+	sentenceProb += item.insideProb();
     }
-    //System.err.println("total sentence prob: " + sentenceProb);
+
     double sentenceProbInverse = 1 / sentenceProb;
+
+    if (Double.isInfinite(sentenceProbInverse)) {
+      System.err.println(className + ": warning: skipping sentence because " +
+			 "1 / sentenceProb is infinite (underflow)");
+      return eventCounts;
+    }
+
+    if (debugInsideProbs) {
+      double sentenceLogProb = Math.log(sentenceProb);
+      cummulativeInsideLogProb += sentenceLogProb;
+      System.err.println(className + ": sentence inside prob: " + sentenceProb);
+      System.err.println(className + ": sentence inside logProb: " +
+			 sentenceLogProb);
+      System.err.println(className + ": cummulative inside log prob: " +
+			 cummulativeInsideLogProb);
+    }
+
     for (int span = sentLen; span > 0; span--) {
       int split = sentLen - span + 1;
       for (int start = 0; start < split; start++) {
-        int end = start + span - 1;
-        computeEventCounts(start, end, sentenceProbInverse, eventCounts);
+	int end = start + span - 1;
+	computeEventCounts(start, end, sentenceProbInverse, eventCounts);
       }
     }
     return eventCounts;
   }
 
   protected void computeEventCounts(int start, int end,
-                                    double sentenceProbInverse,
-                                    CountsTable counts) {
+				    double sentenceProbInverse,
+				    CountsTable counts) {
 
     Iterator items = chart.get(start, end);
     while (items.hasNext()) {
@@ -504,44 +445,49 @@ public class EMDecoder extends Decoder {
       //        eventProb * ante1.insideProb() * ante2.insideProb() *
       //        item.outsideProb()
       if (item.outsideProb() > probImpossible) {
-        EMItem.AntecedentPair pair = item.antecedentPairs();
-        for ( ; pair != null; pair = pair.next()) {
-          EMItem ante1 = pair.first();
-          EMItem ante2 = pair.second();
-          double ante2InsideProb =
-            ante2 == null ? probCertain : ante2.insideProb();
-          double[] prob = pair.probs();
-          double eventProb = 1.0;       // set to multiplicative identity
-          for (int i = 0; i < prob.length; i++)
-            eventProb *= prob[i];
-          TrainerEvent[] event = pair.events();
-          for (int i = 0; i < event.length; i++) {
-            double expectedCount =
-              sentenceProbInverse * eventProb *
-              ante1.insideProb() * ante2InsideProb * item.outsideProb();
-            /*
-            System.err.println("sentenceProbInverse=" + sentenceProbInverse +
-                               "; eventProb=" + eventProb + "; ante1Inside=" +
-                               ante1.insideProb() + "; ante2Inside=" +
-                               ante2InsideProb + "; item.outside=" +
-                               item.outsideProb());
-            String name = event[i] instanceof HeadEvent ? "head" : "mod";
-            System.err.println("(" + name + " " + event[i] + " " +
-                               expectedCount + ")");
-            */
-            if (event[i].parent() == topSym) {
-              // create "fake" ModifierEvent with same count
-              HeadEvent topHead = (HeadEvent)event[i];
-              ModifierEvent topMod =
-                new ModifierEvent(topHead.headWord(), topHead.headWord(),
-                                  topHead.head(), startList, startWordList,
-                                  topSym, topHead.head(), emptySubcat,
-                                  false, false);
-              counts.add(topMod, expectedCount);
-            }
-            counts.add(event[i], expectedCount);
-          }
-        }
+	EMItem.AntecedentPair pair = item.antecedentPairs();
+	for ( ; pair != null; pair = pair.next()) {
+	  EMItem ante1 = pair.first();
+	  EMItem ante2 = pair.second();
+	  double ante2InsideProb =
+	    ante2 == null ? probCertain : ante2.insideProb();
+	  double[] prob = pair.probs();
+	  double eventProb = 1.0;       // set to multiplicative identity
+	  for (int i = 0; i < prob.length; i++)
+	    eventProb *= prob[i];
+	  TrainerEvent[] event = pair.events();
+	  for (int i = 0; i < event.length; i++) {
+	    double expectedCount =
+	      sentenceProbInverse * eventProb *
+	      ante1.insideProb() * ante2InsideProb * item.outsideProb();
+	    /*
+	    System.err.println("sentenceProbInverse=" + sentenceProbInverse +
+			       "; eventProb=" + eventProb + "; ante1Inside=" +
+			       ante1.insideProb() + "; ante2Inside=" +
+			       ante2InsideProb + "; item.outside=" +
+			       item.outsideProb());
+	    String name = event[i] instanceof HeadEvent ? "head" : "mod";
+	    System.err.println("(" + name + " " + event[i] + " " +
+			       expectedCount + ")");
+	    */
+	    if (event[i].parent() == topSym) {
+	      // create "fake" ModifierEvent with same count
+	      HeadEvent topHead = (HeadEvent)event[i];
+	      ModifierEvent topMod =
+		new ModifierEvent(topHead.headWord(), topHead.headWord(),
+				  topHead.head(), startList, startWordList,
+				  topSym, topHead.head(), emptySubcat,
+				  false, false);
+	      counts.add(topMod, expectedCount);
+	    }
+
+	    if (Double.isInfinite(expectedCount)) {
+	      System.err.println("WARNING: adding infinite count for " + event[i] + " of item " + item);
+	    }
+
+	    counts.add(event[i], expectedCount);
+	  }
+	}
       }
     }
   }
@@ -557,7 +503,7 @@ public class EMDecoder extends Decoder {
     while (sentSpanItems.hasNext()) {
       EMItem item = (EMItem)sentSpanItems.next();
       if (item.stop()) {
-        topProbItemsToAdd.add(item);
+	topProbItemsToAdd.add(item);
       }
     }
     sentSpanItems = topProbItemsToAdd.iterator();
@@ -565,36 +511,42 @@ public class EMDecoder extends Decoder {
       EMItem item = (EMItem)sentSpanItems.next();
       HeadEvent headEvent = lookupHeadEvent;
       headEvent.set(item.headWord(), topSym, (Symbol)item.label(),
-                    emptySubcat, emptySubcat);
+		    emptySubcat, emptySubcat);
+
+      if (debugTop) {
+	Debug.level = 21;
+      }
+
       double topProb = server.probTop(id, headEvent);
       double insideProb = item.insideProb() * topProb;
 
       if (debugTop)
-        System.err.println(className +
-                           ": item=" + item + "; topProb=" + topProb +
-                           "; item.insideProb()=" + item.insideProb() +
-                           "; insideProb=" + insideProb);
+	System.err.println(className +
+			   ": item=" + item + "; topProb=" + topProb +
+			   "; item.insideProb()=" + item.insideProb() +
+			   "; insideProb=" + insideProb);
 
       if (topProb == probImpossible)
-        continue;
+	continue;
 
       EMItem newItem = chart.getNewEMItem();
       newItem.set(topSym, item.headWord(),
-                  emptySubcat, emptySubcat, item,
-                  null, null, startList, startList, 0, end,
-                  false, false, true, level, insideProb);
+		  emptySubcat, emptySubcat, item,
+		  null, null, startList, startList, 0, end,
+		  false, false, true, level, insideProb);
       chart.add(0, end, newItem, item, null,
-                headEvent.shallowCopy(), topProb);
+		headEvent.shallowCopy(), topProb);
     }
   }
 
-  protected void complete(int start, int end) throws RemoteException {
+  protected void complete(int start, int end)
+      throws RemoteException, TimeoutException {
     for (int split = start; split < end; split++) {
 
       if (useCommaConstraint && commaConstraintViolation(start, split, end)) {
 	if (debugCommaConstraint) {
 	  System.err.println(className +
-                             ": constraint violation at (start,split,end+1)=(" +
+			     ": constraint violation at (start,split,end+1)=(" +
 			     start + "," + split + "," + (end + 1) +
 			     "); word at end+1 = " + getSentenceWord(end + 1));
 	}
@@ -603,74 +555,78 @@ public class EMDecoder extends Decoder {
 	// whose labels are baseNP, to see if we can add a premodifier
 	// (so that we can build baseNPs to the left even if they contain
 	// commas)
+	// TECHNICALLY, we should really try to build constituents on both
+	// the LEFT *and* RIGHT, but since base NPs are typically right-headed,
+	// this hack works well (at least, in English and Chinese), but it is
+	// a hack nonetheless
 	boolean modifierSide = Constants.LEFT;
 	int modificandStartIdx =  split + 1;
 	int modificandEndIdx =    end;
 	int modifierStartIdx  =   start;
 	int modifierEndIdx =      split;
-        if (debugComplete && debugSpans)
-          System.err.println(className + ": modifying [" +
-                             modificandStartIdx + "," + modificandEndIdx +
-                             "]" + " with [" + modifierStartIdx + "," +
-                             modifierEndIdx + "]");
+	if (debugComplete && debugSpans)
+	  System.err.println(className + ": modifying [" +
+			     modificandStartIdx + "," + modificandEndIdx +
+			     "]" + " with [" + modifierStartIdx + "," +
+			     modifierEndIdx + "]");
 
-        // for each possible modifier that HAS received its stop probabilities,
-        // try to find a modificand that has NOT received its stop probabilities
-        if (chart.numItems(modifierStartIdx, modifierEndIdx) > 0 &&
-            chart.numItems(modificandStartIdx, modificandEndIdx) > 0) {
-          Iterator modifierItems = chart.get(modifierStartIdx, modifierEndIdx);
-          while (modifierItems.hasNext()) {
-            EMItem modifierItem = (EMItem)modifierItems.next();
-            if (modifierItem.stop()) {
-              Iterator modificandItems =
-                chart.get(modificandStartIdx, modificandEndIdx);
-              while (modificandItems.hasNext()) {
-                EMItem modificandItem = (EMItem)modificandItems.next();
-                if (!modificandItem.stop() && modificandItem.label()==baseNP) {
+	// for each possible modifier that HAS received its stop probabilities,
+	// try to find a modificand that has NOT received its stop probabilities
+	if (chart.numItems(modifierStartIdx, modifierEndIdx) > 0 &&
+	    chart.numItems(modificandStartIdx, modificandEndIdx) > 0) {
+	  Iterator modifierItems = chart.get(modifierStartIdx, modifierEndIdx);
+	  while (modifierItems.hasNext()) {
+	    EMItem modifierItem = (EMItem)modifierItems.next();
+	    if (modifierItem.stop()) {
+	      Iterator modificandItems =
+		chart.get(modificandStartIdx, modificandEndIdx);
+	      while (modificandItems.hasNext()) {
+		EMItem modificandItem = (EMItem)modificandItems.next();
+		if (!modificandItem.stop() && modificandItem.label()==baseNP) {
 		  if (debugComplete)
 		    System.err.println(className +
 				       ".complete: trying to modify\n\t" +
 				       modificandItem + "\n\twith\n\t" +
 				       modifierItem);
-                  joinItems(modificandItem, modifierItem, modifierSide);
+		  joinItems(modificandItem, modifierItem, modifierSide);
 		}
-              }
-            }
-          }
-        }
+	      }
+	    }
+	  }
+	}
 	continue;
       }
 
       boolean modifierSide;
       for (int sideIdx = 0; sideIdx < 2; sideIdx++) {
-        modifierSide = sideIdx == 0 ? Constants.RIGHT : Constants.LEFT;
-        boolean modifyLeft = modifierSide == Constants.LEFT;
+	modifierSide = sideIdx == 0 ? Constants.RIGHT : Constants.LEFT;
+	boolean modifyLeft = modifierSide == Constants.LEFT;
 
-        int modificandStartIdx = modifyLeft ?  split + 1  :  start;
-        int modificandEndIdx =   modifyLeft ?  end        :  split;
+	int modificandStartIdx = modifyLeft ?  split + 1  :  start;
+	int modificandEndIdx =   modifyLeft ?  end        :  split;
 
-        int modifierStartIdx =   modifyLeft ?  start      :  split + 1;
-        int modifierEndIdx =     modifyLeft ?  split      :  end;
+	int modifierStartIdx =   modifyLeft ?  start      :  split + 1;
+	int modifierEndIdx =     modifyLeft ?  split      :  end;
 
-        if (debugComplete && debugSpans)
-          System.err.println(className + ": modifying [" +
-                             modificandStartIdx + "," + modificandEndIdx +
-                             "]" + " with [" + modifierStartIdx + "," +
-                             modifierEndIdx + "]");
+	if (debugComplete && debugSpans)
+	  System.err.println(className + ": modifying [" +
+			     modificandStartIdx + "," + modificandEndIdx +
+			     "]" + " with [" + modifierStartIdx + "," +
+			     modifierEndIdx + "]");
 
-        // for each possible modifier that HAS received its stop probabilities,
-        // try to find a modificand that has NOT received its stop probabilities
-        if (chart.numItems(modifierStartIdx, modifierEndIdx) > 0 &&
-            chart.numItems(modificandStartIdx, modificandEndIdx) > 0) {
-          Iterator modifierItems = chart.get(modifierStartIdx, modifierEndIdx);
-          while (modifierItems.hasNext()) {
-            EMItem modifierItem = (EMItem)modifierItems.next();
-            if (modifierItem.stop()) {
-              Iterator modificandItems =
-                chart.get(modificandStartIdx, modificandEndIdx);
-              while (modificandItems.hasNext()) {
-                EMItem modificandItem = (EMItem)modificandItems.next();
-                if (!modificandItem.stop() &&
+	// for each possible modifier that HAS received its stop probabilities,
+	// try to find a modificand that has NOT received its stop probabilities
+	if (chart.numItems(modifierStartIdx, modifierEndIdx) > 0 &&
+	    chart.numItems(modificandStartIdx, modificandEndIdx) > 0) {
+	  Iterator modifierItems = chart.get(modifierStartIdx, modifierEndIdx);
+	  while (modifierItems.hasNext()) {
+	    EMItem modifierItem = (EMItem)modifierItems.next();
+	    if (modifierItem.stop()) {
+	      Iterator modificandItems =
+		chart.get(modificandStartIdx, modificandEndIdx);
+	      while (modificandItems.hasNext()) {
+		EMItem modificandItem = (EMItem)modificandItems.next();
+		if (!modificandItem.stop() &&
 		    derivationOrderOK(modificandItem, modifierSide)) {
 		/*
 		if (!modificandItem.stop()) {
@@ -680,12 +636,12 @@ public class EMDecoder extends Decoder {
 				       ".complete: trying to modify\n\t" +
 				       modificandItem + "\n\twith\n\t" +
 				       modifierItem);
-                  joinItems(modificandItem, modifierItem, modifierSide);
+		  joinItems(modificandItem, modifierItem, modifierSide);
 		}
-              }
-            }
-          }
-        }
+	      }
+	    }
+	  }
+	}
       }
     }
     addUnariesAndStopProbs(start, end);
@@ -708,7 +664,7 @@ public class EMDecoder extends Decoder {
    * to the specified modificand
    */
   protected void joinItems(EMItem modificand, EMItem modifier,
-                           boolean side)
+			   boolean side)
   throws RemoteException {
     Symbol modLabel = (Symbol)modifier.label();
 
@@ -721,19 +677,19 @@ public class EMDecoder extends Decoder {
 
     if (isomorphicTreeConstraints) {
       if (modificand.getConstraint().isViolatedByChild(modifier)) {
-        if (debugConstraints)
-          System.err.println("constraint " + modificand.getConstraint() +
-                             " violated by child item(" +
-                            modifier.start() + "," + modifier.end() + "): " +
-                            modifier);
-        return;
+	if (debugConstraints)
+	  System.err.println("constraint " + modificand.getConstraint() +
+			     " violated by child item(" +
+			    modifier.start() + "," + modifier.end() + "): " +
+			    modifier);
+	return;
       }
     }
 
     /*
     SexpList thisSidePrevMods = getPrevMods(modificand,
 					    modificand.prevMods(side),
-                                            modificand.children(side));
+					    modificand.children(side));
     */
     /*
     SexpList thisSidePrevMods = modificand.prevMods(side);
@@ -754,32 +710,36 @@ public class EMDecoder extends Decoder {
 
     ModifierEvent modEvent = lookupModEvent;
     modEvent.set(modifier.headWord(),
-                 modificand.headWord(),
-                 modLabel,
-                 thisSidePrevMods,
-                 previousWords,
-                 (Symbol)modificand.label(),
-                 modificand.headLabel(),
-                 modificand.subcat(side),
-                 modificand.verb(side),
-                 side);
+		 modificand.headWord(),
+		 modLabel,
+		 thisSidePrevMods,
+		 previousWords,
+		 (Symbol)modificand.label(),
+		 modificand.headLabel(),
+		 modificand.subcat(side),
+		 modificand.verb(side),
+		 side);
 
     boolean debugFlag = false;
     if (debugJoin) {
       Symbol modificandLabel = (Symbol)modificand.label();
-      boolean modificandLabelP = modificandLabel == ADJP;
-      boolean modLabelP = modLabel.toString().startsWith("NP");
-      debugFlag = (modificandLabelP && modLabelP && side == Constants.LEFT &&
-		   ((modificand.start() == 5 && modificand.end() == 5 &&
-		     modifier.start() == 3 && modifier.end() == 4)));
+      boolean modificandLabelP = modificandLabel == PP;
+      boolean modLabelP = modLabel == VPA;
+      debugFlag = (modificandLabelP && side == Constants.LEFT &&
+		   ((modificand.start() >= 3 && modificand.end() <= 4 &&
+		     modifier.start() >= 3 && modifier.end() <= 4)));
       if (debugFlag) {
 	System.err.println(className + ".join: trying to extend modificand\n" +
 			   modificand + "\nwith modifier\n" + modifier);
+	Debug.level = 21;
       }
     }
 
-    if (!futurePossible(modEvent, side, debugFlag))
+    if (!futurePossible(modEvent, side, debugFlag)) {
+      if (debugFlag)
+	Debug.level = 0;
       return;
+    }
 
     if (debugJoin) {
     }
@@ -788,8 +748,11 @@ public class EMDecoder extends Decoder {
     int higherIndex = Math.max(thisSideEdgeIndex, oppositeSideEdgeIndex);
 
     double modProb = server.probMod(id, modEvent);
-    if (modProb == probImpossible)
+    if (modProb == probImpossible) {
+      if (debugFlag)
+	Debug.level = 0;
       return;
+    }
     double insideProb =
       modificand.insideProb() * modifier.insideProb() * modProb;
 
@@ -812,26 +775,26 @@ public class EMDecoder extends Decoder {
 
     EMItem newItem = chart.getNewEMItem();
     newItem.set((Symbol)modificand.label(), modificand.headWord(),
-                null, null, modificand.headChild(), null, null, null, null,
-                lowerIndex, higherIndex, false, false, false, 0,
+		null, null, modificand.headChild(), null, null, null, null,
+		lowerIndex, higherIndex, false, false, false, 0,
 		insideProb);
 
     tmpChildrenList.set(null, thisSideChildren);
     SexpList thisSideNewPrevMods = getPrevMods(modificand, tmpChildrenList);
 
     newItem.setSideInfo(side,
-                        thisSideSubcat, thisSideChildren,
-                        thisSideNewPrevMods, thisSideEdgeIndex,
-                        thisSideContainsVerb);
+			thisSideSubcat, thisSideChildren,
+			thisSideNewPrevMods, thisSideEdgeIndex,
+			thisSideContainsVerb);
     newItem.setSideInfo(!side,
-                        oppositeSideSubcat, oppositeSideChildren,
-                        oppositeSidePrevMods, oppositeSideEdgeIndex,
-                        oppositeSideContainsVerb);
+			oppositeSideSubcat, oppositeSideChildren,
+			oppositeSidePrevMods, oppositeSideEdgeIndex,
+			oppositeSideContainsVerb);
 
     if (isomorphicTreeConstraints) {
       if (debugConstraints)
-        System.err.println("assigning partially-satisfied constraint " +
-                           modificand.getConstraint() + " to " + newItem);
+	System.err.println("assigning partially-satisfied constraint " +
+			   modificand.getConstraint() + " to " + newItem);
       newItem.setConstraint(modificand.getConstraint());
     }
 
@@ -839,9 +802,10 @@ public class EMDecoder extends Decoder {
     modEventCopy.setPreviousWords(modEvent.previousWords().copy());
 
     chart.add(lowerIndex, higherIndex, newItem, modificand, modifier,
-              modEventCopy, modProb);
+	      modEventCopy, modProb);
 
     if (debugJoin) {
+      Debug.level = 0;
     }
   }
 
@@ -855,7 +819,7 @@ public class EMDecoder extends Decoder {
     if (possibleFutures != null) {
       Event currentFuture = modPS.getFuture(modEvent, lastLevel);
       if (possibleFutures.contains(currentFuture))
-        return true;
+	return true;
     }
     else {
       //no possible futures for history context
@@ -898,13 +862,13 @@ public class EMDecoder extends Decoder {
       if (item.stop() == false)
 	stopProbItemsToAdd.add(item);
       else if (item.isPreterminal())
-        prevItemsAdded.add(item);
+	prevItemsAdded.add(item);
     }
 
     if (stopProbItemsToAdd.size() > 0) {
       it = stopProbItemsToAdd.iterator();
       while (it.hasNext())
-        addStopProbs((EMItem)it.next(), prevItemsAdded, level);
+	addStopProbs((EMItem)it.next(), prevItemsAdded, level);
       level++;
     }
 
@@ -913,9 +877,9 @@ public class EMDecoder extends Decoder {
     //for (i = 0; prevItemsAdded.size() > 0; i++) {
       Iterator prevItems = prevItemsAdded.iterator();
       while (prevItems.hasNext()) {
-        EMItem item = (EMItem)prevItems.next();
-        if (!item.garbage())
-          addUnaries(item, currItemsAdded, level);
+	EMItem item = (EMItem)prevItems.next();
+	if (!item.garbage())
+	  addUnaries(item, currItemsAdded, level);
       }
       level++;
 
@@ -924,9 +888,9 @@ public class EMDecoder extends Decoder {
 
       prevItems = prevItemsAdded.iterator();
       while (prevItems.hasNext()) {
-        EMItem item = (EMItem)prevItems.next();
-        if (!item.garbage())
-          addStopProbs(item, currItemsAdded, level);
+	EMItem item = (EMItem)prevItems.next();
+	if (!item.garbage())
+	  addStopProbs(item, currItemsAdded, level);
       }
       level++;
 
@@ -935,7 +899,7 @@ public class EMDecoder extends Decoder {
     }
     if (debugUnariesAndStopProbs) {
       System.err.println(className +
-                         ": added unaries and stop probs " + i + " times");
+			 ": added unaries and stop probs " + i + " times");
     }
   }
 
@@ -951,76 +915,83 @@ public class EMDecoder extends Decoder {
     EMItem newItem = chart.getNewEMItem();
     // set some values now, most to be filled in by code below
     newItem.set(null, item.headWord(), null, null, item,
-                null, null, startList, startList,
-                item.start(), item.end(),
-                false, false, false, level, 0.0);
+		null, null, startList, startList,
+		item.start(), item.end(),
+		false, false, false, level, 0.0);
     Symbol headSym = (Symbol)item.label();
     HeadEvent headEvent = lookupHeadEvent;
     headEvent.set(item.headWord(), null, headSym, emptySubcat, emptySubcat);
-    // foreach nonterminal
-    for (int ntIndex = 0; ntIndex < nonterminals.length; ntIndex++) {
-      Symbol parent = nonterminals[ntIndex];
+    // foreach (possible) nonterminal
+    Symbol[] nts = (useHeadToParentMap ?
+		    (Symbol[])headToParentMap.get(item.label()) : nonterminals);
+    int numNTs = nts.length;
+    for (int ntIndex = 0; ntIndex < numNTs; ntIndex++) {
+      Symbol parent = nts[ntIndex];
       headEvent.setParent(parent);
-      Set leftSubcats = getPossibleSubcats(leftSubcatMap, headEvent,
-                                           leftSubcatPS,
-                                           leftSubcatPSLastLevel);
-      Set rightSubcats = getPossibleSubcats(rightSubcatMap, headEvent,
-                                            rightSubcatPS,
-                                            rightSubcatPSLastLevel);
+      Subcat[] leftSubcats = getPossibleSubcats(leftSubcatMap, headEvent,
+						leftSubcatPS,
+						leftSubcatPSLastLevel);
+      Subcat[] rightSubcats = getPossibleSubcats(rightSubcatMap, headEvent,
+						 rightSubcatPS,
+						 rightSubcatPSLastLevel);
       if (debugUnaries) {
+	if (item.start() == 4 && item.end() == 4 && parent == PP) {
+	  System.err.println(className +
+			     ".addUnaries: trying to buid on " + headSym +
+			     " with " + parent);
+	  Debug.level = 21;
+	}
       }
 
-      int numLeftSubcats = leftSubcats.size();
-      int numRightSubcats = rightSubcats.size();
+      int numLeftSubcats = leftSubcats.length;
+      int numRightSubcats = rightSubcats.length;
       if (numLeftSubcats > 0 && numRightSubcats > 0) {
-        Iterator leftSubcatIt = leftSubcats.iterator();
-        // foreach possible left subcat
-        while (leftSubcatIt.hasNext()) {
-          Subcat leftSubcat = (Subcat)leftSubcatIt.next();
-          Iterator rightSubcatIt = rightSubcats.iterator();
-          // foreach possible right subcat
-          while (rightSubcatIt.hasNext()) {
-            Subcat rightSubcat = (Subcat)rightSubcatIt.next();
+	// foreach possible right subcat
+	for (int rightIdx = 0; rightIdx < numRightSubcats; rightIdx++) {
+	  Subcat rightSubcat = (Subcat)rightSubcats[rightIdx];
+	  // foreach possible left subcat
+	  for (int leftIdx = 0; leftIdx < numLeftSubcats; leftIdx++) {
+	    Subcat leftSubcat = (Subcat)leftSubcats[leftIdx];
 
-            newItem.setLabel(parent);
-            newItem.setLeftSubcat(leftSubcat);
-            newItem.setRightSubcat(rightSubcat);
+	    newItem.setLabel(parent);
+	    newItem.setLeftSubcat(leftSubcat);
+	    newItem.setRightSubcat(rightSubcat);
 
-            headEvent.setLeftSubcat(leftSubcat);
-            headEvent.setRightSubcat(rightSubcat);
+	    headEvent.setLeftSubcat(leftSubcat);
+	    headEvent.setRightSubcat(rightSubcat);
 
-            if (debugUnaries) {
-            }
+	    if (debugUnaries) {
+	    }
 
-            if (isomorphicTreeConstraints) {
-              // get head child's constraint's parent and check that it is
-              // locally satisfied by newItem
-              if (item.getConstraint() == null) {
-                System.err.println("uh-oh: no constraint for item " + item);
-              }
-              Constraint headChildParent = item.getConstraint().getParent();
-              if (headChildParent != null &&
-                  headChildParent.isLocallySatisfiedBy(newItem)) {
-                if (debugConstraints)
-                  System.err.println("assigning locally-satisfied constraint " +
-                                     headChildParent + " to " + newItem);
-                newItem.setConstraint(headChildParent);
-              }
-              else {
-                if (debugConstraints)
-                  System.err.println("constraint " + headChildParent +
-                                     " is not locally satisfied by item " +
-                                     newItem);
-                continue;
-              }
-            }
-            else if (findAtLeastOneSatisfyingConstraint) {
-              Constraint constraint = constraints.constraintSatisfying(newItem);
-              if (constraint == null)
-                continue;
-              else
-                newItem.setConstraint(constraint);
-            }
+	    if (isomorphicTreeConstraints) {
+	      // get head child's constraint's parent and check that it is
+	      // locally satisfied by newItem
+	      if (item.getConstraint() == null) {
+		System.err.println("uh-oh: no constraint for item " + item);
+	      }
+	      Constraint headChildParent = item.getConstraint().getParent();
+	      if (headChildParent != null &&
+		  headChildParent.isLocallySatisfiedBy(newItem)) {
+		if (debugConstraints)
+		  System.err.println("assigning locally-satisfied constraint " +
+				     headChildParent + " to " + newItem);
+		newItem.setConstraint(headChildParent);
+	      }
+	      else {
+		if (debugConstraints)
+		  System.err.println("constraint " + headChildParent +
+				     " is not locally satisfied by item " +
+				     newItem);
+		continue;
+	      }
+	    }
+	    else if (findAtLeastOneSatisfyingConstraint) {
+	      Constraint constraint = constraints.constraintSatisfying(newItem);
+	      if (constraint == null)
+		continue;
+	      else
+		newItem.setConstraint(constraint);
+	    }
 
 	    double probLeftSubcat =
 	      (numLeftSubcats == 1 ? probCertain :
@@ -1028,42 +999,36 @@ public class EMDecoder extends Decoder {
 	    double probRightSubcat =
 	      (numRightSubcats == 1 ? probCertain :
 	       server.probRightSubcat(id, headEvent));
-            double probHead = server.probHead(id, headEvent);
-            if (probHead == probImpossible)
-              continue;
-            double eventProbMass = probHead * probLeftSubcat * probRightSubcat;
-            double insideProb = item.insideProb() * eventProbMass;
+	    double probHead = server.probHead(id, headEvent);
+	    if (probHead == probImpossible)
+	      continue;
+	    double eventProbMass = probHead * probLeftSubcat * probRightSubcat;
+	    double insideProb = item.insideProb() * eventProbMass;
 
-            if (debugUnaries) {
-            }
+	    if (debugUnaries) {
+	    }
 
-            if (insideProb == probImpossible)
-              continue;
+	    if (insideProb == probImpossible)
+	      continue;
 
-            newItem.setInsideProb(insideProb);
+	    newItem.setInsideProb(insideProb);
 
-            EMItem newItemCopy = chart.getNewEMItem();
-            newItemCopy.setDataFrom(newItem);
-            chart.add(newItemCopy.start(), newItemCopy.end(), newItemCopy,
-                      item, null,
-                      headEvent.shallowCopy(), eventProbMass);
-            itemsAdded.add(newItemCopy);
-          }
-        } // end foreach possible left subcat
+	    EMItem newItemCopy = chart.getNewEMItem();
+	    newItemCopy.setDataFrom(newItem);
+	    chart.add(newItemCopy.start(), newItemCopy.end(), newItemCopy,
+		      item, null,
+		      headEvent.shallowCopy(), eventProbMass);
+	    itemsAdded.add(newItemCopy);
+	  }
+	} // end foreach possible left subcat
       }
     }
 
     chart.reclaimItem(newItem);
 
-    return itemsAdded;
-  }
+    Debug.level = 0;
 
-  private final Set getPossibleSubcats(Map subcatMap, HeadEvent headEvent,
-                                       ProbabilityStructure subcatPS,
-                                       int lastLevel) {
-    Event lastLevelHist = subcatPS.getHistory(headEvent, lastLevel);
-    Set subcats = (Set)subcatMap.get(lastLevelHist);
-    return subcats == null ? Collections.EMPTY_SET : subcats;
+    return itemsAdded;
   }
 
   protected List addStopProbs(EMItem item, List itemsAdded, int level)
@@ -1090,24 +1055,24 @@ public class EMDecoder extends Decoder {
 
     ModifierEvent leftMod = lookupLeftStopEvent;
     leftMod.set(stopWord, item.headWord(), stopSym, leftPrevMods,
-                leftPrevWords,
-                (Symbol)item.label(), item.headLabel(), item.leftSubcat(),
-                item.leftVerb(), Constants.LEFT);
+		leftPrevWords,
+		(Symbol)item.label(), item.headLabel(), item.leftSubcat(),
+		item.leftVerb(), Constants.LEFT);
     ModifierEvent rightMod = lookupRightStopEvent;
     rightMod.set(stopWord, item.headWord(), stopSym, rightPrevMods,
-                 rightPrevWords,
-                 (Symbol)item.label(), item.headLabel(),
-                 item.rightSubcat(), item.rightVerb(), Constants.RIGHT);
+		 rightPrevWords,
+		 (Symbol)item.label(), item.headLabel(),
+		 item.rightSubcat(), item.rightVerb(), Constants.RIGHT);
 
     if (debugStops) {
     }
 
     if (isomorphicTreeConstraints) {
       if (!item.getConstraint().isSatisfiedBy(item)) {
-        if (debugConstraints)
-          System.err.println("constraint " + item.getConstraint() +
-                             " is not satisfied by item " + item);
-        return itemsAdded;
+	if (debugConstraints)
+	  System.err.println("constraint " + item.getConstraint() +
+			     " is not satisfied by item " + item);
+	return itemsAdded;
       }
     }
 
@@ -1132,17 +1097,17 @@ public class EMDecoder extends Decoder {
 
     EMItem newItem = chart.getNewEMItem();
     newItem.set((Symbol)item.label(), item.headWord(),
-                item.leftSubcat(), item.rightSubcat(),
-                item.headChild(),
-                item.leftChildren(), item.rightChildren(),
-                item.leftPrevMods(), item.rightPrevMods(),
-                item.start(), item.end(), item.leftVerb(),
-                item.rightVerb(), true, level, insideProb);
+		item.leftSubcat(), item.rightSubcat(),
+		item.headChild(),
+		item.leftChildren(), item.rightChildren(),
+		item.leftPrevMods(), item.rightPrevMods(),
+		item.start(), item.end(), item.leftVerb(),
+		item.rightVerb(), true, level, insideProb);
 
     if (isomorphicTreeConstraints) {
       if (debugConstraints)
-        System.err.println("assigning satisfied constraint " +
-                           item.getConstraint() + " to " + newItem);
+	System.err.println("assigning satisfied constraint " +
+			   item.getConstraint() + " to " + newItem);
       newItem.setConstraint(item.getConstraint());
     }
 
@@ -1156,9 +1121,9 @@ public class EMDecoder extends Decoder {
     rightModCopy.setPreviousWords(rightMod.previousWords().copy());
 
     chart.add(item.start(), item.end(), newItem,
-              item, null,
-              new TrainerEvent[]{leftModCopy, rightModCopy},
-              new double[]      {leftProb,    rightProb});
+	      item, null,
+	      new TrainerEvent[]{leftModCopy, rightModCopy},
+	      new double[]      {leftProb,    rightProb});
     itemsAdded.add(newItem);
 
     return itemsAdded;
@@ -1212,7 +1177,7 @@ public class EMDecoder extends Decoder {
   }
 
   private final WordList getPrevModWords(EMItem item, SLNode modChildren,
-                                         boolean side) {
+					 boolean side) {
     if (modChildren == null)
       return startWordList;
     WordList wordList =

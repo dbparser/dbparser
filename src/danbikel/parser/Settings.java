@@ -311,6 +311,19 @@ public class Settings implements Serializable {
     "parser.training.addGapInfo";
 
   /**
+   * The property to specify whether <tt>Training.identifyArguments(Sexp)</tt>
+   * should relabel head children as arguments.  Such relabeling is
+   * unnecessary, since head children are already inherently distinct from
+   * other children; however, it is performed (and is possibly a bug) in
+   * Collins' parser, and so is available as a setting here in order to emulate
+   * that model.
+   *
+   * @see Training#identifyArguments(Sexp)
+   */
+  protected static final String collinsRelabelHeadChildrenAsArgs =
+    "parser.training.collinsRelabelHeadChildrenAsArgs";
+
+  /**
    * The property to specify whether
    * <tt>Training.repairBaseNPs(Sexp)</tt> alters the training tree or
    * leaves it untouched.  If the value of this property is

@@ -144,7 +144,12 @@
   <property category="team" name="ignorePath.16" value="deploy/install.sh"/>
   <property category="team" name="ignorePath.17" value="util-doc"/>
   <property category="team" name="ignorePath.18" value="danbikel.util.jar"/>
+  <property category="team" name="ignorePath.19" value="userguide/guide.html"/>
   <property category="team" name="ignorePath.2" value="bak"/>
+  <property category="team" name="ignorePath.20" value="userguide/guide.lyx~"/>
+  <property category="team" name="ignorePath.21" value="userguide/guide.pdf"/>
+  <property category="team" name="ignorePath.22" value="userguide/guide.ps"/>
+  <property category="team" name="ignorePath.23" value="userguide/guide.tex"/>
   <property category="team" name="ignorePath.3" value="classes-old"/>
   <property category="team" name="ignorePath.4" value="doc"/>
   <property category="team" name="ignorePath.5" value="scorer/.#Makefile.1.1"/>
@@ -220,7 +225,7 @@
     <property category="archiving" name="targetPath" value="dbparser.jar"/>
   </node>
   <node name="Standard Doclet" type="Javadoc">
-    <property category="docletJavadoc" name="additionalOptions" value="-breakiterator -link http://java.sun.com/j2se/1.4/docs/api -windowtitle &quot;Dan Bikel's Parser&quot; -doctitle &quot;Dan Bikel's Parser&quot; -header &quot;Parser&quot; -bottom &quot;Author: &lt;a target=\&quot;_blank\&quot; href=\&quot;http://www.cis.upenn.edu/~dbikel/\&quot;&gt;Dan Bikel.&lt;/a&gt;&quot;"/>
+    <property category="docletJavadoc" name="additionalOptions" value="-breakiterator -link http://java.sun.com/j2se/1.4/docs/api -overview &quot;overview.html&quot; -windowtitle &quot;Dan Bikel's Parser&quot; -doctitle &quot;Dan Bikel's Parser&quot; -header &quot;Parser&quot; -bottom &quot;Author: &lt;a target=\&quot;_blank\&quot; href=\&quot;http://www.cis.upenn.edu/~dbikel/\&quot;&gt;Dan Bikel.&lt;/a&gt;&quot;"/>
     <property category="docletJavadoc" name="use" value="1"/>
     <property category="javadoc" name="scope" value="protected"/>
     <property category="nodeJavadoc" name="buildWithProject" value="0"/>

@@ -3,18 +3,45 @@
 ;;; the syntax is: (arg-contexts <context>+)
 ;;; where
 ;;; <context>      ::= (<parent> <child list>)
+;;;
 ;;; <parent>       ::= the symbol of a parent nonterminal
-;;; <child list>   ::= a list of symbols of child nonterminals s.t. when their
+;;;
+;;; <child list>   ::= <nt-list> | <head-list>
+;;;
+;;; <nt-list>      ::= (<nt>+)
+;;;                    a list of symbols of child nonterminals s.t. when their
 ;;;                    parent is <parent>, they are candidates for being
 ;;;                    relabeled as arguments
-;;;                    OR
-;;;                    the list (head <integer>) where <integer> is the
-;;;                    the amount to add to the head index (which can be
-;;;                    negative)
+;;;
+;;; <nt>           ::= a nonterminal label (a symbol)
+;;;
+;;; <head-list>    ::= (head <integer>) |
+;;;                    (head-pre <search-set>) |
+;;;                    (head-post <search-set>)
+;;;
+;;; <integer>      ::= an integer that is the amount to add to the head index
+;;;                    (this integer can also be negative, but not zero)
+;;;                    e.g., (head 1) indicates that the first child after the
+;;;                    head is a candidate for being relabeled as an argument
+;;;
+;;; <search-set>   ::= <direction> <nt>+
+;;;
+;;; <direction>    ::= first | last
+;;;                    first indicates a left-to-right search of the children
+;;;                    of <parent>
+;;;                    last indicates a right-to-left search
+;;;                    e.g., (head-post first PP NP WHNP) indicates to perform
+;;;                    a left-to-right search on the right side of the head,
+;;;                    where the first child found whose label is one of
+;;;                    {PP, NP, WHNP} will be a candidate for being relabeled
+;;;                    as an argument
+;;;
 (arg-contexts (S (NP SBAR S))
 	      (VP (NP SBAR S VP))
 	      (SBAR (S))
-	      (PP (head 1)))
+;	      (PP (head 1)))
+;	      (PP (head-post first PP NP WHNP ADJP ADVP S SBAR VP UCP RB RBS))))
+	      (PP (head-post first PP NP WHNP ADJP ADVP S SBAR VP UCP)))
 ;;; a list of semantic tags on Penn Treebank nonterminals that prevent
 ;;; children in the appropriate contexts from being relabeled as arguments
 (sem-tag-arg-stop-list (ADV VOC BNF DIR EXT LOC MNR TMP CLR PRP))

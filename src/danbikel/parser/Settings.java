@@ -331,10 +331,12 @@ public class Settings implements Serializable {
 
   /**
    * The property to specify whether the method
-   * {@link HeadFinder#defaultFindHead(Symbol,SexpList)} issues a warning
-   * whenever it needs to use the default head-finding rule.  The value of this
-   * property should be (the string representation of) a boolean (conversion
-   * is performed by the method <code>Boolean.valueOf</code>).
+   * {@link
+   * danbikel.parser.lang.AbstractHeadFinder#defaultFindHead(Symbol,SexpList)}
+   * issues a warning whenever it needs to use the default head-finding rule.
+   * The value of this property should be (the string representation of) a
+   * boolean (conversion is performed by the method
+   * <code>Boolean.valueOf</code>).
    * <p>
    * The value of this constant is
    * <code>"parser.headfinder.warnDefaultRule"</code>.
@@ -354,7 +356,7 @@ public class Settings implements Serializable {
    *
    * @see Training#addGapInformation(Sexp)
    */
-  protected static final String addGapInfo =
+  public static final String addGapInfo =
     "parser.training.addGapInfo";
 
   /**
@@ -367,7 +369,7 @@ public class Settings implements Serializable {
    *
    * @see Training#identifyArguments(Sexp)
    */
-  protected static final String collinsRelabelHeadChildrenAsArgs =
+  public static final String collinsRelabelHeadChildrenAsArgs =
     "parser.training.collinsRelabelHeadChildrenAsArgs";
 
   /**
@@ -383,7 +385,7 @@ public class Settings implements Serializable {
    * <code>"parser.training.collinsRepairBaseNPs"</code>.
    *
    * @see Training#repairBaseNPs(Sexp) */
-  protected static final String collinsRepairBaseNPs =
+  public static final String collinsRepairBaseNPs =
     "parser.training.collinsRepairBaseNPs";
 
   /**

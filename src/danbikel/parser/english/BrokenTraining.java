@@ -245,7 +245,7 @@ public class BrokenTraining extends danbikel.parser.lang.AbstractTraining {
 	  if (foundArg) {
 	    Nonterminal parsedChild =
 	      treebank.parseNonterminal(child, nonterminal);
-	    treebank.addAugmentation(parsedChild, argAugmentation);
+	    treebank.addAugmentation(parsedChild, defaultArgAugmentation);
 	    treeList.setChildLabel(argIdx, parsedChild.toSymbol());
 	  }
 	}

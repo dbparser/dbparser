@@ -1,12 +1,14 @@
 package danbikel.parser;
 
+import danbikel.lisp.*;
+
 public class TopLexModelStructure1 extends ProbabilityStructure {
   public TopLexModelStructure1() {
     super();
   }
 
   public int maxEventComponents() { return 3; }
-  public int numLevels() { return 3; }
+  public int numLevels() { return 2; }
 
   public Event getHistory(TrainerEvent trainerEvent, int backOffLevel) {
     HeadEvent headEvent = (HeadEvent)trainerEvent;
@@ -19,12 +21,14 @@ public class TopLexModelStructure1 extends ProbabilityStructure {
       history.add(headEvent.head());
       history.add(headEvent.parent());
       break;
+    /*
     case 1:
       // for p(w | t, H)
       history.add(headEvent.headWord().tag());
       history.add(Language.treebank.getCanonical(headEvent.head()));
       break;
-    case 2:
+    */
+    case 1:
       // for p(w | t)
       history.add(headEvent.headWord().tag());
     }
@@ -36,7 +40,10 @@ public class TopLexModelStructure1 extends ProbabilityStructure {
     MutableEvent future = futures[backOffLevel];
     future.clear();
     // for p(w | ...)
-    future.add(headEvent.headWord().word());
+    Word headWord = ((HeadEvent)trainerEvent).headWord();
+    Symbol word =
+      headWord.features() != null ? headWord.features() : headWord.word();
+    future.add(word);
     return future;
   }
 

@@ -1221,8 +1221,10 @@ public class Trainer implements Serializable {
     System.err.println("Canonical events HashMap stats: " +
                        canonical.getStats());
 
-    if (setModelCollection)
+    if (setModelCollection) {
+      precomputeProbs();
       modelCollectionSet(canonical);
+    }
   }
 
   protected void clearEventCounters() {
@@ -1263,6 +1265,19 @@ public class Trainer implements Serializable {
     rightSubcatModel.deriveCounts(headEvents, nonTop, th, canonical);
     modNonterminalModel.deriveCounts(modifierEvents, allPass, th, canonical);
     modWordModel.deriveCounts(modifierEvents, nonStop, th, canonical);
+  }
+
+  protected void precomputeProbs() {
+    lexPriorModel.precomputeProbs();
+    nonterminalPriorModel.precomputeProbs();
+    topNonterminalModel.precomputeProbs();
+    topLexModel.precomputeProbs();
+    headModel.precomputeProbs();
+    gapModel.precomputeProbs();
+    leftSubcatModel.precomputeProbs();
+    rightSubcatModel.precomputeProbs();
+    modNonterminalModel.precomputeProbs();
+    modWordModel.precomputeProbs();
   }
 
   protected void modelCollectionSet(FlexibleMap canonical) {
@@ -2003,7 +2018,8 @@ public class Trainer implements Serializable {
 						   OutputStream os)
     throws ClassNotFoundException, IOException, OptionalDataException {
     PrintStream ps = new PrintStream(os);
-    ps.println("Settings\n------------------------------");
+    ps.println("Settings in effect during training\n");
+    ps.println("------------------------------");
     Properties props = (Properties)ois.readObject();
     Settings.storeSorted(props, os, " " + Settings.progName + " v" +
 			 Settings.version);

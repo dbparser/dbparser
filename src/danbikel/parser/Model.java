@@ -30,6 +30,13 @@ public class Model implements Serializable {
   // constants
   private final static boolean precomputeProbs =
     Boolean.valueOf(Settings.get(Settings.precomputeProbs)).booleanValue();
+  private final static boolean deficientEstimation;
+  static {
+    String deficientEstimationString =
+      Settings.get(Settings.collinsDeficientEstimation);
+    deficientEstimation =
+      Boolean.valueOf(deficientEstimationString).booleanValue();
+  }
   private final static boolean useCache = true;
   private final static int minCacheSize = 1000;
   private final static boolean doGCBetweenCanonicalizations = false;
@@ -50,6 +57,7 @@ public class Model implements Serializable {
   private int numLevels;
   private int specialLevel;
   private double[] lambdaFudge;
+  private double[] lambdaFudgeTerm;
   // the actual counts
   private CountsTrio[] counts;
   private int numCanonicalizableEvents = 0;
@@ -90,6 +98,9 @@ public class Model implements Serializable {
     lambdaFudge = new double[numLevels];
     for (int i = 0; i < lambdaFudge.length; i++)
       lambdaFudge[i] = structure.lambdaFudge(i);
+    lambdaFudgeTerm = new double[numLevels];
+    for (int i = 0; i < lambdaFudgeTerm.length; i++)
+      lambdaFudgeTerm[i] = structure.lambdaFudgeTerm(i);
     if (useCache)
       setUpCaches();
     if (precomputeProbs)
@@ -201,6 +212,60 @@ public class Model implements Serializable {
 
     if (precomputeProbs)
       precomputeProbs(trainerCounts, filter);
+
+    if (structure.doCleanup())
+      cleanup();
+  }
+
+  protected void cleanup() {
+    int numHistoriesRemoved = 0;
+    int numTransitionsRemoved = 0;
+    Time time = null;
+    if (verbose)
+      time = new Time();
+    if (precomputeProbs) {
+      int lastLevel = numLevels - 1;
+      for (int level = 0; level < numLevels; level++) {
+	Iterator it = precomputedProbs[level].keySet().iterator();
+	while (it.hasNext()) {
+	  if (structure.removeTransition(level, (Transition)it.next())) {
+	    it.remove();
+	    numTransitionsRemoved++;
+	  }
+	}
+	if (level < lastLevel) {
+	  it = precomputedLambdas[level].keySet().iterator();
+	  while (it.hasNext()) {
+	    if (structure.removeHistory(level, (Event)it.next())) {
+	      it.remove();
+	      numHistoriesRemoved++;
+	    }
+	  }
+	}
+      }
+    }
+    else {
+      for (int level = 0; level < numLevels; level++) {
+	BiCountsTable histories = counts[level].history();
+	Iterator it = histories.keySet().iterator();
+	while (it.hasNext())
+	  if (structure.removeHistory(level, (Event)it.next())) {
+	    it.remove();
+	    numHistoriesRemoved++;
+	  }
+	CountsTable transitions = counts[level].transition();
+	it = transitions.keySet().iterator();
+	while (it.hasNext())
+	  if (structure.removeTransition(level, (Transition)it.next())) {
+	    it.remove();
+	    numTransitionsRemoved++;
+	  }
+      }
+    }
+    if (verbose)
+      System.err.println("Cleaned up in " + time + "; removed " +
+			 numHistoriesRemoved + " histories and " +
+			 numTransitionsRemoved + " transitions.");
   }
 
   /**
@@ -301,7 +366,7 @@ public class Model implements Serializable {
 				TrainerEvent event) {
     ProbabilityStructure structure = probStructure;
     if (Debug.level >= 20) {
-      System.err.println(structure.getClass().getName() + "\n\t" + event);
+      System.err.println(structureClassName + "\n\t" + event);
     }
 
     /*
@@ -328,28 +393,24 @@ public class Model implements Serializable {
       if (useCache) {
         cacheAccesses[level]++;
         if (Debug.level >= 21) {
-          System.err.print("getting prob for " + transition +
-                           " at level " + level + ": ");
+          System.err.print("level " + level + ": getting cached  P");
         }
         MapToPrimitive.Entry cacheProbEntry = cache[level].getProb(transition);
-        if (Debug.level >= 21) {
-          System.err.println(cacheProbEntry);
-        }
         if (cacheProbEntry != null) {
-          if (Debug.level >= 21) {
-            System.err.println("yea! " + structure.getClass().getName() +
-                               "; level=" + level);
-          }
+	  if (Debug.level >= 21) {
+	    System.err.println(cacheProbEntry);
+	  }
           estimates[level] = cacheProbEntry.getDoubleValue();
           cacheHits[level]++;
           highestCachedLevel = level;
           break;
         }
-        else {
-          if (Debug.level >= 21) {
-            System.err.println("nope");
-          }
-        }
+	else {
+	  if (Debug.level >= 21) {
+	    System.err.print(transition);
+	    System.err.println("=null");
+	  }
+	}
       }
       CountsTrio trio = counts[level];
       MapToPrimitive.Entry histEntry = trio.history().getEntry(history);
@@ -361,6 +422,7 @@ public class Model implements Serializable {
 
       double lambda, estimate; //, adjustment = 1.0;
       double fudge = lambdaFudge[level];
+      double fudgeTerm = lambdaFudgeTerm[level];
       if (historyCount == 0) {
 	lambda = 0;
 	estimate = 0;
@@ -370,8 +432,9 @@ public class Model implements Serializable {
 	if (structure.prevHistCount <= historyCount)
 	  adjustment = 1 - structure.prevHistCount / historyCount;
         */
-	lambda = (level == lastLevel ? 1.0 :
-                  historyCount / (historyCount + fudge * diversityCount));
+	lambda = ((!deficientEstimation && level == lastLevel) ? 1.0 :
+                  historyCount /
+		  (historyCount + fudgeTerm + fudge * diversityCount));
 	  //adjustment * (historyCount / (historyCount + fudge * diversityCount));
 	estimate = transitionCount / historyCount;
       }
@@ -405,8 +468,8 @@ public class Model implements Serializable {
       if (useCache  && prob > Constants.logOfZero) {
         Transition transition = structure.transitions[level];
 	if (Debug.level >= 21) {
-	  System.err.println("adding " + transition + " to cache at level " +
-			     level);
+	  System.err.println("adding P" + transition + " = " + prob +
+			     " to cache at level " + level);
 	}
 
         putInCache:
@@ -479,6 +542,7 @@ public class Model implements Serializable {
 
     double lambda, estimate, adjustment = 1.0;
     double fudge = structure.lambdaFudge(level);
+    double fudgeTerm = structure.lambdaFudgeTerm(level);
     if (historyCount == 0) {
       lambda = 0;
       estimate = 0;
@@ -487,7 +551,8 @@ public class Model implements Serializable {
       if (prevHistCount <= historyCount)
 	adjustment = 1 - prevHistCount / historyCount;
       lambda =
-	adjustment * (historyCount / (historyCount + fudge * diversityCount));
+	adjustment * (historyCount /
+		      (historyCount + fudgeTerm + fudge * diversityCount));
       estimate = transitionCount / historyCount;
     }
     double backOffProb = estimateProbOld(structure,
@@ -653,6 +718,7 @@ public class Model implements Serializable {
 
       // take care of case where history was removed due to its low count
       if (histEntry == null) {
+	System.err.println("shouldn't happen");
         estimates[level] = lambdas[level] = 0.0;
         histories[level] = null;
         transitions[level] = null;
@@ -670,8 +736,10 @@ public class Model implements Serializable {
       double diversityCount = histEntry.getIntValue(CountsTrio.diversity);
 
       double fudge = lambdaFudge[level];
-      double lambda = (level == lastLevel ? 1.0 :
-                       historyCount / (historyCount + fudge * diversityCount));
+      double fudgeTerm = lambdaFudgeTerm[level];
+      double lambda = ((!deficientEstimation && level == lastLevel) ? 1.0 :
+                       historyCount /
+		       (historyCount + fudgeTerm + fudge * diversityCount));
       double estimate = transitionCount / historyCount;
       lambdas[level] = lambda;
       estimates[level] = estimate;
@@ -698,6 +766,36 @@ public class Model implements Serializable {
    */
   protected void deriveSpecialLevelHistories(TrainerEvent event,
 					     int count) {
+  }
+
+  /**
+   * Indicates to use counts or precomputed probabilities from another model
+   * when estimating probabilities for the specified back-off level of
+   * this model.
+   *
+   * @param backOffLevel the back-off level of this model that is to be
+   * shared by another model
+   * @param otherModel the other model that will share a particular
+   * back-off level with this mdoel (that is, use the counts or precomputed
+   * probabilities from this model)
+   * @param otherModelBackOffLevel the back-off level of the other model
+   * that is to be made the same as the specified back-off level
+   * of this model (that is, use the counts or precomputed probabilities
+   * from this model)
+   */
+  protected void share(int backOffLevel,
+		       Model otherModel, int otherModelBackOffLevel) {
+    if (precomputeProbs) {
+      otherModel.precomputedProbs[otherModelBackOffLevel] =
+	this.precomputedProbs[backOffLevel];
+      if (backOffLevel < numLevels - 1 &&
+	  otherModelBackOffLevel < otherModel.numLevels - 1)
+	otherModel.precomputedLambdas[otherModelBackOffLevel] =
+	  this.precomputedLambdas[backOffLevel];
+    }
+    else {
+      otherModel.counts[otherModelBackOffLevel] = this.counts[backOffLevel];
+    }
   }
 
   /**

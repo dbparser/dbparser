@@ -67,6 +67,10 @@ public class CachingDecoderServer implements DecoderServerRemote {
     return stub.modNonterminalMap();
   }
 
+  public Map simpleModNonterminalMap() throws RemoteException {
+    return stub.simpleModNonterminalMap();
+  }
+
   public CountsTable nonterminals() throws RemoteException {
     return stub.nonterminals();
   }

@@ -19,7 +19,6 @@ import java.io.*;
  * <p>
  * The comment for the <code>toSexp</code> method describes the way in which
  * this class represents miscellaneous requirements.
- * <p>
  * <b>Bugs</b>:
  * <ol>
  * <li>This class provides special-case bins for counting gap
@@ -28,6 +27,16 @@ import java.io.*;
  * generative requirements, and these elements do not appear in {@link
  * Training#argNonterminals}, unless it is modified, this class will
  * simply put these elements in the miscellaneous bin.
+ * <li>This class assumes that only single requirements will be passed to its
+ * {@link #add(Symbol)} or {@link #remove(Symbol)} methods.  For example, the
+ * generation of the modifying nonterminal <tt>NP-A-g</tt> satisfies two types
+ * of requirements, being an NP argument and having the gap feature.
+ * Nevertheless, this class assumes that these two types of requirements will
+ * be added or removed in two separate invocations of either {@link
+ * #add(Symbol)} or {@link #remove(Symbol)}, one invocation with <tt>NP-A</tt>
+ * and one with <tt>g</tt>.  Currently, the {@link Decoder} class assumes that
+ * each nonterminal generated will satisfy only a single requirement (but then,
+ * it does not handle the gap feature at all in its current state).
  * <li>As explained in the documentation for {@link #toSexp()}, for
  * input/output purposes, this class treats miscellaneous requirements
  * as the symbol <tt>+STOP+-A</tt>.  This &ldquo;fake&rdquo; argument

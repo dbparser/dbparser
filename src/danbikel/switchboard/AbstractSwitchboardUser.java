@@ -63,7 +63,7 @@ public abstract class AbstractSwitchboardUser
 
   /**
    * Class to implement a thread that detects whether the switchboard
-   * has gone done, by noticing when it has been too long since its
+   * has gone down, by noticing when it has been too long since its
    * last call to {@link #alive}.
    */
   protected class Alive implements Runnable {
@@ -436,8 +436,8 @@ public abstract class AbstractSwitchboardUser
    * Sets {@link #aliveTimeout} to be a reasonable value.  This
    * default implementation sets <code>aliveTimeout</code> to be
    * twice the maximum time the switchboard will try to call
-   * a users' {@link #alive} method.  In terms of code,
-   * the value set by this method is
+   * a users' {@link #alive} method.  That is,
+   * the value set by this method is equal to the value of the expression
    * <pre>
    * 2 * ((switchboard.getKeepAliveMaxRetries() + 1) *
    *      switchboard.getKeepAliveInterval());

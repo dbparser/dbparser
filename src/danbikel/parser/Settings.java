@@ -317,6 +317,18 @@ public class Settings implements Serializable {
     "parser.trainer.numPrevMods";
 
   /**
+   * The property to specify how many head words of previous modifiers the
+   * trainer outputs for its top-level count files.  The value of this
+   * property must be (the string representation of) a non-negative integer.
+   * <p>
+   * The value of this constant is
+   * <code>&quot;parser.trainer.numPrevWords&quot;</code>.
+   * @see Trainer
+   */
+  public final static String numPrevWords =
+    "parser.trainer.numPrevWords";
+
+  /**
    * The property to specify the model structure number to use when
    * creating <code>ProbabilityStructure</code> objects.  The model
    * structure number will be appended to the end of the canonical
@@ -636,6 +648,22 @@ public class Settings implements Serializable {
    */
   public final static String chartItemClass =
     "parser.chart.itemClass";
+
+  /**
+   * The property to specify the maximum length a sentence can be;
+   * sentences greater than this length will not be parsed.
+   * If the value of this property is less than <tt>1</tt>, the
+   * decoder will attempt to parse all sentences. This property should
+   * be (the string representation of) an integer.
+   * <p>
+   * The value of this constant is
+   * <code>"parser.decoder.maxSentenceLength"</code>.
+   * <p>
+   *
+   * @see Decoder
+   */
+  public final static String maxSentLen =
+    "parser.decoder.maxSentenceLength";
 
   /**
    * The property to specify whether or not the decoding algorithm should

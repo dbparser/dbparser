@@ -8,6 +8,7 @@ public class ModWordModelStructure4 extends ProbabilityStructure {
   private Symbol startSym = Language.training().startSym();
   private Word startWord = Language.training().startWord();
   private Symbol baseNP = Language.treebank().baseNPLabel();
+  private Symbol stopSym = Language.training().stopSym();
   private Symbol topSym = Language.training().topSym();
 
   public ModWordModelStructure4() {
@@ -15,7 +16,7 @@ public class ModWordModelStructure4 extends ProbabilityStructure {
   }
 
   public int maxEventComponents() { return 10; }
-  public int numLevels() { return 5; }
+  public int numLevels() { return 3; }
 
   public Event getHistory(TrainerEvent trainerEvent, int backOffLevel) {
     ModifierEvent modEvent = (ModifierEvent)trainerEvent;
@@ -50,26 +51,6 @@ public class ModWordModelStructure4 extends ProbabilityStructure {
       hist.add(0, side);
       break;
     case 1:
-      // for p(w_i | M(t)_i, P, H, w, t, side)
-      hist = histories[backOffLevel]; // efficiency hack: don't need subcat
-      hist.clear();
-      hist.add(0, Language.training().removeGapAugmentation(modEvent.modifier()));
-      hist.add(0, modEvent.modHeadWord().tag());
-      hist.add(0, parent);
-      hist.add(0, Language.training().removeGapAugmentation(modEvent.head()));
-      hist.add(0, modEvent.headWord().word());
-      hist.add(0, modEvent.headWord().tag());
-      hist.add(0, side);
-      break;
-    case 2:
-      // for p(w_i | P, w, side)
-      hist = histories[backOffLevel]; // efficiency hack: don't need subcat
-      hist.clear();
-      hist.add(0, parent);
-      hist.add(0, modEvent.headWord().word());
-      hist.add(0, side);
-      break;
-    case 3:
       // for p(w_i | M(t)_i, P, H, t, verbIntervening, map(M_i-1), subcat, side)
       hist.add(0, Language.training().removeGapAugmentation(modEvent.modifier()));
       hist.add(0, modEvent.modHeadWord().tag());
@@ -81,11 +62,16 @@ public class ModWordModelStructure4 extends ProbabilityStructure {
       hist.add(1, modEvent.subcat());
       hist.add(0, side);
       break;
-    case 4:
-      // for p(w_i | t_i)
-      hist = histories[backOffLevel]; // efficiency hack: don't need subcat
-      hist.clear();
-      hist.add(modEvent.modHeadWord().tag());
+    case 2:
+      // for p(w_i | M(t)_i, P, H, verbIntervening, map(M_i-1), subcat, side)
+      hist.add(0, Language.training().removeGapAugmentation(modEvent.modifier()));
+      hist.add(0, modEvent.modHeadWord().tag());
+      hist.add(0, parent);
+      hist.add(0, Language.training().removeGapAugmentation(modEvent.head()));
+      hist.add(0, verbInterveningSym);
+      hist.add(0, mappedPrevModSym);
+      hist.add(1, modEvent.subcat());
+      hist.add(0, side);
       break;
     }
     return hist;
@@ -134,8 +120,6 @@ public class ModWordModelStructure4 extends ProbabilityStructure {
       hist.add(side);
       break;
     case 2:
-    case 3:
-    case 4:
       // for p(w_i | t_i)
       hist.add(modEvent.modHeadWord().tag());
       break;
@@ -153,6 +137,12 @@ public class ModWordModelStructure4 extends ProbabilityStructure {
     return future;
   }
 
+  /*
+  public double lambdaPenalty(int backOffLevel) {
+    return backOffLevel >= 1 ? 0.99 : 0.0;
+  }
+  */
+
   public boolean doCleanup() { return true; }
 
   /**
@@ -166,22 +156,21 @@ public class ModWordModelStructure4 extends ProbabilityStructure {
    */
   public boolean removeHistory(int backOffLevel, Event history) {
     // this method assumes the parent component of histories for
-    // back-off levels 0, 1 and 3 will be at index 2, and at index 0 for
-    // back-off level 2.  IF THIS CHANGES, this method will need to change
-    // accordingly.
+    // back-off levels 0 and 1 will be at index 2.  IF THIS CHANGES,
+    // this method will need to change accordingly.
     switch (backOffLevel) {
     case 0:
       return history.get(0, 2) == topSym;
     case 1:
       return history.get(0, 2) == topSym;
     case 2:
-      return history.get(0, 0) == topSym;
-    case 3:
-      return history.numComponents() >= 3 && history.get(0, 2) == topSym;
-    case 4:
       return false;
     }
     return false;
+  }
+
+  public boolean removeFuture(int backOffLevel, Event future) {
+    return future.get(0,0) == stopSym;
   }
 
   public ProbabilityStructure copy() {

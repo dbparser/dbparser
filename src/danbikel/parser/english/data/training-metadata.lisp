@@ -46,7 +46,7 @@
 ;	      (PP (head 1)))
 ;	      (PP (head-post first PP NP WHNP ADJP ADVP S SBAR VP UCP RB RBS))))
 ;	      (PP (head-post first PP NP WHNP ADJP ADVP S SBAR VP UCP)))
-              (PP (head-post first not IN PRN CC , : RB RBS)))
+              (PP (head-post first not PRN IN , : $ # CC CD DT EX FW JJ JJR JJS -LRB- LS MD NN NNP NNPS NNS PDT POS PRP PRP$ RB RBR RBS RP -RRB- SYM TO UH VB VBD VBG VBN VBP VBZ WDT WP WP$ WRB)))
 ;;; a list of semantic tags on Penn Treebank nonterminals that prevent
 ;;; children in the appropriate contexts from being relabeled as arguments
 (sem-tag-arg-stop-list (ADV VOC BNF DIR EXT LOC MNR TMP CLR PRP))

@@ -37,6 +37,7 @@ public class Treebank extends danbikel.parser.lang.AbstractTreebank {
   static final Symbol S = Symbol.add("S");
   // transformed nodes
   static final Symbol baseNP = Symbol.add(NP + "B");
+  static final Symbol baseNPArg = Symbol.add(baseNP + "-A");
   static final Symbol subjectlessS = Symbol.add(S + "G");
   static final Symbol subjectAugmentation = Symbol.add("SBJ");
 
@@ -171,6 +172,10 @@ public class Treebank extends danbikel.parser.lang.AbstractTreebank {
    */
   public boolean isNP(Symbol label) {
     return getCanonical(label) == NP;
+  }
+
+  public boolean isBaseNP(Symbol label) {
+    return label == baseNP || label == baseNPArg;
   }
 
   /**

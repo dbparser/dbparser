@@ -115,8 +115,8 @@ if (`tail -1 $0` != "$timeStamp") then
     set sedScriptDir = `echo $scriptDir | sed -e 's/\//\\\//g'`
     sed -e "s/^\(set date = \).*/\1$date/" -e "s/^\(set time = \).*/\1$time/" \
 	-e "s/^\(set inFile = \).*/\1($sedInFile)/" \
-        -e "s/^\(set derivedDataFile = \).*/\1($sedDDF)/" \
-	-e "s/^\(set scriptDir = \).*/\1($sedScriptDir)/" $0 > $scriptFile
+        -e "s/^\(set derivedDataFile = \).*/\1$sedDDF/" \
+	-e "s/^\(set scriptDir = \).*/\1$sedScriptDir/" $0 > $scriptFile
     echo $timeStamp >> $scriptFile
     chmod +x $scriptFile
 endif

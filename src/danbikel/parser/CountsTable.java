@@ -9,60 +9,55 @@ import java.util.*;
  * Provides a mapping between objects and integer counts that may be
  * incremented or decremented.
  */
-public class CountsTable extends danbikel.util.HashMapDouble {
+public interface CountsTable extends danbikel.util.MapToPrimitive {
   /**
-   * Constructs an empty <code>CountsTable</code>.
-   */
-  public CountsTable() {
-    super();
-  }
-
-  /**
-   * Constructs an empty <code>CountsTable</code> with the specified initial
-   * number of hash buckets.
+   * Adds all the counts from the specified table to this table, adding any
+   * new keys in the specified map to this map, if necessary.
    *
-   * @param initialCapacity the number of hash buckets that this object
-   * will initially have
+   * @param other the other counts table whose counts are to be added
+   * to this table
    */
-  public CountsTable(int initialCapacity) {
-    super(initialCapacity);
-  }
+  public void addAll(CountsTable other);
+
   /**
-   * Constructs an empty <code>CountsTable</code> with the specified initial
-   * number of hash buckets and the specified load factor.  If the load
-   * factor, which is average number of items per bucket, is exceeded
-   * at runtime, the number of buckets is roughly doubled and the entire
-   * map is re-hashed, as implemented by the parent class, {@link HashMap}.
+   * Puts the specified map of key objects to their counts into this
+   * counts table.  If a key from the specified map already exists in this
+   * map, it is simply replaced.
    *
-   * @param initialCapacity the number of hash buckets that this object
-   * will initially have
-   * @param loadFactor the load factor of this <code>HashMap</code> object
+   * @param other another counts table whose counts are to be put into
+   * this table
    */
-  public CountsTable(int initialCapacity, float loadFactor) {
-    super(initialCapacity, loadFactor);
-  }
+  public void putAll(CountsTable other);
 
-  public void addAll(CountsTable other) {
-    Iterator it = other.entrySet().iterator();
-    while (it.hasNext()) {
-      MapToPrimitive.Entry entry = (MapToPrimitive.Entry)it.next();
-      this.add(entry.getKey(), entry.getDoubleValue());
-    }
-  }
+  /**
+   * Adds the specified key with a count of <code>1.0</code>.
+   *
+   * @param key the key to be added to this counts table
+   */
+  public void add(Object key);
 
-  public void add(Object key) {
-    add(key, 0, 1.0);
-  }
+  /**
+   * Returns the count of the specified key, or <code>0</code> if this
+   * counts table does not contain a count for the specified key.
+   *
+   * @param key the key whose count is to be gotten
+   * @return the count of the specified key, or <code>0</code> if this
+   * counts table does not contain a count for the specified key
+   */
+  public double count(Object key);
 
-  public double count(Object key) {
-    MapToPrimitive.Entry e = getEntry(key);
-    return (e == null ? 0 : e.getDoubleValue(0));
-  }
-
-  public double count(Object key, int hashCode) {
-    MapToPrimitive.Entry e = getEntry(key, hashCode);
-    return (e == null ? 0 : e.getDoubleValue(0));
-  }
+  /**
+   * Returns the count of the specified key with the specified hash code, or
+   * <code>0</code> if this counts table does not contain a count for the
+   * specified key.
+   *
+   * @param key the key whose count is to be gotten
+   * @param hashCode the hash code of the specified key
+   * @return the count of the specified key with the specified hash code, or
+   * <code>0</code> if this counts table does not contain a count for the
+   * specified key
+   */
+  public double count(Object key, int hashCode);
 
   /**
    * Removes items in this table whose counts are less than the specified
@@ -71,30 +66,11 @@ public class CountsTable extends danbikel.util.HashMapDouble {
    * @param threshold the count threshold below which to remove items from
    * this table
    */
-  public void removeItemsBelow(double threshold) {
-    Iterator it = entrySet().iterator();
-    while (it.hasNext()) {
-      MapToPrimitive.Entry entry = (MapToPrimitive.Entry)it.next();
-      if (entry.getDoubleValue() < threshold)
-	it.remove();
-    }
-  }
+  public void removeItemsBelow(double threshold);
 
   /**
    * Outputs all the mappings of this map in as S-expressions of the form
    * <pre>(name key value)</pre>
    */
-  public void output(String eventName, Writer writer) throws IOException {
-    Iterator keys = keySet().iterator();
-    while (keys.hasNext()) {
-      Object o = keys.next();
-      writer.write("(");
-      writer.write(eventName);
-      writer.write(" ");
-      writer.write(String.valueOf(o));
-      writer.write(" ");
-      writer.write(String.valueOf(count(o)));
-      writer.write(")\n");
-    }
-  }
+  public void output(String eventName, Writer writer) throws IOException;
 }

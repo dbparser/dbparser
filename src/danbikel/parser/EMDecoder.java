@@ -499,12 +499,13 @@ public class EMDecoder extends Decoder {
    * Adds an event as though a tree's non-hidden root is a modifier of
    * <tt>+TOP+</tt> (in addition to being a head child).  Without these
    * &ldquo;fake&rdquo; events, the last level of the modifier-word model (such
-   * as {@link ModWordModelStructure2}) would not contain counts for words that
-   * are the head of the entire sentence (since they are not generated as
-   * modifiers of anything). This enables the (now deprecated) count-sharing
-   * scheme to work, whereby the last back-off level of {@link
-   * TopLexModelStructure1} would use the <i>p</i>(<i>w</i>|<i>t</i>) counts
-   * from the last level of {@link ModWordModelStructure2}.
+   * as {@link danbikel.parser.ms.ModWordModelStructure2}) would not contain
+   * counts for words that are the head of the entire sentence (since they are
+   * not generated as modifiers of anything). This enables the (now deprecated)
+   * count-sharing scheme to work, whereby the last back-off level of {@link
+   * danbikel.parser.ms.TopLexModelStructure1} would use the
+   * <i>p</i>(<i>w</i>|<i>t</i>) counts from the last level of {@link
+   * danbikel.parser.ms.ModWordModelStructure2}.
    *
    * @param event the {@link HeadEvent} instance for an observed tree root,
    * from which a {@link ModifierEvent} is to be produced

@@ -368,6 +368,16 @@ public class Settings implements Serializable {
     "parser.model.doPruning";
 
   /**
+   * The property to specify the pruning threshold when pruning is performed
+   * (ignored if {@link #modelDoPruning} is <tt>false</tt>).  The value of this
+   * property should be (the string representation of) a <tt>double</tt>.
+   *
+   * @see #modelDoPruning
+   */
+  public final static String modelPruningThreshold =
+    "parser.model.pruningThreshold";
+
+  /**
    * The property to specify whether or not the <code>ModelCollection</code>
    * class should write out the large hash map containing canonical versions of
    * <code>Event</code> objects when it is serialized (that is, saved to a
@@ -1260,7 +1270,26 @@ public class Settings implements Serializable {
 
   /**
    * The property to specify whether the decoder uses {@link
-   * ModelCollection#simpleModNonterminalMap}.
+   * ModelCollection#simpleModNonterminalMap}.  This is the simpler of two
+   * mechanisms by which the decoder determines whether even to attempt to
+   * compute the probability of a modifying nonterminal in the context of some
+   * parent and head child and other syntactic context (this computation can be
+   * expensive, hence the decoder has two, less-expensive mechanisms to try to
+   * avoid such computation where possible).  The simple modifying nonterminal
+   * map maps parent/head/side triples to possible modifying nonterminals that
+   * occurred in training.  For example, if an <tt>NP</tt> occurred to the left
+   * of a <tt>VP</tt> whose parent was <tt>S</tt> in training, then the simple
+   * modifying nonterminal map would contain the mapping <tt>S,VP,left -->
+   * NP</tt>.  Note that before such mappings are created, any argument
+   * augmentations on the parent and any gap augmentation on the head are
+   * removed.  Note also that if the last level of back-off of the
+   * modifying-nonterminal generation model structure uses an even more reduced
+   * context than such a triple, then the simple modifying nonterminal map
+   * should <i>not</i> be used and this setting should be <tt>false</tt>.
+   * (Using the simple modifying nonterminal map <i>is</i> appropriate,
+   * however, with {@link danbikel.parser.ms.ModNonterminalModelStructure2},
+   * as well as several other modifying nonterminal model structures in
+   * the <tt>danbikel.parser.ms</tt> package.)
    */
   public final static String useSimpleModNonterminalMap =
     "parser.decoder.useSimpleModNonterminalMap";
@@ -1478,6 +1507,17 @@ public class Settings implements Serializable {
 	set(property, System.getProperty(property));
       }
     }
+  }
+
+  /**
+   * Returns the double value of the specified setting, as determined by
+   * {@link Double#parseDouble(String)}.
+   *
+   * @param setting the setting whose value is to be gotten
+   * @return the double value of the specified setting
+   */
+  public static double getDouble(String setting) {
+    return Double.parseDouble(get(setting));
   }
 
   /**

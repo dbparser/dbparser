@@ -26,6 +26,11 @@ public interface TrainerEvent extends Serializable {
   public TrainerEvent copy();
 
   /**
+   * Returns a shallow copy of this event of the same run-time type.
+   */
+  public TrainerEvent shallowCopy();
+
+  /**
    * Returns the parent symbol of this event, or <code>null</code> if
    * this event has no such object.
    */

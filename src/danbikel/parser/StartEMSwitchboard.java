@@ -163,6 +163,7 @@ public class StartEMSwitchboard {
     System.setProperty("java.security.policy", policy);
     */
     processArgs(args);
+    Switchboard.setPolicyFile(Settings.getSettings());
     //Create and install a security manager
     if (System.getSecurityManager() == null)
       System.setSecurityManager(new RMISecurityManager());

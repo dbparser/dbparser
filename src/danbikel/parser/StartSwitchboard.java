@@ -1,7 +1,7 @@
 package danbikel.parser;
 
 import danbikel.switchboard.*;
-import java.net.MalformedURLException;
+import java.net.*;
 import java.io.*;
 import java.util.*;
 import java.rmi.*;
@@ -328,6 +328,7 @@ public class StartSwitchboard {
    */
   public static void main(String[] args) {
     processArgs(args);
+    Switchboard.setPolicyFile(Settings.getSettings());
     //Create and install a security manager
     if (System.getSecurityManager() == null)
       System.setSecurityManager(new RMISecurityManager());

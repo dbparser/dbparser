@@ -34,10 +34,15 @@ RM =		/bin/rm
 MODEL_STRUCTURE_SOURCES = $(wildcard $(SRCDIR)/*ModelStructure*.java)
 MODEL_STRUCTURE_CLASSES = $(addprefix $(OBJDIR)/,$(patsubst %.java,%.class,$(notdir $(MODEL_STRUCTURE_SOURCES))))
 
-danbikel.util.CLASSES =	$(OBJDIR)/AbstractMapToPrimitive.class \
+danbikel.util.CLASSES =	$(OBJDIR)/AbstractFixedSizeList.class \
+			$(OBJDIR)/AbstractMapToPrimitive.class \
 			$(OBJDIR)/AllPass.class \
 			$(OBJDIR)/Debug.class \
 			$(OBJDIR)/Filter.class \
+			$(OBJDIR)/FixedSizeArrayList.class \
+			$(OBJDIR)/FixedSizeListFactory.class \
+			$(OBJDIR)/FixedSizeList.class \
+			$(OBJDIR)/FixedSizeSingletonList.class \
 			$(OBJDIR)/FlexibleMap.class \
 			$(OBJDIR)/HashMap.class \
 			$(OBJDIR)/HashMapDouble.class \
@@ -103,6 +108,7 @@ danbikel.switchboard.STUBS =	$(OBJDIR)/AbstractSwitchboardUser_Stub.class \
 danbikel.parser.CLASSES =	$(MODEL_STRUCTURE_CLASSES) \
 				$(OBJDIR)/AbstractEvent.class \
 				$(OBJDIR)/BiCountsTable.class \
+				$(OBJDIR)/Collins.class \
 				$(OBJDIR)/Item.class \
 				$(OBJDIR)/Chart.class \
 				$(OBJDIR)/CKYChart.class \
@@ -137,6 +143,7 @@ danbikel.parser.CLASSES =	$(MODEL_STRUCTURE_CLASSES) \
 				$(OBJDIR)/SexpObjectReader.class \
 				$(OBJDIR)/SexpObjectReaderFactory.class \
 				$(OBJDIR)/SexpSubcatEvent.class \
+				$(OBJDIR)/SingletonWordList.class \
 				$(OBJDIR)/StartSwitchboard.class \
 				$(OBJDIR)/Subcat.class \
 				$(OBJDIR)/SubcatBag.class \
@@ -153,7 +160,10 @@ danbikel.parser.CLASSES =	$(MODEL_STRUCTURE_CLASSES) \
 				$(OBJDIR)/Transition.class \
 				$(OBJDIR)/Treebank.class \
 				$(OBJDIR)/Word.class \
-				$(OBJDIR)/WordFeatures.class
+				$(OBJDIR)/WordFeatures.class \
+				$(OBJDIR)/WordArrayList.class \
+				$(OBJDIR)/WordList.class \
+				$(OBJDIR)/WordListFactory.class
 
 danbikel.parser.STUBS =		$(OBJDIR)/Parser_Stub.class \
 				$(OBJDIR)/DecoderServer_Stub.class

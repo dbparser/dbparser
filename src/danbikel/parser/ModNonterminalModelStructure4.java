@@ -114,11 +114,14 @@ public class ModNonterminalModelStructure4 extends ProbabilityStructure {
       hist.add(side);
       break;
     case 2:
-    case 3:
       // for p(M(t)_i | P, M_i-1, side)
       hist.add(Language.training.removeGapAugmentation(modEvent.parent()));
       hist.add(prevModLabel);
       hist.add(side);
+      break;
+    case 3:
+      // for p(M(t)_i | P)
+      hist.add(Language.training.removeGapAugmentation(modEvent.parent()));
       break;
     }
     return hist;

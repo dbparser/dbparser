@@ -18,6 +18,7 @@ public class ModNonterminalModelStructure2 extends ProbabilityStructure {
   private static Symbol startSym = Language.training().startSym();
   private static Word startWord = Language.training().startWord();
   private static Symbol baseNP = Language.treebank().baseNPLabel();
+  private Symbol topSym = Language.training().topSym();
 
   public ModNonterminalModelStructure2() {
     super();
@@ -54,7 +55,7 @@ public class ModNonterminalModelStructure2 extends ProbabilityStructure {
       hist.add(0, verbInterveningSym);
       hist.add(0, mappedPrevModSym);
       hist.add(1, modEvent.subcat());
-      //hist.add(0, side);
+      hist.add(0, side);
       break;
     case 1:
       // for p(M(t)_i | P, H, t, verbIntervening, map(M_i-1), subcat, side)
@@ -64,7 +65,7 @@ public class ModNonterminalModelStructure2 extends ProbabilityStructure {
       hist.add(0, verbInterveningSym);
       hist.add(0, mappedPrevModSym);
       hist.add(1, modEvent.subcat());
-      //hist.add(0, side);
+      hist.add(0, side);
       break;
     case 2:
       // for p(M(t)_i | P, H, verbIntervening, map(M_i-1), subcat, side)
@@ -73,7 +74,7 @@ public class ModNonterminalModelStructure2 extends ProbabilityStructure {
       hist.add(0, verbInterveningSym);
       hist.add(0, mappedPrevModSym);
       hist.add(1, modEvent.subcat());
-      //hist.add(0, side);
+      hist.add(0, side);
       break;
     }
     return hist;
@@ -98,20 +99,20 @@ public class ModNonterminalModelStructure2 extends ProbabilityStructure {
       hist.add(prevModLabel);
       hist.add(prevModWord.word());
       hist.add(prevModWord.tag());
-      //hist.add(side);
+      hist.add(side);
       break;
     case 1:
       // for p(M(t)_i | P, M(t)_i-1, side)
       hist.add(Language.training.removeGapAugmentation(modEvent.parent()));
       hist.add(prevModLabel);
       hist.add(prevModWord.tag());
-      //hist.add(side);
+      hist.add(side);
       break;
     case 2:
       // for p(M(t)_i | P, M_i-1, side)
       hist.add(Language.training.removeGapAugmentation(modEvent.parent()));
       hist.add(prevModLabel);
-      //hist.add(side);
+      hist.add(side);
       break;
     }
     return hist;
@@ -124,6 +125,32 @@ public class ModNonterminalModelStructure2 extends ProbabilityStructure {
     future.add(modEvent.modifier());
     future.add(modEvent.modHeadWord().tag());
     return future;
+  }
+
+  public boolean doCleanup() { return true; }
+
+  /**
+   * In order to gather statistics for words that appear as the head of
+   * the entire sentence when estimating p(w | t), the trainer "fakes" a
+   * modifier event, as though the root node of the observed tree was seen
+   * to modify the magical +TOP+ node.  For back-off levels 0 and 1, we
+   * will never use the derived counts whose history contexts contain +TOP+.
+   * This method allows for the removal of these "unnecessary" counts,
+   * which will never be used when decoding.
+   */
+  public boolean removeHistory(int backOffLevel, Event history) {
+    // this method assumes the parent component of histories for
+    // back-off levels 0 and 1 will be at index 0.  IF THIS CHANGES,
+    // this method will need to change accordingly.
+    switch (backOffLevel) {
+    case 0:
+      return history.get(0, 0) == topSym;
+    case 1:
+      return history.get(0, 0) == topSym;
+    case 2:
+      return false;
+    }
+    return false;
   }
 
   public ProbabilityStructure copy() {

@@ -65,6 +65,9 @@ public class Trainer implements Serializable {
   private final static boolean shareCounts =
     Boolean.valueOf(Settings.get(Settings.trainerShareCounts)).booleanValue();
 
+  private static final boolean addGapInfo =
+    Boolean.valueOf(Settings.get(Settings.addGapInfo)).booleanValue();
+
   /** The sentence numbers of sentences that Mike Collins' trainer skips,
       due to a strange historical reason of a pre-processing Perl script
       of his. */
@@ -205,13 +208,13 @@ public class Trainer implements Serializable {
   protected boolean downcaseWords;
 
   // data storage for training
-  protected CountsTable nonterminals = new CountsTable();
-  protected CountsTable priorEvents = new CountsTable();
-  protected CountsTable headEvents = new CountsTable();
-  protected CountsTable modifierEvents = new CountsTable();
-  protected CountsTable gapEvents = new CountsTable();
-  protected CountsTable vocabCounter = new CountsTable();
-  protected CountsTable wordFeatureCounter = new CountsTable();
+  protected CountsTable nonterminals = new CountsTableImpl();
+  protected CountsTable priorEvents = new CountsTableImpl();
+  protected CountsTable headEvents = new CountsTableImpl();
+  protected CountsTable modifierEvents = new CountsTableImpl();
+  protected CountsTable gapEvents = new CountsTableImpl();
+  protected CountsTable vocabCounter = new CountsTableImpl();
+  protected CountsTable wordFeatureCounter = new CountsTableImpl();
   protected Set vocab = new HashSet();
   protected Map posMap = new HashMap();
   protected Map headToParentMap = new HashMap();
@@ -291,7 +294,7 @@ public class Trainer implements Serializable {
 
   /**
    * Class to represent a MapToPrimitive.Entry object for use by the
-   * {@link #getTrainerEventIterator} method.
+   * {@link #getEventIterator} method.
    */
   public static class EventEntry extends AbstractMapToPrimitive.Entry {
     /**
@@ -309,7 +312,7 @@ public class Trainer implements Serializable {
      * {@link TrainerEvent} and count.
      *
      * @param event the {@link TrainerEvent} of this map entry
-     * @param count the observed count of the {@link TrainerEvent] of this map
+     * @param count the observed count of the {@link TrainerEvent} of this map
      * entry
      */
     public EventEntry(TrainerEvent event, double count) {
@@ -1191,8 +1194,10 @@ public class Trainer implements Serializable {
   }
 
   public void deriveCounts(boolean setModelCollection) {
-    danbikel.util.HashMap canonical = new danbikel.util.HashMap(100003, 1.5f);
+    deriveCounts(setModelCollection, new danbikel.util.HashMap(100003, 1.5f));
+  }
 
+  public void deriveCounts(boolean setModelCollection, FlexibleMap canonical) {
     deriveCounts(derivedCountThreshold, canonical);
 
     System.err.println("Canonical events HashMap stats: " +
@@ -1320,7 +1325,8 @@ public class Trainer implements Serializable {
       addToValueSet(rightSubcatMap, rightContext, canonicalRightSubcat);
     }
 
-    outputSubcatMaps();
+    if (Settings.getBoolean(Settings.outputSubcatMaps))
+      outputSubcatMaps();
 
     //canonicalSubcatMap = null; // it has served its purpose
   }
@@ -1342,7 +1348,8 @@ public class Trainer implements Serializable {
 	continue;
       addToValueSet(headToParentMap, headEvent.head(), headEvent.parent());
     }
-    outputHeadToParentMap();
+    if (Settings.getBoolean(Settings.outputHeadToParentMap))
+      outputHeadToParentMap();
   }
 
   /**
@@ -1374,7 +1381,8 @@ public class Trainer implements Serializable {
       addToValueSet(modNonterminalMap, context, future);
     }
 
-    outputModNonterminalMap();
+    if (Settings.getBoolean(Settings.outputModNonterminalMap))
+      outputModNonterminalMap();
   }
 
   // four utility methods to output subcat and mod nonterminal maps
@@ -1586,7 +1594,7 @@ public class Trainer implements Serializable {
 					    int count) {
     CountsTable valueCounts = (CountsTable)map.get(key);
     if (valueCounts == null) {
-      valueCounts = new CountsTable(2);
+      valueCounts = new CountsTableImpl(2);
       map.put(key, valueCounts);
     }
     valueCounts.add(value, count);
@@ -1661,11 +1669,19 @@ public class Trainer implements Serializable {
    * <li>{@link #vocabSym}
    * <li>{@link #wordFeatureSym}
    * </ul>
+   *
+   * @param file the file containing the S-expressions representing
+   * top-level observations and their counts
    */
   public void readStats(File file)
     throws FileNotFoundException, UnsupportedEncodingException, IOException {
-    readStats(new SexpTokenizer(file, Language.encoding(),
-				Constants.defaultFileBufsize));
+    readStats(getStandardSexpStream(file));
+  }
+
+  public static SexpTokenizer getStandardSexpStream(File file)
+    throws FileNotFoundException, UnsupportedEncodingException, IOException {
+    return new SexpTokenizer(file, Language.encoding(),
+                             Constants.defaultFileBufsize);
   }
 
   /**
@@ -1692,6 +1708,8 @@ public class Trainer implements Serializable {
     return new Iterator() {
       SexpTokenizer tok = tokenizer;
       int intType = eventsToTypes.getEntry(type).getIntValue();
+      int num = 0;
+      int counter = 0;
 
       SexpList next = getNext();
 
@@ -1700,6 +1718,8 @@ public class Trainer implements Serializable {
        * @return the Sexp of the next event that is of the correct type.
        */
       SexpList getNext() {
+        if (!addGapInfo && type == gapEventSym)
+          return null;
         Sexp curr;
         try {
           while ((curr = Sexp.read(tok)) != null) {
@@ -1707,6 +1727,14 @@ public class Trainer implements Serializable {
             Symbol name = event.symbolAt(0);
             MapToPrimitive.Entry entry = eventsToTypes.getEntry(name);
             if (entry != null && entry.getIntValue() == intType) {
+              num++;
+	      /*
+              counter++;
+              if (counter == 10000) {
+                System.err.println("num=" + num);
+                counter = 0;
+              }
+	      */
               return event;
             }
           }
@@ -1714,11 +1742,15 @@ public class Trainer implements Serializable {
         catch (IOException ioe) {
           System.err.println("TrainerEvent iterator: " + ioe);
         }
+        //System.err.println("num=" + num);
         return null;
       }
 
       public boolean hasNext() {
-        return next != null;
+        if (!addGapInfo && type == gapEventSym)
+          return false;
+        else
+          return next != null;
       }
       public Object next() {
         if (next == null)
@@ -1745,11 +1777,63 @@ public class Trainer implements Serializable {
     };
   }
 
-  public void readStats(SexpTokenizer tok)
+  /**
+   * Reads the observations and their counts contained in the specified
+   * S-expression tokenization stream.  The S-expressions contained in the
+   * specified stream are expected to be in the format output by
+   * {@link #writeStats(Writer)}.  Observations are one of several
+   * types, all recorded as S-expressions where the first element is one of the
+   * following symbols:
+   * <ul>
+   * <li>{@link #nonterminalEventSym}
+   * <li>{@link #headEventSym}
+   * <li>{@link #modEventSym}
+   * <li>{@link #gapEventSym}
+   * <li>{@link #posMapSym}
+   * <li>{@link #vocabSym}
+   * <li>{@link #wordFeatureSym}
+   * </ul>
+   *
+   * @param tok the S-expression tokenization stream from which to read
+   * top-level counts
+   * @throws IOException if the underlying stream throws an <tt>IOException</tt>
+   */
+  public void readStats(SexpTokenizer tok) throws IOException {
+    readStats(tok, 0);
+  }
+
+  /**
+   * Reads at most the specified number of observations and their counts
+   * contained in the specified S-expression tokenization stream.  The
+   * S-expressions contained in the specified stream are expected to be
+   * in the format output by {@link #writeStats(Writer)}.  Observations are
+   * one of several types, all recorded as S-expressions where the first
+   * element is one of the following symbols:
+   * <ul>
+   * <li>{@link #nonterminalEventSym}
+   * <li>{@link #headEventSym}
+   * <li>{@link #modEventSym}
+   * <li>{@link #gapEventSym}
+   * <li>{@link #posMapSym}
+   * <li>{@link #vocabSym}
+   * <li>{@link #wordFeatureSym}
+   * </ul>
+   *
+   * @param tok the S-expression tokenization stream from which to read
+   * top-level counts
+   * @param maxEventsToRead the maximum number of events to read from the
+   * specified stream; if the value of this parameter is less than <tt>1</tt>,
+   * then all observations are read from the underlying stream, and the
+   * behavior of this method is identical to {@link #readStats(SexpTokenizer)}
+   * @throws IOException if the underlying stream throws an <tt>IOException</tt>
+   */
+  public void readStats(SexpTokenizer tok, int maxEventsToRead)
     throws IOException {
     Map canonicalMap = new danbikel.util.HashMap(100003, 1.5f);
     Sexp curr = null;
-    for (int i = 1; (curr = Sexp.read(tok)) != null; i++) {
+    int i = 1;
+    for ( ; (maxEventsToRead < 1 || i <= maxEventsToRead) &&
+            (curr = Sexp.read(tok)) != null; i++) {
       if (curr.isSymbol() ||
 	  (curr.isList() &&
 	   curr.list().length() != 2 && curr.list().length() != 3)) {
@@ -1821,6 +1905,7 @@ public class Trainer implements Serializable {
 	break;
       }
     }
+    System.err.println("Read " + (i - 1) + " events.");
   }
 
   /**
@@ -1917,7 +2002,7 @@ public class Trainer implements Serializable {
 
   private final static String[] usageMsg = {
     "usage: [-help] [-sf <settings file> | --settings <settings file>]",
-    "\t[-l <input file>]",
+    "\t[-l <input file> [-l <trainer event input file>] ]",
     "\t[-scan <derived data scan file>]",
     "\t[-i <training file>] [-o <output file>]",
     "\t[-od <derived data output file>] [-ld <derived data input file>]",
@@ -1928,6 +2013,10 @@ public class Trainer implements Serializable {
     "\t<training file> is a Treebank file containing training parse trees",
     "\t<output file> is the events output file (use \"-\" for stdout)",
     "\t<input file> is an <output file> from a previous run to load",
+    "\t\tor, if <trainer event input file> is specified using a second",
+    "\t\t\"-l\", the <input file> is expected to contain everything from a",
+    "\t\tprevious training run except counts for head, modifier",
+    "\t\tand gap events",
     "\t<derived data {scan,input,output} file> are Java object files",
     "\t\tcontaining information about and all derived counts from a",
     "\t\ttraining run",
@@ -1984,6 +2073,7 @@ public class Trainer implements Serializable {
   public static void main(String[] args) {
     boolean stripOuterParens = false, auto = true;
     String trainingFilename = null, outputFilename = null, inputFilename = null;
+    String trainerEventInputFilename = null;
     String settingsFilename = null, objectOutputFilename = null;
     String objectInputFilename = null, scanObjectFilename = null;
     // process arguments
@@ -2022,7 +2112,10 @@ public class Trainer implements Serializable {
 	else if (args[i].equals("-l")) {
 	  if (i + 1 == args.length)
 	    usage();
-	  inputFilename = args[++i];
+          if (inputFilename == null)
+            inputFilename = args[++i];
+          else
+            trainerEventInputFilename = args[++i];
 	}
 	else if (args[i].equals("--strip-outer-parens")) {
 	  stripOuterParens = true;
@@ -2037,7 +2130,7 @@ public class Trainer implements Serializable {
 	else if (args[i].equals("-help"))
 	  usage();
 	else {
-	  System.err.println("unrecognized flag: " + args[i]);
+	  System.err.println("\nunrecognized flag: " + args[i]);
 	  usage();
 	}
       }
@@ -2046,6 +2139,18 @@ public class Trainer implements Serializable {
 	trainingFilename == null && outputFilename == null &&
 	inputFilename == null)
       usage();
+
+    if (trainingFilename != null && trainerEventInputFilename != null) {
+      System.err.println("\nerror: cannot specify both a trainer event input " +
+                         "file and an\n\tobservation input file\n");
+      usage();
+    }
+
+    if (trainingFilename != null && objectOutputFilename == null) {
+      System.err.println("\nerror: must specify a <derived data output " +
+                         "file> when specifying <trainer event input file> " +
+                         "with second \"-l\"");
+    }
 
     try {
       if (settingsFilename != null)
@@ -2068,14 +2173,6 @@ public class Trainer implements Serializable {
     }
 
     try {
-      /*
-	Process proc = Runtime.getRuntime().exec("date");
-	InputStream is = proc.getInputStream();
-	BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-	String line = null;
-	while ((line = reader.readLine()) != null)
-	System.err.println(line);
-      */
       if (scanObjectFilename != null) {
 	try {
 	  trainer.scanModelCollectionObjectFile(scanObjectFilename,
@@ -2100,6 +2197,33 @@ public class Trainer implements Serializable {
         System.err.println("Loading observations from \"" + inputFilename +
                            "\".");
         trainer.readStats(new File(inputFilename));
+        /*
+        if (trainerEventInputFilename != null) {
+          System.err.println("Creating file-backed observation counts tables " +
+                             "from \"" + trainerEventInputFilename + "\".");
+          String teif = trainerEventInputFilename;
+          trainer.headEvents =
+            new FileBackedTrainerEventMap(headEventSym, teif);
+          trainer.modifierEvents =
+            new FileBackedTrainerEventMap(modEventSym, teif);
+          trainer.gapEvents =
+            new FileBackedTrainerEventMap(gapEventSym, teif);
+        }
+        */
+        if (trainerEventInputFilename != null) {
+          // user may only specify a trainer event input filename along with
+          // an object output file, so we know that user must want to derive
+          // counts from this trainer event input file
+          int eventChunkSize = Settings.getInteger(Settings.maxEventChunkSize);
+          SexpTokenizer trainerEventTok =
+            getStandardSexpStream(new File(trainerEventInputFilename));
+          FlexibleMap canonical = new danbikel.util.HashMap(100003, 1.5f);
+          while (trainerEventTok.ttype != StreamTokenizer.TT_EOF) {
+            trainer.readStats(trainerEventTok, eventChunkSize);
+            trainer.deriveCounts(false, canonical);
+            trainer.clearEventCounters();
+          }
+        }
         System.err.println("Finished reading observations in " + time + ".");
       }
 

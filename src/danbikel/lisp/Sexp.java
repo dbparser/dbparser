@@ -89,21 +89,21 @@ abstract public class Sexp implements Externalizable {
 	Sexp mapElt = (Sexp)map.get(this);
 	if (mapElt == null) {
 	  this.list().trimToSize();
-          // make sure if any elements are themselves lists, that they are
-          // canonicalized
+	  // make sure if any elements are themselves lists, that they are
+	  // canonicalized
 	  SexpList thisList = this.list();
-          int size = thisList.size();
-          for (int i = 0; i < size; i++) {
-            Sexp curr = thisList.get(i);
-            if (curr.isList())
-              thisList.set(i, curr.getCanonical(map));
-          }
+	  int size = thisList.size();
+	  for (int i = 0; i < size; i++) {
+	    Sexp curr = thisList.get(i);
+	    if (curr.isList())
+	      thisList.set(i, curr.getCanonical(map));
+	  }
 
-          /*
+	  /*
 	  SexpList newList = new SexpList.HashCache(thisList, true);
 	  map.put(newList, newList);
 	  return newList;
-          */
+	  */
 	  map.put(this, this);
 	  return this;
 	}
@@ -137,7 +137,7 @@ abstract public class Sexp implements Externalizable {
 	  if (tok.ttype == StreamTokenizer.TT_EOF)
 	    throw new IOException(className + ": error: "+
 				  "unexpected end of stream (line " +
-				  tok.lineno() + ")");
+				  tok.lineno() + ")\n\tpartial list: " + list);
 	  tok.pushBack();
 	  Sexp listElement = Sexp.read(tok);
 	  list.add(listElement);

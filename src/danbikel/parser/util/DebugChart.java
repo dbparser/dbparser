@@ -13,6 +13,11 @@ public class DebugChart {
   private static HashSet best = new HashSet();
   private static SortedSet sortedItems = new TreeSet();
 
+  public static Filter allPass = new AllPass();
+  public static Filter onlyStopped = new Filter() {
+      public boolean pass(Object obj) { return ((CKYItem)obj).stop(); }
+    };
+
   private DebugChart() {}
 
   /**
@@ -475,5 +480,35 @@ public class DebugChart {
       }
     }
     return tree;
+  }
+
+  /**
+   * Prints the derivation rooted at the specified chart item to
+   * <tt>System.err</tt>.
+   */
+  public static void printDerivation(CKYItem item) {
+    printDerivation(item, allPass);
+  }
+  public static void printDerivation(CKYItem item, Filter filter) {
+    printDerivation(item, filter, 0);
+  }
+  private static void printDerivation(CKYItem item, Filter filter, int level) {
+    if (filter.pass(item)) {
+      for (int i = 0; i < level; i++)
+	System.err.print("  ");
+      System.err.println(item);
+      if (item.headChild() != null)
+	printDerivation(item.headChild(), filter, level + 1);
+      SLNode leftChildren = item.leftChildren();
+      while (leftChildren != null) {
+	printDerivation((CKYItem)leftChildren.data(), filter, level + 1);
+	leftChildren = leftChildren.next();
+      }
+      SLNode rightChildren = item.rightChildren();
+      while (rightChildren != null) {
+	printDerivation((CKYItem)rightChildren.data(), filter, level + 1);
+	rightChildren = rightChildren.next();
+      }
+    }
   }
 }

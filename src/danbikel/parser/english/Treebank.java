@@ -68,7 +68,7 @@ public class Treebank extends danbikel.parser.Treebank {
       puncToRaise.add(Symbol.add(puncToRaiseElements[i]));
   }
 
-  private static String[] verbTagStrings = {"VB", "VBD", "VBG", "VBN",
+  private static String[] verbTagStrings = {"MD", "VB", "VBD", "VBG", "VBN",
 					    "VBP", "VBZ"};
   private static Set verbTags = new HashSet();
   static {

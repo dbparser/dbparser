@@ -1,27 +1,19 @@
 package danbikel.parser;
 
 import danbikel.lisp.*;
-import java.io.Serializable;
 
-public abstract class WordFeatures implements Serializable {
-  /**
-   * The unique symbol to represent unknown words.  The default value
-   * is the return value of <code>Symbol.add(&quot;+unknown+&quot;)</code>;
-   * if this maps to an actual word in a particular language or Treebank,
-   * this data member should be reassigned in a subclass.
-   */
-  protected static Symbol unknownWordSym = Symbol.add("+unknown+");
-
-  /**
-   * Default constructor, to be called by subclasses (usually implicitly).
-   */
-  protected WordFeatures() {
-  }
-
+/**
+ * Specifies the methods for getting a word's features in vector form, as
+ * represented by the print-name of a symbol.
+ * <p>
+ * A language package must provide an implementation of this interface.
+ *
+ * @see danbikel.parser.lang.AbstractWordFeatures
+ */
+public interface WordFeatures {
   /**
    * Returns a symbol representing the orthographic and/or morphological
-   * features of the specified word. This default implementation simply returns
-   * the unknown word symbol.
+   * features of the specified word.
    *
    * @param word the word whose features are to be computed
    * @param firstWord whether <code>word</code> is the first word in the
@@ -29,16 +21,12 @@ public abstract class WordFeatures implements Serializable {
    * languages, such as English)
    * @return a symbol representing the orthographic and/or morphological
    * features of <code>word</code>
-   *
-   * @see #unknownWordSym
    */
-  public Symbol features(Symbol word, boolean firstWord) {
-    return unknownWordSym;
-  }
+  public Symbol features(Symbol word, boolean firstWord);
 
   /**
    * The symbol that represents the case where none of the features fires
    * for a particular word.
    */
-  public abstract Symbol defaultFeatureVector();
+  public Symbol defaultFeatureVector();
 }

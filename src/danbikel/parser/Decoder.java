@@ -20,7 +20,7 @@ public class Decoder implements Serializable {
   private final static boolean debugJoin = false;
   private final static boolean debugStops = false;
   private final static boolean debugUnaries = false;
-  private final static boolean debugUnariesAndStopProbs = true;
+  private final static boolean debugUnariesAndStopProbs = false;
   private final static boolean debugOutputChart = false;
   private final static boolean debugCommaConstraint = false;
   private final static Symbol S = Symbol.add("S");
@@ -523,7 +523,7 @@ public class Decoder implements Serializable {
     // find top-ranked item whose label is topSym in linear time
     double highestProb = Constants.logOfZero;
     CKYItem topRankedItem = null;
-    Iterator it = chart.getAll(0, sentLen - 1);
+    Iterator it = chart.get(0, sentLen - 1);
     while (it.hasNext()) {
       CKYItem item = (CKYItem)it.next();
       if (item.label() != topSym)
@@ -561,7 +561,7 @@ public class Decoder implements Serializable {
 
   protected void addTopUnaries(int end) throws RemoteException {
     topProbItemsToAdd.clear();
-    Iterator sentSpanItems = chart.getAll(0, end);
+    Iterator sentSpanItems = chart.get(0, end);
     while (sentSpanItems.hasNext()) {
       CKYItem item = (CKYItem)sentSpanItems.next();
       if (item.stop()) {
@@ -604,10 +604,10 @@ public class Decoder implements Serializable {
 	continue;
       }
 
-      Iterator leftItems = chart.getAll(start, split);
+      Iterator leftItems = chart.get(start, split);
       while (leftItems.hasNext()) {
         CKYItem leftItem = (CKYItem)leftItems.next();
-        Iterator rightItems = chart.getAll(split + 1, end);
+        Iterator rightItems = chart.get(split + 1, end);
         while (rightItems.hasNext()) {
           CKYItem rightItem = (CKYItem)rightItems.next();
 	  if (!leftItem.stop() && rightItem.stop())
@@ -623,13 +623,13 @@ public class Decoder implements Serializable {
 
   protected void completeOld(int start, int end) throws RemoteException {
     for (int split = start; split < end; split++) {
-      Iterator leftItems = chart.getAll(start, split);
+      Iterator leftItems = chart.get(start, split);
       while (leftItems.hasNext()) {
         CKYItem leftItem = (CKYItem)leftItems.next();
         if (leftItem.stop())
           continue;
         // for all left modificands that have not received stop probs
-        Iterator rightItems = chart.getAll(split + 1, end);
+        Iterator rightItems = chart.get(split + 1, end);
         while (rightItems.hasNext()) {
           CKYItem rightItem = (CKYItem)rightItems.next();
           if (rightItem.stop() == false)
@@ -638,13 +638,13 @@ public class Decoder implements Serializable {
           joinItems(leftItem, rightItem, Constants.RIGHT);
         }
       }
-      leftItems = chart.getAll(start, split);
+      leftItems = chart.get(start, split);
       while (leftItems.hasNext()) {
         CKYItem leftItem = (CKYItem)leftItems.next();
         if (leftItem.stop() == false)
           continue;
         // for all left modifiers that have received their stop probs
-        Iterator rightItems = chart.getAll(split + 1, end);
+        Iterator rightItems = chart.get(split + 1, end);
         while (rightItems.hasNext()) {
           CKYItem rightItem = (CKYItem)rightItems.next();
           if (rightItem.stop())
@@ -768,7 +768,7 @@ public class Decoder implements Serializable {
     currItemsAdded.clear();
     stopProbItemsToAdd.clear();
     boolean buildingOnPreterminalProductions = start == end;
-    Iterator it = chart.getAll(start, end);
+    Iterator it = chart.get(start, end);
     while (it.hasNext()) {
       CKYItem item = (CKYItem)it.next();
       if (item.stop() == false)
@@ -784,7 +784,7 @@ public class Decoder implements Serializable {
     }
 
     int i = -1;
-    //for (i = 0; i < 5; i++) {
+    //for (i = 0; i < 5 && prevItemsAdded.size() > 0; i++) {
     for (i = 0; prevItemsAdded.size() > 0; i++) {
       Iterator prevItems = prevItemsAdded.iterator();
       while (prevItems.hasNext()) {
@@ -1049,10 +1049,13 @@ public class Decoder implements Serializable {
    * Checks the most recently-added children on the specified side of
    * <code>modificand</code> to see if there is a comma constraint
    * violation.
+   *
+   * @deprecated The more efficient
+   * {@link #commaConstraintViolation(int,int,int)} should be used instead.
    */
-  protected final boolean commaConstraintViolationOld(CKYItem modificand,
-						      CKYItem modifier,
-						      boolean side) {
+  protected final boolean commaConstraintViolation(CKYItem modificand,
+						   CKYItem modifier,
+						   boolean side) {
     if (modificand.leftChildren() == null && modificand.rightChildren() == null)
       return false;
     Treebank treebank = Language.treebank();
@@ -1113,7 +1116,7 @@ public class Decoder implements Serializable {
 
   /**
    * Checks entire set of children of the specified item for a comma
-   * constraint violation.
+   * constraint violation.  This method is intended only for use when debugging.
    */
   private final boolean containsCommaConstraintViolation(CKYItem item) {
     Treebank treebank = Language.treebank();

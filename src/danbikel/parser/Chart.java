@@ -43,30 +43,15 @@ public abstract class Chart implements Serializable {
     }
   }
 
-  /*
-  protected final static class ItemWrapper {
-    Item item;
-
-    ItemWrapper(Item item) {
-      this.item = item;
-    }
-
-    public int hashCode() { return System.identityHashCode(item); }
-    public boolean equals(Object o) {
-      return this.item == ((ItemWrapper)o).item;
-    }
-  }
-  */
-
   // data members
   /**
-   * A chart is a two-dimensional array of maps, each of which is a map
-   * from labels to <code>Map</code> objects, each of which maps Item
-   * objects to their logProbs.  The maps from labels to
-   * <code>Map</code> objects are contained within {@link Chart.Entry}
-   * objects.  The <code>Chart.Entry</code> class also provides data members
-   * that store the total number of items in the maps covering that span,
-   * as well as the top log probability of all the items covering that span.
+   * A chart is a two-dimensional array of maps, each of which maps Item
+   * objects to their logProbs.  More specifically, a chart is a two-dimensional
+   * array of <code>Chart.Entry</code> objects, each of which contains one
+   * such map, as well as a data member that stores the top log probability of
+   * all the items covering the span of the chart entry.
+   *
+   * @see Chart.Entry
    */
   protected Entry[][] chart;
   /** The current size of the chart. */
@@ -144,7 +129,9 @@ public abstract class Chart implements Serializable {
    */
   protected void clear() {
     totalItems = 0;
-    totalItemsGenerated = 0;
+    if (debugNumItemsGenerated) {
+      totalItemsGenerated = 0;
+    }
     for (int i = 0; i < size; i++)
       for (int j = i; j < size; j++)
 	if (chart[i][j] == null)
@@ -236,7 +223,9 @@ public abstract class Chart implements Serializable {
    * chart, <code>false</code> otherwise
    */
   public boolean add(int start, int end, Item item) {
-    totalItemsGenerated++;
+    if (debugNumItemsGenerated) {
+      totalItemsGenerated++;
+    }
     if (item.logProb() <= Constants.logOfZero)
       return false;
 
@@ -323,49 +312,6 @@ public abstract class Chart implements Serializable {
   }
 
   /**
-   * Returns the set of items in this chart covering the specified span
-   * and having the specified label.
-   *
-   * @param start the index of the first word in the span for which
-   * to retrieve chart items
-   * @param end the index of the last word in the span for which
-   * to retrieve chart items
-   * @param label the label of chart items covering the
-   * span <code>start</code>-<code>end</code> that are to be retrieved
-   * @return the set of chart items covering the specified span
-   * and having the specified label, or <code>null</code> if there is no
-   * such set of items
-   */
-  /*
-  public Map get(int start, int end, Object label) {
-    return (Map)chart[start][end].map.get(label);
-  }
-  */
-
-  /**
-   * Returns an iterator over all the labels of chart items that cover
-   * the specified span.  Each label returned may be used as the third
-   * parameter to {@link #get(int,int,Object)} for its span to retrieve
-   * its associated <code>Map</code> object containing a mapping
-   * of chart items to their log probabilities.
-   */
-  public Iterator get(int start, int end) {
-    return chart[start][end].map.keySet().iterator();
-  }
-
-  /**
-   * Returns an iterator over all the <code>Map</code> objects for
-   * chart items covering the specified span.  Each <code>Map</code>
-   * object contains a mapping of chart items with a specific label to
-   * their log probabilities.
-   */
-  /*
-  public Iterator getMaps(int start, int end) {
-    return chart[start][end].map.values().iterator();
-  }
-  */
-
-  /**
    * Returns the highest log probability of an item covering the specified span.
    */
   public double getTopLogProb(int start, int end) {
@@ -382,48 +328,16 @@ public abstract class Chart implements Serializable {
    * @param end the end index of the span for which to get all items
    * @return an iterator over all chart items covering the specified span
    */
-  public Iterator getAll(int start, int end) {
+  public Iterator get(int start, int end) {
     return chart[start][end].map.keySet().iterator();
   }
-
-  /*
-  public Iterator getAll(final int start, final int end) {
-    return new Iterator() {
-      private Iterator labelMapIt = getMaps(start, end);
-      private Iterator mapIt =
-        labelMapIt.hasNext() ?
-        ((Map)labelMapIt.next()).keySet().iterator() : null;
-      public boolean hasNext() {
-        if (mapIt == null)
-          return false;
-        // search for the first non-empty Map object
-        while (mapIt != null && mapIt.hasNext() == false) {
-          if (mapIt.hasNext() == false && labelMapIt.hasNext())
-            mapIt = ((Map)labelMapIt.next()).keySet().iterator();
-          else
-            mapIt = null;
-        }
-        return mapIt != null;
-      }
-      public Object next() {
-        if (hasNext()) // guarantees that we will have a valid mapIt, if poss.
-          return mapIt.next();
-        else
-          throw new NoSuchElementException();
-      }
-      public void remove() {
-        throw new UnsupportedOperationException();
-      }
-    };
-  }
-  */
 
   protected void reclaimItem(Item item) {
     itemPool.putBack(item);
   }
 
   protected void reclaimItemsInChart() {
-    int numCells = 0, maxCellSize = 0, avgCellSize = 0;
+    int numCells = 0, maxCellSize = 0;
     if (debugCellSize) {
       System.err.println("total No. of items in chart: " + totalItems);
     }
@@ -441,10 +355,12 @@ public abstract class Chart implements Serializable {
         for (int j = i; j < size; j++) {
 	  Map map = chart[i][j].map;
 	  itemPool.putBackAll(map.keySet());
-	  if (map.size() > 0)
-	    numCells++;
-	  if (map.size() > maxCellSize)
-	    maxCellSize = map.size();
+          if (debugCellSize) {
+            if (map.size() > 0)
+              numCells++;
+            if (map.size() > maxCellSize)
+              maxCellSize = map.size();
+          }
         }
       }
     }
@@ -455,7 +371,8 @@ public abstract class Chart implements Serializable {
     if (debugCellSize) {
       if (numCells > 0)
 	System.err.println("num. cells: " + numCells +
-			   "; avg. cell size: " + (totalItems / numCells) +
+			   "; avg. cell size: " +
+                           (totalItems / (float)numCells) +
 			   "; max. cell size: " + maxCellSize);
     }
   }

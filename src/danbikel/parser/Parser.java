@@ -33,10 +33,14 @@ public class Parser
   private final static boolean debugCacheStats = true;
   private final static String className = Parser.class.getName();
   private final static boolean flushAfterEverySentence = true;
+  private final static String decoderClassName =
+    Settings.get(Settings.decoderClass);
   private final static String decoderServerClassName =
     Settings.get(Settings.decoderServerClass);
   protected final static Class[] stringTypeArr = {String.class};
   protected final static Class[] intTypeArr = {Integer.TYPE};
+  protected final static Class[] newDecoderTypeArr =
+    {Integer.TYPE,DecoderServerRemote.class};
 
   // protected constants
   /** Cached value of {@link Settings#keepAllWords}, for efficiency and
@@ -91,8 +95,24 @@ public class Parser
     super(port, csf, ssf);
   }
 
+  /*
   protected Decoder getNewDecoder(int id, DecoderServerRemote server) {
     return new Decoder(id, server);
+  }
+  */
+  protected Decoder getNewDecoder(int id, DecoderServerRemote server) {
+    Decoder decoder = null;
+    try {
+      Class decoderClass = Class.forName(decoderClassName);
+      
+      Constructor cons = decoderClass.getConstructor(newDecoderTypeArr);
+      Object[] argArr = new Object[]{new Integer(id), server};
+      decoder = (Decoder)cons.newInstance(argArr);
+    }
+    catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+    return decoder;
   }
 
   // helper method for the "stand-alone" constructor

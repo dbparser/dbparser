@@ -114,6 +114,16 @@ public abstract class Chart implements Serializable {
    */
   protected int numPrePruned = 0;
 
+  private ArrayList sortedItems = new ArrayList();
+
+  /**
+   * Indicates whether the chart is currently doing any pruning.
+   *
+   * @see #doPruning()
+   * @see #dontDoPruning()
+   */
+  protected boolean pruning = true;
+
   /**
    * Constructs a new chart with the default chart size.  This instructor
    * will be called, often implicitly, by the constructor of a subclass.
@@ -228,6 +238,9 @@ public abstract class Chart implements Serializable {
    * @param item the item being added to <code>items</code>
    */
   protected boolean toPrune(int start, int end, Item item) {
+    if (!pruning)
+      return false;
+
     double topProb = chart[start][end].topLogProb;
 
     if (debugPrune || debugNumPrunedItems) {
@@ -261,6 +274,8 @@ public abstract class Chart implements Serializable {
    * @see #pruneFact
    */
   public void prune(int start, int end) {
+    if (!pruning)
+      return;
     MapToPrimitive items = chart[start][end].map;
     if (pruneFact > 0.0) {
       // remove the lowest probability elements until the lowest one
@@ -288,6 +303,23 @@ public abstract class Chart implements Serializable {
       }
     }
     if (cellLimit > 0) {
+      if (end > start) { // don't do cell limiting on spans of length 1
+        int numItems = items.size();
+        if (numItems > cellLimit) { // don't create iterator if no need
+	  sortedItems.clear();
+	  sortedItems.addAll(items.keySet());
+	  Collections.sort(sortedItems);
+	  items.clear();
+	  ListIterator it = sortedItems.listIterator();
+	  for (int i = 0; i < cellLimit && it.hasPrevious(); i++) {
+	    Item item = (Item)it.previous();
+	    items.put(item, item.logProb());
+	  }
+	  // reclaim the rest of the items
+	  while (it.hasPrevious())
+	    reclaimItem((Item)it.previous());
+	}
+      }
       /*
         int numItems = items.size();
         if (numItems > cellLimit) { // don't create iterator if no need
@@ -304,10 +336,12 @@ public abstract class Chart implements Serializable {
 	}
         }
       */
+      /*
       throw new UnsupportedOperationException("need to implement cell " +
 					      "limiting, now that we no " +
 					      "longer have sorted [NT,i,j] " +
 					      "cells!");
+      */
     }
   }
 
@@ -453,6 +487,19 @@ public abstract class Chart implements Serializable {
   }
 
   /**
+   * Resets the highest log probability of the specified span to be
+   * {@link Constants#logOfZero}.
+   *
+   * @param start the beginning of the span whose highest log prob is to be
+   * reset
+   * @param end the end of the span whose highest log prob is to be
+   * reset
+   */
+  public void resetTopLogProb(int start, int end) {
+    chart[start][end].topLogProb = Constants.logOfZero;
+  }
+
+  /**
    * Returns the number of chart items covering the specified span.
    *
    * @param start the start of the span for which to retrieve the number of
@@ -574,6 +621,17 @@ public abstract class Chart implements Serializable {
                        "; num canonical hits: " + Model.numCanonicalHits);
     Model.numCacheAdds = Model.numCanonicalHits = 0;
   }
+
+  /**
+   * Indicates that the chart should prune.  THis method may be invoked
+   * during parsing.
+   */
+  public void doPruning() { pruning = true; }
+  /**
+   * Tells this chart not to do any pruning.  This method may be invoked
+   * during parsing.
+   */
+  public void dontDoPruning() { pruning = false; }
 
   /**
    * A hook called by {@link #reclaimItemsInChart()} to allow subclasses

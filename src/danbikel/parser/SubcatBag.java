@@ -1,5 +1,6 @@
 package danbikel.parser;
 
+import danbikel.util.*;
 import danbikel.lisp.*;
 import java.util.*;
 import java.io.*;
@@ -49,12 +50,15 @@ public class SubcatBag implements Subcat, Externalizable {
   private static int numUids;
 
   // static data members
-  private static Map symbolsToInts = new HashMap();
+  private static Map symbolsToInts = new danbikel.util.HashMap();
   private static Symbol stopSym = Language.training.stopSym();
   private static Symbol[] symbols;
   static {
     Symbol headSym = Language.training.headSym();
     Symbol gapAugmentation = Language.training.gapAugmentation();
+    Symbol argAugmentation = Language.training.argAugmentation();
+    char delimChar = Language.treebank.canonicalAugDelimiter();
+
     Map argContexts = Language.training.argContexts();
     Iterator args = argContexts.values().iterator();
     int uid = gapIdx; // depends on gapIdx being equal to firstRealUid
@@ -66,15 +70,19 @@ public class SubcatBag implements Subcat, Externalizable {
       SexpList argList = (SexpList)args.next();
       if (argList.first().symbol() != headSym) {
 	int argListLen = argList.length();
-	for (int i = 0; i < argListLen; i++)
-	  if (symbolsToInts.containsKey(argList.symbolAt(i)) == false)
-	    symbolsToInts.put(argList.symbolAt(i), new Integer(uid++));
+	for (int i = 0; i < argListLen; i++) {
+          Symbol argLabel = argList.symbolAt(i);
+	  if (symbolsToInts.containsKey(argLabel) == false) {
+            /*
+            argLabel =
+              Symbol.get(argLabel.toString() + delimChar + argAugmentation);
+            */
+	    symbolsToInts.put(argLabel, new Integer(uid++));
+	  }
+	}
       }
     }
     numUids = uid;
-
-    Symbol argAugmentation = Language.training.argAugmentation();
-    char delimChar = Language.treebank.canonicalAugDelimiter();
 
     symbols = new Symbol[numUids];
     Iterator entries = symbolsToInts.entrySet().iterator();
@@ -89,6 +97,22 @@ public class SubcatBag implements Subcat, Externalizable {
     }
     symbols[miscIdx] = Symbol.get(stopSym.toString() +
 				  delimChar + argAugmentation);
+  }
+
+  private static HashMapInt fastUidMap = new HashMapInt();
+  private static boolean canUseFastUidMap = false;
+
+  public static synchronized void setUpFastUidMap(CountsTable nonterminals) {
+    if (canUseFastUidMap)
+      return;
+    fastUidMap.put(Language.training.gapAugmentation(), gapIdx);
+    Iterator nts = nonterminals.keySet().iterator();
+    while (nts.hasNext()) {
+      Symbol nt = (Symbol)nts.next();
+      int uid = getUid(nt);
+      fastUidMap.put(nt, uid);
+    }
+    canUseFastUidMap = true;
   }
 
   // data member
@@ -179,6 +203,7 @@ public class SubcatBag implements Subcat, Externalizable {
    */
   public boolean remove(Symbol requirement) {
     int uid = getUid(requirement);
+
     // if the uid is of an actual nonterminal (either greater than
     // firstRealUid, which is used for gap requirements, or equal to
     // miscIdx) and if the specified requirement is not marked as an
@@ -186,6 +211,7 @@ public class SubcatBag implements Subcat, Externalizable {
     if ((uid == miscIdx || uid > firstRealUid) &&
 	!Language.training.isArgumentFast(requirement))
       return false;
+
     if (counts[uid] == 0)
       return false;
     else {
@@ -196,6 +222,10 @@ public class SubcatBag implements Subcat, Externalizable {
   }
 
   private static final int getUid(Symbol requirement) {
+    if (canUseFastUidMap) {
+      MapToPrimitive.Entry fastUidMapEntry = fastUidMap.getEntry(requirement);
+      return fastUidMapEntry == null ? miscIdx : fastUidMapEntry.getIntValue();
+    }
     Integer uidInteger =
       (Integer)symbolsToInts.get(Language.treebank.getCanonical(requirement));
     if (uidInteger == null)

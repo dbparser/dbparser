@@ -1,6 +1,7 @@
 package danbikel.parser;
 
 import danbikel.util.Time;
+import danbikel.util.FlexibleMap;
 import danbikel.lisp.*;
 import java.io.*;
 import java.util.*;
@@ -11,6 +12,9 @@ import java.util.*;
  * together, all of the objects necessary for parsing can be stored
  * and retrieved simply by serializing and de-serializing this object
  * to a Java object file.
+ *
+ * @see Settings#precomputeProbs
+ * @see Settings#writeCanonicalEvents
  */
 public class ModelCollection implements Serializable {
 
@@ -40,7 +44,7 @@ public class ModelCollection implements Serializable {
   private transient Map rightModNonterminalMap;
   private transient Set prunedPreterms;
   private transient Set prunedPunctuation;
-  private transient Map canonicalEvents;
+  private transient FlexibleMap canonicalEvents;
 
   // derived transient data
   // maps from integers to nonterminals and nonterminals to integers
@@ -113,7 +117,7 @@ public class ModelCollection implements Serializable {
                   Map rightModNonterminalMap,
                   Set prunedPreterms,
                   Set prunedPunctuation,
-                  Map canonicalEvents) {
+                  FlexibleMap canonicalEvents) {
     this.lexPriorModel = lexPriorModel;
     this.nonterminalPriorModel = nonterminalPriorModel;
     this.topNonterminalModel = topNonterminalModel;
@@ -181,7 +185,7 @@ public class ModelCollection implements Serializable {
   public Set prunedPreterms() { return prunedPreterms; }
   public Set prunedPunctuation() { return prunedPunctuation; }
 
-  public Map canonicalEvents() { return canonicalEvents; }
+  public FlexibleMap canonicalEvents() { return canonicalEvents; }
 
 
   private void writeObject(java.io.ObjectOutputStream s)
@@ -204,6 +208,17 @@ public class ModelCollection implements Serializable {
       Boolean.valueOf(Settings.get(Settings.precomputeProbs)).booleanValue();
     if (precomputeProbs)
       canonicalEvents = null;
+    else {
+      String writeCanonicalEventsStr =
+	Settings.get(Settings.writeCanonicalEvents);
+      boolean writeCanonicalEvents =
+	Boolean.valueOf(writeCanonicalEventsStr).booleanValue();
+      if (!writeCanonicalEvents) {
+	if (verbose)
+	  System.err.print("emptying...");
+	canonicalEvents.clear();
+      }
+    }
     s.writeObject(canonicalEvents);
     if (verbose)
       System.err.println("done (" + tempTimer + ").");
@@ -384,7 +399,7 @@ public class ModelCollection implements Serializable {
       System.err.print("Reading canonicalEvents...");
       tempTimer.reset();
     }
-    canonicalEvents = (Map)s.readObject();
+    canonicalEvents = (FlexibleMap)s.readObject();
     if (verbose)
       System.err.println("done (" + tempTimer + ").");
     if (verbose) {
@@ -392,6 +407,7 @@ public class ModelCollection implements Serializable {
       tempTimer.reset();
     }
     lexPriorModel = (Model)s.readObject();
+    lexPriorModel.setCanonicalEvents(canonicalEvents);
     if (verbose)
       System.err.println("done (" + tempTimer + ").");
     if (verbose) {
@@ -399,6 +415,7 @@ public class ModelCollection implements Serializable {
       tempTimer.reset();
     }
     nonterminalPriorModel = (Model)s.readObject();
+    nonterminalPriorModel.setCanonicalEvents(canonicalEvents);
     if (verbose)
       System.err.println("done (" + tempTimer + ").");
     if (verbose) {
@@ -406,6 +423,7 @@ public class ModelCollection implements Serializable {
       tempTimer.reset();
     }
     topNonterminalModel = (Model)s.readObject();
+    topNonterminalModel.setCanonicalEvents(canonicalEvents);
     if (verbose)
       System.err.println("done (" + tempTimer + ").");
     if (verbose) {
@@ -413,6 +431,7 @@ public class ModelCollection implements Serializable {
       tempTimer.reset();
     }
     topLexModel = (Model)s.readObject();
+    topLexModel.setCanonicalEvents(canonicalEvents);
     if (verbose)
       System.err.println("done (" + tempTimer + ").");
     if (verbose) {
@@ -420,6 +439,7 @@ public class ModelCollection implements Serializable {
       tempTimer.reset();
     }
     headModel = (Model)s.readObject();
+    headModel.setCanonicalEvents(canonicalEvents);
     if (verbose)
       System.err.println("done (" + tempTimer + ").");
     if (verbose) {
@@ -427,6 +447,7 @@ public class ModelCollection implements Serializable {
       tempTimer.reset();
     }
     gapModel = (Model)s.readObject();
+    gapModel.setCanonicalEvents(canonicalEvents);
     if (verbose)
       System.err.println("done (" + tempTimer + ").");
     if (verbose) {
@@ -434,6 +455,7 @@ public class ModelCollection implements Serializable {
       tempTimer.reset();
     }
     leftSubcatModel = (Model)s.readObject();
+    leftSubcatModel.setCanonicalEvents(canonicalEvents);
     if (verbose)
       System.err.println("done (" + tempTimer + ").");
     if (verbose) {
@@ -441,6 +463,7 @@ public class ModelCollection implements Serializable {
       tempTimer.reset();
     }
     rightSubcatModel = (Model)s.readObject();
+    rightSubcatModel.setCanonicalEvents(canonicalEvents);
     if (verbose)
       System.err.println("done (" + tempTimer + ").");
     if (verbose) {
@@ -448,6 +471,7 @@ public class ModelCollection implements Serializable {
       tempTimer.reset();
     }
     leftModNonterminalModel = (Model)s.readObject();
+    leftModNonterminalModel.setCanonicalEvents(canonicalEvents);
     if (verbose)
       System.err.println("done (" + tempTimer + ").");
     if (verbose) {
@@ -455,6 +479,7 @@ public class ModelCollection implements Serializable {
       tempTimer.reset();
     }
     rightModNonterminalModel = (Model)s.readObject();
+    rightModNonterminalModel.setCanonicalEvents(canonicalEvents);
     if (verbose)
       System.err.println("done (" + tempTimer + ").");
     if (verbose) {
@@ -462,6 +487,7 @@ public class ModelCollection implements Serializable {
       tempTimer.reset();
     }
     leftModWordModel = (Model)s.readObject();
+    leftModWordModel.setCanonicalEvents(canonicalEvents);
     if (verbose)
       System.err.println("done (" + tempTimer + ").");
     if (verbose) {
@@ -469,6 +495,7 @@ public class ModelCollection implements Serializable {
       tempTimer.reset();
     }
     rightModWordModel = (Model)s.readObject();
+    rightModWordModel.setCanonicalEvents(canonicalEvents);
     if (verbose)
       System.err.println("done (" + tempTimer + ").");
     if (verbose) {

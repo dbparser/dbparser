@@ -12,27 +12,64 @@ public class SexpList extends Sexp implements Externalizable {
   /**
    * An immutable object to represent the empty list.
    */
-  public static final SexpList emptyList = new SexpList(0);
-  static {
-    emptyList.list = Collections.unmodifiableList(emptyList.list);
-  }
+  public static final SexpList emptyList = new EmptyList();
+
+  private static final class EmptyList extends SexpList {
+    public EmptyList() { super(0); }
+
+    public SexpList add(Sexp sexp) {
+      throw new UnsupportedOperationException();
+    }
+    public boolean addAll(SexpList elementsToAdd) {
+      throw new UnsupportedOperationException();
+    }
+    public boolean addAll(int index, SexpList elementsToAdd) {
+      throw new UnsupportedOperationException();
+    }
+    public Sexp deepCopy() {
+      return this;
+    }
+    public void ensureCapacity(int minCapacity) {}
+    public void trimToSize() {}
+    //public boolean equals(Object o) { return this == o; }
+    public Sexp first() {
+      throw new UnsupportedOperationException();
+    }
+    public Sexp last() {
+      throw new UnsupportedOperationException();
+    }
+    public Sexp get(int index) {
+      throw new UnsupportedOperationException();
+    }
+    public String toString() { return "()"; }
+
+    public Object readResolve() throws ObjectStreamException {
+      return SexpList.emptyList;
+    }
+  };
+
+
 
   /**
    * A simple canonicalization method that returns the unique object
    * representing the empty list if the specified list contains no elements.
    */
   public static final SexpList getCanonical(SexpList list) {
-    return ((list.list.size() == 0) ? emptyList : list);
+    return ((list.size == 0) ? emptyList : list);
   }
 
   // data members
-  private List list;
+  /** The array for storage of list items. */
+  private Sexp[] items;
+  /** The number of items in this list. */
+  private int size;
 
   /**
    * Constructs a <code>SexpList</code> with the default initial capacity.
    */
   public SexpList() {
-    list = new ArrayList(2);
+    items = new Sexp[2];
+    size = 0;
   }
 
   /**
@@ -41,7 +78,8 @@ public class SexpList extends Sexp implements Externalizable {
    * @param initialCapacity the initial capacity of this list
    */
   public SexpList(int initialCapacity) {
-    list = new ArrayList(initialCapacity);
+    items = new Sexp[initialCapacity];
+    size = 0;
   }
 
   /**
@@ -53,10 +91,9 @@ public class SexpList extends Sexp implements Externalizable {
    * @param initialElements a list of the initial elements of this new list
    */
   public SexpList(SexpList initialElements) {
-    int otherLen = initialElements.length();
-    list = new ArrayList(otherLen);
-    for (int i = 0; i < otherLen; i++)
-      this.list.add(initialElements.list.get(i));
+    this.size = initialElements.size;
+    items = new Sexp[size];
+    System.arraycopy(initialElements.items, 0, this.items, 0, size);
   }
 
   /**
@@ -69,8 +106,12 @@ public class SexpList extends Sexp implements Externalizable {
    * @param initialElements a list of the initial elements of this new list
    */
   public SexpList(List initialElements) {
-    list = new ArrayList(initialElements);
-    ((ArrayList)list).trimToSize();
+    size = initialElements.size();
+    items = new Sexp[size];
+    Iterator it = initialElements.iterator();
+    for (int i = 0; it.hasNext(); i++) {
+      items[i] = (Sexp)it.next();
+    }
   }
 
   /**
@@ -80,7 +121,8 @@ public class SexpList extends Sexp implements Externalizable {
    * @return this <code>SexpList</code> object
    */
   public SexpList add(Sexp sexp) {
-    list.add(sexp);
+    ensureCapacity(size + 1);
+    items[size++] = sexp;
     return this;
   }
 
@@ -93,7 +135,12 @@ public class SexpList extends Sexp implements Externalizable {
    * @return this <code>SexpList</code> object
    */
   public SexpList add(int index, Sexp sexp) {
-    list.add(index, sexp);
+    if (index == size)
+      return add(sexp);
+    ensureCapacity(size + 1);
+    System.arraycopy(items, index, items, index+1, size - index);
+    items[index] = sexp;
+    size++;
     return this;
   }
 
@@ -103,7 +150,12 @@ public class SexpList extends Sexp implements Externalizable {
    * @return whether this list was modified
    */
   public boolean addAll(SexpList elementsToAdd) {
-    return list.addAll(elementsToAdd.list);
+    if (elementsToAdd.size == 0)
+      return false;
+    ensureCapacity(this.size + elementsToAdd.size);
+    System.arraycopy(elementsToAdd.items, 0, items, size, elementsToAdd.size);
+    size += elementsToAdd.size;
+    return true;
   }
 
   /**
@@ -116,14 +168,21 @@ public class SexpList extends Sexp implements Externalizable {
    * @return whether this list was modified
    */
   public boolean addAll(int index, SexpList elementsToAdd) {
-    return list.addAll(index, elementsToAdd.list);
+    if (elementsToAdd.size == 0)
+      return false;
+    ensureCapacity(this.size + elementsToAdd.size);
+    System.arraycopy(items, index, items, index + elementsToAdd.size,
+                     size - index);
+    System.arraycopy(elementsToAdd.items, 0, items, index, elementsToAdd.size);
+    size += elementsToAdd.size;
+    return true;
   }
 
   /**
    * Gets the <code>Sexp</code> at the specified index.
    */
   public Sexp get(int index) {
-    return (Sexp)list.get(index);
+    return items[index];
   }
 
   /**
@@ -132,7 +191,9 @@ public class SexpList extends Sexp implements Externalizable {
    * @return the value of the element that used to be at <code>index</code>
    */
   public Sexp set(int index, Sexp element) {
-    return (Sexp)list.set(index, element);
+    Sexp former = items[index];
+    items[index] = element;
+    return former;
   }
 
   /**
@@ -143,14 +204,17 @@ public class SexpList extends Sexp implements Externalizable {
    * (<code>(index < 0 || index >= size())</code>)
    */
   public Sexp remove(int index) {
-    return (Sexp)list.remove(index);
+    Sexp removed = items[index];
+    System.arraycopy(items, index+1, items, index, size - (index + 1));
+    size--;
+    return removed;
   }
 
   /**
    * Removes all elements from this list.
    */
   public void clear() {
-    list.clear();
+    size = 0;
   }
 
   /**
@@ -158,7 +222,15 @@ public class SexpList extends Sexp implements Externalizable {
    * be at least <code>minCapacity</code>.
    */
   public void ensureCapacity(int minCapacity) {
-    ((ArrayList)list).ensureCapacity(minCapacity);
+    if (items.length < minCapacity) {
+      int newCapacity = size * 2;
+      if (newCapacity < minCapacity)
+        newCapacity = minCapacity;
+      Sexp[] newItems = new Sexp[newCapacity];
+      if (size > 0)
+        System.arraycopy(items, 0, newItems, 0, size);
+      items = newItems;
+    }
   }
 
   /**
@@ -167,7 +239,11 @@ public class SexpList extends Sexp implements Externalizable {
    * objects.
    */
   public void trimToSize() {
-    ((ArrayList)list).trimToSize();
+    if (size < items.length) {
+      Sexp[] newItems = new Sexp[size];
+      System.arraycopy(items, 0, newItems, 0, size);
+      items = newItems;
+    }
   }
 
   /**
@@ -188,13 +264,13 @@ public class SexpList extends Sexp implements Externalizable {
    * Returns the number of elements in this list.
    */
   public int length() {
-    return list.size();
+    return size;
   }
   /**
    * Returns the number of elements in this list.
    */
   public int size() {
-    return list.size();
+    return size;
   }
 
   /**
@@ -202,7 +278,7 @@ public class SexpList extends Sexp implements Externalizable {
    * <code>get(0)</code>).
    */
   public Sexp first() {
-    return (Sexp)list.get(0);
+    return items[0];
   }
 
   /**
@@ -210,7 +286,7 @@ public class SexpList extends Sexp implements Externalizable {
    * <code>get(size() - 1)</code>).
    */
   public Sexp last() {
-    return (Sexp)list.get(list.size() - 1);
+    return items[size - 1];
   }
 
   /**
@@ -220,7 +296,11 @@ public class SexpList extends Sexp implements Externalizable {
    * it does not appear in this list
    */
   public int indexOf(Sexp toFind) {
-    return list.indexOf(toFind);
+    for (int i = 0; i < size; i++) {
+      if (items[i].equals(toFind))
+        return i;
+    }
+    return -1;
   }
 
   /**
@@ -237,7 +317,15 @@ public class SexpList extends Sexp implements Externalizable {
    * @return this <code>SexpList</code> object
    */
   public SexpList reverse() {
-    Collections.reverse(list);
+    Sexp temp;
+    int midPoint = size / 2;
+    int otherIndex;
+    for (int i = 0; i < midPoint; i++) {
+      otherIndex = size - i - 1;
+      temp = items[i];
+      items[i] = items[otherIndex];
+      items[otherIndex] = temp;
+    }
     return this;
   }
 
@@ -312,8 +400,6 @@ public class SexpList extends Sexp implements Externalizable {
   }
 
   public Sexp deepCopy() {
-    if (this == emptyList)
-      return this;
     int thisSize = size();
     SexpList listCopy = new SexpList(thisSize);
     for (int i = 0; i < thisSize; i++)
@@ -326,7 +412,7 @@ public class SexpList extends Sexp implements Externalizable {
   public boolean isAllSymbols() {
     int thisSize = size();
     for (int i = 0; i < thisSize; i++)
-      if (get(i).isList())
+      if (items[i].isList())
 	return false;
     return true;
   }
@@ -350,11 +436,10 @@ public class SexpList extends Sexp implements Externalizable {
     if (!(o instanceof SexpList))
       return false;
     SexpList otherList = (SexpList)o;
-    if (list.size() != otherList.list.size())
+    if (this.size != otherList.size)
       return false;
-    int size = list.size();
     for (int i = 0; i < size; i++)
-      if (this.get(i).equals(otherList.get(i)) == false)
+      if (this.items[i].equals(otherList.items[i]) == false)
         return false;
     return true;
   }
@@ -365,14 +450,13 @@ public class SexpList extends Sexp implements Externalizable {
    */
   public int hashCode() {
     int code = 0;
-    int listSize = list.size();
-    if (listSize < 7) {
-      for (int i = 0; i < listSize; i++)
-        code = (code << 2) ^ list.get(i).hashCode();
+    if (size < 7) {
+      for (int i = 0; i < size; i++)
+        code = (code << 2) ^ items[i].hashCode();
     }
     else {
-      for (int i = 0; i < listSize; i++)
-        code = 31*code + list.get(i).hashCode();
+      for (int i = 0; i < size; i++)
+        code = 31*code + items[i].hashCode();
     }
     return code;
   }
@@ -395,29 +479,50 @@ public class SexpList extends Sexp implements Externalizable {
     for (int i = 0; i < size; i++) {
       if (i > 0)
 	result.append(' ');
-      Sexp curr = get(i);
-      if (curr instanceof Symbol)
+      Sexp curr = items[i];
+      if (curr.isSymbol())
 	result.append(curr);
       else
-	((SexpList)curr).toString(result);
+	curr.list().toString(result);
     }
     result.append(')');
   }
 
   public Iterator iterator() {
-    return list.iterator();
+    return new Iterator() {
+      int currIdx = 0;
+      public boolean hasNext() { return currIdx < size; }
+      public Object next() {
+        if (currIdx < size)
+          return items[++currIdx];
+        else
+          throw new NoSuchElementException();
+      }
+      public void remove() {
+        throw new UnsupportedOperationException();
+      }
+    };
   }
 
+  /*
   public ListIterator listIterator() {
     return list.listIterator();
   }
+  */
 
   public void writeExternal(ObjectOutput out) throws IOException {
-    out.writeObject(list);
+    out.writeInt(size);
+    out.writeInt(items.length);
+    for (int i = 0; i < size; i++)
+      out.writeObject(items[i]);
   }
 
   public void readExternal(ObjectInput in)
     throws IOException, ClassNotFoundException {
-    list = (List)in.readObject();
+    size = in.readInt();
+    int arrayLength = in.readInt();
+    items = new Sexp[arrayLength];
+    for (int i = 0; i < size; i++)
+      items[i] = (Sexp)in.readObject();
   }
 }

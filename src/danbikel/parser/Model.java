@@ -264,12 +264,15 @@ public class Model implements Serializable {
 	  System.err.println("adding " + transition + " to cache at level " +
 			     level);
 	}
-	cache[level].put(transition.copy(), prob);
+        if (!cache[level].containsKey(transition))
+  	  cache[level].put(transition.copy(), prob);
       }
     }
 
-    if (useCache && prob > Constants.logOfZero)
-      topLevelCache.put(event.copy(), prob);
+    if (useCache && prob > Constants.logOfZero) {
+      if (!topLevelCache.containsKey(event))
+        topLevelCache.put(event.copy(), prob);
+    }
 
     return prob;
   }

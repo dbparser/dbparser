@@ -15,7 +15,7 @@ public class Decoder implements Serializable {
   // debugging code will be optimized away when the following booleans are false
   private final static boolean debug = false;
   private final static boolean debugSpans = false;
-  private final static boolean debugInit = false;
+  private final static boolean debugInit = true;
   private final static boolean debugTop = false;
   private final static boolean debugJoin = false;
   private final static boolean debugStops = false;
@@ -455,8 +455,12 @@ public class Decoder implements Serializable {
    */
   protected void initialize(SexpList sentence, SexpList tags)
   throws RemoteException {
+
     preProcess(sentence, tags);
-    System.err.println("sentence to parse: " + sentence);
+
+    if (debugInit) {
+      System.err.println(className + ": sentence to parse: " + sentence);
+    }
 
     this.sentence = sentence;
     sentLen = sentence.length();
@@ -551,8 +555,11 @@ public class Decoder implements Serializable {
       }
     }
 
-    if (topRankedItem == null)
+    if (topRankedItem == null) {
+      sentence.clear();
+      sentence.addAll(originalSentence); // restore original sentence
       return null;
+    }
     else {
       Sexp tree = topRankedItem.headChild().toSexp();
       postProcess(tree);

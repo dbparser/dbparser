@@ -77,10 +77,7 @@ public class Parser
   }
 
   public Sexp parse(SexpList sent) throws RemoteException {
-    // we pass a copy of <code>sent</code> so that the decoder can
-    // mess with the object and not worry about restoring it to its
-    // original state if it cannot parse the sentence
-    return decoder.parse((SexpList)sent.deepCopy());
+    return decoder.parse(sent);
   }
 
   protected Object process(Object obj) throws RemoteException {
@@ -211,6 +208,12 @@ public class Parser
     Parser parser = null;
     if (inputFilename != null) {
       try {
+        File inFile = new File(inputFilename);
+        if (!inFile.exists()) {
+          System.err.println(className + ": error: file \"" + inputFilename +
+                             "\" does not exist");
+          return;
+        }
         parser = new Parser(derivedDataFilename);
         int bufSize = Constants.defaultFileBufsize;
         OutputStreamWriter osw =

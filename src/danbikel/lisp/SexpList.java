@@ -366,8 +366,14 @@ public class SexpList extends Sexp implements Externalizable {
   public int hashCode() {
     int code = 0;
     int listSize = list.size();
-    for (int i = 0; i < listSize; i++)
-      code = 31*code + list.get(i).hashCode();
+    if (listSize < 7) {
+      for (int i = 0; i < listSize; i++)
+        code = (code << 2) ^ list.get(i).hashCode();
+    }
+    else {
+      for (int i = 0; i < listSize; i++)
+        code = 31*code + list.get(i).hashCode();
+    }
     return code;
   }
 

@@ -20,10 +20,13 @@ public class StartSwitchboard {
   private static String logFilenameMain = null;
   private static String bindingName = null;
   private static boolean reProcessMain = Switchboard.defaultReProcess;
+  private static String msgFilenameMain = null;
+
 
   private static final String[] usageMsg = {
     "usage: [-p <RMI server port>] [-n <registry name URL>]",
     "\t[-log <log filename>] [-rp] <input file> [-o <output file>]",
+    "\t[-msg <messages output file>]",
     "where",
     "\t<input file> is the input file to process this run (required)",
     "\t<RMI server port> is the port on which this object accepts RMI calls",
@@ -35,7 +38,10 @@ public class StartSwitchboard {
     "\t-rp specifies to re-process sentences that were un-processed,",
     "\t\twhen recovering from a previous run",
     "\t<output file> is the output file of processed sentences",
-    "\t\t(defaults to \"<input file>" + outFilenameSuffix + "\")"
+    "\t\t(defaults to \"<input file>" + outFilenameSuffix + "\")",
+    "\t<messages output file> is the output file for switchboard messages",
+    "\t\t(defaults to \"directory of <output file>\" + \"" +
+       Switchboard.defaultMessagesFilename + "\")",
   };
 
   private final static void usage() {
@@ -81,6 +87,14 @@ public class StartSwitchboard {
 	  else
 	    outFilenameMain = args[++i];
 	}
+	else if (args[i].equals("-msg")) {
+	  if (i + 1 == args.length) {
+	    System.err.println("error: no argument present after -msg");
+	    usage();
+	  }
+	  else
+	    msgFilenameMain = args[++i];
+	}
 	else if (args[i].equals("-rp"))
 	  reProcessMain = true;
       }
@@ -109,6 +123,15 @@ public class StartSwitchboard {
       logFilenameMain = outFilenameMain + Switchboard.logFilenameSuffix;
     if (bindingName == null)
       bindingName = Switchboard.defaultBindingName;
+    if (msgFilenameMain == null) {
+      File outFile = new File(outFilenameMain);
+      String outFileParent = outFile.getParent();
+      if (outFileParent == null)
+        outFileParent = "";
+      else
+        outFileParent += File.separator;
+      msgFilenameMain = outFileParent + Switchboard.defaultMessagesFilename;
+    }
   }
 
   /**
@@ -134,18 +157,7 @@ public class StartSwitchboard {
       ObjectWriterFactory owf =
 	new TextObjectWriterFactory();
 
-      // for now, take directory of the sole specified output file,
-      // and create messages file in that directory
-      File outFile = new File(outFilenameMain);
-      String outFileParent = outFile.getParent();
-      if (outFileParent == null)
-        outFileParent = "";
-      else
-        outFileParent += File.separator;
-      String messageFilename =
-        outFileParent + Switchboard.defaultMessagesFilename;
-
-      Switchboard switchboard = new Switchboard(messageFilename,
+      Switchboard switchboard = new Switchboard(msgFilenameMain,
 						portMain,
 						reProcessMain,
 						orf, norf,

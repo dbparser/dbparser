@@ -266,6 +266,10 @@ public class SexpEvent extends AbstractEvent
     return this;
   }
 
+  public MutableEvent add(int type, Object obj) {
+    return add(obj);
+  }
+
   /**
    * Since events are typically read-only, this method will allow for
    * canonicalization (or "unique-ifying") of the information

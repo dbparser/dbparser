@@ -1,5 +1,6 @@
 package  danbikel.parser;
 
+import java.util.HashMap;
 import danbikel.util.*;
 import danbikel.lisp.*;
 import java.io.*;
@@ -515,13 +516,13 @@ public class Decoder implements Serializable {
     chart.setSizeAndClear(sentence.length());
     initialize(sentence, tags);
     if (debugSentenceSize) {
-      System.err.println(className + ": sentence length: " + sentLen +
+      System.err.println(className + ": current sentence length: " + sentLen +
                          " word" + (sentLen > 1 ? "s" : ""));
       numSents++;
       avgSentLen = ((numSents - 1)/(float)numSents) * avgSentLen +
                    (float)sentLen / numSents;
-      System.err.println(className + ": cummulative avg. length: " +
-                         avgSentLen);
+      System.err.println(className + ": cummulative average length: " +
+                         avgSentLen + " words");
     }
     for (int span = 2; span <= sentLen; span++) {
       if (debugSpans)
@@ -710,9 +711,14 @@ public class Decoder implements Serializable {
       return;
     */
 
-    // make a copy of this side's subcat, so we can remove modifier's label
-    Subcat thisSideSubcat = (Subcat)modificand.subcat(side).copy();
-    thisSideSubcat.remove((Symbol)modifier.label());
+    // if this side's subcat contains the the current modifier's label as one
+    // of its requirements, make a copy of it and remove the requirement
+    Subcat thisSideSubcat = (Subcat)modificand.subcat(side);
+    Symbol modLabel = (Symbol)modifier.label();
+    if (thisSideSubcat.contains(modLabel)) {
+      thisSideSubcat = (Subcat)thisSideSubcat.copy();
+      thisSideSubcat.remove(modLabel);
+    }
     Subcat oppositeSideSubcat = modificand.subcat(!side);
 
     SLNode thisSideChildren = new SLNode(modifier, modificand.children(side));
@@ -748,6 +754,9 @@ public class Decoder implements Serializable {
     }
 
     double logModProb = server.logProbMod(id, modEvent, side);
+    if (logModProb <= Constants.logOfZero) {
+      return;
+    }
     double logTreeProb =
       modificand.logTreeProb() + modifier.logTreeProb() + logModProb;
     HeadEvent priorEvent = lookupPriorEvent;

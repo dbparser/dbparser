@@ -71,7 +71,7 @@ public class Settings implements Serializable {
   /** The official name of this program. */
   public final static String progName = "WordNet Parser";
   /** The official version of this program. */
-  public final static String version = "0.9.2";
+  public final static String version = "0.9.4";
   /**
    * The prefix that all properties for this parser should have
    * (to be used when finding system properties that are meant to be included
@@ -254,14 +254,43 @@ public class Settings implements Serializable {
 
   /**
    * The property to specify the fully-qualified class name of the
+   * <code>Decoder</code> instance to be created for use by
+   * <code>Parser</code> and <code>EMParser</code> classes (and any other
+   * subclass of <code>Parser</code>).
+   * <p>
+   * The value of this constant is
+   * <code>"parser.parser.decoderClass"</code>.
+   *
+   * @see Parser#getNewDecoder(int,DecoderServerRemote)
+   */
+  public final static String decoderClass = "parser.parser.decoderClass";
+
+  /**
+   * The property to specify the fully-qualified class name of the
    * <code>DecoderServerRemote</code> instance to be created for use by
    * <code>Parser</code> and <code>EMParser</code> classes (and any other
    * subclass of <code>Parser</code>).  This property is used when
    * the <code>Parser/EMParser</code> class instance is asked to create
    * and/or use its own, internal server.
+   * <p>
+   * The value of this constant is
+   * <code>"parser.parser.decoderServerClass"</code>.
    */
   public final static String decoderServerClass =
     "parser.parser.decoderServerClass";
+
+  /**
+   * The property to specify the default {@link Model} class to be created
+   * around {@link ProbabilityStructure} objects when their
+   * {@link ProbabilityStructure#newModel()} method is invoked.
+   * <p>
+   * The value of this constant is
+   * <code>"parser.probabilityStructure.defaultModelClass"</code>.
+   *
+   * @see ProbabilityStructure#newModel()
+   */
+  public final static String defaultModelClass =
+    "parser.probabilityStructure.defaultModelClass";
 
   /**
    * The property to specify whether or not to pre-compute probabilities
@@ -906,6 +935,19 @@ public class Settings implements Serializable {
     "parser.trainer.outputModNonterminalMap";
 
   /**
+   * The property to specify whether the trainer outputs top-level events
+   * in the format output by Michael Collins' trainer to
+   * <code>System.out</code> when training on a Treebank input file.  Note
+   * that in order to (near) perfectly emulate Collins' trainer, the property
+   * {@link #unknownWordThreshold} should be set to 1.
+   * <p>
+   * The value of this constant is
+   * <code>"parser.trainer.outputCollins"</code>.
+   */
+  public final static String outputCollins =
+    "parser.trainer.outputCollins";
+
+  /**
    * The property to specify the fully-qualified name of the subclass
    * of {@link Item} to be used for chart items.
    * <p>
@@ -927,6 +969,21 @@ public class Settings implements Serializable {
    */
   public final static String collinsNPPruneHack =
     "parser.chart.collinsNPPruneHack";
+
+  /**
+   * The property to specify the maximum number of top-scoring theories to give
+   * as a parse. If this property is equals to 1, then the returned item from
+   * the decoder will be a single tree; if it is greater than 1, it will be a
+   * list of trees (i.e., a list of lists).  This property should be (the
+   * string representation of) an integer greater than or equal to 1.
+   * <p>
+   * The value of this constant is
+   * <code>"parser.decoder.kBest"</code>.
+   *
+   * @see Decoder#parse(SexpList)
+   */
+  public final static String kBest =
+    "parser.decoder.kBest";
 
   /**
    * The property to specify the maximum length a sentence can be;

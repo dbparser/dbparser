@@ -554,6 +554,8 @@ public class Decoder implements Serializable {
       }
     }
 
+    chart.postParseCleanup();
+
     if (topRankedItem == null) {
       sentence.clear();
       sentence.addAll(originalSentence); // restore original sentence

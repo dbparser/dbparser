@@ -60,6 +60,11 @@ public class Decoder implements Serializable {
 
   // constants
   private final static String className = Decoder.class.getName();
+  protected final static boolean LEFT = Constants.LEFT;
+  protected final static boolean RIGHT = Constants.RIGHT;
+  // cache some constants from Constants class, for more readable code
+  protected final static double logOfZero = Constants.logOfZero;
+  protected final static double logProbCertain = Constants.logProbCertain;
 
   /**
    * A list containing only {@link Training#startSym()}, which is the
@@ -112,15 +117,10 @@ public class Decoder implements Serializable {
       structure. */
   protected int rightSubcatPSLastLevel;
   /**
-   * A map from contexts of the last back-off level of the left modifying
+   * A map from contexts of the last back-off level of the modifying
    * nonterminal generation model to possible modifying nonterminal labels.
    */
-  protected Map leftModNonterminalMap;
-  /**
-   * A map from contexts of the last back-off level of the right modifying
-   * nonterminal generation model to possible modifying nonterminal labels.
-   */
-  protected Map rightModNonterminalMap;
+  protected Map modNonterminalMap;
   /** The modifying nonterminal generation model structure. */
   protected ProbabilityStructure modNonterminalPS;
   /** The last level of back-off in the modifying nonterminal generation
@@ -222,13 +222,23 @@ public class Decoder implements Serializable {
   protected ModifierEvent lookupRightStopEvent =
     new ModifierEvent(null, null, null, SexpList.emptyList, null, null, null,
                       emptySubcat, false, false);
+  /**
+   * A lookup Word object, for obtaining a canonical version.
+   */
+  protected Word lookupWord = new Word(null, null, null);
+  /**
+   * A reflexive map of Word objects, for getting a canonical version.
+   */
+  protected Map canonicalWords = new danbikel.util.HashMap();
   // data member used by both getPrevMods and getPrevModWords
   protected SLNode tmpChildrenList = new SLNode(null, null);
   // data members used by getPrevMods
   protected Map canonicalPrevModLists = new danbikel.util.HashMap();
   protected SexpList prevModLookupList = new SexpList(numPrevMods);
-  // data member used by getPrevModWords
-  protected WordList prevModWordLookupList =
+  // data members used by getPrevModWords
+  protected WordList prevModWordLeftLookupList =
+    WordListFactory.newList(numPrevMods);
+  protected WordList prevModWordRightLookupList =
     WordListFactory.newList(numPrevMods);
   // data members used by joinItems
   protected Subcat lookupSubcat = Subcats.get();
@@ -310,8 +320,7 @@ public class Decoder implements Serializable {
       this.rightSubcatMap = server.rightSubcatMap();
       this.leftSubcatPS = server.leftSubcatProbStructure().copy();
       this.rightSubcatPS = server.rightSubcatProbStructure().copy();
-      this.leftModNonterminalMap = server.leftModNonterminalMap();
-      this.rightModNonterminalMap = server.rightModNonterminalMap();
+      this.modNonterminalMap = server.modNonterminalMap();
       this.modNonterminalPS = server.modNonterminalProbStructure().copy();
       prunedPretermsPosMap = new danbikel.util.HashMap();
       prunedPretermsPosSet = new HashSet();
@@ -561,12 +570,13 @@ public class Decoder implements Serializable {
 
     for (int i = 0; i < sentLen; i++) {
       boolean wordIsUnknown = sentence.get(i).isList();
+      boolean neverObserved = false;
       Symbol word = null, features = null;
       if (wordIsUnknown) {
 	SexpList wordInfo = sentence.listAt(i);
+        neverObserved = wordInfo.symbolAt(2) == Constants.trueSym;
 	if (keepAllWords) {
 	  features = wordInfo.symbolAt(1);
-	  boolean neverObserved = wordInfo.symbolAt(2) == Constants.trueSym;
 	  word = neverObserved ? features : wordInfo.symbolAt(0);
 	}
 	else {
@@ -615,19 +625,21 @@ public class Decoder implements Serializable {
 	if (useCommaConstraint)
 	  if (Language.treebank.isConjunction(tag))
 	    conjForPruning[i] = true;
-        Word headWord = new Word(word, tag, features);
+        Word headWord = neverObserved ?
+                        new Word(word, tag, features) :
+                        getCanonicalWord(lookupWord.set(word, tag, features));
         CKYItem item = chart.getNewItem();
         PriorEvent priorEvent = lookupPriorEvent;
         priorEvent.set(headWord, tag);
         double logPrior = server.logPrior(id, priorEvent);
-        double logProb = logPrior; // technically, logPrior + 0.0
+        double logProb = logPrior; // technically, logPrior + logProbCertain
         item.set(tag, headWord,
                  emptySubcat, emptySubcat, null, null,
                  null,
                  startList, startList,
                  i, i,
                  false, false, true,
-                 0.0, logPrior, logProb);
+                 Constants.logProbCertain, logPrior, logProb);
 
         if (findAtLeastOneSatisfyingConstraint) {
           Constraint constraint = constraints.constraintSatisfying(item);
@@ -639,8 +651,7 @@ public class Decoder implements Serializable {
           }
           else {
             if (debugConstraints)
-              System.err.println("constraint " + constraint +
-                                 " is NOT satisfied by item " + item);
+              System.err.println("no satisfying constraint for item " + item);
             continue;
           }
         }
@@ -648,6 +659,15 @@ public class Decoder implements Serializable {
       } // end for each tag
       addUnariesAndStopProbs(i, i);
     } // end for each word index
+  }
+
+  protected Word getCanonicalWord(Word lookup) {
+    Word canonical = (Word)canonicalWords.get(lookup);
+    if (canonical == null) {
+      canonical = lookup.copy();
+      canonicalWords.put(canonical, canonical);
+    }
+    return canonical;
   }
 
   protected SexpList setUnion(SexpList l1, SexpList l2, Set tmpSet) {
@@ -770,7 +790,7 @@ public class Decoder implements Serializable {
 
     /*
     if (topRankedItem == null) {
-     double highestProb = Constants.logOfZero;
+     double highestProb = logOfZero;
      Iterator it = chart.get(0, sentLen - 1);
      while (it.hasNext()) {
        CKYItem item = (CKYItem)it.next();
@@ -872,13 +892,14 @@ public class Decoder implements Serializable {
                              "; item.logTreeProb()=" + item.logTreeProb() +
                              "; logProb=" + logProb);
 
-        if (topLogProb <= Constants.logOfZero)
+        if (topLogProb <= logOfZero)
           continue;
         CKYItem newItem = chart.getNewItem();
         newItem.set(topSym, item.headWord(),
                     emptySubcat, emptySubcat, item,
                     null, null, startList, startList, 0, end,
-                    false, false, true, logProb, 0.0, logProb);
+                    false, false, true, logProb, Constants.logProbCertain,
+                    logProb);
         topProbItemsToAdd.add(newItem);
       }
     }
@@ -1055,7 +1076,7 @@ public class Decoder implements Serializable {
     SexpList thisSidePrevMods = getPrevMods(modificand, tmpChildrenList);
     SexpList oppositeSidePrevMods = modificand.prevMods(!side);
 
-    WordList previousWords = getPrevModWords(modificand, tmpChildrenList);
+    WordList previousWords = getPrevModWords(modificand, tmpChildrenList, side);
 
     int thisSideEdgeIndex = modifier.edgeIndex(side);
     int oppositeSideEdgeIndex = modificand.edgeIndex(!side);
@@ -1096,7 +1117,7 @@ public class Decoder implements Serializable {
     int higherIndex = Math.max(thisSideEdgeIndex, oppositeSideEdgeIndex);
 
     double logModProb = server.logProbMod(id, modEvent);
-    if (logModProb <= Constants.logOfZero)
+    if (logModProb <= logOfZero)
       return;
     double logTreeProb =
       modificand.logTreeProb() + modifier.logTreeProb() + logModProb;
@@ -1159,9 +1180,8 @@ public class Decoder implements Serializable {
     ProbabilityStructure modPS = modNonterminalPS;
     int lastLevel = modNonterminalPSLastLevel;
     boolean onLeft = side == Constants.LEFT;
-    Map modMap = (onLeft ? leftModNonterminalMap : rightModNonterminalMap);
     Event historyContext = modPS.getHistory(modEvent, lastLevel);
-    Set possibleFutures = (Set)modMap.get(historyContext);
+    Set possibleFutures = (Set)modNonterminalMap.get(historyContext);
     if (possibleFutures != null) {
       Event currentFuture = modPS.getFuture(modEvent, lastLevel);
       if (possibleFutures.contains(currentFuture))
@@ -1189,9 +1209,8 @@ public class Decoder implements Serializable {
     ProbabilityStructure modPS = modNonterminalPS;
     int lastLevel = modNonterminalPSLastLevel;
     boolean onLeft = side == Constants.LEFT;
-    Map modMap = (onLeft ? leftModNonterminalMap : rightModNonterminalMap);
     Event historyContext = modPS.getHistory(modEvent, lastLevel);
-    Set possibleFutures = (Set)modMap.get(historyContext);
+    Set possibleFutures = (Set)modNonterminalMap.get(historyContext);
     return possibleFutures;
   }
 
@@ -1255,6 +1274,7 @@ public class Decoder implements Serializable {
   throws RemoteException {
     unaryItemsToAdd.clear();
     CKYItem newItem = chart.getNewItem();
+    // set some values now, most to be filled in by code below
     newItem.set(null, item.headWord(), null, null, item,
                 null, null, startList, startList,
                 item.start(), item.end(),
@@ -1330,13 +1350,13 @@ public class Decoder implements Serializable {
             }
 
 	    double logProbLeftSubcat =
-	      (numLeftSubcats == 1 ? 0.0 :
+	      (numLeftSubcats == 1 ? logProbCertain :
 	       server.logProbLeftSubcat(id, headEvent));
 	    double logProbRightSubcat =
-	      (numRightSubcats == 1 ? 0.0 :
+	      (numRightSubcats == 1 ? logProbCertain :
 	       server.logProbRightSubcat(id, headEvent));
             double logProbHead = server.logProbHead(id, headEvent);
-            if (logProbHead <= Constants.logOfZero)
+            if (logProbHead <= logOfZero)
               continue;
             double logTreeProb =
               item.logTreeProb() +
@@ -1345,7 +1365,7 @@ public class Decoder implements Serializable {
 	    priorEvent.setLabel(parent);
             double logPrior = server.logPrior(id, priorEvent);
 
-            if (logPrior <= Constants.logOfZero)
+            if (logPrior <= logOfZero)
               continue;
 
             double logProb = logTreeProb + logPrior;
@@ -1353,7 +1373,7 @@ public class Decoder implements Serializable {
             if (debugUnaries) {
             }
 
-            if (logProb <= Constants.logOfZero)
+            if (logProb <= logOfZero)
               continue;
 
             newItem.setLogTreeProb(logTreeProb);
@@ -1408,9 +1428,11 @@ public class Decoder implements Serializable {
     SexpList rightPrevMods = item.rightPrevMods();
 
     tmpChildrenList.set(null, item.leftChildren());
-    WordList leftPrevWords = getPrevModWords(item, tmpChildrenList);
+    WordList leftPrevWords = getPrevModWords(item, tmpChildrenList,
+                                             Constants.LEFT);
     tmpChildrenList.set(null, item.rightChildren());
-    WordList rightPrevWords = getPrevModWords(item, tmpChildrenList);
+    WordList rightPrevWords = getPrevModWords(item, tmpChildrenList,
+                                              Constants.RIGHT);
 
     ModifierEvent leftMod = lookupLeftStopEvent;
     leftMod.set(stopWord, item.headWord(), stopSym, leftPrevMods,
@@ -1436,10 +1458,10 @@ public class Decoder implements Serializable {
     }
 
     double leftLogProb = server.logProbMod(id, leftMod);
-    if (leftLogProb <= Constants.logOfZero)
+    if (leftLogProb <= logOfZero)
       return itemsAdded;
     double rightLogProb = server.logProbMod(id, rightMod);
-    if (rightLogProb <= Constants.logOfZero)
+    if (rightLogProb <= logOfZero)
       return itemsAdded;
     double logTreeProb =
       item.logTreeProb() + leftLogProb + rightLogProb;
@@ -1454,7 +1476,7 @@ public class Decoder implements Serializable {
       }
     }
 
-    if (logProb <= Constants.logOfZero)
+    if (logProb <= logOfZero)
       return itemsAdded;
 
     CKYItem newItem = chart.getNewItem();
@@ -1522,17 +1544,18 @@ public class Decoder implements Serializable {
 
     SexpList canonical = (SexpList)canonicalPrevModLists.get(prevMods);
     if (canonical == null) {
-      prevMods = (SexpList)prevMods.deepCopy();
-      canonicalPrevModLists.put(prevMods, prevMods);
-      canonical = prevMods;
+      canonical = (SexpList)prevMods.deepCopy();
+      canonicalPrevModLists.put(canonical, canonical);
     }
     return canonical;
   }
 
-  private final WordList getPrevModWords(CKYItem item, SLNode modChildren) {
+  private final WordList getPrevModWords(CKYItem item, SLNode modChildren,
+                                         boolean side) {
     if (modChildren == null)
       return startWordList;
-    WordList wordList = prevModWordLookupList;
+    WordList wordList =
+      side == LEFT ? prevModWordLeftLookupList : prevModWordRightLookupList;
     int i = 0; // the index of the previous mod head wordlist
     // as long as there are children and we haven't reached the numPrevWords
     // limit, set elements of wordList, starting at index 0 (i = 0, initially)

@@ -11,7 +11,7 @@ import java.io.*;
 
 /**
  * A parsing client.  This class parses sentences by implementing the
- * {@link AbstractClient#process(Object)} method of its {@link
+ * {@link AbstractClientk#process(Object)} method of its {@link
  * AbstractClient superclass}.  All top-level probabilities are
  * computed by a <code>DecoderServer</code> object, which is either local
  * or is a stub whose methods are invoked via RMI.  The actual
@@ -100,6 +100,10 @@ public class Parser
       return decoder.parse(getWords(sent), getTagLists(sent));
     else if (sent.isAllSymbols())
       return decoder.parse(sent);
+    else if (Language.training.isValidTree(sent)) {
+      return decoder.parse(getWordsFromTree(sent), null,
+                           ConstraintSets.get(sent));
+    }
     else {
       System.err.println(className + ": error: sentence \"" + sent +
                          "\" has a bad format:\n\tmust either be all symbols " +
@@ -133,6 +137,24 @@ public class Parser
     SexpList wordList = new SexpList(size);
     for (int i = 0; i < size; i++)
       wordList.add(sent.get(i).list().get(0));
+    return wordList;
+  }
+
+  private SexpList getWordsFromTree(Sexp tree) {
+    return getWordsFromTree(new SexpList(), tree);
+  }
+
+  private SexpList getWordsFromTree(SexpList wordList, Sexp tree) {
+    if (Language.treebank.isPreterminal(tree)) {
+      Word word = Language.treebank.makeWord(tree);
+      wordList.add(word.word());
+    }
+    else {
+      SexpList treeList = tree.list();
+      int treeListLen = treeList.length();
+      for (int i = 1; i < treeListLen; i++)
+        getWordsFromTree(wordList, treeList.get(i));
+    }
     return wordList;
   }
 
@@ -257,7 +279,7 @@ public class Parser
         }
         else if (args[i].equals("-out")) {
           if (i + 1 == args.length) {
-            System.err.println("err:" + args[i] + " requires a filename");
+            System.err.println("error: " + args[i] + " requires a filename");
             usage();
             return false;
           }
@@ -273,7 +295,7 @@ public class Parser
             numClients = Integer.parseInt(args[++i]);
           }
           catch (NumberFormatException nfe) {
-            System.err.println("error:" + args[i] + " requires an integer");
+            System.err.println("error: " + args[i] + " requires an integer");
             usage();
             return false;
           }

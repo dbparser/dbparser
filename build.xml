@@ -7,27 +7,33 @@ and the Ant output directory might be "classes.ant".-->
 <project basedir="." default="rebuild" name="dbparser.jpx">
   <property name="dest" value="classes.ant"/>
   <property name="deploy" value="deploy"/>
-  <property name="deploy.bin"
-            value="bin/addFakePos
-	           bin/internal-server-run
-		   bin/kill-node-procs
-		   bin/parse
-		   bin/prettyPrint
-		   bin/print-node-procs
-		   bin/score
-		   bin/start-client
-		   bin/start-rmiregistry
-		   bin/train
-		   bin/wrapper"/>
-  <property name="deploy.files"
-            value="settings/**
-	           ${deploy.bin}
-		   doc/**
-		   userguide/**
-		   policy-files/**
-		   scorer/**"/>
+  <patternset id="deploy.bin">
+    <include name="bin/addFakePos"/>
+    <include name="bin/internal-server-run"/>
+    <include name="bin/kill-node-procs"/>
+    <include name="bin/parse"/>
+    <include name="bin/prettyPrint"/>
+    <include name="bin/print-node-procs"/>
+    <include name="bin/score"/>
+    <include name="bin/start-client"/>
+    <include name="bin/start-rmiregistry"/>
+    <include name="bin/train"/>
+    <include name="bin/wrapper"/>
+  </patternset>		   
+  <patternset id="deploy.files">
+    <patternset refid="deploy.bin"/>
+    <include name="settings/**"/>
+    <exclude name="settings/broken*"/>
+    <include name="doc/**"/>
+    <include name="userguide/**"/>
+    <include name="policy-files/**"/>
+    <include name="scorer/**"/>
+  </patternset>
   <property name="deploy.to" value="${deploy}/dbparser"/>
   <property name="deploy.tar" value="${deploy}/dbparser.tgz"/>
+  <property name="deploy.license" value="${deploy}/LICENSE"/>
+  <property name="deploy.install.header.template"
+            value="${deploy}/install-header-template"/>
   <property name="deploy.install.header" value="${deploy}/install-header"/>
   <property name="deploy.install.script" value="${deploy}/install.sh"/>
   <property name="Generated.Source" value="${dest}/Temporary_Files"/>
@@ -142,15 +148,15 @@ and the Ant output directory might be "classes.ant".-->
   <target depends="precompile,compile,postcompile,package" name="build"/>
   <target depends="clean,build" name="rebuild"/>
   <target name="create_install_header">
-    <loadfile property="license.file" srcFile="${deploy}/LICENSE"/>
+    <loadfile property="license.file" srcFile="${deploy.license}"/>
     <exec executable="perl"
           outputproperty="install.script.linecount">
       <arg value="-e"/>
       <arg value="while (&lt;&gt;) {} $lines=$.+1;print $lines;"/>
-      <arg value="${deploy}/LICENSE"/>
-      <arg value="${deploy}/install-header-template"/>
+      <arg value="${deploy.license}"/>
+      <arg value="${deploy.install.header.template}"/>
     </exec>
-    <copy file="${deploy}/install-header-template"
+    <copy file="${deploy.install.header.template}"
           tofile="${deploy.install.header}"
 	  overwrite="true">
       <filterchain>
@@ -171,20 +177,21 @@ and the Ant output directory might be "classes.ant".-->
 	  <arg value="README"/>
     </exec>
   </target>
-  <target name="setupDeploy">
+  <target name="setup_deploy">
     <mkdir dir="${deploy.to}"/>
     <copy todir="${deploy.to}" file="dbparser.jar"/>
     <copy todir="${deploy.to}">
-          <fileset dir="."
-	  includes="${deploy.files}"/>
+      <fileset dir=".">
+        <patternset refid="deploy.files"/>
+      </fileset>
     </copy>
     <chmod perm="ogu+x">
         <fileset dir="${deploy.to}/bin"/>
     </chmod>
     <available file="${deploy.to}/README" property="readme.ln.present"/>
-    <copy todir="${deploy.to}" file="${deploy}/LICENSE"/>
+    <copy todir="${deploy.to}" file="${deploy.license}"/>
   </target>
-  <target depends="rebuild,javadoc,setupDeploy,ln_deploy_readme,create_install_header" name="deploy">
+  <target depends="rebuild,javadoc,setup_deploy,ln_deploy_readme,create_install_header" name="deploy">
     <!-- Can't use tar task: Ant filesets don't respect symbolic links -->
     <!--
     <tar destfile="${deploy.tar}" basedir="${deploy}" compression="gzip"

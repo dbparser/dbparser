@@ -76,10 +76,10 @@ public class EMChart extends CKYChart {
 	  chart[i][j] = new Entry();
 	else {
 	  chart[i][j].clear();
-          chart[i][j].numLevels = 0;
-          int[] levelCounts = chart[i][j].numItemsAtLevel;
-          for (int k = 0; k < levelCounts.length; k++)
-            levelCounts[k] = 0;
+	  chart[i][j].numLevels = 0;
+	  int[] levelCounts = chart[i][j].numItemsAtLevel;
+	  for (int k = 0; k < levelCounts.length; k++)
+	    levelCounts[k] = 0;
 	}
   }
 
@@ -175,36 +175,36 @@ public class EMChart extends CKYChart {
       existingItem.setAntecedentPairs(newList);
       existingItem.increaseInsideProb(item.insideProb());
       if (unaryLevel != existingItem.unaryLevel())
-        System.err.println(className + ": warning: re-deriving an item with " +
-                           "a different unary level!");
+	System.err.println(className + ": warning: re-deriving an item with " +
+			   "a different unary level!");
     }
     else {
       if (ante1 != null) {
-        EMItem.AntecedentPair newPair =
-          new EMItem.AntecedentPair(ante1, ante2, events, probs, null);
-        item.setAntecedentPairs(newPair);
+	EMItem.AntecedentPair newPair =
+	  new EMItem.AntecedentPair(ante1, ante2, events, probs, null);
+	item.setAntecedentPairs(newPair);
       }
       if (unaryLevel > chartEntry.numLevels) {
-        System.err.println(className + ": error: trying to add item with " +
-                           "unary level that is too large (largest seen so " +
-                           " far: " + chartEntry.numLevels +
-                           "; current item's unary level: " + unaryLevel + ")");
-        System.err.println("\titem[" + start + "," + end + "]: " + item);
+	System.err.println(className + ": error: trying to add item with " +
+			   "unary level that is too large (largest seen so " +
+			   " far: " + chartEntry.numLevels +
+			   "; current item's unary level: " + unaryLevel + ")");
+	System.err.println("\titem[" + start + "," + end + "]: " + item);
       }
       else if (unaryLevel == chartEntry.numLevels) {
-        // increase capacity of counter array, if necessary
-        int currCapacity = chartEntry.numItemsAtLevel.length;
-        if (unaryLevel == currCapacity) {
-          int[] oldArr = chartEntry.numItemsAtLevel;
-          chartEntry.numItemsAtLevel = new int[currCapacity * 2];
-          System.arraycopy(oldArr, 0, chartEntry.numItemsAtLevel,
-                           0, currCapacity);
-        }
-        chartEntry.numLevels++;
-        chartEntry.numItemsAtLevel[unaryLevel]++;
+	// increase capacity of counter array, if necessary
+	int currCapacity = chartEntry.numItemsAtLevel.length;
+	if (unaryLevel == currCapacity) {
+	  int[] oldArr = chartEntry.numItemsAtLevel;
+	  chartEntry.numItemsAtLevel = new int[currCapacity * 2];
+	  System.arraycopy(oldArr, 0, chartEntry.numItemsAtLevel,
+			   0, currCapacity);
+	}
+	chartEntry.numLevels++;
+	chartEntry.numItemsAtLevel[unaryLevel]++;
       }
       else {
-        chartEntry.numItemsAtLevel[unaryLevel]++;
+	chartEntry.numItemsAtLevel[unaryLevel]++;
       }
       items.put(item, item.insideProb());
       totalItems++;

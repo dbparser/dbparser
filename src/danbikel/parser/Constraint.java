@@ -34,11 +34,12 @@ public interface Constraint {
   public Constraint getParent();
 
   /**
-   * Returns whether the specified item satisfies this constraint.  If this
-   * constraint is part of a tree structure of constraints, then this method
-   * should typically only return <code>true</code> if and only if the entire
-   * subtree represented by the specified item satisfies the homologous
-   * subtree of this constraint and its descendants.
+   * Returns whether the specified item satisfies this constraint (optional
+   * operation).  If this constraint is part of a tree structure of
+   * constraints, then this method should typically only return
+   * <code>true</code> if and only if the entire subtree represented by the
+   * specified item satisfies the homologous subtree of this constraint and
+   * its descendants.
    *
    * @param item the item to test
    * @return whether the specified item satisfies this constraint.
@@ -46,7 +47,7 @@ public interface Constraint {
   public boolean isSatisfiedBy(Item item);
 
   /**
-   * Returns whether this constraint has been satisfied.
+   * Returns whether this constraint has been satisfied (optional operation).
    * @return <tt>true</tt> if this constraint has been satisfied,
    * <tt>false</tt> if it has not
    */
@@ -67,12 +68,14 @@ public interface Constraint {
    * information.
    *
    * @param item
-   * @return
+   * @return whether the specified item satisfies the local information
+   * of this constraint node
    */
   public boolean isLocallySatisfiedBy(Item item);
 
   /**
-   * Returns whether the specified item violates this constraint.
+   * Returns whether the specified item violates this constraint
+   * (optional operation).
    *
    * @param item the item to test
    * @return whether the specified item violates this constraint.

@@ -11,7 +11,7 @@ import java.util.*;
  * @see Constraint
  * @see Item
  */
-public interface ConstraintSet {
+public interface ConstraintSet extends Collection {
 
   /**
    * Returns <code>true</code> if this constraint set forms a tree structure.

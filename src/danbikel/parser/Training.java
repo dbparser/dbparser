@@ -2,10 +2,7 @@ package danbikel.parser;
 
 import java.util.*;
 import danbikel.lisp.*;
-import java.io.Serializable;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 
 /**
  * Provides methods for language-specific preprocessing of training
@@ -19,7 +16,7 @@ import java.io.UnsupportedEncodingException;
  * <code>Decoder</code>.
  * <p>
  * <b>Concurrency note</b>: As training is typically a sequential
- * process, with very fuw noted exceptions, <i>none of the default
+ * process, with very few noted exceptions, <i>none of the default
  * implementations of the methods of this abstract base class is
  * thread-safe</i>.  If thread-safe guarantees are desired, the
  * methods of this class should be overridden.
@@ -58,6 +55,23 @@ public abstract class Training implements Serializable {
   private static danbikel.util.HashMap fastArgMap = new danbikel.util.HashMap();
   private static boolean canUseFastArgMap = false;
 
+  // static set for storing arg nonterminals
+  private static Set argNonterminals = null;
+
+  /**
+   * Indicates to set up a static map for quickly mapping argument nonterminals
+   * to their non-argument variants (that is, for quickly stripping away
+   * their argument augmentations).
+   * <p>
+   * <b>N.B.</b>: This method is necessarily thread-safe, as it is expected
+   * to be invoked by every {@link Decoder} as it starts up, and since there
+   * can be multiple {@link Decoder} instances within a given VM.
+   *
+   * @param nonterminals a counts table whose keys form a complete set of
+   * all possible nonterminal labels, as is obtained from
+   * {@link DecoderServerRemote#nonterminals()} (the counts to which the
+   * nonterminals are mapped are not used by this method)
+   */
   public static synchronized void setUpFastArgMap(CountsTable nonterminals) {
     if (canUseFastArgMap)
       return;
@@ -150,13 +164,13 @@ public abstract class Training implements Serializable {
   /** Data member returned by the accessor method of the same name. */
   private Symbol stopSym = Symbol.add("+STOP+");
   /** Data member returned by the accessor method of the same name. */
-  private Word startWord = new Word(startSym, startSym);
+  private Word startWord = Words.get(startSym, startSym);
   /** Data member returned by the accessor method of the same name. */
-  private Word stopWord = new Word(stopSym, stopSym);
+  private Word stopWord = Words.get(stopSym, stopSym);
   /** Data member returned by the accessor method of the same name. */
   private Symbol topSym = Symbol.add("+TOP+");
   /** Data member returned by the accessor method of the same name. */
-  private Word topWord = new Word(topSym, topSym);
+  private Word topWord = Words.get(topSym, topSym);
 
   /**
    * A Symbol created from the first character of {@link
@@ -355,6 +369,25 @@ public abstract class Training implements Serializable {
   }
 
   /**
+   * Preprocesses the specified test sentence and its coordinated list of tags.
+   * The default implementation here does nothing.
+   *
+   * @param sentence the list of words, where a known word is a symbol and
+   * an unknown word is represented by a 3-element list (see
+   * {@link DecoderServerRemote#convertUnknownWords})
+   * @param originalWords the list of unprocessed words (all symbols)
+   * @param tags the list of tag lists, where the list at index <i>i</i>
+   * is the list of possible parts of speech for the word at that index
+   * @return a two-element list, containing two lists, the first of which
+   * is a processed version of <code>sentence</code> and the second of which
+   * is a processed version of <code>tags</code>
+   */
+  public SexpList preProcessTest(SexpList sentence,
+				 SexpList originalWords, SexpList tags) {
+    return new SexpList(2).add(sentence).add(tags);
+  }
+
+  /**
    * Returns <code>true</code> if <code>tree</code> is a preterminal (the base
    * case) or is a list with the first element of type <code>Symbol</code> (the
    * node label) and subsequent elements are valid trees (the recursive case).
@@ -368,6 +401,10 @@ public abstract class Training implements Serializable {
    * @see Treebank#isPreterminal(Sexp)
    */
   public boolean isValidTree(Sexp tree) {
+    return isValidTreeInternal(tree);
+  }
+
+  boolean isValidTreeInternal(Sexp tree) {
     if (tree.isSymbol())
       return false;
     if (Language.treebank.isPreterminal(tree))
@@ -380,7 +417,7 @@ public abstract class Training implements Serializable {
       if (treeListLen == 1)
 	return false;
       for (int i = 1; i < treeListLen; i++)
-	if (isValidTree(treeList.get(i)) == false)
+	if (isValidTreeInternal(treeList.get(i)) == false)
 	  return false;
     }
     return true;
@@ -440,7 +477,7 @@ public abstract class Training implements Serializable {
       SexpList treeList = tree.list();
       for (int i = 1; i < treeList.length(); i++)
 	if (nodesToPrune.contains(treeList.getChildLabel(i))) {
-          collectPreterms(prunedPreterms, treeList.get(i));
+	  collectPreterms(prunedPreterms, treeList.get(i));
 	  treeList.remove(i--);
 	}
 	else
@@ -457,7 +494,7 @@ public abstract class Training implements Serializable {
       SexpList treeList = tree.list();
       int treeListLen = treeList.length();
       for (int i = 1; i < treeListLen; i++)
-        collectPreterms(preterms, treeList.get(i));
+	collectPreterms(preterms, treeList.get(i));
     }
   }
 
@@ -469,7 +506,7 @@ public abstract class Training implements Serializable {
    * <p>
    * Note that children in a coordinated phrase are never relabeled as
    * arguments, as determined by subtrees for which
-   * {@link #isCoordinatedPhrase(Sexp)} returns <code>true</code>.
+   * {@link #isCoordinatedPhrase(Sexp,int)} returns <code>true</code>.
    *
    * @param tree the parse tree to modify
    * @return a reference to the modified <code>tree</code> object
@@ -492,84 +529,97 @@ public abstract class Training implements Serializable {
 
       int headIdx = headFinder.findHead(treeList);
       if (candidatePatterns != null) {
-        Symbol headChild = (headIdx == 0 ? null :
-                            treeList.get(headIdx).list().first().symbol());
+	Symbol headChild = (headIdx == 0 ? null :
+			    treeList.get(headIdx).list().first().symbol());
 
 	if (isCoordinatedPhrase(tree, headIdx))
 	  return tree;
 
 	// either the candidate pattern list has the form (head <int>) or
-        // (head-left <list>) or (head-right <list>) or it's a list of actual
-        // nonterminal labels
+	// (head-left <list>) or (head-right <list>) or it's a list of actual
+	// nonterminal labels
 	if (candidatePatterns.first().symbol() == headSym ||
-            candidatePatterns.first().symbol() == headPreSym ||
-            candidatePatterns.first().symbol() == headPostSym) {
-          int argIdx = -1;
-          Symbol child = null;
-          boolean foundArg = false;
+	    candidatePatterns.first().symbol() == headPreSym ||
+	    candidatePatterns.first().symbol() == headPostSym) {
+	  int argIdx = -1;
+	  Symbol child = null;
+	  boolean foundArg = false;
 
-          if (candidatePatterns.first().symbol() == headSym) {
-            String offsetStr = candidatePatterns.get(1).toString();
-            int headOffset = Integer.parseInt(offsetStr);
-            // IF there is a head and IF that head is not equal to parent (i.e.,
-            // if it's not a situation like (PP (PP ...) (CC and) (PP ...)) ) and
-            // if the headIdx plus the headOffset is still valid, then we've got
-            // an argument
-            argIdx = headIdx + headOffset;
-            if (headIdx > 0 &&
-                treebank.getCanonical(headChild) != parent &&
-                argIdx > 0 && argIdx < treeListLen) {
-              child = treeList.getChildLabel(argIdx);
+	  if (candidatePatterns.first().symbol() == headSym) {
+	    String offsetStr = candidatePatterns.get(1).toString();
+	    int headOffset = Integer.parseInt(offsetStr);
+	    // IF there is a head and IF that head is not equal to parent (i.e.,
+	    // if it's not a situation like (PP (PP ...) (CC and) (PP ...)) ) and
+	    // if the headIdx plus the headOffset is still valid, then we've got
+	    // an argument
+	    argIdx = headIdx + headOffset;
+	    if (headIdx > 0 &&
+		treebank.getCanonical(headChild) != parent &&
+		argIdx > 0 && argIdx < treeListLen) {
+	      child = treeList.getChildLabel(argIdx);
 
-              // if the arg is actually a conjunction or punctuation,
-              // if possible, find the first child to the right of argIdx that
-              // is not a preterminal
-              if (treebank.isConjunction(child) || treebank.isPunctuation(child)) {
-                for (int i = argIdx + 1; i < treeListLen; i++) {
-                  if (!treebank.isPreterminal(treeList.get(i))) {
-                    argIdx = i;
-                    child = treeList.getChildLabel(argIdx);
-                    break;
-                  }
-                }
-              }
-              foundArg = true;
-            }
-          }
-          else {
-            SexpList searchInstruction = candidatePatterns;
-            int searchInstructionLen = searchInstruction.length();
-            boolean leftSide =
-              searchInstruction.symbolAt(0) == headPreSym;
-            boolean leftToRight =
-              searchInstruction.symbolAt(1) == Constants.firstSym;
+	      // if the arg is actually a conjunction or punctuation,
+	      // OR ANY KIND OF PRETERMINAL,
+	      // if possible, find the first child to the left or right of argIdx that
+	      // is not a preterminal
+	      if (treebank.isPreterminal(child) ||
+		  treebank.isConjunction(child) || treebank.isPunctuation(child)) {
+		if (headOffset > 0) {
+		  for (int i = argIdx + 1; i < treeListLen; i++) {
+		    if (!treebank.isPreterminal(treeList.get(i))) {
+		      argIdx = i;
+		      child = treeList.getChildLabel(argIdx);
+		      break;
+		    }
+		  }
+		}
+		else {
+		  for (int i = argIdx - 1; i >= 0; i--) {
+		    if (!treebank.isPreterminal(treeList.get(i))) {
+		      argIdx = i;
+		      child = treeList.getChildLabel(argIdx);
+		      break;
+		    }
+		  }
+		}
+	      }
+	      foundArg = !treebank.isPreterminal(treeList.get(argIdx));
+	    }
+	  }
+	  else {
+	    SexpList searchInstruction = candidatePatterns;
+	    int searchInstructionLen = searchInstruction.length();
+	    boolean leftSide =
+	      searchInstruction.symbolAt(0) == headPreSym;
+	    boolean leftToRight =
+	      searchInstruction.symbolAt(1) == Constants.firstSym;
 	    boolean negativeSearch =
 	      searchInstruction.symbolAt(2) == Constants.notSym;
 	    int searchSetStartIdx = negativeSearch ? 3 : 2;
-            if (headIdx > 0 && treebank.getCanonical(headChild) != parent) {
+	    if (headIdx > 0 && treebank.getCanonical(headChild) != parent) {
 	    //if (headIdx > 0) {
-              int increment = leftToRight ? 1 : -1;
-              int startIdx = -1, endIdx = -1;
-              if (leftSide) {
-                startIdx = leftToRight ?  1            :  headIdx - 1;
-                endIdx   = leftToRight ?  headIdx - 1  :  1;
-              }
-              else {
-                startIdx = leftToRight ? headIdx + 1      :  treeListLen - 1;
-                endIdx   = leftToRight ? treeListLen - 1  :  headIdx + 1;
-              }
-              // start looking one after (or before) the head index for
-              // first occurrence of a symbol in the search set, which is
-              // comprised of the symbols at indices 2..searchInstructionLen
-              // in the list searchInstruction
-              SEARCH:
-              for (int i = startIdx;
-                   leftToRight ? i <= endIdx : i >= endIdx; i += increment) {
+	      int increment = leftToRight ? 1 : -1;
+	      int startIdx = -1, endIdx = -1;
+	      if (leftSide) {
+		startIdx = leftToRight ?  1            :  headIdx - 1;
+		endIdx   = leftToRight ?  headIdx - 1  :  1;
+	      }
+	      else {
+		startIdx = leftToRight ? headIdx + 1      :  treeListLen - 1;
+		endIdx   = leftToRight ? treeListLen - 1  :  headIdx + 1;
+	      }
+	      // start looking one after (or before) the head index for
+	      // first occurrence of a symbol in the search set, which is
+	      // comprised of the symbols at indices 2..searchInstructionLen
+	      // in the list searchInstruction
+	      SEARCH:
+	      for (int i = startIdx;
+		   leftToRight ? i <= endIdx : i >= endIdx; i += increment) {
 		Symbol currChild = treeList.getChildLabel(i);
 		Symbol noAugChild = treebank.stripAugmentation(currChild);
-                for (int j = searchSetStartIdx; j < searchInstructionLen; j++) {
+		for (int j = searchSetStartIdx; j < searchInstructionLen; j++) {
 		  Symbol searchSym = searchInstruction.symbolAt(j);
-                  //if (noAugChild == searchSym) {
+		  //if (noAugChild == searchSym) {
 		  if (currChild == searchSym) {
 		    if (negativeSearch)
 		      continue SEARCH;
@@ -579,7 +629,7 @@ public abstract class Training implements Serializable {
 		      foundArg = true;
 		      break SEARCH;
 		    }
-                  }
+		  }
 		}
 		// if no match for any nt in search set and this is
 		// negative search, we've found what we're looking for
@@ -589,30 +639,30 @@ public abstract class Training implements Serializable {
 		  foundArg = true;
 		  break SEARCH;
 		}
-              }
-            }
-          }
+	      }
+	    }
+	  }
 
-          if (foundArg) {
+	  if (foundArg) {
 	    Nonterminal parsedChild =
 	      treebank.parseNonterminal(child, nonterminal);
 	    treebank.addAugmentation(parsedChild, argAugmentation);
 	    treeList.setChildLabel(argIdx, parsedChild.toSymbol());
-          }
+	  }
 	}
 	else {
 	  // the candidate pattern list is a list of actual nonterminal labels
 
-          // the following line means we only find arguments in situations
-          // where the head child's label is different from the parent label
+	  // the following line means we only find arguments in situations
+	  // where the head child's label is different from the parent label
 	  if (treebank.getCanonical(headChild) != parent) {
 	  //if (true) {
-            relabelArgChildren(treeList, headIdx, candidatePatterns);
-            /*
+	    relabelArgChildren(treeList, headIdx, candidatePatterns);
+	    /*
 	    for (int childIdx = 1; childIdx < treeListLen; childIdx++) {
-              if (!relabelHeadChildrenAsArgs)
-                if (childIdx == headIdx)
-                  continue;
+	      if (!relabelHeadChildrenAsArgs)
+		if (childIdx == headIdx)
+		  continue;
 	      Symbol child = treeList.getChildLabel(childIdx);
 	      int candidateChildIdx =
 		candidatePatterns.indexOf(treebank.getCanonical(child));
@@ -634,57 +684,62 @@ public abstract class Training implements Serializable {
 		}
 	      }
 	    }
-            */
+	    */
 	  }
 	}
       }
       else {
-        // the current parent had no arg-finding rule, so we need to use
-        // the default rule, if one exists
+	// the current parent had no arg-finding rule, so we need to use
+	// the default rule, if one exists
 	candidatePatterns = (SexpList)argContexts.get(Constants.kleeneStarSym);
 	if (candidatePatterns != null) {
-          relabelArgChildren(treeList, headIdx, candidatePatterns);
+	  relabelArgChildren(treeList, headIdx, candidatePatterns);
 	}
       }
     }
     return tree;
   }
 
-  private void relabelArgChildren(SexpList treeList,
-                                  int headIdx,
-                                  SexpList candidatePatterns) {
+  protected void relabelArgChildren(SexpList treeList,
+				    int headIdx,
+				    SexpList candidatePatterns) {
     int treeListLen = treeList.length();
     for (int childIdx = 1; childIdx < treeListLen; childIdx++) {
       if (!relabelHeadChildrenAsArgs)
-        if (childIdx == headIdx)
-          continue;
+	if (childIdx == headIdx)
+	  continue;
       Symbol child = treeList.getChildLabel(childIdx);
       Nonterminal parsedChild =
-        treebank.parseNonterminal(child, nonterminal);
+	treebank.parseNonterminal(child, nonterminal);
 
       boolean foundCandidate = false;
       int numCandidatePatterns = candidatePatterns.length();
       for (int i = 0; !foundCandidate && i < numCandidatePatterns; i++) {
-        Symbol candidatePattern = candidatePatterns.symbolAt(i);
-        Nonterminal parsedCandidatePattern =
-          treebank.parseNonterminal(candidatePattern, nonterminal2);
-        if (parsedCandidatePattern.subsumes(parsedChild))
-          foundCandidate = true;
+	Symbol candidatePattern = candidatePatterns.symbolAt(i);
+	Nonterminal parsedCandidatePattern =
+	  treebank.parseNonterminal(candidatePattern, nonterminal2);
+	if (parsedCandidatePattern.subsumes(parsedChild))
+	  foundCandidate = true;
       }
       if (foundCandidate) {
-        SexpList augmentations = parsedChild.augmentations;
-        int augLen = augmentations.length();
-        boolean isArg = true;
-        for (int i = 0; i < augLen; i++) {
-          if (semTagArgStopSet.contains(augmentations.get(i))) {
-            isArg = false;
-            break;
-          }
-        }
-        if (isArg) {
-          treebank.addAugmentation(parsedChild, argAugmentation);
-          treeList.setChildLabel(childIdx, parsedChild.toSymbol());
-        }
+	SexpList augmentations = parsedChild.augmentations;
+	int augLen = augmentations.length();
+	boolean isArg = true;
+	for (int i = 0; i < augLen; i++) {
+	  if (semTagArgStopSet.contains(augmentations.get(i))) {
+	    isArg = false;
+	    break;
+	  }
+	}
+	if (isArg) {
+	  /*
+	  if (childIdx == headIdx)
+	    System.out.println(childIdx + "th child (" + parsedChild + ") of " + treeList +
+			       " is a head AND an arg!");
+	  */
+	  treebank.addAugmentation(parsedChild, argAugmentation);
+	  treeList.setChildLabel(childIdx, parsedChild.toSymbol());
+	}
       }
     }
   }
@@ -723,7 +778,7 @@ public abstract class Training implements Serializable {
     Boolean isArgBool = (Boolean)isArgMap.get(label);
     if (isArgBool == null) {
       boolean isArg =
-        label.toString().indexOf(canonicalDelimPlusArgAug, 1) != -1;
+	label.toString().indexOf(canonicalDelimPlusArgAug, 1) != -1;
       isArgBool = isArg ? Boolean.TRUE : Boolean.FALSE;
       isArgMap.put(label, isArgBool);
     }
@@ -1252,7 +1307,7 @@ public abstract class Training implements Serializable {
 	    if (leftToRight)
 	      i += insertIncrement;
 	  }
-          endIdx = (leftToRight ? treeList.length() - 1 : 1);
+	  endIdx = (leftToRight ? treeList.length() - 1 : 1);
 	  i -= insertIncrement; // offset increment for enclosing for loop
 	  raise.clear();
 	}
@@ -1373,7 +1428,7 @@ public abstract class Training implements Serializable {
     return tree;
   }
 
-  protected Sexp repairBaseNPs(Sexp tree) {
+  public Sexp repairBaseNPs(Sexp tree) {
     if (repairBaseNPs)
       repairBaseNPs(null, -1, tree);
     return tree;
@@ -1460,7 +1515,7 @@ public abstract class Training implements Serializable {
    * @param tree the base NP, whose parent is <code>grandparent</code>
    */
   protected boolean needToAddNormalNPLevel(Sexp grandparent,
-                                           int parentIdx, Sexp tree) {
+					   int parentIdx, Sexp tree) {
     if (grandparent == null)
       return true;
 
@@ -1645,9 +1700,44 @@ public abstract class Training implements Serializable {
   public Symbol headPostSym() { return headPostSym; }
 
   /**
-   * Returns an unmodifiable view of the {@link #argContexts} map.
+   * Returns a static set of possible argument nonterminals, without their
+   * argument augmentations.  The default implementation here scans the
+   * {@link #argContexts} list, and adds every nonterminal child for a given
+   * context to the set.  This default implementation, therefore, does not
+   * necessarily return a complete set of all possible arg nonterminals, but
+   * merely those that are explicitly named in the argument-finding contexts.
+   * As this method is primarily intended to be used by {@link SubcatBag}
+   * when setting up its static resources for categorizing argument
+   * nonterminals, this implementation is sufficient, as all nonterminals
+   * that are not explicitly named will be thrown into the miscellaneous
+   * category.
+   *
+   * @return a static set of possible argument nonterminals, without their
+   * argument augmentations
    */
-  public Map argContexts() { return Collections.unmodifiableMap(argContexts); }
+  public synchronized Set argNonterminals() {
+    if (argNonterminals == null) {
+      argNonterminals = new HashSet();
+      Iterator args = argContexts.values().iterator();
+      while (args.hasNext()) {
+	SexpList argList = (SexpList)args.next();
+	Symbol first = argList.symbolAt(0);
+	if (first != headSym && first != headPreSym && first != headPostSym) {
+	  int argListLen = argList.length();
+	  for (int i = 0; i < argListLen; i++) {
+	    Symbol argLabel = argList.symbolAt(i);
+	    Nonterminal parsedArgLabel = treebank.parseNonterminal(argLabel);
+	    // if this is not an arg label indicating to look for a semantic tag
+	    if (parsedArgLabel.base != Constants.kleeneStarSym) {
+	      argNonterminals.add(argLabel);
+	    }
+	  }
+	}
+      }
+      argNonterminals = Collections.unmodifiableSet(argNonterminals);
+    }
+    return argNonterminals;
+  }
 
   // a couple of utility methods for removing gap/arg augmentations
   // very efficiently
@@ -1747,30 +1837,30 @@ public abstract class Training implements Serializable {
       SexpList treeList = tree.list();
       int treeListLen = treeList.length();
       for (int i = 1; i < treeListLen; i++) {
-        Sexp currChild = treeList.get(i);
+	Sexp currChild = treeList.get(i);
 	boolean currChildRemoved = false;
-        boolean hasOnlyChild = treeListLen == 2;
-        if (hasOnlyChild &&
-            !treebank.isPreterminal(currChild) && currChild.isList()) {
-          Symbol parentLabel = treebank.stripAugmentation(treeList.symbolAt(0));
-          if (parentLabel == treebank.NPLabel()) {
-            Symbol childLabel =
-              treebank.stripAugmentation(currChild.list().symbolAt(0));
-            if (childLabel == treebank.baseNPLabel()) {
-              // we've got an NP dominating an only child base NP!
-              // first, remove baseNP from parent
+	boolean hasOnlyChild = treeListLen == 2;
+	if (hasOnlyChild &&
+	    !treebank.isPreterminal(currChild) && currChild.isList()) {
+	  Symbol parentLabel = treebank.stripAugmentation(treeList.symbolAt(0));
+	  if (parentLabel == treebank.NPLabel()) {
+	    Symbol childLabel =
+	      treebank.stripAugmentation(currChild.list().symbolAt(0));
+	    if (childLabel == treebank.baseNPLabel()) {
+	      // we've got an NP dominating an only child base NP!
+	      // first, remove baseNP from parent
 	      currChildRemoved = true;
-              treeList.remove(i);
-              // next, make all baseNP's children become parent's children
-              SexpList childList = currChild.list();
-              int childListLen = childList.length();
-              for (int j = 1; j < childListLen; j++)
-                treeList.add(childList.get(j));
-              // need to re-calculate cached length
-              treeListLen = treeList.length();
-            }
-          }
-        }
+	      treeList.remove(i);
+	      // next, make all baseNP's children become parent's children
+	      SexpList childList = currChild.list();
+	      int childListLen = childList.length();
+	      for (int j = 1; j < childListLen; j++)
+		treeList.add(childList.get(j));
+	      // need to re-calculate cached length
+	      treeListLen = treeList.length();
+	    }
+	  }
+	}
 	if (!currChildRemoved)
 	  removeOnlyChildBaseNPs(currChild);
       }
@@ -1790,8 +1880,40 @@ public abstract class Training implements Serializable {
       treeList.set(0, Language.treebank.getCanonical(currLabel));
       int treeListLen = treeList.length();
       for (int i = 1; i < treeListLen; i++)
-        canonicalizeNonterminals(treeList.get(i));
+	canonicalizeNonterminals(treeList.get(i));
     }
+  }
+
+  // main stuff
+  private static String filename = null;
+  private static boolean quiet = false;
+
+  private static void processArgs(String[] args) {
+    for (int i = 0; i < args.length; i++) {
+      if (args[i].equals("-v") ||
+	  args[i].equals("-help") ||
+	  args[i].equals("-usage"))
+	usage();
+      else if (args[i].equals("-q"))
+	quiet = true;
+      else
+	filename = args[i];
+    }
+  }
+
+  private static String[] usageMsg = {
+    "usage: [-v|-help|-usage] [-q] [<filename> | -]",
+    "where",
+    "\t-v,-help,-usage: prints this message",
+    "\t<filename> is the name of an input file",
+    "\t-: indicates to use standard input",
+    "\t-q: indicates to be quiet when encountering invalid sentences"
+  };
+
+  private static void usage() {
+    for (int i = 0; i < usageMsg.length; i++)
+      System.err.println(usageMsg[i]);
+    System.exit(1);
   }
 
   /**
@@ -1802,35 +1924,36 @@ public abstract class Training implements Serializable {
    * representing trees.
    */
   public static void main(String[] args) {
-    if (args.length < 1) {
-      System.err.println("usage: <filename>");
-      System.exit(1);
-    }
-    String filename = args[0];
+    processArgs(args);
     int treeNum = 1;
     Sexp curr = null;
     try {
-      SexpTokenizer tok = new SexpTokenizer(filename, Language.encoding(),
+      InputStream in =
+	filename == null ? System.in : new FileInputStream(filename);
+      SexpTokenizer tok = new SexpTokenizer(in, Language.encoding(),
 					    Constants.defaultFileBufsize);
+      int line = tok.lineno();
       Training training = (Training)Language.training();
       curr = null;
       for (treeNum = 1; (curr = Sexp.read(tok)) != null; treeNum++) {
 	if (curr.isList()) {
-          // automatically determine whether to strip outer parens
+	  // automatically determine whether to strip outer parens
 	  Sexp tree = curr.list().get(0);
-          if (tree.isSymbol())
-            tree = curr;
-          //System.err.println("tree No. " + treeNum);
-          String skipStr = training.skip(tree);
-	  if (skipStr == null)
+	  if (tree.isSymbol())
+	    tree = curr;
+	  //System.err.println("tree No. " + treeNum);
+	  String skipStr = training.skip(tree);
+	  if (skipStr == null) {
 	    System.out.println(training.preProcess(tree));
-	  else
-	    System.err.println("tree No. " + treeNum + " invalid: " + skipStr +
-                               "\n\t" + tree);
+	  }
+	  else if (!quiet)
+	    System.err.println("tree No. " + treeNum + " from line " + line +
+			       " invalid: " + skipStr + "\n\t" + tree);
 	}
-	else
-	  System.err.println("S-expression No. " + treeNum + ": not list: " +
-			     curr);
+	else if (!quiet)
+	  System.err.println("S-expression No. " + treeNum + " from line " +
+			     line + ": not list: " + curr);
+	line = tok.lineno();
       }
     }
     catch (UnsupportedEncodingException uee) {

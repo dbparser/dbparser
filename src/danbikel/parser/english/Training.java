@@ -70,6 +70,23 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
     fixSubjectlessSentences(tree);
     return tree;
   }
+
+  public boolean removeWord(Symbol word, Symbol tag, int idx, SexpList sentence,
+			    SexpList tags, SexpList originalTags,
+			    Set prunedPretermsPosSet,
+			    Map prunedPretermsPosMap) {
+    boolean singleQuote = word.toString().equals("'");
+    String prevWordStr = idx > 0 ? sentence.symbolAt(idx - 1).toString() : "";
+    boolean assumedPossessive = singleQuote && prevWordStr.endsWith("s");
+    // if this isn't a possessive then set part-of-speech tag to be right
+    // double-quotation mark
+    if (singleQuote && !assumedPossessive && originalTags != null) {
+      originalTags.set(idx, new SexpList(1).add(Symbol.add("''")));
+    }
+    return prunedPretermsPosMap.containsKey(word) && !assumedPossessive;
+  }
+
+
   /**
    * Reads metadata to fill in {@link #argContexts} and
    * {@link #semTagArgStopSet}.  Does no format

@@ -36,8 +36,7 @@ public class ModWordModelStructure1 extends ProbabilityStructure {
     case 1:
       // for p(w_i | M(t)_i, P, H, t, verbIntervening, M_i-1 == +START+, subcat)
       Symbol prevModIsStartSym =
-	Constants.booleanToSym(modEvent.previousMods().list().get(0) ==
-			       startSym);
+	Constants.booleanToSym(modEvent.previousMods().get(0) == startSym);
       hist.add(0, Language.training.removeGapAugmentation(modEvent.modifier()));
       hist.add(0, modEvent.modHeadWord().tag());
       hist.add(0, Language.training.removeGapAugmentation(modEvent.parent()));

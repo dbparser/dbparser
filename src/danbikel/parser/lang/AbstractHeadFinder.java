@@ -70,12 +70,33 @@ public abstract class AbstractHeadFinder implements HeadFinder, Serializable {
    * of that scan.
    */
   protected final static class HeadFindInstruction implements Serializable {
-    Symbol[] scanSet;
-    boolean direction;
-    HeadFindInstruction(boolean direction, Symbol[] scanSet) {
+    /**
+     * The set of symbols to scan for.
+     */
+    protected Symbol[] scanSet;
+    /**
+     * The direction in which to scan: a value equal to {@link Constants#LEFT}
+     * indicates a left-to-right scan, and a value equal to
+     * {@link Constants#RIGHT} indicates a right-to-left scan.
+     */
+    protected boolean direction;
+
+    /**
+     * Constructs a new <code>HeadFindInstruction</code> object.
+     * @param direction the direction in which to scan: a value equal to
+     * {@link Constants#LEFT} indicates a left-to-right scan, and a value
+     * equal to {@link Constants#RIGHT} indicates a right-to-left scan
+     * @param scanSet the set of symbols to scan for
+     */
+    protected HeadFindInstruction(boolean direction, Symbol[] scanSet) {
       this.direction = direction;
       this.scanSet = scanSet;
     }
+
+    /**
+     * Converts this object to a human-readable string representation.
+     * @return a human-readable string representation of this object
+     */
     public String toString() {
       StringBuffer buf = new StringBuffer();
       buf.append('(').append(direction == LEFT ? leftSym : rightSym);

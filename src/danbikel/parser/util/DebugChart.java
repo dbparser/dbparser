@@ -242,16 +242,25 @@ public class DebugChart {
       while (it.hasNext()) {
 	CKYItem item = (CKYItem)it.next();
 	if (item.label().equals(label)) {
-	  if (item.stop())
-	    unlexicalizedFound = item;
+	  if (item.stop()) {
+            boolean haventPreviouslyFound = unlexicalizedFound == null;
+            if (haventPreviouslyFound || best.contains(item))
+	      unlexicalizedFound = item;
+	  }
 	  else
 	    unlexicalizedFoundNoStop = item;
 	  if (item.headWord().equals(tree.headWord())) {
 	    if (item.stop()) {
 	      System.err.println(prefix + "found " +
                                  itemToString(item, best));
-	      found = item;
-	      break;
+              boolean haventPreviouslyFound = found == null;
+              boolean currItemInBest = best.contains(item);
+              if (haventPreviouslyFound || currItemInBest)
+	        found = item;
+              // if we've found a lexicalized nonterminal that covers this
+              // span and is part of the best derivation, end search!
+              if (currItemInBest)
+                break;
 	    }
 	    else {
 	      foundNoStop = item;
@@ -398,7 +407,7 @@ public class DebugChart {
     if (tree.isPreterminal()) {
       if (tree.headWord().tag() != traceTag) {
 	Word headWord = tree.headWord();
-	headWord.setOriginalWord(headWord.word());
+	tree.setOriginalHeadWord(headWord.word());
 	headWord.setWord(Symbol.add(headWord.word().toString().toLowerCase()));
       }
     }

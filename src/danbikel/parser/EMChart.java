@@ -50,7 +50,7 @@ public class EMChart extends CKYChart {
    *
    * @param size the size to be set for this chart
    */
-  protected void setSize(int size) {
+  public void setSize(int size) {
     if (this.size < size) {
       this.size = size;
       chart = new Entry[size][size];
@@ -62,7 +62,7 @@ public class EMChart extends CKYChart {
    * size and clears it; if a chart entry is <code>null</code>, then a
    * new map is created.
    */
-  protected void clear() {
+  public void clear() {
     totalItems = 0;
     if (debugNumItemsGenerated) {
       totalItemsGenerated = 0;

@@ -12,34 +12,39 @@ abstract public class SubcatModelStructure1 extends ProbabilityStructure {
   public int maxEventComponents() { return 4; }
   public int numLevels() { return 3; }
 
+  public double lambdaFudge(int backOffLevel) { return 0.0; }
+  public double lambdaFudgeTerm(int backOffLevel) { return 5.0; }
+
   public Event getHistory(TrainerEvent trainerEvent, int backOffLevel) {
     HeadEvent headEvent = (HeadEvent)trainerEvent;
 
-    Sexp noGapHead =
+    Sexp head =
       Language.training.removeGapAugmentation(headEvent.head());
-    Sexp noGapParent =
+    head = Language.training.removeArgAugmentation(head.symbol());
+    Sexp parent =
       Language.training.removeGapAugmentation(headEvent.parent());
+    parent = Language.training.removeArgAugmentation(parent.symbol());
 
     MutableEvent history = histories[backOffLevel];
     history.clear();
     switch (backOffLevel) {
     case 0:
       // for p(Subcat | H, P, w, t)
-      history.add(noGapHead);
-      history.add(noGapParent);
+      history.add(head);
+      history.add(parent);
       history.add(headEvent.headWord().word());
       history.add(headEvent.headWord().tag());
       break;
     case 1:
       // for p(Subcat | H, P, t)
-      history.add(noGapHead);
-      history.add(noGapParent);
+      history.add(head);
+      history.add(parent);
       history.add(headEvent.headWord().tag());
       break;
     case 2:
       // for p(Subcat | H, P)
-      history.add(noGapHead);
-      history.add(noGapParent);
+      history.add(head);
+      history.add(parent);
       break;
     }
     return history;

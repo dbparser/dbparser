@@ -145,6 +145,6 @@ public class Word implements Serializable, Cloneable, SexpConvertible {
   }
 
   public Sexp toSexp() {
-    return new SexpList(2).add(tag()).add(word());
+    return new SexpList(2).add(word()).add(tag());
   }
 }

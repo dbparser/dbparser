@@ -864,7 +864,7 @@ public abstract class AbstractTraining implements Training, Serializable {
   /**
    * Returns <code>true</code> if the specified nonterminal label has an
    * argument augmentation.  Unlike {@link #isArgument(Symbol)}, this
-   * method is thread-safe.  Also, after {@link #setUpFastArgMap(CountsTable)
+   * method is thread-safe.  Also, after {@link #setUpFastArgMap(CountsTable)}
    * has been invoked, this method is much more efficient than
    * {@link #isArgument(Symbol)}.
    *
@@ -1837,6 +1837,22 @@ public abstract class AbstractTraining implements Training, Serializable {
     }
   }
 
+  /**
+   * Sets the {@link #argNonterminals} data member to be the static set
+   * of argument nonterminals.  The default implementation here scans the
+   * {@link #argContexts} list, and adds every nonterminal "pattern" for a
+   * given context to the set.  If the nonterminal to be added is not
+   * already an argument as determined by {@link #isArgument}, then the
+   * {@link Treebank#canonicalAugDelimiter} and {@link #defaultArgAugmentation}
+   * are appended before it is added to the set. This default implementation,
+   * therefore, does not necessarily return a complete set of all possible arg
+   * nonterminals, but merely those that are explicitly named in the
+   * argument-finding contexts. As this method is primarily intended to be
+   * used by {@link SubcatBag} when setting up its static resources for
+   * categorizing argument nonterminals, this implementation is sufficient,
+   * as all nonterminals that are not explicitly named will be thrown into
+   * the miscellaneous category.
+   */
   protected void createArgNonterminalsSet() {
     argNonterminals = new HashSet();
     Iterator args = argContexts.values().iterator();
@@ -1861,18 +1877,9 @@ public abstract class AbstractTraining implements Training, Serializable {
 
   /**
    * Returns a static set of possible argument nonterminals.  The default
-   * implementation here scans the {@link #argContexts} list, and adds every
-   * nonterminal "pattern" for a given context to the set.  If the nonterminal
-   * to be added is not already an argument as determined by
-   * {@link #isArgument}, then the {@link Treebank#canonicalAugDelimeter}
-   * and {@link #defaultArgAugmentation} are appended before it is added to
-   * the set. This default implementation, therefore, does not necessarily
-   * return a complete set of all possible arg nonterminals, but merely those
-   * that are explicitly named in the argument-finding contexts. As this
-   * method is primarily intended to be used by {@link SubcatBag} when setting
-   * up its static resources for categorizing argument nonterminals, this
-   * implementation is sufficient, as all nonterminals that are not
-   * explicitly named will be thrown into the miscellaneous category.
+   * implementation here invokes {@link #createArgNonterminalsSet()} if
+   * the {@link #argNonterminals} data member has not been initialized
+   * (that is, if it is <code>null</code>).
    *
    * @return a static set of possible argument nonterminals
    */

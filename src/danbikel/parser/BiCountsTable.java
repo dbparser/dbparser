@@ -42,6 +42,16 @@ public class BiCountsTable extends danbikel.util.HashMapTwoInts {
     super(initialCapacity, loadFactor);
   }
 
+  /**
+   * Adds 1 to the counter at the specified index for the specified key in
+   * this map.  If no such key exists, then a mapping is added, with 1 as
+   * the value of the counter at the specified index and 0 as the value of
+   * all other counters (this map contains only two counters).
+   *
+   * @param key the key whose count at the specified index is to be incremented
+   * @param index the index of the counter to be incremented for the specified
+   * key
+   */
   public void add(Object key, int index) {
     add(key, index, 1);
   }
@@ -76,7 +86,16 @@ public class BiCountsTable extends danbikel.util.HashMapTwoInts {
 
   /**
    * Outputs all the mappings of this map in as S-expressions of the form
-   * <pre>(name key value)</pre>
+   * <pre>(name key count0 count1)</pre>
+   * where <tt>count0</tt> is the integer at index 0 and <tt>count1</t>
+   * is the integer at index 1 for the key.
+   *
+   * @param eventName the name of this type of event, to be the first element
+   * of the 4-element S-expression output by this method
+   * @param writer the character stream to which this map's entries are to
+   * be written
+   * @throws IOException if the specified <tt>Writer</tt> throws an
+   * <tt>IOException</tt> while it is being written to
    */
   public void output(String eventName, Writer writer) throws IOException {
     Iterator keys = keySet().iterator();

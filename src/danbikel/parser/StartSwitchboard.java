@@ -137,9 +137,11 @@ public class StartSwitchboard {
       // for now, take directory of the sole specified output file,
       // and create messages file in that directory
       File outFile = new File(outFilenameMain);
+      String outFileParent = outFile.getParent() + File.separator;
+      if (outFileParent == null)
+        outFileParent = "";
       String messageFilename =
-	outFile.getParent() + File.separator +
-	Switchboard.defaultMessagesFilename;
+        outFileParent + Switchboard.defaultMessagesFilename;
 
       Switchboard switchboard = new Switchboard(messageFilename,
 						portMain,

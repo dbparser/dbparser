@@ -16,7 +16,7 @@ public class TrainerEventToCollins {
   public static Symbol miscArg =
     Symbol.add(stopSym.toString() +
 	       Language.treebank().canonicalAugDelimiter() +
-	       Language.training().argAugmentation());
+	       Language.training().defaultArgAugmentation());
 
 
 

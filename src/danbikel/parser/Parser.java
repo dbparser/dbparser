@@ -420,5 +420,8 @@ public class Parser
     }
     if (debug)
       System.err.println(className + ": main ending!");
+    parser = null;
+    System.gc();
+    System.runFinalization();
   }
 }

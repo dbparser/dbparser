@@ -187,6 +187,28 @@ public abstract class Training implements Serializable {
   protected Symbol headSym = Symbol.add("head");
 
   /**
+   * The symbol that is a possible mapping {@link #argContexts} to indicate
+   * to choose a child relative to the left side of the head as an argument.
+   * For example, an argument context might be <code>VP</code> mapping to
+   * <code>(head-left left MD VBD)</code>, meaning that the children to the left
+   * of the head child should be searched from left to right, and the first
+   * child found that is a member of the set <tt>{MD, VBD}</tt> should be
+   * considered a possible argument of the head.
+   */
+  protected Symbol headPreSym = Symbol.add("head-pre");
+  /**
+   * The symbol that is a possible mapping {@link #argContexts} to indicate
+   * to choose a child relative to the right side of the head as an argument.
+   * For example, an argument context might be <code>PP</code> mapping to
+   * <code>(head-right left PP NP WHNP ADJP)</code>, meaning that the children
+   * to the right of the head child should be searched from left to right, and
+   * the first child found that is a member of the set
+   * <tt>{PP, NP, WHNP, ADJP}</tt> should be considered a possible argument
+   * of the head.
+   */
+  protected Symbol headPostSym = Symbol.add("head-post");
+
+  /**
    * The value of {@link Treebank#baseNPLabel}, cached for efficiency and
    * convenience.
    */
@@ -414,50 +436,122 @@ public abstract class Training implements Serializable {
       SexpList candidateChildren = (SexpList)argContexts.get(parent);
 
       if (candidateChildren != null) {
-	// either the candidate list has the form (head <int>) or it's
-	// a list of actual nonterminal labels
-	if (candidateChildren.first().symbol() == headSym) {
-	  String offsetStr = candidateChildren.get(1).toString();
-	  int headOffset = Integer.parseInt(offsetStr);
-	  // IF there is a head and IF that head is not equal to parent (i.e.,
-	  // if it's not a situation like (PP (PP ...) (CC and) (PP ...)) ) and
-	  // if the headIdx plus the headOffset is still valid, then we've got
-	  // an argument
-	  int headIdx = headFinder.findHead(treeList);
-	  int argIdx = headIdx + headOffset;
-	  Symbol headChild = (headIdx == 0 ? null :
-			      treeList.get(headIdx).list().first().symbol());
-	  if (headIdx > 0 &&
-	      treebank.getCanonical(headChild) != parent &&
-	      argIdx > 0 && argIdx < treeListLen) {
-	    Symbol child = treeList.getChildLabel(argIdx);
-	    Nonterminal parsedChild =
-	      treebank.parseNonterminal(child, nonterminal);
-	    treebank.addAugmentation(parsedChild, argAugmentation);
-	    treeList.setChildLabel(argIdx, parsedChild.toSymbol());
-	  }
+        int headIdx = headFinder.findHead(treeList);
+        Symbol headChild = (headIdx == 0 ? null :
+                            treeList.get(headIdx).list().first().symbol());
+	// either the candidate list has the form (head <int>) or
+        // (head-left <list>) or (head-right <list>) or it's a list of actual
+        // nonterminal labels
+	if (candidateChildren.first().symbol() == headSym ||
+            candidateChildren.first().symbol() == headPreSym ||
+            candidateChildren.first().symbol() == headPostSym) {
+          int argIdx = -1;
+          Symbol child = null;
+          boolean foundArg = false;
+
+          if (candidateChildren.first().symbol() == headSym) {
+            String offsetStr = candidateChildren.get(1).toString();
+            int headOffset = Integer.parseInt(offsetStr);
+            // IF there is a head and IF that head is not equal to parent (i.e.,
+            // if it's not a situation like (PP (PP ...) (CC and) (PP ...)) ) and
+            // if the headIdx plus the headOffset is still valid, then we've got
+            // an argument
+            argIdx = headIdx + headOffset;
+            if (headIdx > 0 &&
+                treebank.getCanonical(headChild) != parent &&
+                argIdx > 0 && argIdx < treeListLen) {
+              child = treeList.getChildLabel(argIdx);
+
+              // if the arg is actually a conjunction or punctuation,
+              // if possible, find the first child to the right of argIdx that
+              // is not a preterminal
+              if (treebank.isConjunction(child) || treebank.isPunctuation(child)) {
+                for (int i = argIdx + 1; i < treeListLen; i++) {
+                  if (!treebank.isPreterminal(treeList.get(i))) {
+                    argIdx = i;
+                    child = treeList.getChildLabel(argIdx);
+                    break;
+                  }
+                }
+              }
+              foundArg = true;
+            }
+          }
+          else {
+            SexpList searchInstruction = candidateChildren;
+            int searchInstructionLen = searchInstruction.length();
+            boolean leftSide =
+              searchInstruction.symbolAt(0) == headPreSym;
+            boolean leftToRight =
+              searchInstruction.symbolAt(1) == Constants.firstSym;
+            if (headIdx > 0 && treebank.getCanonical(headChild) != parent) {
+	    //if (headIdx > 0) {
+              int increment = leftToRight ? 1 : -1;
+              int startIdx = -1, endIdx = -1;
+              if (leftSide) {
+                startIdx = leftToRight ?  1            :  headIdx - 1;
+                endIdx   = leftToRight ?  headIdx - 1  :  1;
+              }
+              else {
+                startIdx = leftToRight ? headIdx + 1      :  treeListLen - 1;
+                endIdx   = leftToRight ? treeListLen - 1  :  headIdx + 1;
+              }
+              // start looking one after (or before) the head index for
+              // first occurrence of a symbol in the search set, which is
+              // comprised of the symbols at indices 2..searchInstructionLen
+              // in the list searchInstruction
+              SEARCH:
+              for (int i = startIdx;
+                   leftToRight ? i <= endIdx : i >= endIdx; i += increment) {
+		Symbol currChild = treeList.getChildLabel(i);
+		Symbol noAugChild = treebank.stripAugmentation(currChild);
+                for (int j = 2; j < searchInstructionLen; j++) {
+		  Symbol searchSym = searchInstruction.symbolAt(j);
+                  //if (noAugChild == searchSym) {
+		  if (currChild == searchSym) {
+                    argIdx = i;
+                    child = currChild;
+                    foundArg = true;
+                    break SEARCH;
+                  }
+                }
+              }
+            }
+          }
+
+          if (foundArg) {
+            Nonterminal parsedChild =
+              treebank.parseNonterminal(child, nonterminal);
+            treebank.addAugmentation(parsedChild, argAugmentation);
+            treeList.setChildLabel(argIdx, parsedChild.toSymbol());
+          }
 	}
 	else {
 	  // the candidate list is a list of actual nonterminal labels
-	  for (int childIdx = 1; childIdx < treeListLen; childIdx++) {
-	    Symbol child = treeList.getChildLabel(childIdx);
-	    int candidateChildIdx =
-	      candidateChildren.indexOf(treebank.getCanonical(child));
-	    if (candidateChildIdx != -1) {
-	      Nonterminal parsedChild =
-		treebank.parseNonterminal(child, nonterminal);
-	      SexpList augmentations = parsedChild.augmentations;
-	      int augLen = augmentations.length();
-	      boolean isArg = true;
-	      for (int i = 0; i < augLen; i++) {
-		if (semTagArgStopSet.contains(augmentations.get(i))) {
-		  isArg = false;
-		  break;
+	  if (treebank.getCanonical(headChild) != parent) {
+	  //if (true) {
+	    for (int childIdx = 1; childIdx < treeListLen; childIdx++) {
+              if (childIdx == headIdx)
+                continue;
+	      Symbol child = treeList.getChildLabel(childIdx);
+	      int candidateChildIdx =
+		candidateChildren.indexOf(treebank.getCanonical(child));
+	      if (candidateChildIdx != -1) {
+		Nonterminal parsedChild =
+		  treebank.parseNonterminal(child, nonterminal);
+		SexpList augmentations = parsedChild.augmentations;
+		int augLen = augmentations.length();
+		boolean isArg = true;
+		for (int i = 0; i < augLen; i++) {
+		  if (semTagArgStopSet.contains(augmentations.get(i))) {
+		    isArg = false;
+		    break;
+		  }
 		}
-	      }
-	      if (isArg) {
-		treebank.addAugmentation(parsedChild, argAugmentation);
-		treeList.setChildLabel(childIdx, parsedChild.toSymbol());
+		if (isArg) {
+		  treebank.addAugmentation(parsedChild, argAugmentation);
+		  treeList.setChildLabel(childIdx, parsedChild.toSymbol());
+		}
 	      }
 	    }
 	  }
@@ -1117,8 +1211,7 @@ public abstract class Training implements Serializable {
 	  }
 	  // if the grandparent is not an NP, we need to add a normal NP level
 	  // transferring any augmentations to the new parent from the current
-	  if (grandparent != null &&
-	      treebank.isNP(grandparent.list().first().symbol()) == false) {
+	  if (needToAddNormalNPLevel(grandparent, parentIdx, tree)) {
 	    SexpList newParent = new SexpList(2);
 	    treeList.set(0, baseNP);
 	    parsedParent.base = NP;
@@ -1131,6 +1224,31 @@ public abstract class Training implements Serializable {
 	addBaseNPs(tree, i, treeList.get(i));
     }
     return tree;
+  }
+
+  protected boolean needToAddNormalNPLevel(Sexp grandparent,
+                                           int parentIdx, Sexp tree) {
+    if (grandparent == null)
+      return false;
+    SexpList grandparentList = grandparent.list();
+    if (!treebank.isNP(grandparentList.symbolAt(0)))
+      return true;
+    Symbol beforeParent = (parentIdx > 1 ?
+                           grandparentList.getChildLabel(parentIdx - 1) : null);
+    Symbol afterParent = (parentIdx < grandparentList.length() - 1 ?
+                          grandparentList.getChildLabel(parentIdx + 1) : null);
+    return ((beforeParent != null &&
+             (treebank.isPunctuation(beforeParent) ||
+              treebank.isConjunction(beforeParent)))
+            ||
+            (afterParent != null &&
+             (treebank.isPunctuation(afterParent) ||
+              treebank.isConjunction(afterParent))));
+    /*
+    return ((beforeParent != null && treebank.isConjunction(beforeParent))
+            ||
+            (afterParent != null && treebank.isConjunction(afterParent)));
+    */
   }
 
   /**
@@ -1263,6 +1381,10 @@ public abstract class Training implements Serializable {
    * an offset from the head child.
    */
   public Symbol headSym() { return headSym; }
+
+  public Symbol headPreSym() { return headPreSym; }
+
+  public Symbol headPostSym() { return headPostSym; }
 
   /**
    * Returns an unmodifiable view of the {@link #argContexts} map.

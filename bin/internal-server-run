@@ -13,8 +13,8 @@ set date = `date '+%Y.%m.%d'`
 set time = `date '+%H.%M'`
 
 set dir = `dirname $0`
-set thisScriptDir = `cd $dir  ; echo $cwd`
-set parent = `cd $thisScriptDir/.. ; echo $cwd`
+set scriptDir = `cd $dir  ; echo $cwd`
+set parent = `cd $scriptDir/.. ; echo $cwd`
 
 # prepend parent of this script's directory to a shell variable version
 # of CLASSPATH, so we use classes of this particular sandbox
@@ -33,9 +33,9 @@ set goldFile = $inFile.gold
 set outputDir = $parent/experiments/$date/$time
 
 # scripts used by this script
-set startClientScript = $thisScriptDir/start-client
-set printNodesScript = $thisScriptDir/print-nodes
-set rmiregistryScript = $thisScriptDir/start-rmiregistry
+set startClientScript = $scriptDir/start-client
+set printNodesScript = $scriptDir/print-nodes
+set rmiregistryScript = $scriptDir/start-rmiregistry
 
 # bookkeeping output files (pid files, node file script file)
 set pidFile = $outputDir/pids
@@ -49,8 +49,9 @@ set outFile = $outputDir/$inFile:t.parsed
 set logFile = $outputDir/$inFile:t.log
 
 # scoring variables
-set scorer = $parent/scoring/EVALB/evalb
-set scorerParam = $parent/scoring/EVALB/COLLINS.prm
+set scorerDir = $parent/scorer
+set scorer = $scorerDir/evalb
+set scorerParam = $scorerDir/COLLINS.prm
 
 # set up shell variables sb and cl for switchboard and clients, respectively
 # (startClientScript also does this, so we're only doing it here to get
@@ -111,9 +112,11 @@ if (`tail -1 $0` != "$timeStamp") then
     # the shell will process the sed expression before sed processes it
     set sedInFile = `echo $inFile | sed -e 's/\//\\\//g'`
     set sedDDF = `echo $derivedDataFile | sed -e 's/\//\\\//g'`
+    set sedScriptDir = `echo $scriptDir | sed -e 's/\//\\\//g'`
     sed -e "s/^\(set date = \).*/\1$date/" -e "s/^\(set time = \).*/\1$time/" \
 	-e "s/^\(set inFile = \).*/\1($sedInFile)/" \
-        -e "s/^\(set derivedDataFile = \).*/\1($sedDDF)/" $0 > $scriptFile
+        -e "s/^\(set derivedDataFile = \).*/\1($sedDDF)/" \
+	-e "s/^\(set scriptDir = \).*/\1($sedScriptDir)/" $0 > $scriptFile
     echo $timeStamp >> $scriptFile
     chmod +x $scriptFile
 endif
@@ -128,7 +131,10 @@ echo "" | rsh $sbHost java -cp $classpath -Xms100m -Xmx100m $sb \
 if (-f $goldFile) then
     echo ""
     echo "Adding fake parts of speech to $outFile"
-    java danbikel.parser.util.AddFakePos $goldFile $outFile > $outFile.scorable
+    java -cp $classpath danbikel.parser.util.AddFakePos \
+	$goldFile $outFile > $outFile.scorable
+    # make sure scorer has been compiled
+    (cd $scorerDir ; make)
     $scorer -p $scorerParam $goldFile $outFile.fixed > $outFile.score
 endif
 
@@ -136,5 +142,5 @@ endif
 echo "Killing rmiregistry"
 kill `cat $rmiregistryPidFile`
 
-echo "Killing clients, if still alive"
+echo "Killing clients, if any are still alive"
 kill `cat $pidFile`

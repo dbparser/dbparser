@@ -228,7 +228,8 @@ public class StartSwitchboard {
 	System.err.println("grabbing all files in directory " + curr);
 	File[] filesInCurr = curr.listFiles();
 	for (int fileIdx = 0; fileIdx < filesInCurr.length; fileIdx++)
-	  inFilenames.add(i++, filesInCurr[fileIdx].getAbsolutePath());
+          if (filesInCurr[fileIdx].isFile())
+            inFilenames.add(i++, filesInCurr[fileIdx].getAbsolutePath());
       }
     }
 

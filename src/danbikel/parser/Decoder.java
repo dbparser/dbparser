@@ -186,6 +186,11 @@ public class Decoder implements Serializable {
   protected double pruneFact = 0.0;
   /** The original sentence, before preprocessing. */
   protected SexpList originalSentence = new SexpList();
+  /** The original tag list, before preprocessing. */
+  protected SexpList originalTags;
+  /** The value of the {@link Settings#restorePrunedWords} setting. */
+  protected boolean restorePrunedWords =
+    Settings.getBoolean(Settings.restorePrunedWords);
   /**
    * The original sentence, but with word removed to match pre-processing.
    * This will be used to restore the original words after parsing.
@@ -194,11 +199,10 @@ public class Decoder implements Serializable {
   /** An instance of an empty subcat, for use when constructing lookup events.*/
   protected Subcat emptySubcat = Subcats.get();
   /** The boolean value of the {@link Settings#downcaseWords} setting. */
-  protected boolean downcaseWords =
-    Boolean.valueOf(Settings.get(Settings.downcaseWords)).booleanValue();
+  protected boolean downcaseWords = Settings.getBoolean(Settings.downcaseWords);
   /** The boolean value of the {@link Settings#useLowFreqTags} setting. */
   protected boolean useLowFreqTags =
-    Boolean.valueOf(Settings.get(Settings.useLowFreqTags)).booleanValue();
+    Settings.getBoolean(Settings.useLowFreqTags);
   /**
    * The boolean value of the
    * {@link Settings#decoderSubstituteWordsForClosedClassTags} setting.
@@ -556,6 +560,12 @@ public class Decoder implements Serializable {
     originalSentence.clear();
     originalSentence.addAll(sentence);
 
+    // preserve original tags, if non-null
+    if (tags != null)
+      originalTags = new SexpList(tags);
+    else
+      originalTags = null;
+    
     originalWords.clear();
     originalWords.addAll(sentence);
 
@@ -634,6 +644,8 @@ public class Decoder implements Serializable {
 
   protected void postProcess(Sexp tree) {
     restoreOriginalWords(tree, 0);
+    if (restorePrunedWords)
+      restorePrunedWords(tree);
     if (debugDontPostProcess)
       return;
     else
@@ -665,6 +677,49 @@ public class Decoder implements Serializable {
 	}
 	else
 	  wordIdx = restoreOriginalWords(currChild, wordIdx);
+      }
+    }
+    return wordIdx;
+  }
+
+  protected void restorePrunedWords(Sexp tree) {
+    int wordIdx = restorePrunedWordsRecursive(tree, 0);
+    while (wordIdx < originalSentence.length()) {
+      Symbol newWord = originalSentence.symbolAt(wordIdx);
+      Symbol newTag =
+	originalTags == null ?
+	newWord : originalTags.listAt(wordIdx).first().symbol();
+      Word newWordObj = Words.get(newWord, newTag);
+      tree.list().add(Language.treebank().constructPreterminal(newWordObj));
+      wordIdx++;
+    }
+  }
+
+  protected int restorePrunedWordsRecursive(Sexp tree, int wordIdx) {
+    Treebank treebank = Language.treebank;
+    if (treebank.isPreterminal(tree))
+      ;
+    else if (tree.isList()) {
+      SexpList treeList = tree.list();
+      for (int i = 1; i < treeList.length(); i++) {
+	Sexp currChild = treeList.get(i);
+	if (treebank.isPreterminal(currChild)) {
+	  Word word = treebank.makeWord(currChild);
+	  while (word.word() != originalSentence.get(wordIdx)) {
+	    Symbol newWord = originalSentence.symbolAt(wordIdx);
+	    Symbol newTag =
+	      originalTags == null ?
+	      newWord : originalTags.listAt(wordIdx).first().symbol();
+	    Word newWordObj = Words.get(newWord, newTag);
+	    // add new word as left-sibling of current word
+	    treeList.add(i, treebank.constructPreterminal(newWordObj));
+	    i++;
+	    wordIdx++;
+	  }
+	  wordIdx++;
+	}
+	else
+	  wordIdx = restorePrunedWordsRecursive(currChild, wordIdx);
       }
     }
     return wordIdx;
@@ -751,7 +806,8 @@ public class Decoder implements Serializable {
 	if (allSuppliedTagsUnobserved) {
 	  System.err.println(className +
 			     ": warning: useOnlySuppliedTags=true but known " +
-			     "word \"" + word + "\" in sentence " +
+			     "word \"" + word + "\" (idx=" + wordIdx + ") " +
+			     "in sentence " +
 			     (sentenceIdx + 1) + " has never been " +
 			     "observed with any of supplied tags " + tagSet);
 	  //tagSet = observedTagSet;
@@ -780,7 +836,8 @@ public class Decoder implements Serializable {
     if (tagSet == null) {
       tagSet = SexpList.emptyList;
       System.err.println(className + ": warning: no tags for default " +
-			 "feature vector " + word);
+			 "feature vector " + word +
+			 " (word index=" + wordIdx + ")");
     }
     return tagSet;
   }

@@ -200,7 +200,41 @@ public class Settings implements Serializable {
    * The value of this constant is
    * <code>"parser.model.precomputeProbabilities"</code>.
    */
-  public final static String precomputeProbs = "parser.model.precomputeProbabilities";
+  public final static String precomputeProbs =
+    "parser.model.precomputeProbabilities";
+
+  /**
+   * The property to specify whether or not the <code>ModelCollection</code>
+   * class should write out the large hash map containing canonical versions of
+   * <code>Event</code> objects when it is serialized (that is, saved to a
+   * file).  When decoding using caches instead of precomputed probabilities
+   * (see {@link #precomputeProbs}), the use of the canonical events table
+   * saves time by allowing the decoder to put canonical events observed
+   * during training into the caches, instead of always having to create a
+   * canonical events table anew during decoding.  Accordingly, when
+   * <code>precomputeProbs</code> is set to <tt>false</tt>, the value of this
+   * property should usually be <tt>true</tt>, except when debugging.  When
+   * <code>precomputeProbs</code> is <tt>false</tt> <i><b>and</b></i> the value
+   * of this property is also <tt>false</tt>, then the
+   * <code>ModelCollection</code> object used during training will simply write
+   * out an empty canonical events table, to be read in when the
+   * <code>ModelCollection</code> object is de-serialized just prior to
+   * decoding, meaning that as events are cached, they will need to be copied
+   * on the fly to the canonical events table.  Finally, when
+   * <code>precomputeProbs</code> is <tt>true</tt>, this property is ignored.
+   * <p>
+   * The value of this property should be (the string representation of) a
+   * boolean (conversion is performed by the method
+   * <code>Boolean.valueOf</code>).
+   * <p>
+   * The value of this constants is
+   * <code>&quot;parser.modelCollection.writeCanonicalEvents&quot;</code>.
+   *
+   * @see #precomputeProbs
+   * @see ModelCollection
+   */
+  public final static String writeCanonicalEvents =
+    "parser.modelCollection.writeCanonicalEvents";
 
   /**
    * The property to specify whether the method

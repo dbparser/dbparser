@@ -71,7 +71,7 @@ public class Settings implements Serializable {
   /** The official name of this program. */
   public final static String progName = "WordNet Parser";
   /** The official version of this program. */
-  public final static String version = "0.9.5";
+  public final static String version = "0.9.6";
   /**
    * The prefix that all properties for this parser should have
    * (to be used when finding system properties that are meant to be included

@@ -7,7 +7,7 @@ if ($#argv < 3) then
 endif
 
 set RSH = ssh
-set java = /usr/java/j2sdk1.4.1_01/bin/java
+set java = $JAVA_HOME/bin/java
 
 set reap
 

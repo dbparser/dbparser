@@ -95,6 +95,18 @@ public class Word implements Serializable, Cloneable, SexpConvertible {
   public void setFeatures(Symbol features) { this.features = features; }
 
   /**
+   * Sets all three data members for this word.
+   *
+   * @return this Word object
+   */
+  public Word set(Symbol word, Symbol tag, Symbol features) {
+    setWord(word);
+    setTag(tag);
+    setFeatures(features);
+    return this;
+  }
+
+  /**
    * Returns a hash value for this object.
    *
    * @return the hash value for this object.

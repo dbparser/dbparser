@@ -104,6 +104,7 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
 	// unrecognized data type
       }
     }
+    createArgAugmentationsList();
   }
 
   /** Debugging method to print the metadata used by this class. */

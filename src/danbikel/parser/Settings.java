@@ -355,7 +355,7 @@ public class Settings implements Serializable {
   /**
    * The property to specify the threshold below which <code>TrainerEvent</code>
    * objects are discarded by the trainer.  The value of this property
-   * must be (the string representation of) an integer.
+   * must be (the string representation of) a floating-point number.
    * <p>
    * The value of this constant is
    * <code>"parser.trainer.countThreshold"</code>.
@@ -364,6 +364,20 @@ public class Settings implements Serializable {
    */
   public final static String countThreshold =
     "parser.trainer.countThreshold";
+
+  /**
+   * The property to specify the threshold below which <code>Event</code>
+   * objects are discarded by the databases contained with <code>Model</code>
+   * objects.  The value of this property must be (the string representation
+   * of) a floating-point number.
+   * <p>
+   * The value of this constant is
+   * <code>"parser.trainer.derivedCountThreshold"</code>.
+   *
+   * @see Trainer
+   */
+  public final static String derivedCountThreshold =
+    "parser.trainer.derivedCountThreshold";
 
   /**
    * The property to specify the interval (in number of sentences) at which the
@@ -1098,8 +1112,9 @@ public class Settings implements Serializable {
     Iterator systemProps = System.getProperties().keySet().iterator();
     while (systemProps.hasNext()) {
       String property = (String)systemProps.next();
-      if (property.startsWith(globalPropertyPrefix))
+      if (property.startsWith(globalPropertyPrefix)) {
 	set(property, System.getProperty(property));
+      }
     }
   }
 

@@ -648,7 +648,8 @@ public class EMDecoder extends Decoder {
 		chart.get(modificandStartIdx, modificandEndIdx);
 	      while (modificandItems.hasNext()) {
 		EMItem modificandItem = (EMItem)modificandItems.next();
-		if (!modificandItem.stop() && modificandItem.label()==baseNP) {
+		if (!modificandItem.stop() &&
+		    Language.treebank.isBaseNP((Symbol)modificandItem.label())){
 		  if (debugComplete)
 		    System.err.println(className +
 				       ".complete: trying to modify\n\t" +

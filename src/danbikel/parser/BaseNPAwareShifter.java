@@ -10,17 +10,11 @@ import danbikel.lisp.*;
  * treats punctuation and conjunction modifiers as conditionally independent,
  * by not shifting one into the history when it is followed by the other.
  *
- * @see Treebank#baseNPLabel()
+ * @see Treebank#isBaseNP(Symbol)
  * @see Treebank#isPunctuation(Symbol)
  * @see Treebank#isConjunction(Symbol)
  */
 public class BaseNPAwareShifter implements Shift {
-  /**
-   * The value of {@link Treebank#baseNPLabel}, cached for efficiency and
-   * convenience.
-   */
-  private final Symbol baseNP = Language.treebank.baseNPLabel();
-
   public BaseNPAwareShifter() {}
 
 
@@ -41,7 +35,7 @@ public class BaseNPAwareShifter implements Shift {
    * @param prevMod the previously-generated modifier
    * @param currMod the modifier that has just been generated
    *
-   * @see Treebank#baseNPLabel()
+   * @see Treebank#isBaseNP(Symbol)
    * @see Treebank#isPunctuation(Symbol)
    * @see Treebank#isConjunction(Symbol)
    */
@@ -53,7 +47,7 @@ public class BaseNPAwareShifter implements Shift {
     boolean doShift;
     // do not treat punctuation as a true "previous modifier" when inside
     // a base NP
-    if (event != null && event.parent() == baseNP) {
+    if (event != null && Language.treebank.isBaseNP(event.parent())) { 
       doShift = !Language.treebank.isPunctuation(prevModSym);
     }
     else {
@@ -91,7 +85,7 @@ public class BaseNPAwareShifter implements Shift {
    * @param prevWord the head word of the previously-generated modifier
    * @param currWord the head word of the modifier that has just been generated
    *
-   * @see Treebank#baseNPLabel()
+   * @see Treebank#isBaseNP(Symbol)
    * @see Treebank#isPunctuation(Symbol)
    * @see Treebank#isConjunction(Symbol)
    */
@@ -100,7 +94,7 @@ public class BaseNPAwareShifter implements Shift {
     boolean doShift;
     // do not treat punctuation as a true "previous word" when inside
     // a base NP
-    if (event != null && event.parent() == baseNP) {
+    if (event != null && Language.treebank.isBaseNP(event.parent())) {
       doShift = !Language.treebank.isPunctuation(prevWord.tag());
     }
     else {
@@ -138,7 +132,7 @@ public class BaseNPAwareShifter implements Shift {
    * @return whether or not to skip the specified previous modifier when
    * constructing the modifier history for the specified chart item
    *
-   * @see Treebank#baseNPLabel()
+   * @see Treebank#isBaseNP(Symbol)
    * @see Treebank#isPunctuation(Symbol)
    * @see Treebank#isConjunction(Symbol)
    */
@@ -147,7 +141,7 @@ public class BaseNPAwareShifter implements Shift {
     Symbol prevModSym = prevMod.symbol();
     // do not treat punctuation as a true "previous word" when inside
     // a base NP
-    if (item.label() == baseNP)
+    if (Language.treebank.isBaseNP((Symbol)item.label()))
       return Language.treebank.isPunctuation(prevModSym);
     // treat punctuation and conjunction as conditionally independent:
     // if one follows the other, the previous element is *not* shifted
@@ -180,14 +174,14 @@ public class BaseNPAwareShifter implements Shift {
    * when constructing the modifier head word history for the specified
    * chart item
    *
-   * @see Treebank#baseNPLabel()
+   * @see Treebank#isBaseNP(Symbol)
    * @see Treebank#isPunctuation(Symbol)
    * @see Treebank#isConjunction(Symbol)
    */
   public boolean skip(Item item, Word prevWord, Word currWord) {
     // do not treat punctuation as a true "previous word" when inside
     // a base NP
-    if (item.label() == baseNP)
+    if (Language.treebank.isBaseNP((Symbol)item.label()))
       return Language.treebank.isPunctuation(prevWord.tag());
     // treat punctuation and conjunction as conditionally independent:
     // if one follows the other, the previous element is *not* shifted

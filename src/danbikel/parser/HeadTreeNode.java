@@ -124,7 +124,7 @@ public class HeadTreeNode implements Serializable, SexpConvertible {
       }
 
       if (baseNPsCannotContainVerbs) {
-	if (label == treebank.baseNPLabel()) {
+	if (Language.treebank.isBaseNP(label)) {
 	  containsVerb = false;
 	}
       }

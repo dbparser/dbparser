@@ -8,7 +8,6 @@ public class TrainerEventToCollins {
   public static Symbol topSym = Language.training().topSym();
   public static Symbol startSym = Language.training().startSym();
   public static Symbol stopSym = Language.training().stopSym();
-  public static Symbol baseNP = Language.treebank().baseNPLabel();
   public static Symbol npArg = Symbol.add("NP-A");
   public static Symbol sbarArg = Symbol.add("SBAR-A");
   public static Symbol sArg = Symbol.add("S-A");
@@ -45,7 +44,7 @@ public class TrainerEventToCollins {
 
   public static String modEventToCollins(ModifierEvent modEvent) {
 
-    boolean parentIsBaseNP = modEvent.parent() == baseNP;
+    boolean parentIsBaseNP = Language.treebank().isBaseNP(modEvent.parent());
 
     // conjunctions are treated specially when they are not dominated by
     // NPB and when they are part of a coordinated phrase (i.e., actually

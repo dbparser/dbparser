@@ -26,12 +26,6 @@ public class CKYItem extends Item implements SexpConvertible {
   Boolean.valueOf(Settings.get(Settings.baseNPsCannotContainVerbs)).booleanValue();
 
   /**
-   * The value of {@link Treebank#baseNPLabel}, cached for efficiency and
-   * convenience.
-   */
-  protected final static Symbol baseNP = Language.treebank().baseNPLabel();
-
-  /**
    * The value of {@link Training#topSym}, cached for efficiency and
    * convenience.
    */
@@ -68,7 +62,7 @@ public class CKYItem extends Item implements SexpConvertible {
     public Symbol headLabel() {
       if (isPreterminal())
 	return null;
-      return (headChild.label == baseNP ?
+      return (Language.treebank.isBaseNP(headChild.label) ?
 	      headChild.headChild.label : headChild.label);
     }
 
@@ -84,7 +78,7 @@ public class CKYItem extends Item implements SexpConvertible {
 		this.headWord.equals(other.headWord) &&
 		this.containsVerb() == other.containsVerb());
       }
-      else if (this.label == baseNP) {
+      else if (Language.treebank.isBaseNP(this.label)) {
 	return (this.stop == other.stop &&
 		this.label == other.label &&
 		//this.headWord.equals(other.headWord) &&
@@ -122,7 +116,7 @@ public class CKYItem extends Item implements SexpConvertible {
       }
 
       // special case for baseNP items
-      if (this.label == baseNP) {
+      if (Language.treebank.isBaseNP(this.label)) {
 	Symbol headLabel = headLabel();
 	if (headLabel != null)
 	  code = (code << 2) ^ headLabel.hashCode();
@@ -248,7 +242,7 @@ public class CKYItem extends Item implements SexpConvertible {
     public Symbol headLabel() {
       if (isPreterminal())
 	return null;
-      return (headChild.label == baseNP ?
+      return (Language.treebank.isBaseNP(headChild.label) ?
 	      headChild.headChild.label : headChild.label);
     }
     */
@@ -272,7 +266,7 @@ public class CKYItem extends Item implements SexpConvertible {
 		this.headWord.equals(other.headWord) &&
 		this.containsVerb() == other.containsVerb());
       }
-      else if (this.label == baseNP) {
+      else if (Language.treebank.isBaseNP(this.label)) {
 	return (this.stop == other.stop &&
 		this.label == other.label &&
 		//this.headWord.equals(other.headWord) &&
@@ -322,7 +316,7 @@ public class CKYItem extends Item implements SexpConvertible {
       }
 
       // special case for baseNP items
-      if (this.label == baseNP) {
+      if (Language.treebank.isBaseNP(this.label)) {
 	Symbol headLabel = headLabel();
 	if (headLabel != null)
 	  code = (code << 2) ^ headLabel.hashCode();
@@ -649,7 +643,7 @@ public class CKYItem extends Item implements SexpConvertible {
   }
 
   protected boolean containsVerbRecursive() {
-    if (baseNPsCannotContainVerbs && this.label == baseNP)
+    if (baseNPsCannotContainVerbs && Language.treebank.isBaseNP(this.label))
       return false;
     else if (leftVerb || rightVerb)
       return true;

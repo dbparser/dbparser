@@ -1048,7 +1048,8 @@ public class Settings implements Serializable {
     public synchronized Object put(Object key, Object value) {
       StringBuffer valueBuffer = new StringBuffer((String)value);
       Text.expandVars(this, valueBuffer);
-      return super.put(key, valueBuffer.toString());
+      String expandedValue = valueBuffer.toString();
+      return super.put(key, expandedValue);
     }
   };
 
@@ -1110,6 +1111,7 @@ public class Settings implements Serializable {
    * @throws IOException if {@link #load(File)} throws an <tt>IOException</tt>
    */
   public static void load(String filename) throws IOException {
+    System.err.println("Reading settings from\n\t" + filename);
     load(new File(filename));
   }
 
@@ -1142,11 +1144,6 @@ public class Settings implements Serializable {
    */
   public static void load(InputStream is) throws IOException {
     settings.load(is);
-    Enumeration e = settings.propertyNames();
-    while (e.hasMoreElements()) {
-      String property = (String)e.nextElement();
-      set(property, (String)settings.getProperty(property));
-    }
   }
 
   /**

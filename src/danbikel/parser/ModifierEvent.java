@@ -1,5 +1,6 @@
 package danbikel.parser;
 
+import danbikel.util.*;
 import danbikel.lisp.*;
 import java.io.*;
 
@@ -20,6 +21,7 @@ public class ModifierEvent implements TrainerEvent, Cloneable {
   private Word headWord;
   private Symbol modifier;
   private SexpList previousMods;
+  private WordList previousWords;
   private Symbol parent;
   private Symbol head;
   private Subcat subcat;
@@ -57,11 +59,12 @@ public class ModifierEvent implements TrainerEvent, Cloneable {
 	 new Word(sexp.list().get(1)),
 	 sexp.list().symbolAt(2),
 	 SexpList.getCanonical(sexp.list().listAt(3)),
-	 sexp.list().symbolAt(4),
+         WordListFactory.newList(sexp.list().listAt(4)),
 	 sexp.list().symbolAt(5),
-	 sexp.list().listAt(6),
-	 sexp.list().symbolAt(7) == trueSym,
-	 (sexp.list().symbolAt(8) == leftSym ?
+	 sexp.list().symbolAt(6),
+	 sexp.list().listAt(7),
+	 sexp.list().symbolAt(8) == trueSym,
+	 (sexp.list().symbolAt(9) == leftSym ?
 	  Constants.LEFT : Constants.RIGHT));
   }
 
@@ -89,26 +92,28 @@ public class ModifierEvent implements TrainerEvent, Cloneable {
 		       Word headWord,
 		       Symbol modifier,
 		       SexpList previousMods,
+                       WordList previousWords,
 		       Symbol parent,
 		       Symbol head,
 		       SexpList subcat,
 		       boolean verbIntervening,
 		       boolean side) {
-    this(modHeadWord, headWord, modifier, previousMods, parent, head,
-         Subcats.get(subcat), verbIntervening, side);
+    this(modHeadWord, headWord, modifier, previousMods, previousWords, parent,
+         head, Subcats.get(subcat), verbIntervening, side);
   }
 
   public ModifierEvent(Word modHeadWord,
 		       Word headWord,
 		       Symbol modifier,
 		       SexpList previousMods,
+                       WordList previousWords,
 		       Symbol parent,
 		       Symbol head,
 		       Subcat subcat,
 		       boolean verbIntervening,
 		       boolean side) {
-    set(modHeadWord, headWord, modifier, previousMods, parent, head,
-        subcat, verbIntervening, side);
+    set(modHeadWord, headWord, modifier, previousMods, previousWords, parent,
+        head, subcat, verbIntervening, side);
   }
 
   // accessors
@@ -120,6 +125,11 @@ public class ModifierEvent implements TrainerEvent, Cloneable {
   public Symbol modifier() { return modifier; }
   /** Returns a list of modifiers that have already been generated. */
   public SexpList previousMods() { return previousMods; }
+  /**
+   * Returns a list of the head words of modifiers that have already been
+   * generated.
+   */
+  public WordList previousWords() { return previousWords; }
   /** Returns the parent nonterminal label. */
   public Symbol parent() { return parent; }
   /** Returns the head child nonterminal label. */
@@ -154,6 +164,9 @@ public class ModifierEvent implements TrainerEvent, Cloneable {
   void setPreviousMods(SexpList previousMods) {
     this.previousMods = previousMods;
   }
+  void setPreviousWords(WordList previousWords) {
+    this.previousWords = previousWords;
+  }
   void setParent(Symbol parent) {
     this.parent = parent;
   }
@@ -173,6 +186,7 @@ public class ModifierEvent implements TrainerEvent, Cloneable {
            Word headWord,
            Symbol modifier,
            SexpList previousMods,
+           WordList previousWords,
            Symbol parent,
            Symbol head,
            Subcat subcat,
@@ -182,6 +196,7 @@ public class ModifierEvent implements TrainerEvent, Cloneable {
     this.headWord = headWord;
     this.modifier = modifier;
     this.previousMods = SexpList.getCanonical(previousMods);
+    this.previousWords = previousWords;
     this.parent = parent;
     this.head = head;
     this.subcat = subcat;
@@ -211,6 +226,7 @@ public class ModifierEvent implements TrainerEvent, Cloneable {
 	    headWordsEqual &&
 	    modifier == other.modifier &&
 	    previousMods.equals(other.previousMods) &&
+            previousWords.equals(other.previousWords) &&
 	    parent == other.parent &&
 	    head == other.head &&
 	    subcat.equals(other.subcat) &&
@@ -224,7 +240,7 @@ public class ModifierEvent implements TrainerEvent, Cloneable {
    */
   public String toString() {
     return "(" + modHeadWord + " " + headWord +
-      " " + modifier + " " + previousMods +
+      " " + modifier + " " + previousMods + " " + previousWords.toSexp() +
       " " + parent + " " + head + " " +
       subcat.toSexp() + " " + verbIntervening + " " +
       (side == Constants.LEFT ? leftSym : rightSym) + ")";
@@ -242,6 +258,7 @@ public class ModifierEvent implements TrainerEvent, Cloneable {
       code = (code << 2) ^ headWord.hashCode();
     code = (code << 2) ^ modifier.hashCode();
     code = (code << 2) ^ previousMods.hashCode();
+    code = (code << 2) ^ previousWords.hashCode();
     code = (code << 2) ^ parent.hashCode();
     code = (code << 2) ^ head.hashCode();
     code = (code << 2) ^ subcat.hashCode();
@@ -261,6 +278,7 @@ public class ModifierEvent implements TrainerEvent, Cloneable {
 			     headWord.copy(),
 			     modifier,
 			     new SexpList(previousMods),
+                             previousWords.copy(),
 			     parent,
 			     head,
 			     (Subcat)subcat.copy(),

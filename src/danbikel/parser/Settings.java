@@ -711,13 +711,13 @@ public class Settings implements Serializable {
   public final static String sbUserTimeout = "parser.switchboardUser.timeout";
 
   /**
-   * The property to specify at most how many times switchboard users,
-   * in the event of a switchboard crash, should try to re-acquire the
-   * switchboard from the bootstrap registry before giving up.
-   * If the value of this property is identical to the value of
-   * {@link danbikel.util.proxy.Retry#retryIndefinitely}, the parsing
-   * clients and decoder servers will indefinitely keep trying to re-acquire
-   * the switchboard in the event of its failure.
+   * The property to specify at most how many times switchboard users
+   * should try to acquire the switchboard from the bootstrap registry before
+   * giving up, either when first starting up or in the event of a switchboard
+   * crash.  If the value of this property is identical to the value of
+   * {@link danbikel.switchboard.AbstractSwitchboardUser#infiniteTries}, the
+   * parsing clients and decoder servers will indefinitely keep trying to
+   * re-acquire the switchboard in the event of its failure.
    * <p>
    * The value of this constant is
    * <code>"parser.switchboardUser.sbMaxRetries"</code>.

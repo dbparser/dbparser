@@ -394,6 +394,7 @@ public class Switchboard
       if (retval != null)
 	readNextObject();
       if (verbose) {
+        /*
 	if (retval == null) {
 	  log("IOData.nextObject: no more objects in file No. " + id, clientId);
 	}
@@ -401,6 +402,7 @@ public class Switchboard
 	  log("IOData.nextObject: returning object " + retval.number() +
 	      " from file No. " + id, clientId);
 	}
+       */
       }
       return retval;
     }

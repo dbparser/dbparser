@@ -11,7 +11,8 @@ import java.util.*;
  * Accordingly, the individual <tt>Constraint</tt> objects in this set form
  * an isomorphic tree structure.
  */
-public class UnlexTreeConstraintSet implements ConstraintSet {
+public class UnlexTreeConstraintSet
+  extends AbstractCollection implements ConstraintSet {
 
   /**
    * The root of this tree of constraints.
@@ -19,9 +20,20 @@ public class UnlexTreeConstraintSet implements ConstraintSet {
   protected UnlexTreeConstraint root;
 
   /**
-   * The leaves of this tree of constraints.
+   * The number of constraints in this set.
    */
-  protected List leaves = new ArrayList();
+  protected int size;
+
+  /**
+   * A list of all the constraints in this set, for making iteration easy.
+   */
+  protected ArrayList list = new ArrayList();
+
+  /**
+   * The leaves of this tree of constraints in their correct order as they
+   * correspond to single words (technically, preterminals) of a sentence.
+   */
+  protected ArrayList leaves = new ArrayList();
 
   public UnlexTreeConstraintSet() {
   }
@@ -39,16 +51,21 @@ public class UnlexTreeConstraintSet implements ConstraintSet {
    */
   protected void buildConstraintSet(Sexp tree) {
     root = new UnlexTreeConstraint(tree);
-    collectLeaves(root);
+    collectNodes(root);
+    list.trimToSize();
+    leaves.trimToSize();
   }
 
-  protected void collectLeaves(UnlexTreeConstraint tree) {
+  protected void collectNodes(UnlexTreeConstraint tree) {
+    size++;
+    list.add(tree);
+
     if (tree.isLeaf())
       leaves.add(tree);
     else {
       List children = tree.getChildren();
       for (int i = 0; i < children.size(); i++)
-        collectLeaves((UnlexTreeConstraint)children.get(i));
+        collectNodes((UnlexTreeConstraint)children.get(i));
     }
   }
 
@@ -105,18 +122,9 @@ public class UnlexTreeConstraintSet implements ConstraintSet {
     // constraint
     CKYItem ckyItem = (CKYItem)item;
 
-    // normally, preterminal items should be assigned constraints from the
-    // list of leaves, and thus this case should normally not be considered;
-    // but just in case a brain-dead programmer creates a decoder that is
-    // inefficient in this way, here's the code to deal with it
     if (ckyItem.isPreterminal()) {
-      int numLeaves = leaves.size();
-      for (int i = 0; i < numLeaves; i++) {
-        Constraint curr = (Constraint)leaves.get(i);
-        if (curr.isSatisfiedBy(item))
-          return curr;
-      }
-      return null;
+      Constraint constraint = (Constraint)leaves.get(ckyItem.start());
+      return (constraint.isSatisfiedBy(item) ? constraint : null);
     }
 
     // get the parent of the head child's constraint
@@ -127,13 +135,25 @@ public class UnlexTreeConstraintSet implements ConstraintSet {
             headChildConstraintParent : null);
   }
 
+  public String toString() {
+    return root.toSexp().toString();
+  }
+
+  // methods to comply with Collection interface
+  public int size() { return size; }
+
+  public Iterator iterator() {
+    return list.iterator();
+  }
+
   /**
    * Test driver for this class.
    * @param args
    */
   public static void main(String[] args) {
     try {
-      SexpTokenizer tok = new SexpTokenizer(System.in, Language.encoding(), 8192);
+      SexpTokenizer tok =
+        new SexpTokenizer(System.in, Language.encoding(), 8192);
       Sexp curr = null;
       while ((curr = Sexp.read(tok)) != null) {
         UnlexTreeConstraintSet set = new UnlexTreeConstraintSet(curr);

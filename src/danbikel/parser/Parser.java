@@ -210,10 +210,12 @@ public class Parser
   private static String derivedDataFilename = null;
   private static String inputFilename = null;
   private static String outputFilename = null;
+  private static String settingsFilename = null;
   private static int numClients = 1;
 
   private static final String[] usageMsg = {
     "usage: [-nc <numClients> | -num-clients <numClients>]",
+    "\t[-sf <settings file> | --settings <settings file>]",
     "\t[-is <derived data file> | -internal-server <derived data file>] ",
     "\t[ [-sa <sentence input file> | --stand-alone <sentence input file> ",
     "\t       [-out <parse output file>] ] |",
@@ -229,7 +231,15 @@ public class Parser
     for (int i = 0; i < args.length; i++) {
       if (args[i].charAt(0) == '-') {
         // process switch
-        if (args[i].equals("-sa") || args[i].equals("--stand-alone")) {
+        if (args[i].equals("-sf") || args[i].equals("--settings")) {
+          if (i + 1 == args.length) {
+            System.err.println("error: " + args[i] + " requires a filename");
+            usage();
+            return false;
+          }
+          settingsFilename = args[++i];
+        }
+        else if (args[i].equals("-sa") || args[i].equals("--stand-alone")) {
           if (i + 1 == args.length) {
             System.err.println("error: " + args[i] + " requires a filename");
             usage();
@@ -333,6 +343,8 @@ public class Parser
                              "\" does not exist");
           return;
         }
+        if (settingsFilename != null)
+          Settings.load(settingsFilename);
         parser = new Parser(derivedDataFilename);
         int bufSize = Constants.defaultFileBufsize;
         OutputStreamWriter osw =
@@ -392,6 +404,8 @@ public class Parser
             if (derivedDataFilename != null)
               checkSettings(sbSettings);
             Settings.setSettings(sbSettings);
+            if (settingsFilename != null)
+              Settings.load(settingsFilename);
             if (derivedDataFilename != null) {
               parser.server = server;
               parser.localServer = true;

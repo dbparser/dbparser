@@ -48,6 +48,16 @@ public class CKYItem extends Item implements SexpConvertible {
                 this.label == other.label &&
                 this.headWord.equals(other.headWord));
       }
+      else if (this.label == baseNP) {
+	return (this.stop == other.stop &&
+		this.label == other.label &&
+		this.headWord.equals(other.headWord) &&
+		(this.headChild == null ||
+		 this.headChild.label == other.headChild.label) &&
+		this.leftPrevMods.equals(other.leftPrevMods) &&
+                this.rightPrevMods.equals(other.rightPrevMods) &&
+		this.prevWordsEqual(other));
+      }
       else {
         return (this.isPreterminal() == other.isPreterminal() &&
                 this.stop == other.stop &&
@@ -55,7 +65,6 @@ public class CKYItem extends Item implements SexpConvertible {
                 this.rightVerb == other.rightVerb &&
 		this.label == other.label &&
 		this.headWord.equals(other.headWord) &&
-                (this.label == baseNP ? prevWordsEqual(other) : true) &&
                 (this.headChild == null ||
 		 this.headChild.label == other.headChild.label) &&
 		this.leftPrevMods.equals(other.leftPrevMods) &&
@@ -66,12 +75,27 @@ public class CKYItem extends Item implements SexpConvertible {
     }
 
     public int hashCode() {
+      // all three types of chart items (stopped, baseNP and others)
+      // depend on label and head word
       int code = label.hashCode();
       code = (code << 2) ^ headWord.hashCode();
+
+      // special case for stopped items
       if (stop) {
         code = (code << 1) | (isPreterminal() ? 1 : 0);
         return code;
       }
+
+      // special case for baseNP items
+      if (this.label == baseNP) {
+	if (headChild != null)
+	  code = (code << 2) ^ headChild.label().hashCode();
+	code = (code << 2) ^ leftPrevMods.hashCode();
+	code = (code << 2) ^ rightPrevMods.hashCode();
+	return code;
+      }
+
+      // finish computation of hash code for all other items
       if (leftSubcat != null)
         code = (code << 2) ^ leftSubcat.hashCode();
       if (rightSubcat != null)
@@ -81,7 +105,7 @@ public class CKYItem extends Item implements SexpConvertible {
       code = (code << 2) ^ leftPrevMods.hashCode();
       code = (code << 2) ^ rightPrevMods.hashCode();
       int booleanCode = 0;
-      booleanCode = (booleanCode << 1) | (stop ? 1 : 0);
+      //booleanCode = (booleanCode << 1) | (stop ? 1 : 0);
       booleanCode = (booleanCode << 1) | (leftVerb ? 1 : 0);
       booleanCode = (booleanCode << 1) | (rightVerb ? 1 : 0);
       return code ^ booleanCode;
@@ -145,12 +169,18 @@ public class CKYItem extends Item implements SexpConvertible {
      * {@link #equals} method.
      */
     public int hashCode() {
+      // for both types of items (stopped and un-stopped), the equals method
+      // relies on items' labels and head words
       int code = label.hashCode();
       code = (code << 2) ^ headWord.hashCode();
+
+      // special case for stopped items
       if (stop) {
 	code = (code << 1) | (isPreterminal() ? 1 : 0);
 	return code;
       }
+
+      // finish the hash code computation for un-stopped items
       if (leftSubcat != null)
 	code = (code << 2) ^ leftSubcat.hashCode();
       if (rightSubcat != null)
@@ -160,7 +190,7 @@ public class CKYItem extends Item implements SexpConvertible {
       int booleanCode = 0;
       booleanCode = (booleanCode << 1) | (leftPrevModIsStart() ? 1 : 0);
       booleanCode = (booleanCode << 1) | (rightPrevModIsStart() ? 1 : 0);
-      booleanCode = (booleanCode << 1) | (stop ? 1 : 0);
+      //booleanCode = (booleanCode << 1) | (stop ? 1 : 0);
       booleanCode = (booleanCode << 1) | (leftVerb ? 1 : 0);
       booleanCode = (booleanCode << 1) | (rightVerb ? 1 : 0);
       return code ^ booleanCode;
@@ -193,6 +223,16 @@ public class CKYItem extends Item implements SexpConvertible {
 		this.label == other.label &&
 		this.headWord.equals(other.headWord));
       }
+      else if (this.label == baseNP) {
+	return (this.stop == other.stop &&
+		this.label == other.label &&
+		this.headWord.equals(other.headWord) &&
+		(this.headChild == null ||
+		 this.headChild.label == other.headChild.label) &&
+		this.leftPrevMods.equals(other.leftPrevMods) &&
+		this.rightPrevMods.equals(other.rightPrevMods) &&
+		this.prevWordsEqual(other));
+      }
       else {
 	return (this.isPreterminal() == other.isPreterminal() &&
 		this.stop == other.stop &&
@@ -200,25 +240,21 @@ public class CKYItem extends Item implements SexpConvertible {
 		this.rightVerb == other.rightVerb &&
 		this.label == other.label &&
 		this.headWord.equals(other.headWord) &&
-		(this.label == baseNP ? prevWordsEqual(other) : true) &&
 		(this.headChild == null ||
 		 this.headChild.label == other.headChild.label) &&
-                this.prevModsEqual(other) &&
+		this.mappedPrevModsEqual(other) &&
 		this.leftSubcat.equals(other.leftSubcat) &&
 		this.rightSubcat.equals(other.rightSubcat));
       }
     }
 
-    protected boolean prevModsEqual(CKYItem other) {
-      return (prevModsEqual(Constants.LEFT, other) &&
-              prevModsEqual(Constants.RIGHT, other));
-    }
+    protected boolean mappedPrevModsEqual(CKYItem other) {
+      return
+	((Collins.mapPrevMod(this.leftPrevMods.symbolAt(0)) ==
+	  Collins.mapPrevMod(other.leftPrevMods.symbolAt(0))) &&
 
-    protected boolean prevModsEqual(boolean side, CKYItem other) {
-      Symbol thisPrevMod = Collins.mapPrevMod(prevMods(side).symbolAt(0));
-      Symbol otherPrevMod =
-	Collins.mapPrevMod(other.prevMods(side).symbolAt(0));
-      return thisPrevMod == otherPrevMod;
+	 (Collins.mapPrevMod(this.rightPrevMods.symbolAt(0)) ==
+	  Collins.mapPrevMod(other.rightPrevMods.symbolAt(0))));
     }
 
     /**
@@ -226,24 +262,38 @@ public class CKYItem extends Item implements SexpConvertible {
      * {@link #equals} method.
      */
     public int hashCode() {
+      // all three types of chart items (stopped, baseNP and others)
+      // depend on label and head word
       int code = label.hashCode();
       code = (code << 2) ^ headWord.hashCode();
+
+      // special case for stopped items
       if (stop) {
 	code = (code << 1) | (isPreterminal() ? 1 : 0);
 	return code;
       }
+      // special case for baseNP items
+      if (this.label == baseNP) {
+	if (headChild != null)
+	  code = (code << 2) ^ headChild.label().hashCode();
+	code = (code << 2) ^ leftPrevMods.hashCode();
+	code = (code << 2) ^ rightPrevMods.hashCode();
+	return code;
+      }
+
+      // finish computation of hash code for all other items
       if (leftSubcat != null)
 	code = (code << 2) ^ leftSubcat.hashCode();
       if (rightSubcat != null)
 	code = (code << 2) ^ rightSubcat.hashCode();
       if (headChild != null)
 	code = (code << 2) ^ headChild.label().hashCode();
-      Symbol leftPrevMod = Collins.mapPrevMod(leftPrevMods.symbolAt(0));
-      Symbol rightPrevMod = Collins.mapPrevMod(rightPrevMods.symbolAt(0));
-      code = (code << 1) ^ leftPrevMod.hashCode();
-      code = (code << 1) ^ rightPrevMod.hashCode();
+      Symbol mappedLeftPrevMod = Collins.mapPrevMod(leftPrevMods.symbolAt(0));
+      Symbol mappedRightPrevMod = Collins.mapPrevMod(rightPrevMods.symbolAt(0));
+      code = (code << 2) ^ mappedLeftPrevMod.hashCode();
+      code = (code << 2) ^ mappedRightPrevMod.hashCode();
       int booleanCode = 0;
-      booleanCode = (booleanCode << 1) | (stop ? 1 : 0);
+      //booleanCode = (booleanCode << 1) | (stop ? 1 : 0);
       booleanCode = (booleanCode << 1) | (leftVerb ? 1 : 0);
       booleanCode = (booleanCode << 1) | (rightVerb ? 1 : 0);
       return code ^ booleanCode;
@@ -654,7 +704,8 @@ public class CKYItem extends Item implements SexpConvertible {
       otherCurr = otherCurr.next();
       counter--;
     }
-    if (counter > 0 && !(thisCurr == null && otherCurr == null))
+    if (numPrevWords > 0 &&
+	counter > 0 && !(thisCurr == null && otherCurr == null))
       return false;
     return true;
   }
@@ -679,7 +730,7 @@ public class CKYItem extends Item implements SexpConvertible {
     code = (code << 2) ^ leftPrevMods.hashCode();
     code = (code << 2) ^ rightPrevMods.hashCode();
     int booleanCode = 0;
-    booleanCode = (booleanCode << 1) | (stop ? 1 : 0);
+    //booleanCode = (booleanCode << 1) | (stop ? 1 : 0);
     booleanCode = (booleanCode << 1) | (leftVerb ? 1 : 0);
     booleanCode = (booleanCode << 1) | (rightVerb ? 1 : 0);
     return code ^ booleanCode;
@@ -687,7 +738,7 @@ public class CKYItem extends Item implements SexpConvertible {
 
   public Sexp toSexp() {
     if (isPreterminal()) {
-      return headWord.toSexp();
+      return Language.treebank.constructPreterminal(headWord);
     }
     else {
       int len = numLeftChildren() + numRightChildren() + 2;

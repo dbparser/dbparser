@@ -26,11 +26,12 @@ import java.io.*;
  * what variables are allowed in the definitions of property values.
  * <p>
  * Upon intialization, this class attempts to read default parser settings from
- * the file <code>settings</code> inside the default settings directory,
+ * the file <tt>settings</tt> inside the default settings directory,
  * <tt>$HOME/.db-parser</tt>, where <tt>$HOME</tt> is ther user's home
- * directory.  If either the default settings directory or the default settings
- * file is missing, this class will use fallback default settings from a
- * resource that is bundled with this package.
+ * directory, as defined by the system property <tt>user.home</tt>.  If either
+ * the default settings directory or the default settings file is missing,
+ * this class will use fallback default settings from a resource that is
+ * bundled with this package.
  * <p>
  * To obtain a default settings file as a template for modification, put the
  * following code in a file called <tt>GetSettings.java</tt> and then run
@@ -56,6 +57,7 @@ import java.io.*;
  * @see #fileEncodingPrefix
  * @see Language#encoding
  * @see #settingsDirOverride
+ * @see #settingsFileOverride
  */
 public class Settings implements Serializable {
 
@@ -77,18 +79,32 @@ public class Settings implements Serializable {
   private final static String globalPropertyPrefix = "parser.";
 
   /**
+   * The name of the property to override the name of the default settings
+   * file, which is <tt>&lt;defaultSettingsDir&gt;/settings</tt>, where
+   * <tt>&lt;defaultSettingsDir&gt;</tt> is the default settings directory,
+   * as described in the documentation for {@link #settingsDirOverride}.
+   * <br>
+   * Note that using this setting to change the default settings file
+   * does <b>not</b> change the default settings directory, which is used
+   * by {@link #getFileOrResourceAsStream(Class,String)}.
+   */
+  public final static String settingsFileOverride = "parser.settingsFile";
+
+  /**
    * The name of the property to override the location of the default settings
    * directory, to be specified at run-time on the command line.  The default
    * settings directory is <tt>$HOME/.db-parser</tt>, where <tt>$HOME</tt> is
-   * the user's home directory.
-   * The value of this constant is <code>&quot;parser.settings.dir&quot;</code>.
+   * the user's home directory, as defined by the system property
+   * <tt>user.home</tt>.
+   * <br>
+   * The value of this constant is <code>&quot;parser.settingsDir&quot;</code>.
    * <p>
    * Example UNIX usage:
    * <pre>
-   *     java -Dparser.settings.dir=$HOME/.tmp-settings ...
+   *     java -Dparser.settingsDir=/tmp ...
    * </pre>
    */
-  public final static String settingsDirOverride = "parser.settings.dir";
+  public final static String settingsDirOverride = "parser.settingsDir";
 
   /**
    * The property to specify the language to be parsed.
@@ -181,6 +197,17 @@ public class Settings implements Serializable {
 
   /**
    * The property to specify the fully-qualified classname of the
+   * <code>WordFactory</code> object to be used by the <code>Words</code>
+   * static factory class.
+   *
+   * @see Word
+   * @see Words
+   * @see WordFactory
+   */
+  public final static String wordFactoryClass = "parser.wordFactoryClass";
+
+  /**
+   * The property to specify the fully-qualified classname of the
    * <code>Shift</code> object to be used by the <code>Shifter</code>
    * static class.
    *
@@ -203,6 +230,14 @@ public class Settings implements Serializable {
     "parser.constraintSetFactoryClass";
 
   /**
+   * The property to specify whether the containsVerb predicate should have
+   * an additional base case where it should simply return false for
+   * NPB nodes.
+   */
+  public final static String baseNPsCannotContainVerbs =
+    "parser.baseNPsCannotContainVerbs";
+
+  /**
    * The prefix string used to specify a language's file encoding
    * property.  For example, for Chinese, the file encoding is available
    * by calling
@@ -215,6 +250,17 @@ public class Settings implements Serializable {
    * @see Language#encoding
    */
   public final static String fileEncodingPrefix = "parser.file.encoding.";
+
+  /**
+   * The property to specify the fully-qualified class name of the
+   * <code>DecoderServerRemote</code> instance to be created for use by
+   * <code>Parser</code> and <code>EMParser</code> classes (and any other
+   * subclass of <code>Parser</code>).  This property is used when
+   * the <code>Parser/EMParser</code> class instance is asked to create
+   * and/or use its own, internal server.
+   */
+  public final static String decoderServerClass =
+    "parser.parser.decoderServerClass";
 
   /**
    * The property to specify whether or not to pre-compute probabilities
@@ -338,6 +384,13 @@ public class Settings implements Serializable {
    * @see Training#repairBaseNPs(Sexp) */
   protected static final String collinsRepairBaseNPs =
     "parser.training.collinsRepairBaseNPs";
+
+  /**
+   * The property to indicate whether the trainer should share counts among
+   * various models' back-off levels.
+   */
+  public final static String trainerShareCounts =
+    "parser.trainer.shareCounts";
 
   /**
    * The property to specify the threshold below which words are
@@ -758,7 +811,7 @@ public class Settings implements Serializable {
    * <code>"parser.trainer.modWordModelStructureClass"</code>.
    */
   public final static String modWordModelStructureClass =
-    "parser.trainer.modWordStructureModelClass";
+    "parser.trainer.modWordModelStructureClass";
 
   /**
    * The property to specify whether certain sentences are skipped
@@ -812,6 +865,22 @@ public class Settings implements Serializable {
    */
   public final static String maxSentLen =
     "parser.decoder.maxSentenceLength";
+
+  /**
+   * The property to specify the maximum time, in milliseconds, that the
+   * decoder will attempt to deliver a parse on a sentence.  If this
+   * property is set to a value less than or equal to zero, the maximum
+   * parsing time will be infinite (i.e., there will not be a time-out).
+   * This property should be (the string representation of) an integer.
+   * <p>
+   * The value of this constant is
+   * <code>"parser.decoder.maxParseTime"</code>.
+   * <p>
+   *
+   * @see Decoder
+   */
+  public final static String maxParseTime =
+    "parser.decoder.maxParseTime";
 
   /**
    * The property to specify whether to use tags collected from
@@ -909,6 +978,81 @@ public class Settings implements Serializable {
    */
   public final static String decoderUseCommaConstraint =
     "parser.decoder.useCommaConstraint";
+
+  /**
+   * The property to specify whether the decoder should only use the tags
+   * supplied with words in an input file when seeding the chart.  Normally,
+   * when a list of tags is supplied with every word in every input sentence,
+   * the supplied tags are only used with unknown words; for a known word,
+   * the possible tags are taken to be those with which the word was observed
+   * in training.  A run-time error will occur if this setting is
+   * <tt>true</tt> but the input file of sentences does not contain at least
+   * one tag per word.
+   * <p>
+   * The value of this property should be (the string representation of)
+   * a boolean (conversion is performed by the method
+   * <code>Boolean.valueOf</code>).
+   * <p>
+   * The value of this constant is
+   * <code>"parser.decoder.useOnlySuppliedTags"</code>.
+   */
+  public final static String decoderUseOnlySuppliedTags =
+    "parser.decoder.useOnlySuppliedTags";
+
+  /**
+   * The property to specify whether node labels in trees output by the
+   * decoder include their lexical head information, which is normally only
+   * used internally by the decoder.  Even though this setting is grouped
+   * with the other decoder settings, it technically affects the implementation
+   * of {@link CKYItem#toSexp()}.
+   *
+   * @see CKYItem#toSexp()
+   */
+  public final static String decoderOutputHeadLexicalizedLabels =
+    "parser.decoder.outputHeadLexicalizedLabels";
+
+  /**
+   * The property to specify whether the decoder should wrap its
+   * <code>DecoderServerRemote</code> instance with an instance of
+   * <code>CachingDecoderServer</code>, which caches probability
+   * lookups.  The value of this property should be (the string representation
+   * of) a boolean (conversion is performed by the method
+   * <code>Boolean.valueOf</code>).
+   *
+   * @see DecoderServerRemote
+   * @see CachingDecoderServer
+   */
+  public final static String decoderUseLocalProbabilityCache =
+    "parser.decoder.useLocalProbabilityCache";
+
+  /**
+   * The property to specify the size of the cache used by the
+   * <code>CachingDecoderServer</code> instance used by the decoder
+   * when the {@link #decoderUseLocalProbabilityCache} property
+   * is <code>true</code>.  The value of this property is ignored when
+   * {@link #decoderUseLocalProbabilityCache} is <code>false</code>.
+   * The value of this property should be (the string representation of)
+   * an integer.
+   */
+  public final static String decoderLocalCacheSize =
+    "parser.decoder.localProbabilityCacheSize";
+
+  /**
+   * The property to specify whether the decoder should use the
+   * head-to-parent map derived during training.  Use of this map
+   * potentially increases efficiency in the decoding process by
+   * causing the decoder to grow theories upward using only parents
+   * that occurred in training for a given chart item's root label.
+   * However, use of this map also decreases generality, for if
+   * the last back-off level of the head-generation model is more general
+   * than <tt>p(H | P)</tt> (if it is, for example, <tt>p(H)</tt>), then
+   * potentially any notnerminal can be the parent of any head nonterminal,
+   * meaning that the decoder should pursue all nonterminals as parents,
+   * which is its behavior when the value of this property is
+   * <tt>false</tt>.
+   */
+  public final static String decoderUseHeadToParentMap =
+    "parser.decoder.useHeadToParentMap";
 
   /**
    * The property to specify whether words are downcased during training
@@ -1034,7 +1178,7 @@ public class Settings implements Serializable {
   private final static String settingsDirName = ".db-parser";
   private final static String defaultSettingsDirName =
     System.getProperty("user.home") + File.separator + settingsDirName;
-  private final static String settingsFilename = "settings";
+  private final static String defaultSettingsFilename = "settings";
   private final static String dataDirFilename = "data";
   private final static String defaultSettingsFileHeader =
     " This default settings file created automatically by\n" +
@@ -1086,6 +1230,13 @@ public class Settings implements Serializable {
     else if (!settingsDir.isDirectory())
       System.err.println(className + ": warning: " + settingsDir +
 			 " exists but is not a directory");
+
+    String settingsFilename = System.getProperty(settingsFileOverride);
+    if (settingsFilename == null)
+      settingsFile =
+	new File(settingsDir + File.separator + defaultSettingsFilename);
+    else
+      settingsFile = new File(settingsFilename);
 
     // load fallback defaults from resource, then try to grab settings
     // from settings file in default location, then grab system settings
@@ -1246,9 +1397,9 @@ public class Settings implements Serializable {
     return settingsCopy;
   }
 
-  /** Allows a class in this package to set the settings of this class
+  /** Allows any class to set the settings of this class
       directly using the specified <code>Properties</code> object. */
-  static void setSettings(Properties newSettings) {
+  public static void setSettings(Properties newSettings) {
     Iterator entries = newSettings.entrySet().iterator();
     while (entries.hasNext()) {
       Map.Entry entry = (Map.Entry)entries.next();
@@ -1260,13 +1411,13 @@ public class Settings implements Serializable {
    * Attempts to locate the file or resource with the specified name in
    * one of three places:
    * <ol>
-   * <li> as a file path relative to <code>$HOME/.db-parser</code>
+   * <li> as a file path relative to the default settings directory, or
    * <li> as a file path relative to the current working directory, or
    *      relative to nothing, if <code>name</code> is an absolute path
    * <li> as a resource gotten from the class loader of the specified class
    * </ol>
-   * where <code>$HOME</code> is the value of the system property
-   * <code>user.home</code>.
+   * The default settings directory is described in the documentation
+   * for {@link #settingsDirOverride}.
    *
    * @param cl the class that needs the file or resource
    * @param name the name of the file or resource
@@ -1331,14 +1482,15 @@ public class Settings implements Serializable {
   /**
    * Gets a new <code>InputStream</code> for the file
    * <tt>$HOME/.db-parser/settings</tt> if it exists, returning
-   * <code>null</code> otherwise.
+   * <code>null</code> otherwise.  The location of the file may be changed
+   * using {@link #settingsDirOverride} or {@link #settingsFileOverride},
+   * where the latter definition takes precedence over the former.
    */
   private final static InputStream getSettingsStream()
     throws FileNotFoundException {
-    File file = new File(Settings.settingsDir + File.separator + "settings");
-    if (file.exists()) {
-      System.err.println("Reading settings from\n\t" + file);
-      return new FileInputStream(file);
+    if (settingsFile.exists()) {
+      System.err.println("Reading settings from\n\t" + settingsFile);
+      return new FileInputStream(settingsFile);
     }
     else
       return null;

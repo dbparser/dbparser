@@ -147,17 +147,31 @@ public interface Treebank {
    * Returns <code>true</code> if the canonical version of the specified label
    * is an NP for the current language's Treebank.
    *
+   * @param label the label to test
+   *
    * @see Training#addBaseNPs(Sexp)
    */
   public boolean isNP(Symbol label);
 
   /**
    * Returns the symbol with which {@link Training#addBaseNPs(Sexp)} will
-   * relabel core NPs.
+   * relabel core NPs.<br>
+   * <b>N.B.</b>: This method should <i><b>not</b></i> be used as a predicate
+   * for testing whether a particular nonterminal label is that of a base NP.
+   * For that purpose, use {@link #isBaseNP(Symbol)}.
    *
    * @see Training#addBaseNPs(Sexp)
    */
   public Symbol baseNPLabel();
+
+  /**
+   * Returns whether the specified label is for a base NP.
+   *
+   * @param label the label to test
+   *
+   * @return whether the specified label is for a base NP.
+   */
+  public boolean isBaseNP(Symbol label);
 
   /**
    * Returns <code>true</code> if the canonical version of the specified label

@@ -13,6 +13,8 @@ public interface DecoderServerRemote extends Server {
 
   public Map posMap() throws RemoteException;
 
+  public Map headToParentMap() throws RemoteException;
+
   public Map leftSubcatMap() throws RemoteException;
 
   public Map rightSubcatMap() throws RemoteException;
@@ -24,6 +26,19 @@ public interface DecoderServerRemote extends Server {
   public Set prunedPreterms() throws RemoteException;
 
   public Set prunedPunctuation() throws RemoteException;
+
+  /**
+   * Returns either the specified word untouched, or a 3-element list as would
+   * be created by {@link #convertUnknownWords(SexpList)}.
+   *
+   * @param originalWord the original word to be (potentially) converted
+   * @param index the index of the specified word
+   * @return if the specified word is unknown, a 3-element list is returned,
+   * as described in {@link #convertUnknownWords(SexpList)}, or, if the
+   * specified word is not unknown, then it is returned untouched
+   */
+  public Sexp convertUnknownWord(Symbol originalWord, int index)
+    throws RemoteException;
 
   /**
    * Replaces all unknown words in the specified sentence with

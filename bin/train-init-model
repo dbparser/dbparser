@@ -15,6 +15,11 @@ if ($#argv != 1) then
     exit 1
 endif
 
+set dir = `dirname $0`
+set scriptDir = `cd $dir  ; echo $cwd`
+
+set derivePrecompScript = $scriptDir/derive-precomputed
+
 set trainingData = $argv[1]
 
 set java = (java -server)
@@ -38,4 +43,14 @@ echo Running command
 echo -n "	"
 echo $command
 
-exec $command
+$command
+
+set command = ($derivePrecompScript -sf $settingsFile -os $observedDataFile)
+
+echo ""
+echo Deriving precomputed probabilities for initial model and
+echo outputting smoothing parameters by running command
+echo -n "	"
+echo $command
+
+$command

@@ -439,6 +439,10 @@ public abstract class Training implements Serializable {
         int headIdx = headFinder.findHead(treeList);
         Symbol headChild = (headIdx == 0 ? null :
                             treeList.get(headIdx).list().first().symbol());
+
+	if (isCoordinatedPhrase(tree, headIdx))
+	  return tree;
+
 	// either the candidate list has the form (head <int>) or
         // (head-left <list>) or (head-right <list>) or it's a list of actual
         // nonterminal labels
@@ -484,6 +488,9 @@ public abstract class Training implements Serializable {
               searchInstruction.symbolAt(0) == headPreSym;
             boolean leftToRight =
               searchInstruction.symbolAt(1) == Constants.firstSym;
+	    boolean negativeSearch =
+	      searchInstruction.symbolAt(2) == Constants.notSym;
+	    int searchSetStartIdx = negativeSearch ? 3 : 2;	      
             if (headIdx > 0 && treebank.getCanonical(headChild) != parent) {
 	    //if (headIdx > 0) {
               int increment = leftToRight ? 1 : -1;
@@ -505,16 +512,28 @@ public abstract class Training implements Serializable {
                    leftToRight ? i <= endIdx : i >= endIdx; i += increment) {
 		Symbol currChild = treeList.getChildLabel(i);
 		Symbol noAugChild = treebank.stripAugmentation(currChild);
-                for (int j = 2; j < searchInstructionLen; j++) {
+                for (int j = searchSetStartIdx; j < searchInstructionLen; j++) {
 		  Symbol searchSym = searchInstruction.symbolAt(j);
                   //if (noAugChild == searchSym) {
 		  if (currChild == searchSym) {
-                    argIdx = i;
-                    child = currChild;
-                    foundArg = true;
-                    break SEARCH;
+		    if (negativeSearch)
+		      continue SEARCH;
+		    else {
+		      argIdx = i;
+		      child = currChild;
+		      foundArg = true;
+		      break SEARCH;
+		    }
                   }
                 }
+		// if no match for any nt in search set and this is
+		// negative search, we've found what we're looking for
+		if (negativeSearch) {
+		  argIdx = i;
+		  child = currChild;
+		  foundArg = true;
+		  break SEARCH;
+		}
               }
             }
           }
@@ -1212,11 +1231,28 @@ public abstract class Training implements Serializable {
 	  // if the grandparent is not an NP, we need to add a normal NP level
 	  // transferring any augmentations to the new parent from the current
 	  if (needToAddNormalNPLevel(grandparent, parentIdx, tree)) {
-	    SexpList newParent = new SexpList(2);
-	    treeList.set(0, baseNP);
-	    parsedParent.base = NP;
-	    newParent.add(parsedParent.toSymbol()).add(tree);
-	    grandparent.list().set(parentIdx, newParent);
+	    if (grandparent != null) {
+	      SexpList newParent = new SexpList(2);
+	      treeList.set(0, baseNP);
+	      parsedParent.base = NP;
+	      newParent.add(parsedParent.toSymbol()).add(tree);
+	      grandparent.list().set(parentIdx, newParent);
+	    }
+	    else {
+	      // make parent back into NP
+	      parsedParent.base = NP;
+	      treeList.set(0, parsedParent.toSymbol());
+	      // now, take all parent's children and add them as
+	      // children of a new node that will be the new base NP
+	      SexpList baseNPNode = new SexpList(treeListLen);
+	      baseNPNode.add(baseNP);
+	      for (int j = 1; j < treeListLen; j++)
+		baseNPNode.add(treeList.get(j));
+	      for (int j = treeListLen - 1; j >= 1; j--)
+		treeList.remove(j);
+	      // finally, add baseNPNode as sole child of current parent
+	      treeList.add(baseNPNode);
+	    }
 	  }
 	}
       }
@@ -1226,30 +1262,70 @@ public abstract class Training implements Serializable {
     return tree;
   }
 
+  /**
+   * Returns <code>true</code> if a unary NP needs to be added above the
+   * specified base NP.
+   *
+   * @param grandparent the parent of the &quot;parent&quot; that is a
+   * base NP
+   * @param parentIdx the index of the child of <code>grandparent</code>
+   * that is the base NP (that is,
+   * <pre>grandparent.list().get(parentIdx) == tree</pre>
+   * @param tree the base NP, whose parent is <code>grandparent</code>
+   */
   protected boolean needToAddNormalNPLevel(Sexp grandparent,
                                            int parentIdx, Sexp tree) {
     if (grandparent == null)
-      return false;
+      return true;
+
     SexpList grandparentList = grandparent.list();
     if (!treebank.isNP(grandparentList.symbolAt(0)))
       return true;
-    Symbol beforeParent = (parentIdx > 1 ?
-                           grandparentList.getChildLabel(parentIdx - 1) : null);
-    Symbol afterParent = (parentIdx < grandparentList.length() - 1 ?
-                          grandparentList.getChildLabel(parentIdx + 1) : null);
-    return ((beforeParent != null &&
-             (treebank.isPunctuation(beforeParent) ||
-              treebank.isConjunction(beforeParent)))
-            ||
-            (afterParent != null &&
-             (treebank.isPunctuation(afterParent) ||
-              treebank.isConjunction(afterParent))));
-    /*
-    return ((beforeParent != null && treebank.isConjunction(beforeParent))
-            ||
-            (afterParent != null && treebank.isConjunction(afterParent)));
-    */
+    int headIdx = headFinder.findHead(grandparent);
+    return (isCoordinatedPhrase(grandparent, headIdx) ||
+	    (headIdx != parentIdx && grandparentList.symbolAt(0) != baseNP));
   }
+
+  /**
+   * Returns <code>true</code> if a non-head child of the specified
+   * tree is a conjunction, and that conjunction is either post-head
+   * but non-final, or immediately pre-head but non-initial (where
+   * &quot;immediately pre-head&quot; means &quot;at the first index
+   * less than <code>headIdx</code> that is not punctuation, as determined
+   * by {@link Treebank#isPunctuation(Symbol)}).  A child is a
+   * conjunction if its label is one for which
+   * {@link Treebank#isConjunction(Symbol)} returns <code>true</code>.
+   *
+   * @param tree the (sub)tree to test
+   * @param headIdx the index of the head child of the specified tree */
+  protected boolean isCoordinatedPhrase(Sexp tree, int headIdx) {
+    SexpList treeList = tree.list();
+    int treeListLen = treeList.length();
+
+    int conjIdx = -1;
+    // first, search everything post-head except final child,
+    // since conj must not be final for tree to be a true coordinated phrase
+    int lastChildIdx = treeListLen - 1;
+    for (int i = headIdx + 1; i < lastChildIdx; i++) {
+      if (treebank.isConjunction(treeList.getChildLabel(i))) {
+	conjIdx = i;
+	break;
+      }
+    }
+    // if first search didn't succeed, search immediately pre-head
+    if (conjIdx == -1) {
+      int i = headIdx - 1;
+      // skip all punctuation immediately preceding head
+      while (i > 1 && treebank.isPunctuation(treeList.getChildLabel(i)))
+	i--;
+      // conj must not be initial for tree to be a coordinated phrase
+      if (i > 1 && treebank.isConjunction(treeList.getChildLabel(i)))
+	conjIdx = i;
+    }
+
+    return conjIdx != -1;	    
+  }
+
 
   /**
    * Returns <code>true</code> if <code>tree</code> contains a child for which

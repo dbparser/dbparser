@@ -196,9 +196,19 @@ public abstract class Treebank implements Serializable {
    * package, this method may be implemented simply to return
    * <code>false</code>.
    *
+   * @param preterm the preterminal to test
    * @see Training#raisePunctuation(Sexp)
    */
   public abstract boolean isPuncToRaise(Sexp preterm);
+
+  /**
+   * Returns <code>true</code> if the specified part of speech tag is one
+   * for which {@link #isPuncToRaise(Sexp)} would return <code>true</code>.
+   *
+   * @param tag the part of speech to test
+   * @see #isPuncToRaise(Sexp)
+   */
+  public abstract boolean isPunctuation(Symbol tag);
 
   /**
    * Returns <code>true</code> if the specified S-expression represents

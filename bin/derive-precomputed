@@ -100,7 +100,13 @@ endif
 
 set class = danbikel.parser.Trainer
 
-set derivedDataFile = $trainerOutputFile:r.precomp.obj.gz
+# remove ".gz" if present from trainerOutputFile
+set derivedDataFile = $trainerOutputFile
+if ($derivedDataFile:e == "gz") then
+    set derivedDataFile = $derivedDataFile:r
+endif
+
+set derivedDataFile = $derivedDataFile:r.precomp.obj.gz
 
 set command = ($java $mem $defs $class \
                -it $trainerEventsFiles -od $derivedDataFile)

@@ -11,7 +11,6 @@ import java.io.Serializable;
  *
  * @see Item
  */
-
 public abstract class Chart implements Serializable {
   // debugging constants
   private final static boolean debug = false;

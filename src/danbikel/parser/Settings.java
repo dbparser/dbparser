@@ -194,6 +194,15 @@ public class Settings implements Serializable {
   public final static String fileEncodingPrefix = "parser.file.encoding.";
 
   /**
+   * The property to specify whether or not to pre-compute probabilities
+   * when training and use those pre-computed probabilities when decoding.
+   * <p>
+   * The value of this constant is
+   * <code>"parser.model.precomputeProbabilities"</code>.
+   */
+  public final static String precomputeProbs = "parser.model.precomputeProbabilities";
+
+  /**
    * The property to specify whether the method
    * {@link HeadFinder#defaultFindHead(Symbol,SexpList)} issues a warning
    * whenever it needs to use the default head-finding rule.  The value of this

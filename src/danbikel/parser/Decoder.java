@@ -16,7 +16,7 @@ public class Decoder implements Serializable {
   private final static boolean debug = false;
   private final static boolean debugSpans = false;
   private final static boolean debugInit = true;
-  private final static boolean debugTop = false;
+  private final static boolean debugTop = true;
   private final static boolean debugJoin = false;
   private final static boolean debugStops = false;
   private final static boolean debugUnaries = false;
@@ -567,6 +567,11 @@ public class Decoder implements Serializable {
   }
 
   protected void addTopUnaries(int end) throws RemoteException {
+    if (debugTop)
+      System.err.println(className + ": highest probability item for " +
+                         "sentence-length span (0," + end + "): " +
+                         chart.getTopLogProb(0, end));
+
     topProbItemsToAdd.clear();
     Iterator sentSpanItems = chart.get(0, end);
     while (sentSpanItems.hasNext()) {

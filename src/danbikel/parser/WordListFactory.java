@@ -49,7 +49,7 @@ public class WordListFactory {
     int size = list.length();
     WordList newList = newList(size);
     for (int i = 0; i < size; i++)
-      newList.set(i, new Word(list.get(i)));
+      newList.set(i, Words.get(list.get(i)));
     return newList;
   }
 

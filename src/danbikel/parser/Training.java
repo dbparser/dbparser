@@ -380,11 +380,17 @@ public abstract class Training implements Serializable {
    * is the list of possible parts of speech for the word at that index
    * @return a two-element list, containing two lists, the first of which
    * is a processed version of <code>sentence</code> and the second of which
-   * is a processed version of <code>tags</code>
+   * is a processed version of <code>tags</code>; if <code>tags</code>
+   * is <code>null</code>, then the returned list will contain only
+   * one element (since <code>SexpList</code> objects are not designed
+   * to handle null elements)
    */
   public SexpList preProcessTest(SexpList sentence,
 				 SexpList originalWords, SexpList tags) {
-    return new SexpList(2).add(sentence).add(tags);
+    if (tags == null)
+      return new SexpList(1).add(sentence);
+    else
+      return new SexpList(2).add(sentence).add(tags);
   }
 
   /**

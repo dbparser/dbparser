@@ -2018,7 +2018,7 @@ public class Trainer implements Serializable {
 						   OutputStream os)
     throws ClassNotFoundException, IOException, OptionalDataException {
     PrintStream ps = new PrintStream(os);
-    ps.println("Settings in effect during training\n");
+    ps.println("Settings in effect during training");
     ps.println("------------------------------");
     Properties props = (Properties)ois.readObject();
     Settings.storeSorted(props, os, " " + Settings.progName + " v" +

@@ -1122,6 +1122,39 @@ public class Settings implements Serializable {
     "parser.decoder.pruneFactor";
 
   /**
+   * The property to specify the maximum prune factor when performing
+   * beam-widening.  Beam-widening is when the decoder tries successively
+   * wider beams until there is a parse for the current sentence, or until
+   * the maximum prune factor is reached.  The initial beam tried will be
+   * the value of {@link #decoderPruneFactor}.  If this property is not set
+   * (the value is the <tt>null</tt> object), then the maximum prune factor
+   * defaults to the value of {@link #decoderPruneFactor}, and the decoder
+   * will not do beam-widening. The value of this property should be a floating
+   * point number that is the logarithm (base 10) of the desired factor
+   * (i.e., the factor employed will effectively be
+   * <code>Math.pow(value, 10.0)</code>, where <code>value</code> is the value
+   * of this property).
+   *
+   * @see #decoderPruneFactor
+   * @see #decoderPruneFactorIncrement
+   */
+  public final static String decoderMaxPruneFactor =
+    "parser.decoder.maxPruneFactor";
+
+  /**
+   * The property to specify the increment used when the decoder does
+   * beam-widening.  The value of this property should be a floating
+   * point number that is the logarithm (base 10) of the desired
+   * beam increment (i.e., the increment employed will effectively be
+   * <code>Math.pow(value, 10.0)</code>, where <code>value</code> is the value
+   * of this property).
+   *
+   * @see #decoderMaxPruneFactor
+   */
+  public final static String decoderPruneFactorIncrement =
+    "parser.decoder.pruneFactorIncrement";
+
+  /**
    * The property to specify whether the decoder should impose a limit on the
    * number of chart items per cell in the chart.  The value of this property
    * should be (the string representation of) a boolean (conversion is

@@ -4,6 +4,7 @@ import danbikel.util.*;
 import danbikel.lisp.*;
 import java.io.*;
 import java.util.*;
+import java.text.*;
 
 /**
  * This class computes the probability of generating an output element
@@ -90,17 +91,30 @@ public class Model implements Serializable {
    *
    * @see AnalyzeDisns
    */
-  protected final static boolean createHistBackOffMap = false;
+  protected final static boolean saveHistBackOffMap = false;
 
   /**
    * Caches the value of {@link Settings#modelDoPruning}.
    */
-  protected final static boolean doPruning =
+  protected final static boolean globalDoPruning =
     Settings.getBoolean(Settings.modelDoPruning);
+
+  /**
+   * Caches the <tt>double</tt> value of {@link Settings#modelPruningThreshold}.
+   */
+  protected final static double pruningThreshold =
+    Settings.getDouble(Settings.modelPruningThreshold);
+
+  protected final static boolean printPrunedEvents = true;
+  protected final static boolean printUnprunedEvents = false;
 
   private final static int structureMapArrSize = 1000;
 
-  protected final static Symbol baseNPLabel = Language.treebank().baseNPLabel();
+  private static NumberFormat doubleNF = NumberFormat.getInstance();
+  static {
+    doubleNF.setMinimumFractionDigits(3);
+    doubleNF.setMaximumFractionDigits(3);
+  }
 
   // data members
 
@@ -148,7 +162,7 @@ public class Model implements Serializable {
    * <i>i</i>&nbsp;+&nbsp;1 histories.  These maps are not necessary
    * for precomputing probabilities, but can be useful when debugging.
    *
-   * @see #createHistBackOffMap
+   * @see #saveHistBackOffMap
    * @see #savePrecomputeData(CountsTable,Filter)
    */
   protected java.util.HashMap[] histBackOffMap;
@@ -168,8 +182,47 @@ public class Model implements Serializable {
   protected transient boolean useSmoothingParams;
   protected transient CountsTable[] smoothingParams;
 
+  /**
+   * A set of sets used to collect transitions that are to be pruned.
+   *
+   * @see #doPruning
+   * @see #pruneHistoriesAndTransitions()
+   */
   protected transient HashSet[] transitionsToPrune;
+  /**
+   * A set of sets used to collect histories that are to be pruned.
+   *
+   * @see #doPruning
+   * @see #pruneHistoriesAndTransitions()
+   */
   protected transient HashSet[] historiesToPrune;
+
+  /**
+   * Indicates whether the {@link #histBackOffMap} should be created when
+   * precomputing probabilities.  If either {@link #doPruning} or {@link
+   * #saveHistBackOffMap} is <tt>true</tt>, then this data member will be set
+   * to <tt>true</tt> as well.  The value of this boolean is set automatically
+   * in the constructor, and is only consulted when {@link
+   * Settings#precomputeProbs} is <tt>true</tt>.
+   *
+   * @see AnalyzeDisns
+   * @see #doPruning
+   */
+  protected transient boolean createHistBackOffMap;
+  /**
+   * The value of this data member determines whether this model will be
+   * {@linkplain #pruneHistoriesAndTransitions() pruned} when {@linkplain
+   * #precomputeProbs() probabilities are precomputed}.  This data
+   * member&rsquo;s value is set automatically in the constructor: it is
+   * <tt>true</tt> if and only if either {@link #globalDoPruning} is true or if
+   * the {@link ProbabilityStructure#doPruning()} method invoked on this
+   * model&rsquo;s {@linkplain #structure probability structure object} returns
+   * <tt>true</tt>.
+   *
+   * @see #pruneHistoriesAndTransitions()
+   * @see #precomputeProbs()
+   */
+  protected transient boolean doPruning;
 
   static int numCacheAdds = 0;
   static int numCanonicalHits = 0;
@@ -200,6 +253,12 @@ public class Model implements Serializable {
       logOneMinusLambdaPenalty[i] = Math.log(1 - lambdaPenalty[i]);
     }
     lambdaFudgeTerm = new double[numLevels];
+
+    createHistBackOffMap = saveHistBackOffMap;
+    if (globalDoPruning || structure.doPruning()) {
+      createHistBackOffMap = true;
+      doPruning = true;
+    }
 
     if (precomputeProbs)
       setUpPrecomputedProbTables();
@@ -521,7 +580,7 @@ public class Model implements Serializable {
   protected double estimateLogProbUsingPrecomputed(ProbabilityStructure
 						     structure,
 						   TrainerEvent event) {
-    boolean npbParent = event.parent() == baseNPLabel;
+    boolean npbParent = Language.treebank.isBaseNP(event.parent());
 
     precomputedProbCalls++;
     if (npbParent)
@@ -1038,6 +1097,7 @@ public class Model implements Serializable {
     }
   }
 
+  /*
   protected void pruneHistoriesAndTransitions() {
     if (!doPruning)
       return;
@@ -1067,6 +1127,114 @@ public class Model implements Serializable {
     if (verbose)
       System.err.println("Pruned " + totalHistPruned + " histories and " +
 			 totalTransPruned + " transitions.");
+  }
+  */
+
+  protected void pruneHistoriesAndTransitions() {
+    if (!doPruning || numLevels < 2)
+      return;
+
+    int toZeroIdx = AnalyzeDisns.toZeroIdx;
+    int toPrevIdx = AnalyzeDisns.toPrevIdx;
+
+    CountsTable[] entropy = AnalyzeDisns.newEntropyCountsTables(this);
+    BiCountsTable[] js = AnalyzeDisns.newJSCountsTables(this);
+
+    Time time = null;
+    if (verbose)
+      time = new Time();
+
+    AnalyzeDisns.computeEntropyAndJSStats(this, entropy, js);
+
+    if (verbose)
+      System.err.println("Computed entropy and JS divergence values for " +
+			 structureClassName + " in " + time + ".");
+
+    int totalTrans = 0;
+    int totalTransPruned  = 0;
+    int totalHist = 0;
+    int totalHistPruned = 0;
+
+    int lastLevel = numLevels - 1;
+    Iterator it = precomputedProbs[0].keySet().iterator();
+    while (it.hasNext()) {
+      Transition trans = (Transition)it.next();
+      Event hist = trans.history();
+      for (int level = 0; level < lastLevel; level++) {
+	Event backOffHist = (Event)histBackOffMap[level].get(hist);
+        // if js divergence from backOffHist's disn to hist's disn is
+        // less than 10% of entropy of hist's entropy, then prune hist
+	double jsToPrev = js[level + 1].count(backOffHist, toPrevIdx);
+	double histEntropy = entropy[level].count(hist);
+	if (jsToPrev / histEntropy < pruningThreshold) {
+	  historiesToPrune[level].add(hist);
+	  if (printPrunedEvents)
+	    System.err.println(structureClassName + ": pruning " + hist +
+			       " at level " + level + " because " +
+			       jsToPrev + " / " + histEntropy +
+			       " = " + (jsToPrev / histEntropy) + " < " +
+			       pruningThreshold);
+	}
+	else {
+	  if (printUnprunedEvents)
+	    System.err.println(structureClassName + ": did not prune " + hist +
+			       " at level " + level + " because " +
+			       jsToPrev + " / " + histEntropy +
+			       " = " + (jsToPrev / histEntropy) + " >= " +
+			       pruningThreshold);
+	  break; // if curr hist is kept, don't try to prune coarser versions
+	}
+	hist = backOffHist;
+      }
+    }
+
+    // now that we've collected all histories to be pruned, actually do the
+    // pruning
+    boolean deletingCounts =
+      precomputeProbs && deleteCountsWhenPrecomputingProbs;
+    for (int level = 0; level < lastLevel; level++) {
+      // go through every Transition object in precomputedProbs[level]
+      // and, if its history context was scheduled for pruning,
+      // remove transition both from precomputedProbs *and* from
+      // counts[level].transition() (if applicable)
+      totalTrans += precomputedProbs[level].size();
+      it = precomputedProbs[level].keySet().iterator();
+      while (it.hasNext()) {
+	Transition trans = (Transition)it.next();
+	if (historiesToPrune[level].contains(trans.history())) {
+	  it.remove();
+	  if (!deletingCounts)
+	    counts[level].transition().remove(trans);
+	  totalTransPruned++;
+	}
+      }
+      // now go through every history scheduled for pruning and
+      // remove it from precomputedLambdas[level] and, if appropriate,
+      // from counts[level].history()
+      totalHist += precomputedLambdas[level].size();
+      totalHistPruned += historiesToPrune[level].size();
+      it = historiesToPrune[level].iterator();
+      while (it.hasNext()) {
+	Event hist = (Event)it.next();
+	precomputedLambdas[level].remove(hist);
+	if (!deletingCounts)
+	  counts[level].history().remove(hist);
+      }
+    }
+    for (int level = 0; level < lastLevel; level++)
+      historiesToPrune[level].clear();
+
+    if (verbose) {
+      double histPercent = 100 * (totalHistPruned / (double)totalHist);
+      double transPercent = 100 * (totalTransPruned / (double)totalTrans);
+      System.err.println(structureClassName + ": pruned " + totalHistPruned +
+			 " of " + totalHist + " histories (" +
+			 doubleNF.format(histPercent) + "%) and " +
+			 totalTransPruned + " of " + totalTrans +
+			 " transitions (" + doubleNF.format(transPercent) +
+			 "%) in " + time + ".");
+    }
+
   }
 
   protected void initializeSmoothingParams() {
@@ -1143,7 +1311,7 @@ public class Model implements Serializable {
    * storePrecomputedProbs
    */
   public void precomputeProbs() {
-    computeHistoriesAndTransitionsToPrune();
+    //computeHistoriesAndTransitionsToPrune();
 
     if (!precomputeProbs)
       return;
@@ -1176,11 +1344,13 @@ public class Model implements Serializable {
       storePrecomputedProbs(lambdas, estimates, transitions, histories,
 			    lastLevel);
     }
-
+    
     pruneHistoriesAndTransitions();
 
     if (!saveBackOffMap)
       backOffMap = null; // no longer needed!
+    if (!saveHistBackOffMap)
+      histBackOffMap = null;
     if (structure.doCleanup())
       cleanup();
     if (saveSmoothingParams) {

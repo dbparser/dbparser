@@ -29,18 +29,59 @@
   <property
     category="com.gillmerderge.jbuilder.wizard.javadoc.standard.StandardDocletOptions"
     name="windowTitle" value="WordNet Parser"/>
+  <property category="debug.1" name="BuildTargetOnDebug" value="com.borland.jbuilder.build.ProjectBuilder$ProjectBuildAction;make"/>
   <property category="idl" name="ProcessIDL" value="false"/>
+  <property category="optimize.0" name="BuildTargetOnOptimize" value="com.borland.jbuilder.build.ProjectBuilder$ProjectBuildAction;make"/>
+  <property category="optimize.0" name="OptimizableType" value="intuitive.ide.borland.ProfilerProcess"/>
+  <property category="optimize.0" name="oicc.FilterFile" value="/local/home/dbikel/jbproject/dbparser/dbparser.oif"/>
+  <property category="optimize.0" name="oipr.DisableMemoryProfiler" value="1"/>
+  <property category="optimize.0" name="oipr.FilterFile" value="/local/home/dbikel/jbproject/dbparser/dbparser.oif"/>
+  <property category="optimize.1" name="BuildTargetOnOptimize" value="com.borland.jbuilder.build.ProjectBuilder$ProjectBuildAction;make"/>
+  <property category="optimize.1" name="OptimizableType" value="com.borland.jbuilder.optimize.IntroOptimizeitProfiler"/>
+  <property category="runtime" name="ConfigurationCount" value="1"/>
+  <property category="runtime" name="DefaultConfiguration" value="-1"/>
+  <property category="runtime.0" name="BuildTargetOnRun" value="com.borland.jbuilder.build.ProjectBuilder$ProjectBuildAction;make"/>
+  <property category="runtime.0" name="ConfigurationName" value="dbparser"/>
   <property category="runtime.0" name="RunnableType" value="com.borland.jbuilder.runtime.ApplicationRunner"/>
   <property category="runtime.0" name="application.class" value="danbikel.parser.Parser"/>
-  <property category="runtime.0" name="application.parameters" value="-is /scratch2/wsj-02-21.obj -sa /scratch2/wsj-0.1"/>
-  <property category="runtime.0" name="application.vmparameters" value="-server -Xms400m -Xmx400m"/>
+  <property category="runtime.0" name="application.parameters" value="-is /local/home/dbikel/scratch/wsj-02-21.obj -sa /local/home/dbikel/scratch/wsj-0.tagged"/>
+  <property category="runtime.0" name="application.vmparameters" value="-server -Dparser.settingsFile=/local/home/dbikel/jbproject/dbparser/settings/collins.properties -Xms500m -Xmx500m"/>
   <property category="runtime.0" name="appserver.ejbJarsSaved" value="1"/>
-  <property category="runtime.0" name="appserver.parameters" value="-jts -jns -jss -jdb"/>
-  <property category="runtime.0" name="appserver.servername" value="ejbcontainer"/>
+  <property category="runtime.0" name="appserver.parameters" value=""/>
+  <property category="runtime.0" name="appserver.servername" value=""/>
   <property category="runtime.0" name="appserver.vmparameters" value=""/>
   <property category="runtime.0" name="jsprunner.docbase" value="."/>
   <property category="runtime.0" name="jsprunner.jspfile" value="../../../pkg/jbuilder4/bin"/>
   <property category="runtime.0" name="jsprunner.launchuri" value="/../../../pkg/jbuilder4/bin"/>
+  <property category="runtime.0" name="server.arguments" value=""/>
+  <property category="runtime.0" name="server.disableServerClassTracing" value="0"/>
+  <property category="runtime.0" name="server.instance.name" value=""/>
+  <property category="runtime.0" name="server.name" value="Tomcat 3.3"/>
+  <property category="runtime.0" name="server.vmparameters" value=""/>
+  <property category="runtime.0" name="test.harness" value="junit.textui.TestRunner"/>
+  <property category="runtime.1" name="BuildTargetOnRun" value="com.borland.jbuilder.build.ProjectBuilder$ProjectBuildAction;make"/>
+  <property category="runtime.1" name="ConfigurationName" value="Debug Section 0, Sentence 8"/>
+  <property category="runtime.1" name="RunnableType" value="com.borland.jbuilder.runtime.ApplicationRunner"/>
+  <property category="runtime.1" name="application.class" value="danbikel.parser.Parser"/>
+  <property category="runtime.1" name="application.parameters" value="-is /local/home/dbikel/scratch/wsj-02-21.obj -sa /local/home/dbikel/scratch/wsj-0.8.tagged.reg-subcats.parsed -out /tmp/foo"/>
+  <property category="runtime.1" name="application.vmparameters" value="-server -Xms400m -Xmx400m"/>
+  <property category="runtime.1" name="appserver.ejbJarsSaved" value="1"/>
+  <property category="runtime.1" name="appserver.parameters" value=""/>
+  <property category="runtime.1" name="appserver.servername" value=""/>
+  <property category="runtime.1" name="appserver.vmparameters" value=""/>
+  <property category="runtime.1" name="jsprunner.docbase" value="."/>
+  <property category="runtime.1" name="jsprunner.jspfile" value="../../../pkg/jbuilder4/bin"/>
+  <property category="runtime.1" name="jsprunner.launchuri" value="/../../../pkg/jbuilder4/bin"/>
+  <property category="runtime.1" name="server.arguments" value=""/>
+  <property category="runtime.1" name="server.disableServerClassTracing" value="0"/>
+  <property category="runtime.1" name="server.instance.name" value=""/>
+  <property category="runtime.1" name="server.name" value="Tomcat 3.3"/>
+  <property category="runtime.1" name="server.vmparameters" value=""/>
+  <property category="runtime.1" name="test.harness" value="junit.textui.TestRunner"/>
+  <property category="serverservices" name="ejb.service.server" value="Borland Enterprise Server AppServer Edition 5.0.2+"/>
+  <property category="serverservices" name="is.single.server" value="0"/>
+  <property category="serverservices" name="jsp.service.server" value="Tomcat 3.3"/>
+  <property category="serverservices" name="single.server.name" value=""/>
   <property category="sys" name="AuthorLabel" value="@author"/>
   <property category="sys" name="BackupPath" value="bak"/>
   <property category="sys" name="BeansInstantiate" value="false"/>
@@ -53,13 +94,13 @@
   <property category="sys" name="DefaultPath" value="src"/>
   <property category="sys" name="Description" value=""/>
   <property category="sys" name="DescriptionLabel" value="Description:"/>
-  <property category="sys" name="DocPath" value="doc"/>
+  <property category="sys" name="DocPath" value="doc;util-doc"/>
   <property category="sys" name="EventMatch" value="false"/>
   <property category="sys" name="EventStyle" value="1"/>
   <property category="sys" name="ExcludeClassEnabled" value="0"/>
   <property category="sys" name="IncludeTestPath" value="1"/>
   <property category="sys" name="InstanceVisibility" value="0"/>
-  <property category="sys" name="JDK" value="java 1.4.0-b92"/>
+  <property category="sys" name="JDK" value="java 1.4.1_02-b06"/>
   <property category="sys" name="LastTag" value="0"/>
   <property category="sys" name="Libraries" value="beanshell"/>
   <property category="sys" name="MakeStable" value="0"/>
@@ -88,6 +129,14 @@
   <property category="sys" name="max.package.levels" value="6"/>
   <property category="team" name="ignorePath.0" value="classes"/>
   <property category="team" name="ignorePath.1" value="classes"/>
+  <property category="team" name="ignorePath.2" value="bak"/>
+  <property category="team" name="ignorePath.3" value="classes-old"/>
+  <property category="team" name="ignorePath.4" value="doc"/>
+  <property category="team" name="ignorePath.5" value="scorer/.#Makefile.1.1"/>
+  <property category="team" name="ignorePath.6" value="scorer/.#evalb.c.1.2"/>
+  <property category="team" name="ignorePath.7" value="scorer/evalb"/>
+  <property category="team" name="ignorePath.8" value="dbparser.jar"/>
+  <property category="team" name="ignorePath.9" value="hs_err_pid13387.log"/>
   <node name="Additional Settings" type="Folder">
     <file path="src/danbikel/switchboard/AbstractSwitchboardUser.java">
       <property category="generated" name="JavaSoft.rmic.0" value="danbikel/switchboard/AbstractSwitchboardUser_Stub.java"/>
@@ -111,12 +160,35 @@
     </file>
   </node>
   <node name="settings" type="Folder">
+    <file path="settings/arabic.properties"/>
+    <file path="settings/broken-english-settings.properties"/>
     <file path="settings/chinese.properties">
       <property category="build" name="CopyResource" value="0"/>
     </file>
     <file path="settings/collins.properties">
       <property category="build" name="CopyResource" value="0"/>
     </file>
+    <file path="settings/em.properties"/>
+  </node>
+  <node name="danbikel.util" type="Archive">
+    <property category="archiving" name="buildWithProject" value="0"/>
+    <property category="archiving" name="extraDeployRoots.1" value="C:danbikel.util.*"/>
+    <property category="archiving" name="extraDeployRoots.2" value="C:danbikel.util.proxy.*"/>
+    <property category="archiving" name="outPathState" value="1"/>
+    <property category="archiving" name="targetCompressed" value="1"/>
+    <property category="archiving" name="targetPath" value="danbikel.util.jar"/>
+  </node>
+  <node name="danbikel.util Doclet" type="Javadoc">
+    <property category="docletJavadoc" name="additionalOptions" value="-breakiterator -link http://java.sun.com/j2se/1.4/docs/api -windowtitle &quot;Dan Bikel&apos;s Utility Packages&quot; -doctitle &quot;Dan Bikel&apos;s Utility Packages&quot; -header &quot;Utility Packages&quot; -bottom &quot;Author: &lt;a target=\&quot;_blank\&quot; href=\&quot;http://www.cis.upenn.edu/~dbikel/\&quot;&gt;Dan Bikel.&lt;/a&gt;&quot;"/>
+    <property category="docletJavadoc" name="use" value="1"/>
+    <property category="javadoc" name="documentAllPackages" value="0"/>
+    <property category="javadoc" name="packages.1" value="danbikel.util"/>
+    <property category="javadoc" name="packages.2" value="danbikel.util.proxy"/>
+    <property category="javadoc" name="scope" value="protected"/>
+    <property category="nodeJavadoc" name="buildWithProject" value="0"/>
+    <property category="nodeJavadoc" name="directory" value="util-doc"/>
+    <property category="nodeJavadoc" name="displayAllOutput" value="1"/>
+    <property category="nodeJavadoc" name="useProjectJDK" value="1"/>
   </node>
   <node name="Parser Application" type="Archive">
     <property category="archiving" name="archiverClass" value="com.borland.jbuilder.wizard.archive.ApplicationArchiver"/>
@@ -125,11 +197,16 @@
     <property category="archiving" name="targetPath" value="dbparser.jar"/>
   </node>
   <node name="Standard Doclet" type="Javadoc">
-    <property category="docletJavadoc" name="additionalOptions" value="-link http://java.sun.com/j2se/1.4/docs/api -link http://www.cis.upenn.edu/~dbikel/wn-doc -windowtitle &quot;WordNet Parser&quot; -doctitle &quot;WordNet Parser&quot; -header &quot;WordNet Parser&quot; -bottom &quot;Author: &lt;a target=\&quot;_blank\&quot; href=\&quot;http://www.cis.upenn.edu/~dbikel/\&quot;&gt;Dan Bikel.&lt;/a&gt;&quot;"/>
+    <property category="docletJavadoc" name="additionalOptions" value="-breakiterator -link http://java.sun.com/j2se/1.4/docs/api -windowtitle &quot;Dan Bikel&apos;s Parser&quot; -doctitle &quot;Dan Bikel&apos;s Parser&quot; -header &quot;Parser&quot; -bottom &quot;Author: &lt;a target=\&quot;_blank\&quot; href=\&quot;http://www.cis.upenn.edu/~dbikel/\&quot;&gt;Dan Bikel.&lt;/a&gt;&quot;"/>
+    <property category="docletJavadoc" name="use" value="1"/>
     <property category="javadoc" name="scope" value="protected"/>
     <property category="nodeJavadoc" name="buildWithProject" value="0"/>
     <property category="nodeJavadoc" name="directory" value="doc"/>
     <property category="nodeJavadoc" name="displayAllOutput" value="0"/>
+    <property category="nodeJavadoc" name="useProjectJDK" value="1"/>
   </node>
+  <file path="build.xml">
+    <property category="antparams" name="build.compiler" value="com.borland.jbuilder.ant.compiler.Bmj"/>
+  </file>
   <file path="dbparser.html"/>
 </project>

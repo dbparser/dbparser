@@ -337,11 +337,15 @@ public class InterpolatedKnesserNeyModel extends Model {
       }
     }
     backOffMap = null; // no longer needed!
+    if (structure.doCleanup())
+      cleanup();
+    if (saveSmoothingParams) {
+      writeSmoothingParams();
+      smoothingParams = null;
+    }
     if (verbose)
       System.err.println("Precomputed probabilities for " +
 			 structureClassName + " in " + time + ".");
-    if (structure.doCleanup())
-      cleanup();
   }
 
   /**

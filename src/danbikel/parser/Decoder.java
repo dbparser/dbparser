@@ -25,11 +25,16 @@ public class Decoder implements Serializable {
   private final static boolean debugUnaries = false;
   private final static boolean debugUnariesAndStopProbs = false;
   private final static boolean debugOutputChart = false;
+  private final static String debugChartFilenamePrefix = "chart";
   private final static boolean debugCommaConstraint = false;
   private final static Symbol S = Symbol.add("S");
   private final static Symbol VP = Symbol.add("VP");
+  private final static Symbol FRAG = Symbol.add("FRAG");
   private final static Symbol willSym = Symbol.add("will");
   private final static Symbol mdSym = Symbol.add("MD");
+
+  // constants
+  private final static String className = Decoder.class.getName();
 
   /**
    * A list containing only {@link Training#startSym()}, which is the
@@ -38,11 +43,11 @@ public class Decoder implements Serializable {
    */
   private final SexpList startList = Trainer.newStartList();
 
-  private final static String className = Decoder.class.getName();
-
   // data members
   protected int id;
   protected DecoderServerRemote server;
+  /** The current sentence index for this decoder (starts at 0). */
+  protected int sentenceIdx = -1;
   /** The current sentence. */
   protected SexpList sentence;
   /** The length of the current sentence, cached here for convenience. */
@@ -158,8 +163,7 @@ public class Decoder implements Serializable {
   protected List stopProbItemsToAdd = new ArrayList();
   // lookup TrainerEvent objects (created once here, and constantly mutated
   // throughout decoding)
-  protected HeadEvent lookupPriorEvent =
-    new HeadEvent(null, null, null, emptySubcat, emptySubcat);
+  protected PriorEvent lookupPriorEvent = new PriorEvent(null, null);
   protected HeadEvent lookupHeadEvent =
     new HeadEvent(null, null, null, emptySubcat, emptySubcat);
   protected ModifierEvent lookupModEvent =
@@ -422,8 +426,12 @@ public class Decoder implements Serializable {
   }
 
   protected void canonicalizeNonterminals(Sexp tree) {
-    if (Language.treebank.isPreterminal(tree))
+    if (Language.treebank.isPreterminal(tree)) {
+      SexpList treeList = tree.list();
+      Symbol currLabel = treeList.symbolAt(0);
+      treeList.set(0, Language.treebank.getCanonical(currLabel));
       return;
+    }
     else if (tree.isList()) {
       SexpList treeList = tree.list();
       Symbol currLabel = treeList.symbolAt(0);
@@ -483,16 +491,17 @@ public class Decoder implements Serializable {
         Symbol tag = tagSet.symbolAt(tagIdx);
         Word headWord = new Word(word, tag);
         CKYItem item = chart.getNewItem();
-        HeadEvent priorEvent = lookupHeadEvent;
-        priorEvent.set(headWord, stopSym, tag, emptySubcat, emptySubcat);
-        double prior = server.logPrior(id, priorEvent);
+        PriorEvent priorEvent = lookupPriorEvent;
+        priorEvent.set(headWord, tag);
+        double logPrior = server.logPrior(id, priorEvent);
+        double logProb = logPrior; // technically, logPrior + 0.0
         item.set(tag, headWord,
                  emptySubcat, emptySubcat, null, null,
                  null,
                  startList, startList,
                  i, i,
                  false, false, true,
-                 0.0, prior);
+                 0.0, logPrior, logProb);
         chart.add(i, i, item);
         addUnariesAndStopProbs(i, i);
       }
@@ -505,6 +514,7 @@ public class Decoder implements Serializable {
 
   protected Sexp parse(SexpList sentence, SexpList tags)
     throws RemoteException {
+    sentenceIdx++;
     chart.setSizeAndClear(sentence.length());
     initialize(sentence, tags);
     if (debugSentenceSize) {
@@ -519,6 +529,10 @@ public class Decoder implements Serializable {
     for (int span = 2; span <= sentLen; span++) {
       if (debugSpans)
         System.err.println(className + ": span: " + span);
+      /*
+      if (span == sentLen)
+	chart.dontDoPruning();
+      */
       int split = sentLen - span + 1;
       for (int start = 0; start < split; start++) {
         int end = start + span - 1;
@@ -528,7 +542,10 @@ public class Decoder implements Serializable {
       }
     }
 
+    chart.resetTopLogProb(0, sentLen - 1);
     addTopUnaries(sentLen - 1);
+
+    //chart.doPruning();
 
     // find top-ranked item whose label is topSym in linear time
     double highestProb = Constants.logOfZero;
@@ -546,15 +563,18 @@ public class Decoder implements Serializable {
 
     if (debugOutputChart) {
       try {
+	String chartFilename =
+	  debugChartFilenamePrefix + "-" + id + "-" + sentenceIdx + ".obj";
         System.err.println(className +
                            ": outputting chart to Java object file " +
-                           "\"chart.obj\"");
-        BufferedOutputStream bos =
-          new BufferedOutputStream(new FileOutputStream("chart.obj"),
-                                   Constants.defaultFileBufsize);
-        ObjectOutputStream out = new ObjectOutputStream(bos);
-        out.writeObject(chart);
-        out.close();
+                           "\"" + chartFilename + "\"");
+	BufferedOutputStream bos =
+	  new BufferedOutputStream(new FileOutputStream(chartFilename),
+				   Constants.defaultFileBufsize);
+	ObjectOutputStream os = new ObjectOutputStream(bos);
+        os.writeObject(chart);
+	os.writeObject(originalWords);
+        os.close();
       }
       catch (IOException ioe) {
         System.err.println(ioe);
@@ -605,7 +625,7 @@ public class Decoder implements Serializable {
         newItem.set(topSym, item.headWord(),
                     emptySubcat, emptySubcat, item,
                     null, null, startList, startList, 0, end,
-                    false, false, true, logProb, logProb);
+                    false, false, true, logProb, 0.0, logProb);
         topProbItemsToAdd.add(newItem);
       }
     }
@@ -685,11 +705,11 @@ public class Decoder implements Serializable {
         modifierSide = sideIdx == 0 ? Constants.RIGHT : Constants.LEFT;
         boolean modifyLeft = modifierSide == Constants.LEFT;
 
-        int modificandStartIdx = modifyLeft ?  split + 1 : start;
-        int modificandEndIdx =   modifyLeft ?  end :       split;
+        int modificandStartIdx = modifyLeft ?  split + 1  :  start;
+        int modificandEndIdx =   modifyLeft ?  end        :  split;
 
-        int modifierStartIdx = modifyLeft ?    start :     split + 1;
-        int modifierEndIdx =   modifyLeft ?    split :     end;
+        int modifierStartIdx =   modifyLeft ?  start      :  split + 1;
+        int modifierEndIdx =     modifyLeft ?  split      :  end;
 
         if (debugComplete && debugSpans)
           System.err.println(className + ": modifying [" +
@@ -714,7 +734,8 @@ public class Decoder implements Serializable {
                                      ".complete: trying to modify\n\t" +
                                      modificandItem + "\n\twith\n\t" +
                                      modifierItem);
-                if (!modificandItem.stop())
+                if (!modificandItem.stop() &&
+		    derivationOrderOK(modificandItem, modifierSide))
                   joinItems(modificandItem, modifierItem, modifierSide);
               }
             }
@@ -724,6 +745,12 @@ public class Decoder implements Serializable {
     }
     addUnariesAndStopProbs(start, end);
     chart.prune(start, end);
+  }
+
+  private boolean derivationOrderOK(CKYItem modificand, boolean modifySide) {
+    return (modifySide == Constants.LEFT ?
+	    modificand.rightSubcat().empty() :
+	    modificand.leftChildren() == null);
   }
 
   /**
@@ -742,17 +769,14 @@ public class Decoder implements Serializable {
   protected void joinItems(CKYItem modificand, CKYItem modifier,
                            boolean side)
   throws RemoteException {
-    // if this side's subcat contains the the current modifier's label as one
-    // of its requirements, make a copy of it and remove the requirement
-    Subcat thisSideSubcat = (Subcat)modificand.subcat(side);
     Symbol modLabel = (Symbol)modifier.label();
-    if (thisSideSubcat.contains(modLabel)) {
-      thisSideSubcat = (Subcat)thisSideSubcat.copy();
-      thisSideSubcat.remove(modLabel);
-    } else if (Language.training.isArgumentFast(modLabel)) {
-      return;
-    }
+
+    Subcat thisSideSubcat = (Subcat)modificand.subcat(side);
     Subcat oppositeSideSubcat = modificand.subcat(!side);
+    boolean thisSideSubcatContainsMod = thisSideSubcat.contains(modLabel);
+    if (!thisSideSubcatContainsMod &&
+	Language.training.isArgumentFast(modLabel))
+      return;
 
     SexpList thisSidePrevMods = getPrevMods(modificand.prevMods(side),
                                             modificand.children(side));
@@ -786,17 +810,36 @@ public class Decoder implements Serializable {
       }
     }
 
+    int lowerIndex = Math.min(thisSideEdgeIndex, oppositeSideEdgeIndex);
+    int higherIndex = Math.max(thisSideEdgeIndex, oppositeSideEdgeIndex);
+
     double logModProb = server.logProbMod(id, modEvent, side);
     if (logModProb <= Constants.logOfZero)
       return;
     double logTreeProb =
       modificand.logTreeProb() + modifier.logTreeProb() + logModProb;
-    HeadEvent priorEvent = lookupPriorEvent;
-    priorEvent.set(modificand.headWord(), stopSym, modificand.headLabel(),
-                   emptySubcat, emptySubcat);
+
+    /*
+    double logPrior;
+    if (lowerIndex == 0 && higherIndex == sentLen - 1) {
+      logPrior = 0.0;
+    }
+    else {
+      PriorEvent priorEvent = lookupPriorEvent;
+      priorEvent.set(modificand.headWord(), modificand.label());
+      logPrior = server.logPrior(id, priorEvent);
+      if (logPrior <= Constants.logOfZero)
+	return;
+    }
+    */
+    /*
+    PriorEvent priorEvent = lookupPriorEvent;
+    priorEvent.set(modificand.headWord(), (Symbol)modificand.label());
     double logPrior = server.logPrior(id, priorEvent);
     if (logPrior <= Constants.logOfZero)
       return;
+    */
+    double logPrior = modificand.logPrior();
     double logProb = logTreeProb + logPrior;
 
     if (debugJoin) {
@@ -811,16 +854,21 @@ public class Decoder implements Serializable {
       Debug.level = 0;
     }
 
-    if (logProb <= Constants.logOfZero)
-      return;
+    // if this side's subcat contains the the current modifier's label as one
+    // of its requirements, make a copy of it and remove the requirement
+    if (thisSideSubcatContainsMod) {
+      thisSideSubcat = (Subcat)thisSideSubcat.copy();
+      thisSideSubcat.remove(modLabel);
+    }
+
+    SLNode thisSideChildren = new SLNode(modifier, modificand.children(side));
+    SLNode oppositeSideChildren = modificand.children(!side);
 
     CKYItem newItem = chart.getNewItem();
     newItem.set((Symbol)modificand.label(), modificand.headWord(),
                 null, null, modificand.headChild(), null, null, null, null,
-                0, 0, false, false, false, logTreeProb, logProb);
-
-    SLNode thisSideChildren = new SLNode(modifier, modificand.children(side));
-    SLNode oppositeSideChildren = modificand.children(!side);
+                lowerIndex, higherIndex, false, false, false,
+		logTreeProb, logPrior, logProb);
 
     newItem.setSideInfo(side,
                         thisSideSubcat, thisSideChildren,
@@ -830,9 +878,6 @@ public class Decoder implements Serializable {
                         oppositeSideSubcat, oppositeSideChildren,
                         oppositeSidePrevMods, oppositeSideEdgeIndex,
                         oppositeSideVerbIntervening);
-
-    int lowerIndex = Math.min(thisSideEdgeIndex, oppositeSideEdgeIndex);
-    int higherIndex = Math.max(thisSideEdgeIndex, oppositeSideEdgeIndex);
 
     boolean added = chart.add(lowerIndex, higherIndex, newItem);
     if (!added)
@@ -922,12 +967,12 @@ public class Decoder implements Serializable {
     newItem.set(null, item.headWord(), null, null, item,
                 null, null, startList, startList,
                 item.start(), item.end(),
-                false, false, false, 0.0, 0.0);
+                false, false, false, 0.0, 0.0, 0.0);
     Symbol headSym = (Symbol)item.label();
     HeadEvent headEvent = lookupHeadEvent;
     headEvent.set(item.headWord(), null, headSym, emptySubcat, emptySubcat);
-    HeadEvent priorEvent = lookupPriorEvent;
-    priorEvent.set(item.headWord(), stopSym, headSym, emptySubcat, emptySubcat);
+    PriorEvent priorEvent = lookupPriorEvent;
+    priorEvent.set(item.headWord(), null);
     // foreach nonterminal
     for (int ntIndex = 0; ntIndex < nonterminals.length; ntIndex++) {
       Symbol parent = nonterminals[ntIndex];
@@ -971,9 +1016,18 @@ public class Decoder implements Serializable {
               continue;
             double logTreeProb =
               item.logTreeProb() + logProbHead;
+
+	    priorEvent.setLabel(parent);
+	    /*
+            double logPrior =
+	      (item.start() == 0 && item.end() == sentLen - 1 ?
+	       0.0 : server.logPrior(id, priorEvent));
+	    */
             double logPrior = server.logPrior(id, priorEvent);
+
             if (logPrior <= Constants.logOfZero)
               continue;
+
             double logProb = logTreeProb + logPrior;
 
             if (debugUnaries) {
@@ -983,6 +1037,7 @@ public class Decoder implements Serializable {
               continue;
 
             newItem.setLogTreeProb(logTreeProb);
+            newItem.setLogPrior(logPrior);
             newItem.setLogProb(logProb);
 
             CKYItem newItemCopy = chart.getNewItem();
@@ -1035,8 +1090,8 @@ public class Decoder implements Serializable {
                  item.rightSubcat(), item.rightVerb(), Constants.RIGHT);
 
     if (debugStops) {
-      if (item.start() == 3 && item.end() == 7 && item.label() == VP) {
-        Debug.level = 20;
+      if (item.start() == 0 && item.end() == 75 && item.label() == FRAG) {
+        Debug.level = 21;
         System.err.println(className + ": leftMod for stop prob.: " + leftMod);
         System.err.println(className + ": rightMod for stop prob.: " +rightMod);
       }
@@ -1051,15 +1106,33 @@ public class Decoder implements Serializable {
     double logTreeProb =
       item.logTreeProb() + leftLogProb + rightLogProb;
 
-    HeadEvent priorEvent = lookupPriorEvent;
-    priorEvent.set(item.headWord(), stopSym, (Symbol)item.label(),
-                   emptySubcat, emptySubcat);
+    /*
+    double logPrior;
+    PriorEvent priorEvent = null;
+    if (item.start() == 0 && item.end() == sentLen - 1) {
+      logPrior = 0.0;
+    }
+    else {
+      priorEvent = lookupPriorEvent;
+      priorEvent.set(item.headWord(), (Symbol)item.label());
+      logPrior = server.logPrior(id, priorEvent);
+      if (logPrior <= Constants.logOfZero)
+	return itemsAdded;
+    }
+    */
+    /*
+    PriorEvent priorEvent = lookupPriorEvent;
+    priorEvent.set(item.headWord(), (Symbol)item.label());
     double logPrior = server.logPrior(id, priorEvent);
+    if (logPrior <= Constants.logOfZero)
+      return itemsAdded;
+    */
+    double logPrior = item.logPrior();
     double logProb = logTreeProb + logPrior;
 
     if (debugStops) {
-      if (item.start() == 3 && item.end() == 7 && item.label() == VP) {
-        System.err.println(className + ": prior event: " + priorEvent);
+      if (item.start() == 0 && item.end() == 75 && item.label() == FRAG) {
+        //System.err.println(className + ": prior event: " + priorEvent);
         System.err.println(className + ": leftLogProb: " + leftLogProb + "; " +
                            "rightLogProb: " + rightLogProb + "; " +
                            "logTreeProb: " + logTreeProb + "; " +
@@ -1079,7 +1152,7 @@ public class Decoder implements Serializable {
                 item.leftChildren(), item.rightChildren(),
                 item.leftPrevMods(), item.rightPrevMods(),
                 item.start(), item.end(), item.leftVerb(),
-                item.rightVerb(), true, logTreeProb, logProb);
+                item.rightVerb(), true, logTreeProb, logPrior, logProb);
 
     boolean added = chart.add(item.start(), item.end(), newItem);
     if (added)
@@ -1136,151 +1209,6 @@ public class Decoder implements Serializable {
 	    !Language.treebank.isComma(getSentenceWord(end + 1)));
   }
 
-  /**
-   * Checks the most recently-added children on the specified side of
-   * <code>modificand</code> to see if there is a comma constraint
-   * violation.
-   *
-   * @deprecated The more efficient
-   * {@link #commaConstraintViolation(int,int,int)} should be used instead.
-   */
-  protected final boolean commaConstraintViolation(CKYItem modificand,
-						   CKYItem modifier,
-						   boolean side) {
-    if (modificand.leftChildren() == null && modificand.rightChildren() == null)
-      return false;
-    Treebank treebank = Language.treebank();
-    int lastWordIdx = sentLen - 1;
-    // first, look at most recent child, going from outside towards head:
-    // "firstItem" is outermost child, and we make "thirdItem" equal to head
-    // if we run out of children
-    CKYItem firstItem, thirdItem;
-    CKYItem leftItem = null, rightItem = null, middleItem = null;
-    SLNode children = modificand.children(side);
-    firstItem = modifier;
-    middleItem = children == null ? null : (CKYItem)children.data();
-    thirdItem = (middleItem == null ? null :
-                 (children.next() == null ? modificand.headChild() :
-                  (CKYItem)children.next().data()));
-    // set leftItem and rightItem appropriately
-    if (side == Constants.LEFT) {
-      leftItem = firstItem;
-      rightItem = thirdItem;
-    }
-    else {
-      rightItem = firstItem;
-      leftItem = thirdItem;
-    }
-    if (leftItem != null && middleItem != null && rightItem != null) {
-      Symbol left = leftItem.headWord().word();
-      Symbol middle = middleItem.headWord().word();
-      Symbol right = rightItem.headWord().word();
-      if (!treebank.isComma(left) && !treebank.isComma(right) &&
-          treebank.isComma(middle)) {
-        int rightEdgeIdx = rightItem.end();
-        if (!(rightEdgeIdx == lastWordIdx ||
-              treebank.isComma(getSentenceWord(rightEdgeIdx + 1)))) {
-          if (debugCommaConstraint) {
-            System.err.println(className +
-                               ": found comma constraint violation for " +
-                               "modificand\n\t" + modificand +
-                               "\n\tand modifier " + modifier + "\n\ton " +
-                               (side == Constants.LEFT ? "left" : "right"));
-            if (rightEdgeIdx < lastWordIdx) {
-              System.err.println("\tfollowing word is " +
-                                 getSentenceWord(rightEdgeIdx + 1));
-            }
-          }
-          return true;
-        }
-      }
-    }
-    // next, check (pathological) case where head child is comma
-    if (treebank.isComma(modificand.headWord().word())) {
-      if (debugCommaConstraint) {
-        System.err.println(className +
-                           ": yikes: a constituent in chart has comma as head " +
-                           modificand);
-      }
-      return false;
-    }
-    return false;
- }
-
-  /**
-   * Checks entire set of children of the specified item for a comma
-   * constraint violation.  This method is intended only for use when debugging.
-   */
-  private final boolean containsCommaConstraintViolation(CKYItem item) {
-    Treebank treebank = Language.treebank();
-    int lastWordIdx = sentence.length() - 1;
-    // first, look at most recent left children
-    SLNode first = item.leftChildren();
-    SLNode second = first != null ? first.next() : null;
-    SLNode third = (second == null ? null :
-                    (second.next() == null ?
-                     headNode.setData(item.headChild()) : second.next()));
-    while (first != null && second != null && third != null) {
-      Symbol left = ((CKYItem)first.data()).headWord().word();
-      Symbol middle = ((CKYItem)second.data()).headWord().word();
-      Symbol right = ((CKYItem)third.data()).headWord().word();
-      if (!treebank.isComma(left) && !treebank.isComma(right) &&
-          treebank.isComma(middle)) {
-        int rightEdgeIdx = ((CKYItem)third.data()).end();
-        if (!(rightEdgeIdx == lastWordIdx ||
-              treebank.isComma(getSentenceWord(rightEdgeIdx + 1))))
-          return true;
-      }
-      first = first.next();
-      second = second.next();
-      // if we've reached the end (the rightmost node, third, is the head)
-      if (third.data() == item.headChild()) {
-        third = null;
-      }
-      else {
-        third = (third.next() == null ?
-                 headNode.setData(item.headChild()) : third.next());
-      }
-    }
-    // next, look at most recent right children
-    first = item.rightChildren();
-    second = first != null ? first.next() : null;
-    third = (second == null ? null :
-             (second.next() == null ?
-              headNode.setData(item.headChild()) : second.next()));
-    while (first != null && second != null && third != null) {
-      Symbol left = ((CKYItem)third.data()).headWord().word();
-      Symbol middle = ((CKYItem)second.data()).headWord().word();
-      Symbol right = ((CKYItem)first.data()).headWord().word();
-      if (!treebank.isComma(left) && !treebank.isComma(right) &&
-          treebank.isComma(middle)) {
-        int rightEdgeIdx = ((CKYItem)first.data()).end();
-        if (!(rightEdgeIdx == lastWordIdx ||
-              treebank.isComma(getSentenceWord(rightEdgeIdx + 1))))
-          return true;
-      }
-      first = first.next();
-      second = second.next();
-      // if we've reached the end (the leftmost node, third, is the head)
-      if (third.data() == item.headChild()) {
-        third = null;
-      }
-      else {
-        third = (third.next() == null ?
-                 headNode.setData(item.headChild()) : third.next());
-      }
-    }
-    if (item.leftChildren() != null && item.rightChildren() != null &&
-        treebank.isComma(item.headWord().word())) {
-      if (debugCommaConstraint) {
-        System.err.println(className +
-                           ": yikes: a constituent in chart has comma as head" +
-                           item);
-      }
-      return false;
-    }
-    return false;
-  }
   private final Symbol getSentenceWord(int index) {
     return (sentence.get(index).isSymbol() ? sentence.symbolAt(index) :
             sentence.listAt(index).symbolAt(1));

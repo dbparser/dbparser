@@ -1,7 +1,8 @@
 #!/bin/tcsh -f
 
 set settings = $1
-set filePrefix = $2
+set training = $2
+set filePrefix = $training:r
 
 # turn settings into absolute path, if necessary
 set settingsDir = `dirname $settings`

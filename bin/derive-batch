@@ -5,7 +5,7 @@ set filePrefix = $1
 set nodes = ($NODES)
 
 @ i = 1
-foreach dir ([0-9][0-9])
+foreach dir (0[1-9] [1-9][0-9])
     ssh -n node$nodes[$i] derive-precomputed -sf $cwd/collins.properties -us $cwd/00/smoothing -st $cwd/00/$filePrefix.static.observed.gz $cwd/$dir/$filePrefix.observed.gz >& derive-precomputed.$dir.node$nodes[$i].log &
     @ i++
 end

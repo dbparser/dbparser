@@ -12,6 +12,7 @@ import java.util.*;
 public class EMChart extends CKYChart {
   // constants
   private final static String className = EMChart.class.getName();
+  private final static boolean debugAddToChart = false;
 
   // inner class
   /**
@@ -108,9 +109,14 @@ public class EMChart extends CKYChart {
    * @param start the start of the span of this item
    * @param end the end of the span of this item
    * @param item the item to be added
+   *
+   * @return whether the specified item was added to the chart (<tt>false</tt>
+   * if an existing, equivalent item already exists in chart and the specified
+   * item's inside probability is added to the existing item's inside
+   * probability)
    */
-  public void add(int start, int end, EMItem item) {
-    add(start, end, item, null, null, null, null);
+  public boolean add(int start, int end, EMItem item) {
+    return add(start, end, item, null, null, null, null);
   }
 
   /**
@@ -127,12 +133,17 @@ public class EMChart extends CKYChart {
    * @param event the single event that allowed this item (consequent) to be
    * produced from its antecedent(s)
    * @param prob the probability of the specified event
+   *
+   * @return whether the specified item was added to the chart (<tt>false</tt>
+   * if an existing, equivalent item already exists in chart and the specified
+   * item's inside probability is added to the existing item's inside
+   * probability)
    */
-  public void add(int start, int end, EMItem item,
-		  EMItem ante1, EMItem ante2,
-		  TrainerEvent event, double prob) {
-    add(start, end, item, ante1, ante2,
-	new TrainerEvent[]{event}, new double[]{prob});
+  public boolean add(int start, int end, EMItem item,
+                     EMItem ante1, EMItem ante2,
+                     TrainerEvent event, double prob) {
+    return add(start, end, item, ante1, ante2,
+               new TrainerEvent[]{event}, new double[]{prob});
   }
 
   /**
@@ -151,15 +162,20 @@ public class EMChart extends CKYChart {
    * @param probs an array of probabilities of the same size and coindexed
    * with the specified array of events, where each probability
    * is that for its coindexed event
+   *
+   * @return whether the specified item was added to the chart (<tt>false</tt>
+   * if an existing, equivalent item already exists in chart and the specified
+   * item's inside probability is added to the existing item's inside
+   * probability)
    */
-  public void add(int start, int end, EMItem item,
-		  EMItem ante1, EMItem ante2,
-		  TrainerEvent[] events, double[] probs) {
+  public boolean add(int start, int end, EMItem item,
+                     EMItem ante1, EMItem ante2,
+                     TrainerEvent[] events, double[] probs) {
     if (debugNumItemsGenerated) {
       totalItemsGenerated++;
     }
     if (item.insideProb() == Constants.probImpossible)
-      return;
+      return false;
     if (Double.isNaN(item.insideProb())) {
       System.err.println(className + ": warning: inside prob. is NaN (" +
 			 start + "," + end + "): " + item + "\n\tante1: " +
@@ -168,6 +184,8 @@ public class EMChart extends CKYChart {
       for (int i = 0; i < events.length; i++)
 	System.err.println("event=" + events[i] + "; prob=" + probs[i]);
     }
+
+    boolean added = false;
 
     Entry chartEntry = chart[start][end];
     MapToPrimitive items = chartEntry.map;
@@ -182,12 +200,13 @@ public class EMChart extends CKYChart {
 	new EMItem.AntecedentPair(ante1, ante2, events, probs, currList);
       existingItem.setAntecedentPairs(newList);
 
-      /*
-      System.err.println(className + ": increasing existing item\n\t" +
-			 existingItem + "\ninside prob of " +
-			 existingItem.insideProb() + " by " +
-			 item.insideProb() + " of\n\t" + item);
-      */
+      if (debugAddToChart)
+        System.err.println(className + ": increasing existing item\n\t" +
+                           existingItem + "\ninside prob of " +
+                           existingItem.insideProb() + " by " +
+                           item.insideProb() + " of\n\t" + item +
+                           " ante1=@" + System.identityHashCode(ante1) +
+                           " ante2=@" + System.identityHashCode(ante2));
 
       existingItem.increaseInsideProb(item.insideProb());
       if (unaryLevel != existingItem.unaryLevel())
@@ -222,9 +241,13 @@ public class EMChart extends CKYChart {
       else {
 	chartEntry.numItemsAtLevel[unaryLevel]++;
       }
+      if (debugAddToChart)
+        System.err.println(className + ": adding\n\t" + item);
       items.put(item, item.insideProb());
       totalItems++;
+      added = true;
     }
+    return added;
   }
 
   protected void setUpItemPool() {

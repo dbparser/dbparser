@@ -71,7 +71,7 @@ public class Settings implements Serializable {
   /** The official name of this program. */
   public final static String progName = "Parsing Engine";
   /** The official version of this program. */
-  public final static String version = "0.9.7";
+  public final static String version = "0.9.9";
   /**
    * The prefix that all properties for this parser should have
    * (to be used when finding system properties that are meant to be included
@@ -106,6 +106,15 @@ public class Settings implements Serializable {
    * </pre>
    */
   public final static String settingsDirOverride = "parser.settingsDir";
+
+  /**
+   * The property to specify the package for {@linkplain ProbabilityStructure
+   * model structure classes}.
+   *
+   * @see #globalModelStructureNumber
+   */
+  public final static String modelStructurePackage =
+    "parser.modelStructure.package";
 
   /**
    * The property to specify the language to be parsed.
@@ -1215,14 +1224,22 @@ public class Settings implements Serializable {
    * The property to specify that the decoder restores all pruned words.  If
    * this property is <code>true</code> and the decoder produces a parse for
    * a sentence, then it is guaranteed that the number of tokens of the input
-   * sentence and the parsed output sentence will be identical.  The value of
-   * this property should be the (string representation of) a boolean
-   * (conversion is performed by the method <code>Boolean.valueOf</code>).
+   * sentence will be equal to the number of terminals of the parsed output
+   * sentence.  The value of this property should be the (string representation
+   * of) a boolean (conversion is performed by the method
+   * <code>Boolean.valueOf</code>).
    *
    * @see Training#prune(danbikel.lisp.Sexp)
    */
   public final static String restorePrunedWords =
     "parser.decoder.restorePrunedWords";
+
+  /**
+   * The property to specify whether the decoder uses {@link
+   * ModelCollection#simpleModNonterminalMap}.
+   */
+  public final static String useSimpleModNonterminalMap =
+    "parser.decoder.useSimpleModNonterminalMap";
 
   /**
    * The property to specify whether words are downcased during training

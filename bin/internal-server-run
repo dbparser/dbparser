@@ -136,9 +136,10 @@ if (`tail -1 $0` != "$timeStamp") then
     echo $inFiles > $outputDir/inFilenames
     # we need to put a backslash before every forward slash, since
     # the shell will process the sed expression before sed processes it
+    set sedScriptDir = `echo $scriptDir | sed -e 's/\//\\\//g'`
     set sedDDF = `echo $derivedDataFile | sed -e 's/\//\\\//g'`
     set sedSettingsFile = `echo $settingsFile | sed -e 's/\//\\\//g'`
-    sed -e "s/^\(set dir = \).*/\1$dir/" \
+    sed -e "s/^\(set scriptDir = \).*/\1$sedScriptDir/" \
 	-e "s/^\(set date = \).*/\1$date/" -e "s/^\(set time = \).*/\1$time/" \
 	-e 's/^\(set inFiles = \).*)/\1(`cat $outputDir\/inFilenames`)/' \
         -e "s/^\(set derivedDataFile = \).*/\1$sedDDF/" \

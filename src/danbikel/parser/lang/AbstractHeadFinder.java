@@ -5,6 +5,13 @@ import danbikel.parser.*;
 import java.io.*;
 import java.util.HashMap;
 
+/**
+ * Provides a default abstract implementation of the {@link HeadFinder}
+ * interface.  Subclasses are encouraged to make use of the {@link
+ * #defaultFindHead(Symbol,SexpList) method, which finds a head according to
+ * head rules that are gotten from a resource specified in the parser's
+ * settings file.
+ */
 public abstract class AbstractHeadFinder implements HeadFinder, Serializable {
   // constants
   /**

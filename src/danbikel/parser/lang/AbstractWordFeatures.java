@@ -4,6 +4,10 @@ import danbikel.lisp.*;
 import danbikel.parser.*;
 import java.io.Serializable;
 
+/**
+ * Provides a default abstract implementation of the {@link WordFeatures}
+ * interface.
+ */
 public abstract class AbstractWordFeatures implements WordFeatures, Serializable {
   /**
    * The unique symbol to represent unknown words.  The default value

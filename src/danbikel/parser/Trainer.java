@@ -130,6 +130,7 @@ public class Trainer implements Serializable {
   private int countThreshold;
   private int reportingInterval;
   private int numPrevMods;
+  private int numPrevWords;
   private boolean keepAllWords;
   private boolean downcaseWords;
 
@@ -141,7 +142,6 @@ public class Trainer implements Serializable {
   private CountsTable gapEvents = new CountsTable();
   private CountsTable vocabCounter = new CountsTable();
   private CountsTable wordFeatureCounter = new CountsTable();
-  private Map originalWordCounter = new HashMap();
   private Set vocab = new HashSet();
   private Map posMap = new HashMap();
   private Map leftSubcatMap = new HashMap();
@@ -164,6 +164,7 @@ public class Trainer implements Serializable {
   private Symbol startSym = Language.training.startSym();
   private Symbol stopSym = Language.training.stopSym();
   private Symbol topSym = Language.training.topSym();
+  private Word startWord = Language.training.startWord();
   private Word stopWord = Language.training.stopWord();
   private Symbol gapAugmentation = Language.training.gapAugmentation();
   private Symbol traceTag = Language.training.traceTag();
@@ -220,6 +221,8 @@ public class Trainer implements Serializable {
       Integer.parseInt(Settings.get(Settings.trainerReportingInterval));
     numPrevMods =
       Integer.parseInt(Settings.get(Settings.numPrevMods));
+    numPrevWords =
+      Integer.parseInt(Settings.get(Settings.numPrevWords));
 
     String keepAllWordsStr = Settings.get(Settings.keepAllWords);
     keepAllWords = Boolean.valueOf(keepAllWordsStr).booleanValue();
@@ -253,6 +256,8 @@ public class Trainer implements Serializable {
     throws IOException {
     Sexp tree = null;
     int sentNum = 0, intervalCounter = 0;
+    ArrayList headTrees = new ArrayList();
+    System.err.println("Phase 0: reading trees and finding heads");
     for ( ; (tree = Sexp.read(tok)) != null; sentNum++, intervalCounter++) {
       //System.err.println(tree);
 
@@ -285,30 +290,58 @@ public class Trainer implements Serializable {
       HeadTreeNode headTree = new HeadTreeNode(tree);
       if (downcaseWords)
 	downcaseWords(headTree);
+      headTrees.add(headTree);
+    }
+    int numSents = sentNum;
+
+    // phase 1: go through all sentences and set up vocabulary counts
+    System.err.println("Phase 1: vocabulary counts");
+    for (sentNum = 0; sentNum < numSents; sentNum++) {
+      HeadTreeNode headTree = (HeadTreeNode)headTrees.get(sentNum);
+      countVocab(headTree);
+    }
+    int origVocabSize = vocabCounter.size();
+    System.err.println("Original vocab size is " + origVocabSize + ".");
+
+    // phase 2: alter low-frequency words in HeadTreeNode objects
+    System.err.println("Phase 2: alter low-frequency words");
+    if (unknownWordThreshold > 1) {
+      for (sentNum = 0; sentNum < numSents; sentNum++) {
+	HeadTreeNode headTree = (HeadTreeNode)headTrees.get(sentNum);
+	alterLowFrequencyWords(headTree);
+      }
+    }
+    if (!keepAllWords)
+      vocabCounter.removeItemsBelow(unknownWordThreshold);
+
+    int numTransformed = origVocabSize - vocabCounter.size();
+    int numWFVectors = wordFeatureCounter.size();
+    String verbToBe = (numWFVectors > 1 ? "are" : "is");
+    String plural = (numWFVectors > 1 ? "s" : "");
+    System.err.println("Transformed " + numTransformed + " original vocab " +
+		       "items into word feature vectors.\nThere " + verbToBe +
+		       " " + numWFVectors + " distinct word feature " +
+		       "vector" + plural + ".\nOriginal vocab size was " +
+		       origVocabSize + "; new vocab size is " +
+		       vocabCounter.size() + ".");
+
+    // phase 3: finally go through all sentences and collect stats
+    System.err.println("Phase 3: collect stats");
+    intervalCounter = 0;
+    for (sentNum = 0; sentNum < numSents; sentNum++, intervalCounter++) {
+      HeadTreeNode headTree = (HeadTreeNode)headTrees.get(sentNum);
+      if (intervalCounter == reportingInterval) {
+	System.err.println(className + ": processed " + sentNum + " sentence" +
+			   (sentNum > 1 ? "s" : ""));
+	intervalCounter = 0;
+      }
       canonicalSubcatMap = new HashMap();
       collectStats(tree, headTree, true);
       canonicalSubcatMap = null; // it has served its purpose
-
-      /*
-      if (secretFlag == true) {
-	System.out.println(tree);
-	secretFlag = false;
-      }
-      */
     }
 
     System.err.println(className + ": processed " + sentNum + " sentence" +
 		       (sentNum > 1 ? "s " : " ") + "in total");
-
-    if (unknownWordThreshold > 1) {
-      Time time = new Time();
-      System.err.println("Altering low frequency words (words occurring " +
-			 "fewer than " + unknownWordThreshold + " times).");
-      alterLowFrequencyWords();
-
-      System.err.println("Finished altering low frequency words in " + time +
-			 ".");
-    }
 
     System.err.print("Creating part-of-speech map...");
     System.err.flush();
@@ -322,7 +355,7 @@ public class Trainer implements Serializable {
     if (tree.isPreterminal()) {
       if (tree.headWord().tag() != traceTag) {
 	Word headWord = tree.headWord();
-	headWord.setOriginalWord(headWord.word());
+	tree.setOriginalHeadWord(headWord.word());
 	headWord.setWord(Symbol.add(headWord.word().toString().toLowerCase()));
       }
     }
@@ -334,6 +367,49 @@ public class Trainer implements Serializable {
 	downcaseWords((HeadTreeNode)mods.next());
     }
   }
+
+  private void countVocab(HeadTreeNode tree) {
+    if (tree.isPreterminal()) {
+      if (tree.headWord().tag() != traceTag) {
+	Word headWord = tree.headWord();
+	if (wordFeatureCounter.containsKey(headWord.word()) == false)
+	  vocabCounter.add(headWord.word());
+      }
+    }
+    else {
+      countVocab(tree.headChild());
+      for (Iterator mods = tree.preMods().iterator(); mods.hasNext(); )
+	countVocab((HeadTreeNode)mods.next());
+      for (Iterator mods = tree.postMods().iterator(); mods.hasNext(); )
+	countVocab((HeadTreeNode)mods.next());
+    }
+  }
+
+
+  private void alterLowFrequencyWords(HeadTreeNode tree) {
+    if (tree.isPreterminal()) {
+      if (tree.headWord().tag() != traceTag) {
+	Word headWord = tree.headWord();
+	if (vocabCounter.count(headWord.word()) < unknownWordThreshold) {
+	  boolean isFirstWord = tree.leftIdx() == 0;
+	  Symbol oldWord = tree.originalHeadWord();
+	  if (oldWord == null)
+	    oldWord = headWord.word();
+	  Symbol features = wordFeatures.features(oldWord, isFirstWord);
+	  headWord.setWord(features);
+	  wordFeatureCounter.add(features);
+	}
+      }
+    }
+    else {
+      alterLowFrequencyWords(tree.headChild());
+      for (Iterator mods = tree.preMods().iterator(); mods.hasNext(); )
+	alterLowFrequencyWords((HeadTreeNode)mods.next());
+      for (Iterator mods = tree.postMods().iterator(); mods.hasNext(); )
+	alterLowFrequencyWords((HeadTreeNode)mods.next());
+    }
+  }
+
 
   /**
    * Collects the statistics from the specified tree.  Some
@@ -358,10 +434,12 @@ public class Trainer implements Serializable {
       Word word = tree.headWord();
       if (word.tag() != traceTag) {
 	//nonterminals.add(word.tag());// parts of speech are nonterminals, too!
-	vocabCounter.add(word.word());
+	//vocabCounter.add(word.word());
+	/*
 	addToValueCounts(originalWordCounter,
 			 word.word(), new SymbolPair(word.originalWord(),
 						     Symbol.add(word.index())));
+	*/
       }
     }
     else {
@@ -441,6 +519,18 @@ public class Trainer implements Serializable {
     return startList;
   }
 
+  public static WordList newStartWordList() {
+    int numPrevWords = Integer.parseInt(Settings.get(Settings.numPrevWords));
+    return newStartWordList(numPrevWords);
+  }
+
+  public static WordList newStartWordList(int numPrevWords) {
+    WordList wordList = WordListFactory.newList(numPrevWords);
+    for (int i = 0; i < numPrevWords; i++)
+      wordList.add(Language.training.startWord());
+    return wordList;
+  }
+
   /**
    * Note the O(n) operation performed on the prevModList.
    */
@@ -450,16 +540,12 @@ public class Trainer implements Serializable {
 				    boolean side) {
     Symbol parent = tree.label();
     Symbol head = tree.headChild().label();
-    // it's crucial to use a copy of the head word, so that
-    // alterLowFrequencyWords doesn't change equals status of ModifierEvent
-    // objects when it alters words from HeadEvent objects (i.e., we don't
-    // want ModifierEvent and HeadEvent objects to share the same head word
-    // Word objects)
-    Word headWord = tree.headWord().copy();
+    Word headWord = tree.headWord();
     Iterator mods = (side == Constants.LEFT ?
 		     tree.preMods().iterator() : tree.postMods().iterator());
 
     SexpList prevModList = newStartList(numPrevMods);
+    WordList prevWordList = newStartWordList(numPrevWords);
     Subcat dynamicSubcat = (Subcat)subcat.copy();
     // if there's a gap to generate, add as requirement to end of subcat list
     if (gapIdx != -1)
@@ -475,8 +561,8 @@ public class Trainer implements Serializable {
     boolean wordsIntervening = false;
     boolean headAlreadyHasMods =
       (side == Constants.LEFT ?
-       tree.headChild().leftIdx() < headWord.index() :
-       tree.headChild().rightIdx() > headWord.index() + 1);
+       tree.headChild().leftIdx() < tree.headWordIdx() :
+       tree.headChild().rightIdx() > tree.headWordIdx() + 1);
     for (int modIdx = 0; mods.hasNext(); modIdx++) {
       HeadTreeNode currMod = (HeadTreeNode)mods.next();
       Symbol modifier = currMod.label();
@@ -484,11 +570,11 @@ public class Trainer implements Serializable {
       wordsIntervening = (modIdx > 0 ? true : headAlreadyHasMods);
       Subcat canonicalDynamicSubcat =
 	dynamicSubcat.getCanonical(false, canonicalSubcatMap);
-      // crucial to copy modifier's head word object (see comment above)
-      ModifierEvent modEvent = new ModifierEvent(currMod.headWord().copy(),
+      ModifierEvent modEvent = new ModifierEvent(currMod.headWord(),
 						 headWord,
 						 modifier,
 						 new SexpList(prevModList),
+                                                 prevWordList.copy(),
 						 parent,
 						 head,
 						 canonicalDynamicSubcat,
@@ -522,7 +608,8 @@ public class Trainer implements Serializable {
 
       prevModHadVerb = currMod.containsVerb();
       prevModList.remove(prevModList.length() - 1);
-      prevModList.add(0, currMod.label()); // an O(n) op (list is usu. len. 1)
+      prevModList.add(0, modifier); // an O(n) op (list is usu. len. 1)
+      prevWordList.shift(currMod.headWord());
     }
 
     if (!dynamicSubcat.empty())
@@ -537,153 +624,13 @@ public class Trainer implements Serializable {
 					       headWord,
 					       stopSym,
 					       prevModList,
+                                               prevWordList,
 					       parent,
 					       head,
 					       emptySubcat,
 					       verbIntervening,
 					       side);
     modifierEvents.add(modEvent);
-  }
-
-  private void alterLowFrequencyWords() {
-    System.err.println("\tInitial vocab size is " + vocabCounter.size());
-
-    int headEventsModified = alterLowFrequencyWords(headEvents);
-    System.err.println("\tModified " + headEventsModified + " head events");
-
-    int modEventsModified = alterLowFrequencyWords(modifierEvents);
-    System.err.println("\tModified " + modEventsModified + " mod events");
-
-    int gapEventsModified = alterLowFrequencyWords(gapEvents);
-    System.err.println("\tModified " + gapEventsModified + " gap events");
-
-    System.err.println("\tNumber of distinct low-frequency words: " +
-		       unknownWords.size());
-
-    System.err.println("\tNumber of distinct word-feature vectors: " +
-		       wordFeatureTypes.size());
-
-    System.err.println("\tUpdating vocabulary counts to include altered " +
-		       "low-frequency words.");
-    updateVocab(unknownWords);
-
-    System.err.println("\tNew vocab size is " + vocabCounter.size());
-
-    unknownWords = null; // it has served its purpose
-  }
-
-  private int alterLowFrequencyWords(CountsTable events) {
-    CountsTable tempEvents = new CountsTable();
-
-    int numModifiedEvents = 0;
-
-    Iterator it = events.entrySet().iterator();
-    while (it.hasNext()) {
-      MapToPrimitive.Entry entry = (MapToPrimitive.Entry)it.next();
-      TrainerEvent event = (TrainerEvent)entry.getKey();
-      int count = entry.getIntValue(0);
-      boolean eventModified = alterLowFrequencyWords(tempEvents, event, count);
-      if (eventModified) {
-	numModifiedEvents++;
-	if (keepAllWords == false)
-	  it.remove();
-      }
-    }
-    events.putAll(tempEvents);
-
-    return numModifiedEvents;
-  }
-
-  /**
-   * This method puts a copy of the specified event in the
-   * <code>tempEvents</code> counts table if either its head word or
-   * modifier head word (if <code>event</code> has a valid
-   * <code>modHeadWord</code>) occur with a frequency less than unknown word
-   * threshold.  Crucially, the copied event will have the appropriate
-   * head words modified to be word-feature vectors, as returned by the
-   * method {@link WordFeatures#features(String,boolean)}.
-   * <br>
-   * <b>Bugs</b>: The second argument to {@link
-   * WordFeatures#features(String,boolean)} indicates whether the word
-   * that is the first argument was the first word in its sentence.  A
-   * proper implementation would check to see if the word is the first
-   * <i>alphanumeric</i> word in the sentence, instead of simply checking for
-   * the word's index being equal to zero, as is done by the current
-   * implementation of this method.
-   *
-   * @return true if this method modifies the specified event
-   */
-  private final boolean alterLowFrequencyWords(CountsTable tempEvents,
-					       TrainerEvent event,
-					       int count) {
-
-    boolean headLowFreq = isLowFrequencyWord(event.headWord());
-    boolean modHeadLowFreq = isLowFrequencyWord(event.modHeadWord());
-
-    if (headLowFreq || modHeadLowFreq) {
-
-      event = event.copy();  // make deep copy of the event
-
-      if (headLowFreq) {
-	Word headWord = event.headWord();
-	unknownWords.add(headWord.word());
-	// see "Bugs" note above
-	headWord.setWord(wordFeatures.features(headWord.originalWord(),
-					       headWord.index() == 0));
-	headWord.setOriginalWord(null);
-	wordFeatureTypes.add(headWord.word());
-      }
-      if (modHeadLowFreq) {
-	Word modHeadWord = event.modHeadWord();
-	unknownWords.add(modHeadWord.word());
-	// see "Bugs" note above
-	modHeadWord.setWord(wordFeatures.features(modHeadWord.originalWord(),
-						  modHeadWord.index() == 0));
-	modHeadWord.setOriginalWord(null);
-	wordFeatureTypes.add(modHeadWord.word());
-      }
-      tempEvents.add(event, count);
-      return true;
-    }
-    return false;
-  }
-
-  private final boolean isLowFrequencyWord(Word word) {
-    // we don't modify traces
-    return (isRealWord(word) &&
-	    vocabCounter.count(word.word()) < unknownWordThreshold);
-  }
-
-
-  private void updateVocab(Set unknownWords) {
-    // first, remove all low-frequency words from vocabCounter, if
-    // keepAllWords is false
-    if (keepAllWords == false) {
-      Iterator unknowns = unknownWords.iterator();
-      while (unknowns.hasNext())
-	vocabCounter.remove(unknowns.next());
-    }
-
-    // next, for each low-frequency word, look it up in originalWordCounter
-    // to get all the counts of its original, mixed-case ocurrences and index
-    // values, so as to add the appropriate feature vectors (and counts)
-    // to the word feature (unknown vocab) counter
-    Iterator unknowns = unknownWords.iterator();
-    while (unknowns.hasNext()) {
-      Symbol word = (Symbol)unknowns.next();
-      CountsTable valueCounts = (CountsTable)originalWordCounter.get(word);
-      Iterator values = valueCounts.keySet().iterator();
-      while (values.hasNext()) {
-	SymbolPair pair = (SymbolPair)values.next();
-	Symbol origWord = pair.first();
-	int index = pair.second().getInteger().intValue();
-	int count = valueCounts.count(pair);
-	wordFeatureCounter.add(wordFeatures.features(origWord, index == 0),
-				count);
-      }
-    }
-
-    originalWordCounter = null; // it has served its purpose
   }
 
   public void createPosMap() {
@@ -755,6 +702,14 @@ public class Trainer implements Serializable {
     return false;
   }
 
+  /**
+   * Derives event counts for all back-off levels of all sub-models for
+   * the current parsing model.
+   * <p>
+   * <b>Implementation note</b>: After all counts have been derived from
+   * top-level <code>TrainerEvent</code> objects, the tables that contain
+   * the top-level objects are cleared (set to <code>null</code>).
+   */
   public void deriveCounts() {
     try {
       String globalModelStructureNumber =
@@ -910,6 +865,12 @@ public class Trainer implements Serializable {
                           Language.training.getPrunedPreterms(),
                           Language.training.getPrunedPunctuation(),
                           canonical);
+
+      // finally, remove handles to all top-level TrainerEvent objects
+      priorEvents = null;
+      headEvents = null;
+      modifierEvents = null;
+      gapEvents = null;
     }
     catch (ExceptionInInitializerError e) {
       System.err.println(className + ": problem initializing an instance of " +
@@ -1127,7 +1088,8 @@ public class Trainer implements Serializable {
       nor have {@link Training#stopSym()} as its actual word. */
   private final boolean isRealWord(Word word) {
     return (word != null &&
-	    word.tag() != traceTag && word.word() != stopWord.word());
+	    word.tag() != traceTag &&
+            word.word() != stopWord.word() && word.word() != startWord.word());
   }
 
 

@@ -1,5 +1,6 @@
 package danbikel.parser;
 
+import danbikel.util.*;
 import java.util.Random;
 import java.util.Iterator;
 
@@ -75,7 +76,7 @@ public class ProbabilityCache extends danbikel.util.HashMapDouble {
   public ProbabilityCache(int maxCapacity) {
     //super(minCapacity);
     super();
-    this.maxCapacity = maxCapacity;
+    setMaxCapacity(maxCapacity);
     setStrategy(defaultStrategy);
   }
   /**
@@ -92,7 +93,7 @@ public class ProbabilityCache extends danbikel.util.HashMapDouble {
   public ProbabilityCache(int maxCapacity, int initialCapacity) {
     //super(minCapacity, initialCapacity);
     super(initialCapacity);
-    this.maxCapacity = maxCapacity;
+    setMaxCapacity(maxCapacity);
     setStrategy(defaultStrategy);
   }
   /**
@@ -112,7 +113,7 @@ public class ProbabilityCache extends danbikel.util.HashMapDouble {
 			  float loadFactor) {
     //super(inCapacity, initialCapacity, loadFactor);
     super(initialCapacity, loadFactor);
-    this.maxCapacity = maxCapacity;
+    setMaxCapacity(maxCapacity);
     setStrategy(defaultStrategy);
   }
 
@@ -129,6 +130,18 @@ public class ProbabilityCache extends danbikel.util.HashMapDouble {
     this.strategy = strategy;
     if (strategy == RANDOM)
       rand = new Random(System.currentTimeMillis());
+  }
+
+  /**
+   * Sets the maximum capacity for this cache.
+   *
+   * @throws IllegalArgumentException if the specified maximum capacity
+   * is zero or negative
+   */
+  public void setMaxCapacity(int maxCapacity) {
+    if (maxCapacity <= 0)
+      throw new IllegalArgumentException();
+    this.maxCapacity = maxCapacity;
   }
 
   /**
@@ -156,7 +169,7 @@ public class ProbabilityCache extends danbikel.util.HashMapDouble {
    *
    * @see #setStrategy(int)
    */
-  public synchronized void put(Object key, double probability) {
+  public synchronized double put(Object key, double probability) {
     if (size() >= maxCapacity) {
       switch (strategy) {
       case RANDOM:
@@ -164,8 +177,7 @@ public class ProbabilityCache extends danbikel.util.HashMapDouble {
         break;
       case BUCKET_LRU:
         //return super.putAndRemove(key, new Double(probability));
-        super.putAndRemove(key, probability);
-        return;
+        return putAndRemove(key, probability);
       case HALF_LIFE:
         clearHalf();
         break;
@@ -175,11 +187,10 @@ public class ProbabilityCache extends danbikel.util.HashMapDouble {
       }
     }
     //return super.put(key, new Double(probability));
-    super.put(key, probability);
-    return;
+    return super.put(key, probability);
   }
 
-  public synchronized void put(Object key, int hashCode, double probability) {
+  public synchronized double put(Object key, int hashCode, double probability) {
     if (size() >= maxCapacity) {
       switch (strategy) {
       case RANDOM:
@@ -187,8 +198,7 @@ public class ProbabilityCache extends danbikel.util.HashMapDouble {
         break;
       case BUCKET_LRU:
         //return super.putAndRemove(key, new Double(probability));
-        super.putAndRemove(key, hashCode, probability);
-        return;
+        return putAndRemove(key, hashCode, probability);
       case HALF_LIFE:
         clearHalf();
         break;
@@ -198,8 +208,28 @@ public class ProbabilityCache extends danbikel.util.HashMapDouble {
       }
     }
     //return super.put(key, new Double(probability));
-    super.put(key, hashCode, probability);
-    return;
+    return super.put(key, hashCode, probability);
+  }
+
+  public final synchronized double putAndRemove(Object key, double probability) {
+    return putAndRemove(key, key.hashCode(), probability);
+  }
+
+  public final synchronized double putAndRemove(Object key, int hash,
+                                                double probability) {
+    MapToPrimitive.Entry entry = getEntryMRU(key, hash);
+    if (entry != null) {
+      double oldProb = entry.getDoubleValue();
+      entry.set(0, probability);
+      return oldProb;
+    }
+    else {
+      removeLRU(hash);
+      HashMapPrimitive.Entry newEntry = getNewEntry(hash, key, null);
+      newEntry.set(0, probability);
+      addEntryMRU(newEntry);
+    }
+    return Double.NaN;
   }
 
   /**
@@ -222,24 +252,24 @@ public class ProbabilityCache extends danbikel.util.HashMapDouble {
    * @return the probability of the specified key or <code>null</code>
    * if it is not in this cache
    */
-  public synchronized double getProb(Object key) {
+  public synchronized MapToPrimitive.Entry getProb(Object key) {
     return (strategy == BUCKET_LRU ?
-            super.getAndMakeMRU(key) :
-            super.getDouble(key));
+            super.getEntryMRU(key) :
+            super.getEntry(key));
   }
 
-  public synchronized double getProb(Object key, int hashCode) {
+  public synchronized MapToPrimitive.Entry getProb(Object key, int hashCode) {
     return (strategy == BUCKET_LRU ?
-            super.getAndMakeMRU(key, hashCode) :
-            super.getDouble(key, hashCode));
+            super.getEntryMRU(key, hashCode) :
+            super.getEntry(key, hashCode));
   }
 
   public synchronized boolean containsKey(Object key) {
     return super.containsKey(key);
   }
 
-  private void removeRandom() {
-    int randIdx = rand.nextInt(capacity());
+  public void removeRandom() {
+    int randIdx = rand.nextInt(getCapacity());
     removeRandom(randIdx);
   }
 

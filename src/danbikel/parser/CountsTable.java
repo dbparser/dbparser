@@ -57,6 +57,22 @@ public class CountsTable extends danbikel.util.HashMapInt {
   }
 
   /**
+   * Removes items in this table whose counts are less than the specified
+   * threshold.
+   *
+   * @param threshold the count threshold below which to remove items from
+   * this table
+   */
+  public void removeItemsBelow(int threshold) {
+    Iterator it = entrySet().iterator();
+    while (it.hasNext()) {
+      MapToPrimitive.Entry entry = (MapToPrimitive.Entry)it.next();
+      if (entry.getIntValue() < threshold)
+        it.remove();
+    }
+  }
+
+  /**
    * Outputs all the mappings of this map in as S-expressions of the form
    * <pre>(name key value)</pre>
    */

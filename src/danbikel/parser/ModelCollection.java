@@ -107,6 +107,11 @@ public class ModelCollection implements Serializable {
    * conditioning contexts to all possible modifying nonterminals.
    */
   protected transient Map modNonterminalMap;
+  /**
+   * A map from unlexicalized parent-head-side triples to all possible
+   * partially-lexicalized modifying nonterminals.
+   */
+  protected transient Map simpleModNonterminalMap;
   /** The set of preterminals pruned during training. */
   protected transient Set prunedPreterms;
   /** The set of punctuation preterminals pruned during training. */
@@ -174,6 +179,8 @@ public class ModelCollection implements Serializable {
    * @param modNonterminalMap a mapping from the last level of back-off of
    * modifying nonterminal conditioning contexts to all possible modifying
    * nonterminals
+   * @param simpleModNonterminalMap a mapping from parent-head-side triples
+   * to all possible partially-lexicalized modifying nonterminals
    * @param prunedPreterms the set of preterminals pruned during training
    * @param prunedPunctuation the set of punctuation preterminals pruned
    * during training
@@ -198,6 +205,7 @@ public class ModelCollection implements Serializable {
 		  Map leftSubcatMap,
 		  Map rightSubcatMap,
 		  Map modNonterminalMap,
+                  Map simpleModNonterminalMap,
 		  Set prunedPreterms,
 		  Set prunedPunctuation,
 		  FlexibleMap canonicalEvents) {
@@ -222,6 +230,7 @@ public class ModelCollection implements Serializable {
     this.leftSubcatMap = leftSubcatMap;
     this.rightSubcatMap = rightSubcatMap;
     this.modNonterminalMap = modNonterminalMap;
+    this.simpleModNonterminalMap = simpleModNonterminalMap;
     this.prunedPreterms = prunedPreterms;
     this.prunedPunctuation = prunedPunctuation;
 
@@ -309,6 +318,7 @@ public class ModelCollection implements Serializable {
   public Map leftSubcatMap() { return leftSubcatMap; }
   public Map rightSubcatMap() { return rightSubcatMap; }
   public Map modNonterminalMap() { return modNonterminalMap; }
+  public Map simpleModNonterminalMap() { return simpleModNonterminalMap; }
   public Set prunedPreterms() { return prunedPreterms; }
   public Set prunedPunctuation() { return prunedPunctuation; }
 
@@ -481,6 +491,13 @@ public class ModelCollection implements Serializable {
       tempTimer.reset();
     }
     s.writeObject(modNonterminalMap);
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Writing out simpleModNonterminalMap...");
+      tempTimer.reset();
+    }
+    s.writeObject(simpleModNonterminalMap);
     if (verbose)
       System.err.println("done (" + tempTimer + ").");
     if (verbose) {
@@ -661,6 +678,13 @@ public class ModelCollection implements Serializable {
       tempTimer.reset();
     }
     modNonterminalMap = (Map)s.readObject();
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
+      System.err.print("Reading simpleModNonterminalMap...");
+      tempTimer.reset();
+    }
+    simpleModNonterminalMap = (Map)s.readObject();
     if (verbose)
       System.err.println("done (" + tempTimer + ").");
     if (verbose) {

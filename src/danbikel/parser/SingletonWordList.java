@@ -18,9 +18,17 @@ class SingletonWordList extends FixedSizeSingletonList
     return (Word)get(index);
   }
 
+  /**
+   * Returns a copy of this list.
+   * <p>
+   * <b>Warning</b>: The returned copy is <i>not</i> a deep copy.  That is,
+   * the <code>Word</code> object is simply a reference to the original object
+   * from this list.
+   */
   public WordList copy() {
     WordList newList = new SingletonWordList(1);
-    newList.set(0, getWord(0).copy());
+    //newList.set(0, getWord(0).copy());
+    newList.set(0, getWord(0));
     return newList;
   }
 

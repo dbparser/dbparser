@@ -39,6 +39,8 @@ public class Constants {
   /** A symbol constant to represent falsity. */
   public static final Symbol falseSym = Symbol.add("false");
 
+  public static final Symbol notSym = Symbol.add("not");
+
   /**
    * A constant to represent the logarithm of zero, equal to
    * <code>Double#NEGATIVE_INFINITY</code>.

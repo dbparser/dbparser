@@ -1,6 +1,7 @@
-package danbikel.parser;
+package danbikel.parser.constraints;
 
 import danbikel.lisp.*;
+import danbikel.parser.*;
 
 /**
  * Static factory for <code>ConstraintSet</code> objects.  This scheme allows

@@ -1,7 +1,8 @@
-package danbikel.parser;
+package danbikel.parser.constraints;
 
 import danbikel.util.*;
 import danbikel.lisp.*;
+import danbikel.parser.*;
 import java.util.*;
 
 /**
@@ -29,12 +30,12 @@ public class PartialTreeConstraint implements Constraint, SexpConvertible {
 
   protected PartialTreeConstraint(PartialTreeConstraint parent,
 				Sexp tree, IntCounter currWordIdx) {
-    if (Language.treebank.isPreterminal(tree)) {
+    if (Language.treebank().isPreterminal(tree)) {
       this.parent = parent;
       children = Collections.EMPTY_LIST;
-      Word word = Language.treebank.makeWord(tree);
+      Word word = Language.treebank().makeWord(tree);
       label = word.tag();
-      Language.treebank.parseNonterminal(label, nt);
+      Language.treebank().parseNonterminal(label, nt);
       start = end = currWordIdx.get();
       currWordIdx.increment();
     }
@@ -42,9 +43,9 @@ public class PartialTreeConstraint implements Constraint, SexpConvertible {
       SexpList treeList = tree.list();
       int treeListLen = treeList.length();
 
-      //label = Language.treebank.getCanonical(treeList.symbolAt(0));
+      //label = Language.treebank().getCanonical(treeList.symbolAt(0));
       label = treeList.symbolAt(0);
-      Language.treebank.parseNonterminal(label, nt);
+      Language.treebank().parseNonterminal(label, nt);
       start = currWordIdx.get();
       this.parent = parent;
       children = new ArrayList(treeListLen - 1);
@@ -154,7 +155,7 @@ public class PartialTreeConstraint implements Constraint, SexpConvertible {
    * @see Nonterminal#subsumes(Nonterminal)
    */
   protected boolean labelMatches(Item item) {
-    Language.treebank.parseNonterminal((Symbol)item.label(), otherNT);
+    Language.treebank().parseNonterminal((Symbol)item.label(), otherNT);
     return this.nt.subsumes(otherNT);
   }
 

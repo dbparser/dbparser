@@ -1,7 +1,8 @@
-package danbikel.parser;
+package danbikel.parser.constraints;
 
 import danbikel.util.*;
 import danbikel.lisp.*;
+import danbikel.parser.*;
 import java.util.*;
 
 /**
@@ -50,10 +51,10 @@ public class LexTreeConstraint extends UnlexTreeConstraint {
   protected LexTreeConstraint(LexTreeConstraint parent,
 			      Sexp tree, IntCounter currWordIdx,
 			      HeadFinder headFinder) {
-    if (Language.treebank.isPreterminal(tree)) {
+    if (Language.treebank().isPreterminal(tree)) {
       this.parent = parent;
       children = Collections.EMPTY_LIST;
-      headWord = Language.treebank.makeWord(tree);
+      headWord = Language.treebank().makeWord(tree);
       label = headWord.tag();
       start = end = currWordIdx.get();
       currWordIdx.increment();

@@ -1,4 +1,4 @@
-package danbikel.parser;
+package danbikel.parser.constraints;
 
 import danbikel.lisp.*;
 

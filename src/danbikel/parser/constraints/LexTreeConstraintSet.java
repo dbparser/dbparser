@@ -1,6 +1,7 @@
-package danbikel.parser;
+package danbikel.parser.constraints;
 
 import danbikel.lisp.*;
+import danbikel.parser.*;
 import java.util.*;
 
 public class LexTreeConstraintSet extends UnlexTreeConstraintSet {

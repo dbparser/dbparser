@@ -1,4 +1,6 @@
-package danbikel.parser;
+package danbikel.parser.constraints;
+
+import danbikel.parser.Item;
 
 /**
  * An abstract base class that throws an

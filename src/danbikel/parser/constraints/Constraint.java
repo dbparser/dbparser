@@ -1,4 +1,6 @@
-package danbikel.parser;
+package danbikel.parser.constraints;
+
+import danbikel.parser.Item;
 
 /**
  * Specifies methods to check a chart item's satisfaction or violation of a

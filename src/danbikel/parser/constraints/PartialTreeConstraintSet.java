@@ -1,7 +1,8 @@
-package danbikel.parser;
+package danbikel.parser.constraints;
 
 import danbikel.util.*;
 import danbikel.lisp.*;
+import danbikel.parser.*;
 import java.util.*;
 
 /**

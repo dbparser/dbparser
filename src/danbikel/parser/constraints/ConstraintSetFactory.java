@@ -1,4 +1,4 @@
-package danbikel.parser;
+package danbikel.parser.constraints;
 
 /**
  * Specification for a <code>ConstraintSet</code> object factory, to be used by

@@ -1,6 +1,7 @@
-package danbikel.parser;
+package danbikel.parser.constraints;
 
 import java.util.*;
+import danbikel.parser.Item;
 
 /**
  * Specifies methods for searching a set of parsing constraints either for

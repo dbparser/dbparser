@@ -1,7 +1,8 @@
-package danbikel.parser;
+package danbikel.parser.constraints;
 
 import danbikel.util.*;
 import danbikel.lisp.*;
+import danbikel.parser.*;
 import java.util.*;
 
 /**
@@ -25,10 +26,10 @@ public class UnlexTreeConstraint implements Constraint, SexpConvertible {
 
   protected UnlexTreeConstraint(UnlexTreeConstraint parent,
 				Sexp tree, IntCounter currWordIdx) {
-    if (Language.treebank.isPreterminal(tree)) {
+    if (Language.treebank().isPreterminal(tree)) {
       this.parent = parent;
       children = Collections.EMPTY_LIST;
-      Word word = Language.treebank.makeWord(tree);
+      Word word = Language.treebank().makeWord(tree);
       label = word.tag();
       start = end = currWordIdx.get();
       currWordIdx.increment();
@@ -37,7 +38,7 @@ public class UnlexTreeConstraint implements Constraint, SexpConvertible {
       SexpList treeList = tree.list();
       int treeListLen = treeList.length();
 
-      //label = Language.treebank.getCanonical(treeList.symbolAt(0));
+      //label = Language.treebank().getCanonical(treeList.symbolAt(0));
       label = treeList.symbolAt(0);
       start = currWordIdx.get();
       this.parent = parent;
@@ -152,7 +153,7 @@ public class UnlexTreeConstraint implements Constraint, SexpConvertible {
 
   public boolean isLocallySatisfiedBy(Item item) {
     return (item.label() == label ||
-	    Language.treebank.getCanonical((Symbol)item.label()) == label);
+	    Language.treebank().getCanonical((Symbol)item.label()) == label);
   }
 
   protected boolean spanMatches(Item item) {

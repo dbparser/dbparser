@@ -262,10 +262,23 @@ public class Trainer implements Serializable {
   // deriveModNonterminalMap
   protected Filter allPass = new AllPass();
   protected Filter nonTop = new Filter() {
-      public boolean pass(Object obj) {
-	return ((TrainerEvent)obj).parent() != topSym;
-      }
-    };
+    public boolean pass(Object obj) {
+      return ((TrainerEvent)obj).parent() != topSym;
+    }
+  };
+  protected Filter nonPreterm = new Filter() {
+    public boolean pass(Object obj) {
+      TrainerEvent event = (TrainerEvent)obj;
+      return event.parent() != event.headWord().tag();
+    }
+  };
+  protected Filter nonTopNonPreterm = new Filter() {
+    public boolean pass(Object obj) {
+      TrainerEvent event = (TrainerEvent)obj;
+      return (event.parent() != topSym &&
+              event.parent() != event.headWord().tag());
+    }
+  };
   protected Filter topOnly = new Filter() {
       public boolean pass(Object obj) {
 	return ((TrainerEvent)obj).parent() == topSym;
@@ -759,9 +772,11 @@ public class Trainer implements Serializable {
       addHeadEvent(topToRoot);
 
       // kind of a hack: we manufacture a "modification event", as
-      // though the root node modifies +TOP+, so as to gather more counts
+      // though the root node modifies +TOP+, so as to gather counts
       // for the last level of back-off of the modification model,
-      // which is p(w | t)
+      // which is p(w | t); without this hack, we would not have counts
+      // for words that are the heads of their entire sentence, since
+      // they are not modifiers of anything
       ModifierEvent topMod = new ModifierEvent(tree.headWord(),
 					       tree.headWord(),
 					       tree.label(),
@@ -772,19 +787,19 @@ public class Trainer implements Serializable {
 					       emptySubcat,
 					       false, false);
       addModifierEvent(topMod);
-
-      //nonterminals.add(topSym); // +TOP+ is a nonterminal, too!
     }
     if (tree.isPreterminal()) {
       Word word = tree.headWord();
       if (word.tag() != traceTag) {
-	//nonterminals.add(word.tag());// parts of speech are nonterminals, too!
-	//vocabCounter.add(word.word());
-	/*
-	addToValueCounts(originalWordCounter,
-			 word.word(), new SymbolPair(word.originalWord(),
-						     Symbol.add(word.index())));
-	*/
+	// we add a trivial head-generation event from a lexicalized
+	// preterminal to its word, which by design has a probability of 1;
+	// this enables the headEvents counts table to contain counts for all
+	// lexicalized nonterminals (crucial for the last level of back-off of
+	// the top lex model)
+        HeadEvent pretermHeadEvent =
+          new HeadEvent(word, tree.label(), word.word(),
+                        emptySubcat, emptySubcat);
+        addHeadEvent(pretermHeadEvent);
       }
     }
     else {
@@ -1259,10 +1274,10 @@ public class Trainer implements Serializable {
     nonterminalPriorModel.deriveCounts(priorEvents, allPass, th, canonical);
     topNonterminalModel.deriveCounts(headEvents, topOnly, th, canonical);
     topLexModel.deriveCounts(headEvents, allPass, th, canonical);
-    headModel.deriveCounts(headEvents, nonTop, th, canonical);
+    headModel.deriveCounts(headEvents, nonTopNonPreterm, th, canonical);
     gapModel.deriveCounts(gapEvents, allPass, th, canonical);
-    leftSubcatModel.deriveCounts(headEvents, nonTop, th, canonical);
-    rightSubcatModel.deriveCounts(headEvents, nonTop, th, canonical);
+    leftSubcatModel.deriveCounts(headEvents, nonTopNonPreterm, th, canonical);
+    rightSubcatModel.deriveCounts(headEvents, nonTopNonPreterm, th, canonical);
     modNonterminalModel.deriveCounts(modifierEvents, allPass, th, canonical);
     modWordModel.deriveCounts(modifierEvents, nonStop, th, canonical);
   }
@@ -1337,7 +1352,7 @@ public class Trainer implements Serializable {
     int leftMSLastLevel = leftMS.numLevels() - 1;
     int rightMSLastLevel = rightMS.numLevels() - 1;
 
-    Filter filter = nonTop;
+    Filter filter = nonTopNonPreterm;
     Iterator events = headEvents.keySet().iterator();
     while (events.hasNext()) {
       HeadEvent headEvent = (HeadEvent)events.next();
@@ -1373,7 +1388,7 @@ public class Trainer implements Serializable {
   private void deriveHeadToParentMap(FlexibleMap canonicalMap) {
     System.err.println("Deriving head-to-parent map.");
 
-    Filter filter = nonTop;
+    Filter filter = nonTopNonPreterm;
     Iterator events = headEvents.keySet().iterator();
     while (events.hasNext()) {
       HeadEvent headEvent = (HeadEvent)events.next();
@@ -1505,8 +1520,8 @@ public class Trainer implements Serializable {
 
 
   /**
-   * Runs through all headEvents and modifierEvents, collecting lexicalized
-   * nonterminal occurrences.  Called by {@link #deriveCounts}.
+   * Runs through all headEvents, collecting lexicalized nonterminal
+   * occurrences.  Called by {@link #deriveCounts}.
    */
   private void derivePriors() {
     Iterator it = headEvents.entrySet().iterator();
@@ -1514,21 +1529,8 @@ public class Trainer implements Serializable {
       MapToPrimitive.Entry entry = (MapToPrimitive.Entry)it.next();
       HeadEvent event = (HeadEvent)entry.getKey();
       double count = entry.getDoubleValue();
-      if (isRealWord(event.headWord())) {
-	priorEvents.add(new PriorEvent(event.headWord(), event.head()),
-			count);
-      }
-    }
-    it = modifierEvents.entrySet().iterator();
-    while (it.hasNext()) {
-      MapToPrimitive.Entry entry = (MapToPrimitive.Entry)it.next();
-      ModifierEvent event = (ModifierEvent)entry.getKey();
-      double count = entry.getDoubleValue();
-      // we make sure to check that the parent of the modifier event is not
-      // +TOP+ so that we don't include the hack whereby we pretend we
-      // observed the root of the observed tree to "modify" +TOP+
-      if (event.parent() != topSym && isRealWord(event.modHeadWord())) {
-	priorEvents.add(new PriorEvent(event.modHeadWord(), event.modifier()),
+      if (isRealWord(event.headWord()) && event.parent() != topSym) {
+	priorEvents.add(new PriorEvent(event.headWord(), event.parent()),
 			count);
       }
     }
@@ -2380,16 +2382,18 @@ public class Trainer implements Serializable {
 
   private void outputCollins() {
     System.err.println("Outputting Collins-format head events.");
-    outputCollins(headEvents);
+    outputCollins(headEvents, nonPreterm);
     System.err.println("Outputting Collins-format modifier events.");
-    outputCollins(modifierEvents);
+    outputCollins(modifierEvents, allPass);
   }
 
-  private void outputCollins(CountsTable eventCounts) {
+  private void outputCollins(CountsTable eventCounts, Filter filter) {
     Iterator modEvents = eventCounts.entrySet().iterator();
     while (modEvents.hasNext()) {
       MapToPrimitive.Entry entry = (MapToPrimitive.Entry)modEvents.next();
       TrainerEvent event = (TrainerEvent)entry.getKey();
+      if (!filter.pass(event))
+        continue;
       int count = (int)entry.getDoubleValue();
       outputCollins(event, count);
     }

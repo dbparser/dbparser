@@ -826,10 +826,6 @@ public class CKYItem extends Item implements SexpConvertible {
     SLNode thisCurr = children(side);
     SLNode otherCurr = other.children(side);
 
-    // pretend that next word to be generated is stop word
-    Word thisCurrModHead = stopWord;
-    Word otherCurrModHead = stopWord;
-
     while (counter > 0 && thisCurr != null && otherCurr != null) {
 
       CKYItem thisMod = (CKYItem)thisCurr.data();
@@ -838,8 +834,12 @@ public class CKYItem extends Item implements SexpConvertible {
       Word thisPrevModHead = thisMod.headWord();
       Word otherPrevModHead = otherMod.headWord();
 
-      // we only look at this chart item (and not "other") for skipping
-      if (!Shifter.skip(this, thisPrevModHead, thisCurrModHead)) {
+      boolean skipThis = Shifter.skip(this, thisPrevModHead);
+      boolean skipOther = Shifter.skip(other, otherPrevModHead);
+
+      // if neither mod is to be skipped, do comparison of head words
+      boolean doCompare = !skipThis && !skipOther;
+      if (doCompare) {
 	// here's where we actually compare head words
 	if (thisPrevModHead.equals(otherPrevModHead)) {
 	  counter--;
@@ -849,12 +849,10 @@ public class CKYItem extends Item implements SexpConvertible {
 	}
       }
 
-      // since we're going back in time, curr becomes prev before next iteration
-      thisCurrModHead = thisPrevModHead;
-      otherCurrModHead = otherPrevModHead;
-
-      thisCurr = thisCurr.next();
-      otherCurr = otherCurr.next();
+      if (skipThis || doCompare)
+	thisCurr = thisCurr.next();
+      if (skipOther || doCompare)
+	otherCurr = otherCurr.next();
     }
 
     if (counter > 0) {

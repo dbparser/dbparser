@@ -7,6 +7,7 @@ public class ModWordModelStructure2 extends ProbabilityStructure {
   private Symbol startSym = Language.training().startSym();
   private Word startWord = Language.training().startWord();
   private Symbol baseNP = Language.treebank().baseNPLabel();
+  private Symbol stopSym = Language.training().stopSym();
   private Symbol topSym = Language.training().topSym();
 
   public ModWordModelStructure2() {
@@ -154,6 +155,10 @@ public class ModWordModelStructure2 extends ProbabilityStructure {
       return false;
     }
     return false;
+  }
+
+  public boolean removeFuture(int backOffLevel, Event future) {
+    return future.get(0,0) == stopSym;
   }
 
   public ProbabilityStructure copy() {

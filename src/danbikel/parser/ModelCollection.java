@@ -1,7 +1,8 @@
 package danbikel.parser;
 
-import danbikel.util.Time;
+import danbikel.util.Filter;
 import danbikel.util.FlexibleMap;
+import danbikel.util.Time;
 import danbikel.lisp.*;
 import java.io.*;
 import java.util.*;
@@ -19,35 +20,117 @@ import java.util.*;
 public class ModelCollection implements Serializable {
 
   // constants
-  private final static boolean verbose = true;
-  private final static boolean callGCAfterReadingObject = false;
+  protected final static boolean verbose = true;
+  protected final static boolean callGCAfterReadingObject = false;
 
   // data members
-  private transient Model lexPriorModel;
-  private transient Model nonterminalPriorModel;
-  private transient Model topNonterminalModel;
-  private transient Model topLexModel;
-  private transient Model headModel;
-  private transient Model gapModel;
-  private transient Model leftSubcatModel;
-  private transient Model rightSubcatModel;
-  private transient Model modNonterminalModel;
-  private transient Model modWordModel;
-  private transient CountsTable vocabCounter;
-  private transient CountsTable wordFeatureCounter;
-  private transient CountsTable nonterminals;
-  private transient Map posMap;
-  private transient Map leftSubcatMap;
-  private transient Map rightSubcatMap;
-  private transient Map modNonterminalMap;
-  private transient Set prunedPreterms;
-  private transient Set prunedPunctuation;
-  private transient FlexibleMap canonicalEvents;
+
+  /**
+   * An array containing all <code>Model</code> objects contained by this
+   * model collection, to be set up by {@link #createModelArray()}.
+   */
+  protected transient Model[] modelArr;
+  /** The model for lexical priors. */
+  protected transient Model lexPriorModel;
+  /** The model for nonoterminal priors. */
+  protected transient Model nonterminalPriorModel;
+  /**
+   * The model for generating observed root nonterminals given the hidden
+   * <tt>+TOP+</tt> nonterminal.
+   */
+  protected transient Model topNonterminalModel;
+
+  /**
+   * The model for generating the head word and part of speech of observed
+   * root nonterminals given the hidden <tt>+TOP+</tt> nonterminal.
+   */
+  protected transient Model topLexModel;
+  /**
+   * The model for generating a head nonterminal given its (lexicalized)
+   * parent.
+   */
+  protected transient Model headModel;
+  /** The model for generating gaps. */
+  protected transient Model gapModel;
+  /** The model for generating subcats on the left side of the head child. */
+  protected transient Model leftSubcatModel;
+  /** The model for generating subcats on the right side of the head child. */
+  protected transient Model rightSubcatModel;
+  /**
+   * The model for generating partially-lexicalized nonterminals that modify
+   * the head child.
+   */
+  protected transient Model modNonterminalModel;
+  /**
+   * The model for generating head words of lexicalized nonterminals that
+   * modify the head child.
+   */
+  protected transient Model modWordModel;
+  /**
+   * A table that maps observed words to their counts in the training
+   * corpus.
+   */
+  protected transient CountsTable vocabCounter;
+  /**
+   * A table that maps observed word-feature vectors to their counts
+   * in the training corpus.
+   */
+  protected transient CountsTable wordFeatureCounter;
+  /**
+   * A table that maps unlexicalized nonterminals to their counts in the
+   * training corpus.
+   */
+  protected transient CountsTable nonterminals;
+  /**
+   * A mapping from lexical items to all of their possible parts
+   * of speech.
+   */
+  protected transient Map posMap;
+
+  /**
+   * A mapping from head labels to possible parent labels.
+   */
+  protected transient Map headToParentMap;
+
+  /**
+   * A mapping from left subcat-prediction conditioning contexts (typically
+   * parent and head nonterminal labels) to all possible subcat frames.
+   */
+  protected transient Map leftSubcatMap;
+  /**
+   * A mapping from right subcat-prediction conditioning contexts (typically
+   * parent and head nonterminal labels) to all possible subcat frames.
+   */
+  protected transient Map rightSubcatMap;
+  /**
+   * A mapping from the last level of back-off of modifying nonterminal
+   * conditioning contexts to all possible modifying nonterminals.
+   */
+  protected transient Map modNonterminalMap;
+  /** The set of preterminals pruned during training. */
+  protected transient Set prunedPreterms;
+  /** The set of punctuation preterminals pruned during training. */
+  protected transient Set prunedPunctuation;
+  /**
+   * The reflexive map used to canonicalize objects created when deriving
+   * counts for all models in this model collection.
+   */
+  protected transient FlexibleMap canonicalEvents;
 
   // derived transient data
   // maps from integers to nonterminals and nonterminals to integers
-  private Map nonterminalMap;
-  private Symbol[] nonterminalArr;
+  /**
+   * A map from nonterminal labels (<code>Symbol</code> objects) to
+   * unique integers that are indices in the
+   * {@linkplain #nonterminalArr nonterminal array}.
+   */
+  protected Map nonterminalMap;
+  /**
+   * An array of all nonterminal labels, providing a mapping of unique integers
+   * (indices into this array) to nonterminal labels.  The inverse map is
+   * contained in {@link #nonterminalMap}.
+   */
+  protected Symbol[] nonterminalArr;
 
   /**
    * Constructs a new <code>ModelCollection</code> that initially contains
@@ -85,9 +168,17 @@ public class ModelCollection implements Serializable {
    * @param leftSubcatMap a mapping from left subcat-prediction conditioning
    * contexts (typically parent and head nonterminal labels) to all possible
    * subcat frames
-   * @param leftSubcatMap a mapping from right subcat-prediction conditioning
+   * @param rightSubcatMap a mapping from right subcat-prediction conditioning
    * contexts (typically parent and head nonterminal labels) to all possible
    * subcat frames
+   * @param modNonterminalMap a mapping from the last level of back-off of
+   * modifying nonterminal conditioning contexts to all possible modifying
+   * nonterminals
+   * @param prunedPreterms the set of preterminals pruned during training
+   * @param prunedPunctuation the set of punctuation preterminals pruned
+   * during training
+   * @param canonicalEvents the reflexive map used to canonicalize objects
+   * created when deriving counts for all models in this model collection
    */
   public void set(Model lexPriorModel,
 		  Model nonterminalPriorModel,
@@ -103,12 +194,13 @@ public class ModelCollection implements Serializable {
 		  CountsTable wordFeatureCounter,
 		  CountsTable nonterminals,
 		  Map posMap,
+		  Map headToParentMap,
 		  Map leftSubcatMap,
 		  Map rightSubcatMap,
-                  Map modNonterminalMap,
-                  Set prunedPreterms,
-                  Set prunedPunctuation,
-                  FlexibleMap canonicalEvents) {
+		  Map modNonterminalMap,
+		  Set prunedPreterms,
+		  Set prunedPunctuation,
+		  FlexibleMap canonicalEvents) {
     this.lexPriorModel = lexPriorModel;
     this.nonterminalPriorModel = nonterminalPriorModel;
     this.topNonterminalModel = topNonterminalModel;
@@ -119,19 +211,46 @@ public class ModelCollection implements Serializable {
     this.rightSubcatModel = rightSubcatModel;
     this.modNonterminalModel = modNonterminalModel;
     this.modWordModel = modWordModel;
+
+    createModelArray();
+
     this.vocabCounter = vocabCounter;
     this.wordFeatureCounter = wordFeatureCounter;
     this.nonterminals = nonterminals;
     this.posMap = posMap;
+    this.headToParentMap = headToParentMap;
     this.leftSubcatMap = leftSubcatMap;
     this.rightSubcatMap = rightSubcatMap;
     this.modNonterminalMap = modNonterminalMap;
     this.prunedPreterms = prunedPreterms;
     this.prunedPunctuation = prunedPunctuation;
 
-    this.canonicalEvents = canonicalEvents;
-
     createNonterminalMap();
+
+    this.canonicalEvents = canonicalEvents;
+  }
+
+  protected void createModelArray() {
+    modelArr = new Model[] {
+      lexPriorModel,
+      nonterminalPriorModel,
+      topNonterminalModel,
+      topLexModel,
+      headModel,
+      gapModel,
+      leftSubcatModel,
+      rightSubcatModel,
+      modNonterminalModel,
+      modWordModel,
+    };
+  }
+
+  public List modelList() {
+    return Collections.unmodifiableList(Arrays.asList(modelArr));
+  }
+
+  public Iterator modelIterator() {
+    return modelList().iterator();
   }
 
   private void createNonterminalMap() {
@@ -143,6 +262,28 @@ public class ModelCollection implements Serializable {
       nonterminalArr[uid] = nonterminal;
       nonterminalMap.put(nonterminal, new Integer(uid));
     }
+  }
+
+  /**
+   * Somewhat of a hack: we allow counts for a back-off level from
+   * one model to be shared with another model; in this case, the
+   * last level of back-off from the modWordModel is being
+   * shared (i.e., will be used) as the last level of back-off for
+   * topLexModel, as the last levels of both these models should just
+   * be estimating p(w | t).
+   *
+   * @param verbose indicates whether to print a message to
+   * <code>System.err</code>
+   */
+  public void shareCounts(boolean verbose) {
+    if (verbose)
+      System.err.println("Sharing last level of modWordModel to be " +
+			 "last level of topLexModel.");
+    int modWordLastLevel =
+	modWordModel.getProbStructure().numLevels() - 1;
+    int topLexLastLevel =
+	topLexModel.getProbStructure().numLevels() - 1;
+    modWordModel.share(modWordLastLevel, topLexModel, topLexLastLevel);
   }
 
   public int numNonterminals() { return nonterminalArr.length; }
@@ -164,6 +305,7 @@ public class ModelCollection implements Serializable {
   public CountsTable wordFeatureCounter() { return wordFeatureCounter; }
   public CountsTable nonterminals() { return nonterminals; }
   public Map posMap() { return posMap; }
+  public Map headToParentMap() { return headToParentMap; }
   public Map leftSubcatMap() { return leftSubcatMap; }
   public Map rightSubcatMap() { return rightSubcatMap; }
   public Map modNonterminalMap() { return modNonterminalMap; }
@@ -172,12 +314,20 @@ public class ModelCollection implements Serializable {
 
   public FlexibleMap canonicalEvents() { return canonicalEvents; }
 
+  // utility method
+  public String getModelCacheStats() {
+    StringBuffer sb = new StringBuffer(300 * modelArr.length);
+    int numModels = modelArr.length;
+    for (int i = 0; i < numModels; i++) {
+      sb.append(modelArr[i].getCacheStats());
+    }
+    return sb.toString();
+  }
 
-  private void writeObject(java.io.ObjectOutputStream s)
+  // I/O methods
+
+  protected void internalWriteObject(java.io.ObjectOutputStream s)
     throws IOException {
-    Time totalTime = null;
-    if (verbose)
-      totalTime = new Time();
 
     s.defaultWriteObject();
 
@@ -306,6 +456,13 @@ public class ModelCollection implements Serializable {
     if (verbose)
       System.err.println("done (" + tempTimer + ").");
     if (verbose) {
+      System.err.print("Writing out headToParentMap...");
+      tempTimer.reset();
+    }
+    s.writeObject(headToParentMap);
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
       System.err.print("Writing out leftSubcatMap...");
       tempTimer.reset();
     }
@@ -340,20 +497,24 @@ public class ModelCollection implements Serializable {
     s.writeObject(prunedPunctuation);
     if (verbose)
       System.err.println("done (" + tempTimer + ").");
-    /*
-    if (verbose)
-      System.err.println("Total time writing out ModelCollection object: " +
-                         totalTime + ".");
-    */
   }
 
-  private void readObject(java.io.ObjectInputStream s)
-    throws IOException, ClassNotFoundException {
+  private void writeObject(java.io.ObjectOutputStream s)
+    throws IOException {
     Time totalTime = null;
     if (verbose)
       totalTime = new Time();
 
-    s.defaultReadObject();
+    internalWriteObject(s);
+    /*
+    if (verbose)
+      System.err.println("Total time writing out ModelCollection object: " +
+			 totalTime + ".");
+    */
+  }
+
+  protected void internalReadObject(java.io.ObjectInputStream s)
+    throws IOException, ClassNotFoundException {
 
     Time tempTimer = null;
     if (verbose)
@@ -475,6 +636,13 @@ public class ModelCollection implements Serializable {
     if (verbose)
       System.err.println("done (" + tempTimer + ").");
     if (verbose) {
+      System.err.print("Reading headToParentMap...");
+      tempTimer.reset();
+    }
+    headToParentMap = (Map)s.readObject();
+    if (verbose)
+      System.err.println("done (" + tempTimer + ").");
+    if (verbose) {
       System.err.print("Reading leftSubcatMap...");
       tempTimer.reset();
     }
@@ -509,10 +677,24 @@ public class ModelCollection implements Serializable {
     prunedPunctuation = (Set)s.readObject();
     if (verbose)
       System.err.println("done (" + tempTimer + ").");
+  }
+
+  private void readObject(java.io.ObjectInputStream s)
+    throws IOException, ClassNotFoundException {
+    Time totalTime = null;
+    if (verbose)
+      totalTime = new Time();
+
+    s.defaultReadObject();
+
+    internalReadObject(s);
+
+    createModelArray();
 
     if (verbose)
       System.err.println("Total time reading ModelCollection object: " +
-                         totalTime + ".");
+			 totalTime + ".");
+
     if (callGCAfterReadingObject) {
       if (verbose)
 	System.err.print("gc...");

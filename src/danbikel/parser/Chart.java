@@ -13,13 +13,13 @@ import java.io.Serializable;
  */
 public abstract class Chart implements Serializable {
   // debugging constants
-  private final static boolean debug = false;
-  private final static boolean debugPrune = false;
-  private final static boolean debugNumPrunedItems = true;
-  private final static boolean debugAddToChart = false;
-  private final static boolean debugPoolUsage = true;
-  private final static boolean debugNumItemsGenerated = true;
-  private final static boolean debugCellSize = true;
+  private   final static boolean debug = false;
+  private   final static boolean debugPrune = false;
+  protected final static boolean debugNumPrunedItems = false;
+  private   final static boolean debugAddToChart = false;
+  private   final static boolean debugPoolUsage = false;
+  protected final static boolean debugNumItemsGenerated = false;
+  private   final static boolean debugCellSize = false;
 
   // constants
   private final static int defaultChartSize = 200;
@@ -30,7 +30,7 @@ public abstract class Chart implements Serializable {
   /**
    * Contains all information and items covering a particular span.
    */
-  protected final static class Entry implements Serializable {
+  protected static class Entry implements Serializable {
     MapToPrimitive map;
     Item topItem;
     double topLogProb;
@@ -143,8 +143,7 @@ public abstract class Chart implements Serializable {
   protected Chart(int size) {
     if (size <= 0)
       throw new IllegalArgumentException();
-    chart = new Entry[size][size];
-    this.size = size;
+    setSize(size);
     setUpItemPool();
     garbageItems = new ArrayList();
   }

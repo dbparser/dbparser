@@ -54,7 +54,7 @@ public class ParseToSentence {
       }
       else if (args[i].equals("-tags"))
         tags = true;
-      else if (!inFile.equals("-"))
+      else if (!args[i].equals("-"))
         inFile = args[i];
     }
     if (inFile != null) {

@@ -50,21 +50,43 @@ public class SexpList extends Sexp implements Externalizable {
     }
   };
 
+  /**
+   * A subclass of <code>SexpList</code> where a precomputed, cached
+   * hash value is stored with every instance.
+   */
   public final static class HashCache extends SexpList {
     static int equalsCalls = 0;
     static int numInstances = 0;
     transient int hash = super.hashCode();
+    /**
+     * Creates a new, empty <code>HashCache</code> list.
+     */
     public HashCache() { numInstances++; }
     HashCache(SexpList other, boolean dontCopy) {
       super(other, dontCopy);
       numInstances++;
     }
+
+    /**
+     * Returns the precomputed hash value for this list.
+     * @return the precomputed hash value for this list.
+     */
     public int hashCode() { return hash; }
     public void readExternal(ObjectInput in)
       throws IOException, ClassNotFoundException {
       super.readExternal(in);
       hash = super.hashCode();
     }
+
+    /**
+     * Test the specified object for equality to this list.  If the specified
+     * object is of type <code>HashCache</code>, then this method simply returns
+     * whether the specified object is object-equal to this object, as per the
+     * <code>==</code> operator; otherwise, the method
+     * {@link SexpList#equals(Object)} is used.
+     * @param obj the object to test for equality with this object
+     * @return whether the specified object is equal to this object
+     */
     public boolean equals(Object obj) {
       equalsCalls++;
       if (this == obj)
@@ -74,6 +96,11 @@ public class SexpList extends Sexp implements Externalizable {
       else
 	return super.equals(obj);
     }
+
+    /**
+     * Updates class-level information when this object dies.
+     * @throws Throwable
+     */
     protected void finalize() throws Throwable {
       numInstances--;
       if (numInstances < 10)
@@ -85,6 +112,10 @@ public class SexpList extends Sexp implements Externalizable {
   /**
    * A simple canonicalization method that returns the unique object
    * representing the empty list if the specified list contains no elements.
+   *
+   * @param list the list to be canonicalized, if it is the empty list
+   * @return a canonical version of the specified list, if the specified list
+   * is the empty list
    */
   public static final SexpList getCanonical(SexpList list) {
     return ((list.size == 0) ? emptyList : list);
@@ -154,12 +185,16 @@ public class SexpList extends Sexp implements Externalizable {
   /**
    * Returns <code>true</code>, because this class and any of its subclasses
    * represent lists.
+   *
+   * @return <code>true</code>
    */
   public final boolean isList() { return true; }
 
   /**
    * Returns <code>false</code>, because this class and any of its subclasses
    * represent lists, not symbols.
+   *
+   * @return <code>false</code>
    */
   public final boolean isSymbol() { return false; }
 
@@ -194,8 +229,10 @@ public class SexpList extends Sexp implements Externalizable {
   }
 
   /**
-   * Appends all the elements in <code>elementsToAdd</code> to this list.
+   * Appends all the elements in <code>elementsToAdd</code> to the end of this
+   * list.
    *
+   * @param elementsToAdd the elements to be added at the end of this list
    * @return whether this list was modified
    */
   public boolean addAll(SexpList elementsToAdd) {
@@ -229,6 +266,9 @@ public class SexpList extends Sexp implements Externalizable {
 
   /**
    * Gets the <code>Sexp</code> at the specified index.
+   *
+   * @param index the index of the list element to be retrieved
+   * @return the <code>Sexp</code> at the specified index.
    */
   public Sexp get(int index) {
     return items[index];
@@ -237,7 +277,10 @@ public class SexpList extends Sexp implements Externalizable {
   /**
    * Replaces the element at <code>index</code> with <code>element</code>.
    *
-   * @return the value of the element that used to be at <code>index</code>
+   * @param index the index of this list to be set with the specified
+   * <code>Sexp</code>
+   * @param element the element to be set at the specified index of this list
+   * @return the value of the element that used to be at the specified index
    */
   public Sexp set(int index, Sexp element) {
     Sexp former = items[index];
@@ -248,6 +291,7 @@ public class SexpList extends Sexp implements Externalizable {
   /**
    * Removes the element at <code>index</code>.
    *
+   * @param index the index at which to remove an element from this list
    * @return the element that was removed from the list
    * @exception IndexOutOfBoundsException if the index is out of range
    * (<code>(index < 0 || index >= size())</code>)
@@ -269,6 +313,9 @@ public class SexpList extends Sexp implements Externalizable {
   /**
    * Increases the number of elements that this list can hold, if necessary, to
    * be at least <code>minCapacity</code>.
+   *
+   * @param minCapacity the minimum size of the storage capacity of this list
+   * after invocation of this method
    */
   public void ensureCapacity(int minCapacity) {
     if (items.length < minCapacity) {
@@ -311,12 +358,16 @@ public class SexpList extends Sexp implements Externalizable {
 
   /**
    * Returns the number of elements in this list.
+   *
+   * @return the number of elements in this list.
    */
   public int length() {
     return size;
   }
   /**
    * Returns the number of elements in this list.
+   *
+   * @return the number of elements in this list.
    */
   public int size() {
     return size;
@@ -325,6 +376,8 @@ public class SexpList extends Sexp implements Externalizable {
   /**
    * Returns the first element of this list (identical to calling
    * <code>get(0)</code>).
+   *
+   * @return the first element of this list
    */
   public Sexp first() {
     return items[0];
@@ -333,6 +386,8 @@ public class SexpList extends Sexp implements Externalizable {
   /**
    * Returns the last element of this list (identical to calling
    * <code>get(size() - 1)</code>).
+   *
+   * @return the last element of this list
    */
   public Sexp last() {
     return items[size - 1];
@@ -355,6 +410,7 @@ public class SexpList extends Sexp implements Externalizable {
   /**
    * Returns whether the specified S-expression is an element of this list.
    * @param toFind the S-expression to find in this list
+   * @return whether the specified S-expression is an element of this list.
    */
   public boolean contains(Sexp toFind) {
     return indexOf(toFind) != -1;
@@ -363,7 +419,7 @@ public class SexpList extends Sexp implements Externalizable {
   /**
    * Performs an in-place reversal of the elements in this list.
    *
-   * @return this <code>SexpList</code> object
+   * @return this <code>SexpList</code> object, having been reversed
    */
   public SexpList reverse() {
     Sexp temp;
@@ -416,8 +472,11 @@ public class SexpList extends Sexp implements Externalizable {
    * <code>Sexp</code>s are used to represent labeled trees, where the first
    * element of a list represents a node label and subsequent elements
    * represent the children of the node with that label.
+   *
    * @param index the index of the element whose first symbol this method
    * retrieves
+   * @return the label of the first element of the list at the specified index
+   *
    * @exception ClassCastException if the element at <code>index</code> is not
    * a list or if the first element of the list at <code>index</code> is not
    * of type <code>Symbol</code>
@@ -437,7 +496,11 @@ public class SexpList extends Sexp implements Externalizable {
    * <code>Sexp</code>s are used to represent labeled trees, where the first
    * element of a list represents a node label and subsequent elements
    * represent the children of the node with that label.
+   *
    * @param index the index of the element whose first element is to be replaced
+   * @param newLabel the label to be set as the first element of the list
+   * at the specified index
+   *
    * @exception ClassCastException if the element at <code>index</code> is not
    * a list
    * @exception IndexOutOfBoundsException if this list has no element at the
@@ -448,6 +511,12 @@ public class SexpList extends Sexp implements Externalizable {
     get(index).list().set(0, newLabel);
   }
 
+  /**
+   * Returns a deep copy of this list, which means that a full copy of
+   * the tree of S-expressions held by this list is returned.
+   *
+   * @return a deep copy of this list
+   */
   public final Sexp deepCopy() {
     if (this == emptyList)
       return this;
@@ -462,8 +531,13 @@ public class SexpList extends Sexp implements Externalizable {
     return listCopy;
   }
 
-  /** Returns <code>true</code> if and only if all the elements of this list are
-      <code>Symbol</code> objects. */
+  /**
+   * Returns <code>true</code> if and only if all the elements of this list are
+   * <code>Symbol</code> objects.
+   *
+   * @return <code>true</code> if and only if all the elements of this list are
+   * <code>Symbol</code> objects.
+   */
   public boolean isAllSymbols() {
     int thisSize = size();
     for (int i = 0; i < thisSize; i++)
@@ -482,6 +556,9 @@ public class SexpList extends Sexp implements Externalizable {
    * this method, which checks for symbol equality (a <code>StringSymbol</code>
    * and an <code>IntSymbol</code> may have the same string representation
    * but can never be the same symbol).
+   *
+   * @param o the object to test for equality with this list
+   * @return whether the specified object is equal to this list
    *
    * @see AbstractList#equals
    */
@@ -544,6 +621,11 @@ public class SexpList extends Sexp implements Externalizable {
     result.append(')');
   }
 
+  /**
+   * Returns a read-only iterator for the elements of this list.
+   *
+   * @return a read-only iterator for the elements of this list.
+   */
   public Iterator iterator() {
     return new Iterator() {
       int currIdx = 0;
@@ -566,6 +648,13 @@ public class SexpList extends Sexp implements Externalizable {
   }
   */
 
+  /**
+   * Writes this object to an <code>ObjectOutput</code> instance.
+   *
+   * @param out the object stream to which to write an object of this class
+   * @throws IOException if the underlying write operation throws an
+   * <code>IOException</code>
+   */
   public void writeExternal(ObjectOutput out) throws IOException {
     out.writeInt(size);
     out.writeInt(items.length);
@@ -573,6 +662,15 @@ public class SexpList extends Sexp implements Externalizable {
       out.writeObject(items[i]);
   }
 
+  /**
+   * Reads this object from an <code>ObjectInput</code> instance.
+   *
+   * @param in the object stream from which to read objects of this class
+   * @throws IOException if the underlying read operation throws an
+   * <code>IOException</code>
+   * @throws ClassNotFoundException if the underlying read operation throws
+   * an <code>ClassNotFoundException</code>
+   */
   public void readExternal(ObjectInput in)
     throws IOException, ClassNotFoundException {
     size = in.readInt();

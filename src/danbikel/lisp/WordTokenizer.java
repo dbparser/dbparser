@@ -58,7 +58,7 @@ public class WordTokenizer {
 
   /**
    * Creates a new tokenizer object.
-   * 
+   *
    * @param inStream the stream to be tokenized.
    */
   public WordTokenizer(Reader inStream) {
@@ -83,6 +83,8 @@ public class WordTokenizer {
    * Specifies a character to treated as a token delimiter,
    * to be contained in {@link #ttype} after it is read.  The character
    * must be in the range of <code>0 <= ch <= Byte.MAX_VALUE</code>.
+   *
+   * @param ch the character to be tested
    */
   public void ordinaryChar(char ch) {
     if (ch < 0 || ch > Byte.MAX_VALUE)
@@ -95,6 +97,11 @@ public class WordTokenizer {
    * Specifies a range of characters to treated as a token delimiter, to be
    * contained in {@link #ttype} after it is read.  The characters
    * must be in the range of <code>0 <= ch <= Byte.MAX_VALUE</code>.
+   *
+   * @param low the lowest-valued character in a range to be treated as
+   * token delimiters
+   * @param hi the highest-valued character in a range to be treated as
+   * token delimiters
    */
   public void ordinaryChars(int low, int hi) {
     if (low > hi || low > Byte.MAX_VALUE)
@@ -110,6 +117,11 @@ public class WordTokenizer {
   /**
    * Reads the next token from the underlying character stream and returns
    * its type, which is also stored in {@link #ttype}.
+   *
+   * @return the type of the token that was just read
+   * (also stored in {@link #ttype})
+   * @throws IOException if there was a problem reading the next token
+   * from the underlying stream
    */
   public int nextToken() throws IOException {
     if (pushedBack) {
@@ -167,9 +179,17 @@ public class WordTokenizer {
 
   /**
    * Returns the line number of the underlying character stream.
+   *
+   * @return the line number of the underlying character stream.
    */
   public int lineno() { return lineno; }
 
+  /**
+   * Closes the underlying stream.
+   *
+   * @throws IOException if the underlying stream throws an
+   * <code>IOException</code> while being closed
+   */
   public void close() throws IOException {
     inStream.close();
   }

@@ -109,8 +109,9 @@ public class Decoder implements Serializable {
   /** The last level of back-off in the right modifying nonterminal generation
       model structure. */
   protected int rightModNonterminalPSLastLevel;
-  // these next two data members are used by {@link #preProcess}
+  // these next three data members are used by {@link #preProcess}
   protected Map prunedPretermsPosMap;
+  protected Set prunedPretermsPosSet;
   protected Map prunedPunctuationPosMap;
   // these next two data members are also kept in CKYChart, but we keep
   // them here as well, for debugging purposes
@@ -246,11 +247,13 @@ public class Decoder implements Serializable {
       this.rightModNonterminalPS =
         server.rightModNonterminalProbStructure().copy();
       prunedPretermsPosMap = new danbikel.util.HashMap();
+      prunedPretermsPosSet = new HashSet();
       Set prunedPreterms = server.prunedPreterms();
       it = prunedPreterms.iterator();
       while (it.hasNext()) {
         Word word = Language.treebank.makeWord((Sexp)it.next());
         prunedPretermsPosMap.put(word.word(), word.tag());
+	prunedPretermsPosSet.add(word.tag());
       }
       System.err.println("prunedPretermsPosMap: " + prunedPretermsPosMap);
       prunedPunctuationPosMap = new danbikel.util.HashMap();
@@ -331,8 +334,10 @@ public class Decoder implements Serializable {
       Symbol word = (downcaseWords ?
                      Symbol.get(sentence.get(i).toString().toLowerCase()) :
                      sentence.symbolAt(i));
-      if (prunedPretermsPosMap.containsKey(word) &&
-          !word.toString().equals("'")) {
+      Symbol tag = tags == null ? null : tags.listAt(i).first().symbol();
+      if (tag != null ? prunedPretermsPosSet.contains(tag) :
+	                (prunedPretermsPosMap.containsKey(word) &&
+			 !word.toString().equals("'"))) {
         sentence.remove(i);
         originalWords.remove(i);
         if (tags != null)

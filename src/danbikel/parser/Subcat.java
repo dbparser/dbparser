@@ -138,11 +138,11 @@ public interface Subcat extends MutableEvent, SexpConvertible {
    * @param map the reflexive map to use for canonicalization: the key-value
    * pair of (<code>this,&nbsp;this</code>) should be added to <code>map</code>
    * if this object is not already a key in <code>map</code>
-   * @param unused an unused parameter, used to distinguish this method's
-   * signature from that of {@link Sexp#getCanonical(Map)}; as its name implies,
-   * the value of this parameter is not used
+   * @param copyInto specifies whether to copy this subcat before inserting
+   * into the canonical map
+   * @return a canonical instance of this object
    */
-  public Subcat getCanonical(Map map, boolean unused);
+  public Subcat getCanonical(boolean copyInto, Map map);
 
   /**
    * Returns a list view of the information contained in this subcat,

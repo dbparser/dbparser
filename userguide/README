@@ -120,8 +120,10 @@ out-of-the-box, requiring a few caveats:
 
 	1. Most batch queues copy a batch script before executing it, which
 	   breaks any reliance on the $0 variable.  Accordingly, you may have
-	   to modify the script to hard-code paths for the scriptDir and parent
-	   variables (near the beginning of the script).
+	   to modify the script to hard-code paths for the dir variable (near
+	   the beginning of the script).  Alternatively, you can use
+	   the simple wrapper script (called, conveniently enough, "wrapper")
+	   to avoid this problem.
 
 	2. The script uses ssh for logging into nodes, and assumes that it will
 	   not need to enter a password for doing so.  The remote shell
@@ -137,6 +139,16 @@ out-of-the-box, requiring a few caveats:
 	   behavior is not appropriate for your environment.
 
 	4. The script relies on other scripts in its bin directory.
+
+	5. When the reap variable is defined, there is a section of
+	   code at the end of the script that logs onto all hosts and
+	   uses the killall command to kill all rmiregistry and java processes;
+	   this behavior may literally be overkill for your environment,
+	   if, for example, you have other, non-parsing java procs
+	   that you do not wish to kill.  The solution is to comment-out
+	   the line in the script reading "set reap", or to modify
+	   the reaping code to be more discriminating in the processes
+	   that it kills.
 
 In the future, we may customize the internal-server-run script via an
 installation procedure, instead of forcing you, the user, to perform the

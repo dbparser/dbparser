@@ -9,18 +9,18 @@ public class LexPriorModelStructure1 extends ProbabilityStructure {
   public int numLevels() { return 1; }
 
   public Event getHistory(TrainerEvent trainerEvent, int backOffLevel) {
-    HeadEvent headEvent = (HeadEvent)trainerEvent;
+    PriorEvent priorEvent = (PriorEvent)trainerEvent;
     MutableEvent history = histories[backOffLevel];
     history.clear();
-    history.add(headEvent.parent());
+    history.add(priorEvent.history());
     return history;
   }
   public Event getFuture(TrainerEvent trainerEvent, int backOffLevel) {
     MutableEvent future = futures[backOffLevel];
     future.clear();
-    HeadEvent headEvent = (HeadEvent)trainerEvent;
-    future.add(headEvent.headWord().word());
-    future.add(headEvent.headWord().tag());
+    PriorEvent priorEvent = (PriorEvent)trainerEvent;
+    future.add(priorEvent.headWord().word());
+    future.add(priorEvent.headWord().tag());
     return future;
   }
 

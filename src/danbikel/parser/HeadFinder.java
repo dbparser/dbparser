@@ -121,9 +121,9 @@ public abstract class HeadFinder implements Serializable {
     String headTableResource = Settings.get(headTableProperty);
     if (headTableResource == null) {
       System.err.println(getClass().getName() + ": warning: the property \"" +
-                         headTableProperty + "\"" +
-                         " was not set;\n\tusing fallback default " +
-                         "\"" + fallbackDefaultHeadTableResource + "\"");
+			 headTableProperty + "\"" +
+			 " was not set;\n\tusing fallback default " +
+			 "\"" + fallbackDefaultHeadTableResource + "\"");
       headTableResource = fallbackDefaultHeadTableResource;
     }
     InputStream is = Settings.getFileOrResourceAsStream(this.getClass(),
@@ -206,6 +206,7 @@ public abstract class HeadFinder implements Serializable {
    * <br><b>Efficiency note</b>: This default implementation creates a new
    * <code>SexpList</code> containing the labels of the children of the root of
    * <code>tree</code> and then calls {@link #findHead(Sexp,Symbol,SexpList)}.
+   *
    * @param tree the subtree for whose root production to find the head
    * @return the 1-based index of the head child of the production at the
    * root of the specified subtree
@@ -298,7 +299,7 @@ public abstract class HeadFinder implements Serializable {
 
       // first, find heads for all nodes in this subtree
       for (int i = 1; i < treeListLen; i++)
-        addHeadInformation(treeList.get(i));
+	addHeadInformation(treeList.get(i));
 
       // now, modify this subtree's head child's label
       Symbol parent = treeList.first().symbol();
@@ -470,13 +471,13 @@ public abstract class HeadFinder implements Serializable {
       if (tag == matchTags[j])
 	return true;
       else {
-        // let's see if the current match tag subsumes the tag in question
-        if (tagNT == null)
-          tagNT = Language.treebank.parseNonterminal(tag, nt1);
-        Nonterminal matchTagNT =
-          Language.treebank.parseNonterminal(matchTags[j], nt2);
-        if (matchTagNT.subsumes(tagNT))
-          return true;
+	// let's see if the current match tag subsumes the tag in question
+	if (tagNT == null)
+	  tagNT = Language.treebank.parseNonterminal(tag, nt1);
+	Nonterminal matchTagNT =
+	  Language.treebank.parseNonterminal(matchTags[j], nt2);
+	if (matchTagNT.subsumes(tagNT))
+	  return true;
       }
     }
     return false;

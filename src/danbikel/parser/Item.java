@@ -75,6 +75,23 @@ public abstract class Item implements Serializable, Comparable {
    */
   public abstract void setGarbage(boolean garbage);
 
+  /**
+   * Indicates that the specified item that was produced during decoding is
+   * equivalent to this item.
+   *
+   * @param equivalentItem a chart item equivalent to this one
+   */
+  public void hasEquivalentItem(Item equivalentItem) { }
+
+  /**
+   * Clears data members of this item before reclamation (called by
+   * {@link Chart#reclaimItem(Item)}).  The default implementation here does
+   * nothing.
+   *
+   * @return the item being cleared (this item)
+   */
+  public Item clear() { return this; }
+
   public int compareTo(Object o) {
     Item otherItem = (Item)o;
     return (logProb < otherItem.logProb ? -1 :

@@ -73,6 +73,16 @@ public interface SwitchboardRemote extends Remote {
     "switchboard.serverDeathKillClients";
 
   /**
+   * The property to specify whether the switchboard should sort the log
+   * file entries when creating its final output file.  The default
+   * behavior is to sort.
+   *
+   * @ see Switchboard#setSettings(Properties)
+   */
+  public final static String sortOutput =
+    "switchboard.sortOutput";
+
+  /**
    * The property to specify the interval, in milliseconds, between
    * client requests for an object to process, after {@link #nextObject(int)}
    * returns <code>null</code>.  This value of this property should be

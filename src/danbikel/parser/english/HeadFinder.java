@@ -109,17 +109,22 @@ public class HeadFinder extends danbikel.parser.HeadFinder {
 
     String headTableFilename = null;
     String inputFilename = null;
-    if (args.length == 2) {
+    switch (args.length) {
+    case 2:
       headTableFilename = args[0];
       inputFilename = args[1];
-    }
-    else if (args.length == 1) {
+      break;
+    case 1:
       headTableFilename = Settings.get(Settings.headTablePrefix +
 				       Language.getLanguage());
       inputFilename = args[0];
-    }
-    else {
-      System.out.println("usage: [head table] <input file>");
+      break;
+    case 0:
+      headTableFilename = Settings.get(Settings.headTablePrefix +
+                                       Language.getLanguage());
+      break;
+    default:
+      System.err.println("usage: [head table] <input file>");
       System.exit(1);
     }
 
@@ -132,24 +137,28 @@ public class HeadFinder extends danbikel.parser.HeadFinder {
       Sexp headTable = Sexp.read(headTableTok);
       HeadFinder hf = new HeadFinder(headTable);
 
-      System.out.println("\nHead-finding instructions:");
+      System.err.println("\nHead-finding instructions:");
 
       Iterator it = hf.headFindInstructions.keySet().iterator();
       while (it.hasNext()) {
 	Symbol head = (Symbol)it.next();
-	System.out.print("(" + head + " ");
+	System.err.print("(" + head + " ");
 	HeadFindInstruction[] instructions =
 	  (HeadFindInstruction[])hf.headFindInstructions.get(head);
 	for (int i = 0; i < instructions.length; i++) {
-	  System.out.print(" ");
-	  System.out.print(instructions[i]);
+	  System.err.print(" ");
+	  System.err.print(instructions[i]);
 	}
-	System.out.println(")");
+	System.err.println(")");
       }
 
-      System.out.println("\n\n\nFile " + inputFilename + " with head nodes:\n");
+      System.err.println("\n\n\nFinding heads in " +
+                         (inputFilename == null ?
+                          "sentences from standard input" : inputFilename) +
+                         ":\n");
 
-      FileInputStream inputFile = new FileInputStream(inputFilename);
+      InputStream inputFile =
+        inputFilename == null ? System.in : new FileInputStream(inputFilename);
       BufferedReader inputReader =
 	new BufferedReader(new InputStreamReader(inputFile,
 						 encoding));

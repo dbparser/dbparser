@@ -33,6 +33,7 @@ public abstract class Chart implements Serializable {
    */
   protected final static class Entry implements Serializable {
     MapToPrimitive map;
+    Item topItem;
     double topLogProb;
 
     Entry() {
@@ -41,6 +42,7 @@ public abstract class Chart implements Serializable {
     }
     void clear() {
       map.clear();
+      topItem = null;
       topLogProb = Constants.logOfZero;
     }
   }
@@ -114,7 +116,8 @@ public abstract class Chart implements Serializable {
    */
   protected int numPrePruned = 0;
 
-  private ArrayList sortedItems = new ArrayList();
+  private Item[] sortedArr = new Item[1000];
+  private int numSorted = 0;
 
   /**
    * Indicates whether the chart is currently doing any pruning.
@@ -303,47 +306,63 @@ public abstract class Chart implements Serializable {
       }
     }
     if (cellLimit > 0) {
+      cellLimit = Math.max(10, Math.min(90, 350 / (end + 1 - start)));
       if (end > start) { // don't do cell limiting on spans of length 1
         int numItems = items.size();
         if (numItems > cellLimit) { // don't create iterator if no need
-	  sortedItems.clear();
-	  sortedItems.addAll(items.keySet());
-	  Collections.sort(sortedItems);
-	  items.clear();
-	  ListIterator it = sortedItems.listIterator();
-	  for (int i = 0; i < cellLimit && it.hasPrevious(); i++) {
-	    Item item = (Item)it.previous();
-	    items.put(item, item.logProb());
+          // reset sortedArr and numSorted
+          if (numItems > sortedArr.length) {
+            int newLen = Math.max(sortedArr.length * 2, numItems);
+            sortedArr = new Item[newLen];
+          }
+          else {
+            for (int i = 0; i < numSorted; i++)
+              sortedArr[i] = null;
+          }
+          numSorted = 0;
+          Iterator itemsIt = items.keySet().iterator();
+	  while (itemsIt.hasNext()) {
+	    Item item = (Item)itemsIt.next();
+	    sortedArr[numSorted++] = item;
 	  }
-	  // reclaim the rest of the items
-	  while (it.hasPrevious())
-	    reclaimItem((Item)it.previous());
+	  items.clear();
+	  Arrays.sort(sortedArr, 0, numSorted);
+	  int sortedIdx = numSorted - 1;
+	  for (int counter = 0; counter < cellLimit; counter++, sortedIdx--)
+	    items.put(sortedArr[sortedIdx], sortedArr[sortedIdx].logProb());
+	  for ( ; sortedIdx >= 0; sortedIdx--)
+	    reclaimItem(sortedArr[sortedIdx]);
+	  /*
+          // add all items that are eligible for limiting to sortedArr
+          Iterator itemsIt = items.keySet().iterator();
+          while (itemsIt.hasNext()) {
+	    Item item = (Item)itemsIt.next();
+	    if (cellLimitShouldApplyTo(item))
+	      sortedArr[numSorted++] = item;
+	  }
+	  if (numSorted > cellLimit) {
+	    Arrays.sort(sortedArr, 0, numSorted);
+	    // prune away and reclaim items below cellLimit
+	    int sortedIdx = numSorted - cellLimit - 1;
+	    for ( ; sortedIdx >= 0; sortedIdx--) {
+	      Item item = sortedArr[sortedIdx];
+	      items.remove(item);
+	      reclaimItem(item);
+	    }
+	  }
+	  */
 	}
       }
-      /*
-        int numItems = items.size();
-        if (numItems > cellLimit) { // don't create iterator if no need
-	// remove lowest prob items until the set size is equal to the limit
-	int numToRemove = numItems - cellLimit;
-	Iterator it = items.keySet().iterator();
-	while (it.hasNext() && numToRemove > 0) {
-	Item currItem = (Item)it.next();  // get the item so we can remove it
-	numToRemove--;
-	chart[start][end].numItems--;
-	totalItems--;
-	it.remove();
-	reclaimItem(currItem);
-	}
-        }
-      */
-      /*
-      throw new UnsupportedOperationException("need to implement cell " +
-					      "limiting, now that we no " +
-					      "longer have sorted [NT,i,j] " +
-					      "cells!");
-      */
     }
   }
+
+  /**
+   * Returns <code>true</code> if cell limiting should apply to the specified
+   * item.
+   *
+   * @param item the item to be tested
+   */
+  abstract protected boolean cellLimitShouldApplyTo(Item item);
 
   /**
    * Adds the specified item covering the specified span to this chart.
@@ -429,8 +448,10 @@ public abstract class Chart implements Serializable {
           totalItems++;
         }
         // update top prob
-        if (item.logProb() > chart[start][end].topLogProb)
+        if (item.logProb() > chart[start][end].topLogProb) {
           chart[start][end].topLogProb = item.logProb();
+          chart[start][end].topItem = item;
+        }
       }
 
       if (debugAddToChart) {
@@ -487,6 +508,14 @@ public abstract class Chart implements Serializable {
   }
 
   /**
+   * Returns the item with the highest log probability covering the specified
+   * span, or <code>null</code> if this span has no items.
+   */
+  public Item getTopItem(int start, int end) {
+    return chart[start][end].topItem;
+  }
+
+  /**
    * Resets the highest log probability of the specified span to be
    * {@link Constants#logOfZero}.
    *
@@ -497,6 +526,7 @@ public abstract class Chart implements Serializable {
    */
   public void resetTopLogProb(int start, int end) {
     chart[start][end].topLogProb = Constants.logOfZero;
+    chart[start][end].topItem = null;
   }
 
   /**

@@ -204,12 +204,12 @@ public class HeadTreeNode implements Serializable, SexpConvertible {
     for (int i = 0; i < level; i++)
       levelSpaceBuf.append("  ");
     String levelSpace = levelSpaceBuf.toString();
-
+    String levelPlusOneSpace = levelSpace + "  ";
 
     sb.append(levelSpace);
 
     if (isPreterminal()) {
-      sb.append(levelSpace).append("(headWord ").append(headWord).append(")");
+      sb.append("(headWord ").append(headWord).append(")");
       return;
     }
 
@@ -224,31 +224,31 @@ public class HeadTreeNode implements Serializable, SexpConvertible {
     sb.append(containsVerb);
     sb.append(") ");
     sb.append("(headWord ").append(headWord).append(")\n");
-    sb.append(levelSpace).append(levelSpace);
+    sb.append(levelPlusOneSpace);
     sb.append("(headChild");
     if (headChild == null)
       sb.append(" null");
     else {
       sb.append("\n");
-      headChild.toString(sb, level + 1);
+      headChild.toString(sb, level + 2);
     }
     sb.append(")\n");
-    sb.append(levelSpace).append(levelSpace);
+    sb.append(levelPlusOneSpace);
     sb.append("(preMods");
     int numPreMods = preMods.size();
     sb.append(numPreMods > 0 ? "\n" : " ()");
     for (int i = 0; i < numPreMods; i++) {
-      ((HeadTreeNode)preMods.get(i)).toString(sb, level + 1);
+      ((HeadTreeNode)preMods.get(i)).toString(sb, level + 2);
       if (i < numPreMods - 1)
 	sb.append("\n");
     }
     sb.append(")\n");
-    sb.append(levelSpace).append(levelSpace);
+    sb.append(levelPlusOneSpace);
     sb.append("(postMods");
     int numPostMods = postMods.size();
     sb.append(numPostMods > 0 ? "\n" : " ()");
     for (int i = 0; i < numPostMods; i++) {
-      ((HeadTreeNode)postMods.get(i)).toString(sb, level + 1);
+      ((HeadTreeNode)postMods.get(i)).toString(sb, level + 2);
       if (i < numPostMods - 1)
 	sb.append("\n");
     }

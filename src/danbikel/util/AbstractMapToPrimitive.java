@@ -483,13 +483,13 @@ abstract public class AbstractMapToPrimitive
   }
 
   /**
-   * Removes a random from the bucket at the specified index (optional
+   * Removes a random entry from the bucket at the specified index (optional
    * operation).
    *
    * @param bucketIndex the index of the bucket from which to remove an
    * element
    * @throws IllegalArgumentException if
-   * <pre>0 <= bucketIndex < getCapacity()</pre>
+   * <pre>0 &lt;= bucketIndex &lt; getCapacity()</pre>
    * is <code>false</code>
    * @throws UnsupportedOperationException if this map is not a hash map
    */

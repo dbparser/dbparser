@@ -180,7 +180,7 @@ public class WordTokenizer {
 	  buf.append((char)lastChar);
 	  lastChar = readChar();
 	}
-	sval = buf.substring(tokenStartIdx, buf.length());
+	sval = buf.toString().substring(tokenStartIdx, buf.length());
       }
     }
     return ttype;

@@ -8,7 +8,7 @@ import java.io.*;
  * <code>StringSymbol</code> itself. As a consequence, <b>the new operator for
  * <code>StringSymbol</code> cannot be invoked directly</b>.  Rather,
  * new symbols should be created by calling {@link Symbol#add(String)}.
- * 
+ *
  * @see Symbol
  * @see IntSymbol
  */
@@ -31,7 +31,7 @@ public class StringSymbol extends Symbol implements Externalizable {
    * Creates a new StringSymbol object.  <b>Warning: the new operator cannot be
    * invoked directly.</b> Rather, new symbols are created by calling
    * {@link Symbol#add(String)}.
-   * 
+   *
    * @param printName the string containing the symbol's print name.
    */
   StringSymbol(String printName) {
@@ -40,13 +40,13 @@ public class StringSymbol extends Symbol implements Externalizable {
 
   /**
    * Returns the print name of this Symbol.
-   * 
+   *
    * @return the print name of this Symbol.
    */
   public String toString() {
     return printName;
   }
-  
+
   /**
    * Returns null, since this extension of Symbol only stores
    * strings.
@@ -60,6 +60,7 @@ public class StringSymbol extends Symbol implements Externalizable {
    */
   protected Object getSymKey() { return printName; }
 
+
   // methods to comply with Externalizable interface
 
   public void writeExternal(ObjectOutput out) throws IOException {
@@ -72,11 +73,11 @@ public class StringSymbol extends Symbol implements Externalizable {
   }
 
 
-  /** 
+  /**
    * Deals with the issue of uniqueness when we are dealing with more
    * than one VM by adding the read symbol to the symbol map, if it
    * is not already there.
-   */  
+   */
   public Object readResolve() throws ObjectStreamException {
     return Symbol.get(printName);
   }

@@ -3,12 +3,13 @@
 \textclass article
 \begin_preamble
 \usepackage{txfonts}
+\newcommand{\secsym}\S
 \end_preamble
 \language english
 \inputencoding auto
 \fontscheme default
 \graphics default
-\paperfontsize default
+\paperfontsize 11
 \spacing single 
 \papersize letterpaper
 \paperpackage a4
@@ -50,7 +51,38 @@ September 17th, 2003
 
 \layout Section
 \pagebreak_top 
+
+\begin_inset LatexCommand \label{sec:preliminaries}
+
+\end_inset 
+
 Preliminaries
+\layout Subsection
+
+The right 
+\family typewriter 
+java
+\layout Standard
+
+In theory, the parsing engine software works with any Java2 JVM as of v1.3.x
+ and higher.
+ In practice, I have only tested it with JVM's from IBM and Sun (I typically
+ use Sun's).
+ To use the provided shell scripts to train and run the parser, there is
+ no need to set any environment variables; just make sure a 
+\family typewriter 
+java
+\family default 
+ executable for an appropriate version is in your path.
+ To determine this, when you execute the command
+\layout LyX-Code
+
+java -version
+\layout Standard
+
+you should see a long string that indicates a version of 1.3.x, or preferably
+ 1.4.x.
+ 
 \layout Subsection
 
 Settings files
@@ -101,7 +133,7 @@ Most of the provided scripts spit out their usage if they are run with no
 File formats
 \layout Standard
 
-Most I/O of the parsing engine is performed by an Lisp-style S-expression
+Most I/O of the parsing engine is performed by a Lisp-style S-expression
  reader/writer written entirely in Java.
  As such, newlines are generally irrelevant, being treated as just another
  form of whitespace.
@@ -111,11 +143,196 @@ Most I/O of the parsing engine is performed by an Lisp-style S-expression
  
 \layout Section
 
+Quick Start
+\layout Standard
+
+This section assumes you have already read 
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+secsym
+\end_inset 
+
+
+\begin_inset LatexCommand \ref{sec:preliminaries}
+
+\end_inset 
+
+ and just want to get going parsing English.
+\layout Standard
+
+If you want to parse English sentences using the engine in its 
+\begin_inset Quotes eld
+\end_inset 
+
+Collins emulation mode
+\begin_inset Quotes erd
+\end_inset 
+
+, do the following,
+\layout Itemize
+
+where 
+\family typewriter 
+<dbparser home>
+\family default 
+ is the install directory created by the install script, and
+\layout Itemize
+
+where, if you have a copy of the Penn Treebank, 
+\family typewriter 
+<Penn Treebank home>
+\family default 
+ is the root directory of the Penn Treebank CD-ROM (or the directory to
+ which the CD-ROM's hierarchy has been copied):
+\layout Enumerate
+
+
+\begin_inset LatexCommand \label{enu:quick-start-train}
+
+\end_inset 
+
+Train the parser on Sections 02--21 of the WSJ Penn Treebank in one of the
+ following two ways.
+ One way assumes you have access to the Penn Treebank, while the other does
+ not; both ways assume that 
+\family typewriter 
+<dbparser home>/bin
+\family default 
+ is in your path.
+ The result of either way will be a 
+\begin_inset Quotes eld
+\end_inset 
+
+derived data file
+\begin_inset Quotes erd
+\end_inset 
+
+ called 
+\family typewriter 
+wsj-02-21.obj.gz
+\family default 
+.
+\begin_deeper 
+\layout Enumerate
+
+If you have access to the Penn Treebank, execute the following commands
+ to create the file
+\family typewriter 
+
+\newline 
+/tmp/wsj-02-21.obj.gz
+\family default 
+:
+\begin_deeper 
+\layout Enumerate
+
+
+\family typewriter 
+cd <Penn Treebank home>/combined/wsj
+\layout Enumerate
+
+
+\family typewriter 
+cat 0[2-9]/*.mrg 1[0-9]/*.mrg 2[01]/*.mrg > /tmp/wsj-02-21.mrg
+\layout Enumerate
+
+
+\family typewriter 
+train 800 <dbparser home>/settings/collins.properties 
+\backslash 
+ 
+\newline 
+/tmp/wsj-02-21.mrg
+\end_deeper 
+\layout Enumerate
+
+If you do not have access to the Penn Treebank, do the following to create
+ the file
+\family typewriter 
+
+\newline 
+wsj-02-21.obj.gz
+\family default 
+:
+\begin_deeper 
+\layout Enumerate
+
+Download the observed events file 
+\family typewriter 
+wsj-02-21.observed.gz
+\family default 
+ from Dan Bikel's homepage.
+\layout Enumerate
+
+Execute the command
+\newline 
+
+\family typewriter 
+train-from-observed 400 <dbparser home>/settings/collins.properties 
+\backslash 
+ 
+\newline 
+wsj-02-21.observed.gz
+\end_deeper 
+\end_deeper 
+\layout Enumerate
+
+Copy the file 
+\family typewriter 
+wsj-02-21.obj.gz
+\family default 
+ created by Step 
+\begin_inset LatexCommand \ref{enu:quick-start-train}
+
+\end_inset 
+
+ to a safe place.
+ You will use this file in the next step.
+\layout Enumerate
+
+To parse a file in the format specified in 
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+secsym
+\end_inset 
+
+
+\begin_inset LatexCommand \ref{sec:uniproc-parsing}
+
+\end_inset 
+
+, execute the following command (use 
+\family typewriter 
+<dbparser home>/bin/parse
+\family default 
+ if 
+\family typewriter 
+<dbparser home>/bin
+\family default 
+ is not in your path):
+\newline 
+
+\family typewriter 
+parse 400 <dbparser home>/settings/collins.properties wsj-02-21.obj.gz 
+\backslash 
+
+\newline 
+<input file>
+\layout Section
+
 Training
 \layout Standard
 
-A training file must be in the de facto standard format of Penn Treebank
- 
+An input file for the trainer must be in the de facto standard format of
+ Penn Treebank 
 \family typewriter 
 .mrg
 \family default 
@@ -208,18 +425,19 @@ java
 
 The trainer outputs two files: an 
 \family typewriter 
-.observed
+.observed.gz
 \family default 
- file, containing human-readable, top-level event counts that were derived
- rather directly from the training trees, and an 
+ file, containing (a compressed stream of) human-readable, top-level event
+ counts that were derived rather directly from the training trees, and an
+ 
 \family typewriter 
-.obj
+.obj.gz
 \family default 
  file, which is a series of serialized Java objects containing the actual,
  derived counts used by the parser.
  The 
 \family typewriter 
-.observed
+.observed.gz
 \family default 
  file is called the 
 \begin_inset Quotes eld
@@ -231,7 +449,7 @@ observations file
 
  and the 
 \family typewriter 
-.obj
+.obj.gz
 \family default 
  file is called 
 \begin_inset Quotes eld
@@ -246,6 +464,11 @@ derived data file
 
 Parsing
 \layout Subsection
+
+
+\begin_inset LatexCommand \label{sec:uniproc-parsing}
+
+\end_inset 
 
 Uniprocessor or non--distributed computing environment
 \layout Standard
@@ -723,6 +946,23 @@ You can see its full usage by executing
 \layout LyX-Code
 
 java danbikel.parser.Trainer -help
+\layout Standard
+
+If either 
+\family typewriter 
+<observed file>
+\family default 
+ or 
+\family typewriter 
+<derived data file>
+\family default 
+ ends with the extension 
+\family typewriter 
+.gz
+\family default 
+ it is automatically compressed before being written to disk.
+\layout LyX-Code
+
 \layout Subsection*
 
 A note on the 
@@ -850,6 +1090,17 @@ You can see its full usage by executing
 \layout LyX-Code
 
 java danbikel.parser.Parser -help
+\layout Standard
+
+If 
+\family typewriter 
+<derived data file>
+\family default 
+ ends with the extenson 
+\family typewriter 
+.gz
+\family default 
+ it is automatically decompressed as it is read from disk.
 \layout Subsection
 
 Switchboard
@@ -969,38 +1220,34 @@ ProbabilityStructure
 \family typewriter 
 newModel
 \family default 
- method, or by simply using a run-time setting, 
+ method, or by simply using a run-time setting,
+\layout Standard
+
+
 \family typewriter 
 parser.probabilityStructure.defaultModelClass
 \family default 
 .
- The default value for this setting is 
-\begin_inset Quotes eld
-\end_inset 
-
-
+\layout Standard
+\noindent 
+The default value for this setting is 
 \family typewriter 
 danbikel.parser.Model
 \family default 
-
-\begin_inset Quotes erd
-\end_inset 
-
 , but Knesser-Ney smoothing can be used by default by changing this setting
- to be 
-\begin_inset Quotes eld
-\end_inset 
+ to be
+\family typewriter 
+ 
+\layout Standard
 
 
 \family typewriter 
 danbikel.parser.InterpolatedKnesserNeyModel
 \family default 
-
-\begin_inset Quotes erd
-\end_inset 
-
 .
- For more information on this setting, see the documentation for the 
+\layout Standard
+\noindent 
+For more information on this setting, see the documentation for the 
 \family typewriter 
 danbikel.parser.Settings
 \family default 

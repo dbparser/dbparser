@@ -63,15 +63,19 @@ public interface ConstraintSet extends Collection {
   public Constraint constraintSatisfying(Item item);
 
   /**
-   * Returns whether this constraint set contains at least one constraint
-   * that is violated by the specified item (optional operation).
+   * Returns whether this constraint set is violated by the specified item
+   * (optional operation).  It should usually be the case that
+   * this method returns <code>true</code> if there is at least one constraint
+   * in the set for which {@link Constraint#isViolatedBy(Item)} returns
+   * <code>true</code>, but such behavior is not required.  For example,
+   * this method may return <code>false</code> simply because the specified
+   * item fails to satisfy certain constraints in this constraint set.
    *
    * @param item the item to be tested for violations
-   * @return <code>true</code> if this constraint set contains at least
-   * one constraint that is violated by the specified item, <code>false</code>
-   * otherwise.
+   * @return <code>true</code> if this constraint set is violated by the
+   * specified item, <code>false</code> otherwise.
    */
-  public boolean containsViolation(Item item);
+  public boolean isViolatedBy(Item item);
 
   /**
    * Returns the root constraint in a set if the set forms a tree structure

@@ -35,7 +35,7 @@ import java.io.*;
  * the {@link Training#isArgumentFast(Symbol)} method after the
  * {@link Training#setUpFastArgMap(CountsTable)} method has been invoked
  * (unless this fake nonterminal happens to be one of the keys of the map
- * passed to {@link Training#isArgumentFast(Symbol)}).  It is therefore
+ * passed to {@link Training#setUpFastArgMap(CountsTable)}).  It is therefore
  * important <i><b>not</b></i> to invoke the
  * {@link Training#setUpFastArgMap(CountsTable)} method during training,
  * when requirements are added individually by {@link #add(Symbol)}, which

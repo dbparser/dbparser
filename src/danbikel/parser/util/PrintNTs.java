@@ -1,6 +1,7 @@
 package danbikel.parser.util;
 
 import danbikel.lisp.*;
+import danbikel.util.*;
 import danbikel.parser.*;
 import java.io.*;
 import java.util.*;
@@ -57,17 +58,19 @@ public class PrintNTs {
       }
     }
     try {
-      Set ntSet = new HashSet();
+      CountsTable ntCounts = new CountsTableImpl();
       SexpTokenizer tok =
         new SexpTokenizer(inStream, Language.encoding(), bufSize);
       Sexp curr = null;
       int sentNum;
       for (sentNum = 0; (curr = Sexp.read(tok)) != null; sentNum++)
-        Util.collectNonterminals(ntSet, curr, includeTags);
+        Util.collectNonterminals(ntCounts, curr, includeTags);
       System.err.println("number of sentences processed: " + sentNum);
-      Iterator it = ntSet.iterator();
-      while (it.hasNext())
-        System.out.println(it.next());
+      Iterator it = ntCounts.entrySet().iterator();
+      while (it.hasNext()) {
+        MapToPrimitive.Entry entry = (MapToPrimitive.Entry)it.next();
+        System.out.println(entry.getKey() + "\t" + entry.getDoubleValue());
+      }
     }
     catch (Exception e) {
       System.out.println(e);

@@ -147,22 +147,13 @@ public class Model implements Serializable {
    * whose derived counts should not be derived for this model
    */
   public void deriveCounts(CountsTable trainerCounts, Filter filter,
-                           int threshold, FlexibleMap canonical) {
+                           double threshold, FlexibleMap canonical) {
     setCanonicalEvents(canonical);
     deriveHistories(trainerCounts, filter, canonical);
 
     Time time = null;
     if (verbose)
       time = new Time();
-
-    if (threshold > 1) {
-      int lastLevel = numLevels - 1;
-      for (int level = 0; level < lastLevel; level++) {
-	if (level == specialLevel)
-	  continue;
-	counts[level].history().removeItemsBelow(threshold, CountsTrio.hist);
-      }
-    }
 
     Transition trans = new Transition(null, null);
 

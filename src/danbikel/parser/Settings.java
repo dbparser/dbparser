@@ -581,6 +581,16 @@ public class Settings implements Serializable {
     "parser.trainer.modWordStructureModelClass";
 
   /**
+   * The property to specify the fully-qualified name of the subclass
+   * of {@link Item} to be used for chart items.
+   * <p>
+   * The value of this constant is
+   * <code>"parser.chart.itemClass"</code>.
+   */
+  public final static String chartItemClass =
+    "parser.chart.itemClass";
+
+  /**
    * The property to specify whether or not the decoding algorithm should
    * prune away chart entries within a particular factor of the top-ranked
    * chart entry in a given cell.  The value of this property should be (the

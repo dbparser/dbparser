@@ -125,6 +125,11 @@ public abstract class AbstractHeadFinder implements HeadFinder, Serializable {
     Boolean.valueOf(Settings.get(Settings.headFinderWarnDefaultRule)).
     booleanValue();
 
+  protected double probRandom =
+    Double.parseDouble(Settings.get(Settings.headFinderRandomProb));
+  protected boolean useRand = probRandom > 0.0;
+  protected Random rand;
+
   /**
    * Constructs a head-finding object, getting the name of the head
    * table from the value of
@@ -162,6 +167,8 @@ public abstract class AbstractHeadFinder implements HeadFinder, Serializable {
       new SexpTokenizer(is, Language.encoding(), bufSize);
     Sexp headTable = Sexp.read(headTableTok);
     readHeadTable(headTable);
+    if (useRand)
+      rand = new Random(System.currentTimeMillis());
   }
 
   /**
@@ -169,6 +176,8 @@ public abstract class AbstractHeadFinder implements HeadFinder, Serializable {
    */
   public AbstractHeadFinder(Sexp headTableSexp) {
     readHeadTable(headTableSexp);
+    if (useRand)
+      rand = new Random(System.currentTimeMillis());
   }
 
   /**
@@ -189,6 +198,14 @@ public abstract class AbstractHeadFinder implements HeadFinder, Serializable {
    * @see Settings#headFinderWarnDefaultRule
    */
   protected int defaultFindHead(Symbol lhs, SexpList rhs) {
+    if (useRand && rand.nextDouble() <= probRandom &&
+        !(Language.treebank().isNP(lhs) &&
+          lhs != Language.treebank().baseNPLabel())) {
+      // return a randomly-selected head index
+      int rhsLen = rhs.length();
+      return rand.nextInt(rhsLen) + 1;
+    }
+
     HeadFindInstruction[] instructions =
       (HeadFindInstruction[])headFindInstructions.get(lhs);
 
@@ -267,18 +284,14 @@ public abstract class AbstractHeadFinder implements HeadFinder, Serializable {
   public abstract int findHead(Sexp tree, Symbol lhs, SexpList rhs);
 
   /**
-   * Perform head-finding in <code>tree</code>, adding nodes to indicates
-   * groups of nonterminals that are premodifiers and postmodifiers of a
-   * parent's head child, as well as a new node to indicate the sole head
-   * child.  The new nodes added will have labels consisting of the parent
-   * nonterminal concatenated with one of the three possible suffixes.
+   * Perform head-finding in <code>tree</code>, augmenting nodes that
+   * are the head children of their respective parents.
    * This method is useful for head-finding debugging.
    *
    * @return a reference to the modified <code>tree</code> object
    *
-   * @see #headSuffix
-   * @see #preHeadSuffix
-   * @see #postHeadSuffix */
+   * @see #headSuffix()
+   */
   public Sexp addHeadInformation(Sexp tree) {
     if (tree.isSymbol() ||
 	Language.treebank().isPreterminal(tree))
@@ -343,11 +356,21 @@ public abstract class AbstractHeadFinder implements HeadFinder, Serializable {
 				   "couldn't find head for " + tree);
 
       Symbol oldHead = treeList.getChildLabel(headIdx);
-      treeList.setChildLabel(headIdx, Symbol.add(oldHead + "-head"));
+      treeList.setChildLabel(headIdx, Symbol.add(oldHead + headSuffix()));
       return tree;
     }
     return null;
   }
+
+  /**
+   * Returns the string <code>&quot;-HEAD&quot;</code>. If this conflicts
+   * with an existing nonterminal augmentation for a particular treebank or
+   * an augmentation added by {@link Training} during preprocessing, this
+   * method should be overridden.
+   *
+   * @return the string <code>&quot;-HEAD&quot;</code>
+   */
+  public String headSuffix() { return headSuffix; }
 
   /**
    * Reads the head table contained in the specified S-expression.

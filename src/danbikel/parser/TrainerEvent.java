@@ -15,6 +15,14 @@ public interface TrainerEvent extends Serializable {
   public Word headWord();
 
   /**
+   * Sets the head word of this event, or does nothing if this
+   * <code>TrainerEvent</code> has no such object.
+   *
+   * @param word the word to set as the head word of this event
+   */
+  public void setHeadWord(Word word);
+
+  /**
    * Returns the modifier head word object associated with an event,
    * or <code>null</code> if this <code>TrainerEvent</code> has no such object.
    */

@@ -280,9 +280,6 @@ public abstract class AbstractSwitchboardUser
 	if (verbose)
 	  err.println("couldn't get switchboard: " + nbe);;
       }
-      catch (MalformedURLException mue) {
-	throw new MalformedURLException(mue.toString());
-      }
     }
   }
 

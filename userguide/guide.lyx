@@ -1,6 +1,9 @@
 #LyX 1.3 created this file. For more info see http://www.lyx.org/
 \lyxformat 221
 \textclass article
+\begin_preamble
+\usepackage{txfonts}
+\end_preamble
 \language english
 \inputencoding auto
 \fontscheme default
@@ -389,8 +392,11 @@ Note that you can specify multiple input files.
 ~/data/new/newFile2
 \layout Standard
 
-The following three input file lists are all treated the same by the internal-se
-rver-run script (it's really the java class 
+The following three input file lists are all treated the same by the 
+\family typewriter 
+internal-server-run
+\family default 
+ script (it's really the Java class 
 \family typewriter 
 danbikel.parser.StartSwitchboard
 \family default 
@@ -618,8 +624,11 @@ A file called switchboard.messages, which can be monitored to track the progress
 tail -f switchboard.messages
 \layout Enumerate
 
-Finally, the internal-server-run script copies a specialized version of
- 
+Finally, the 
+\family typewriter 
+internal-server-run
+\family default 
+ script copies a specialized version of 
 \emph on 
 itself
 \emph default 
@@ -642,8 +651,11 @@ itself
 Advanced usage
 \layout Standard
 
-It is, of course, possible to call the java process directly for training
- and parsing.
+It is, of course, possible to call the 
+\family typewriter 
+java
+\family default 
+ process directly for training and parsing.
  The normal mechanism to specify a settings file is to provide a command-line
  definition of the 
 \family typewriter 

@@ -53,7 +53,7 @@ public class Language implements Serializable {
     Settings.fileEncodingPrefix + Settings.language;
 
   static String encoding;
-  static { 
+  static {
     encoding = Settings.get(fileEncodingProperty);
     if (encoding == null)
       encoding = System.getProperty("file.encoding");
@@ -147,7 +147,7 @@ public class Language implements Serializable {
       String headFinderClass = Settings.get(Settings.headFinderClass);
       if (headFinderClass == null)
 	headFinderClass = languagePackage + ".HeadFinder";
-      headFinder = 
+      headFinder =
 	(HeadFinder)Class.forName(headFinderClass).newInstance();
 
       // initialize Training object

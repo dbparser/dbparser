@@ -61,6 +61,7 @@ if ($#requiredArgs < $numRequiredArgs) then
     echo "error: need at least $numRequiredArgs args; saw only" $#requiredArgs
     echo -n "	"
     echo $requiredArgs
+    echo ""
     goto usage
 endif
 

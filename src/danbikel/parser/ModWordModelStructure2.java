@@ -66,6 +66,6 @@ public class ModWordModelStructure2 extends ProbabilityStructure {
   }
 
   public ProbabilityStructure copy() {
-    return new ModWordModelStructure1();
+    return new ModWordModelStructure2();
   }
 }

@@ -1,9 +1,84 @@
 #!/bin/tcsh -f
 
-# check that required args are present
-if ($#argv < 3) then
-    echo "usage: <settings file> <derived data file> <input file>+"
+goto afterUsage
+
+usage:
+    echo "usage: [ [-ln | -cp]  [-o <output dir>] ]"
+    echo "	<settings file> <derived data file> <input file>+"
+    echo "where"
+    echo "	-ln: indicates to put a symbolic link to each output (parsed)"
+    echo "		file in the input file's directory, or, if"
+    echo "		<output dir> is specified, to put a link to each"
+    echo "		output file in <output dir>"
+    echo "	-cp: indicates to copy each output (parsed) file to"
+    echo "		its input file's directory, or, if <output dir>"
+    echo "		is specified, to copy each output file to"
+    echo "		<output dir>"
     exit 1
+
+afterUsage:
+
+set numRequiredArgs = 3
+
+# process arguments
+set requiredArgs = ()
+@ i = 1
+while ($i <= $#argv)
+    set arg = $argv[$i]
+    switch ("$arg")
+	case "-*":
+	    # we have a flag to process
+	    switch ("$arg")
+		case "-ln":
+		    set linkOutputFiles
+		    breaksw
+		case "-cp":
+		    set copyOutputFiles
+		    breaksw
+		case "-o":
+		    if ($i + 1 > $#argv) then
+			echo "error: argument required after $arg"
+			goto usage
+		    else
+			@ i++
+			set copyOutputDir = $argv[$i]
+		    endif
+		    breaksw
+		default:
+		    echo "error: unrecognized command-line option: $arg"
+		    goto usage
+		    breaksw
+	    endsw
+	    breaksw
+	default:
+	    set requiredArgs = ($requiredArgs "$arg")
+	    breaksw
+    endsw
+    @ i++;
+end
+
+if ($#requiredArgs < $numRequiredArgs) then
+    echo "error: need at least $numRequiredArgs args; saw only" $#requiredArgs
+    echo -n "	"
+    echo $requiredArgs
+    goto usage
+endif
+
+
+if ($?linkOutputFiles && $?copyOutputFiles) then
+    echo "error: cannot use both -ln and -cp options"
+    goto usage
+endif
+
+if ($?linkOutputFiles) then
+    echo -n "Putting links to output files in "
+else if ($?copyOutputFiles) then
+    echo -n "Copying output files to "
+endif
+if ($?copyOutputDir) then
+    echo "$copyOutputDir"
+else
+    echo "respective input files' directories"
 endif
 
 set RSH = ssh
@@ -33,9 +108,9 @@ set outputDir = ~/experiments/$date/$time
 # the three required arguments
 # --these will be modified when this script is time-stamped and copied
 # to $outputDir
-set settingsFile = $1
-set derivedDataFile = $2
-set inFiles = ($argv[3-$#argv])
+set settingsFile = $requiredArgs[1]
+set derivedDataFile = $requiredArgs[2]
+set inFiles = ($requiredArgs[3-$#requiredArgs])
 
 # scripts used by this script
 set startClientScript = $scriptDir/start-client
@@ -158,7 +233,7 @@ echo -n "	"
 echo $sbCmd
 $sbCmd
 
-# finally, if gold file exists, try to score
+# if gold file exists, try to score
 foreach inFile ($inFiles)
     set goldFile = $inFile.gold
     if (-f $goldFile) then
@@ -170,6 +245,26 @@ foreach inFile ($inFiles)
 	endif
     endif
 end
+
+# do any copying or linking of output files requested by user
+if ($?linkOutputFiles || $?copyOutputFiles) then
+    foreach inFile ($inFiles)
+	set outFile = $outFileDir/$inFile:t.parsed
+	if (-f $outFile) then
+	    if ($?copyOutputDir) then
+		set copyDir = $copyOutputDir
+	    else
+		set copyDir = `dirname $inFile`
+	    endif
+	    rm $copyDir/$outFile:t
+	    if ($?linkOutputFiles) then
+		ln -s $outFile $copyDir/$outFile:t
+	    else
+		cp $outFile $copyDir
+	    endif
+	endif
+    end
+endif
 
 if ($?reap) then
     # kill off rmi registry proc

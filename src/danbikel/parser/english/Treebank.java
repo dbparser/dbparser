@@ -148,7 +148,8 @@ public class Treebank extends danbikel.parser.Treebank {
   }
 
   public boolean isPunctuation(Symbol tag) {
-    return puncToRaise.contains(stripAugmentation(tag));
+    //return puncToRaise.contains(stripAugmentation(tag));
+    return puncToRaise.contains(tag);
   }
 
   /**
@@ -199,7 +200,8 @@ public class Treebank extends danbikel.parser.Treebank {
    * whose print name is <code>&quot;CC&quot;</code>.
    */
   public boolean isConjunction(Symbol label) {
-    return getCanonical(label) == CC;
+    //return getCanonical(label) == CC;
+    return label == CC;
   }
 
   /**
@@ -247,7 +249,7 @@ public class Treebank extends danbikel.parser.Treebank {
   public final Symbol getCanonical(Symbol label) {
     for (int i = 0; i < nonterminalExceptionSet.length; i++)
       if (label == nonterminalExceptionSet[i])
-        return label;
+	return label;
     Symbol strippedLabel = stripAugmentation(label);
     Symbol mapEntry = (Symbol)canonicalLabelMap.get(strippedLabel);
     return ((mapEntry == null) ? strippedLabel : mapEntry);

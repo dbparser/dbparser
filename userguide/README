@@ -109,14 +109,32 @@ Here is the first sentence of Section 00 of the WSJ Penn Treebank in Format 1:
 The easiest way to parse in a distributed-computing environment is to use the
 <parser home>/bin/internal-server-run script.  The usage is:
 	internal-server-run <settings file> <derived data file> <input file>+
-Note that you can specify multiple input files.
+
+Note that you can specify multiple input files.  In fact, if any of the
+input files specified is a directory, the engine will non-recursively get
+the names of all files contained the directory.  For example, suppose you
+have the following four files to parse:
+     ~/data/inputFile1
+     ~/data/inputFile2
+     ~/data/new/newFile1
+     ~/data/new/newFile2
+The following three input file lists are all treated the same by the
+internal-server-run script (it's really the java class
+danbikel.parser.StartSwitchboard that is performing this magic):
+  1. ~/data/inputFile1 ~/data/inputFile2 ~/data/new/newFile1 ~/data/new/newFile2
+  2. ~/data/inputFile1 ~/data/inputFile2 ~/data/new
+  3. ~/data ~/data/new
 
 While this script makes using multiple hosts easy, it may not work
 out-of-the-box, requiring a few caveats:
 
-	0. The script contains a hard-coded path to a java executable which
-	   should be changed according to your environment (possibly to be
-	   set java = java, if your default path variable is satisfactory).
+	0. The script uses the environment variable JAVA_HOME to locate the
+	   J2SDK you wish to use, so you must make sure this variable is set in
+	   your environment.  The two J2SDK executables that are used are
+	   $JAVA_HOME/bin/java (by the internal-server-run script) and
+	   $JAVA_HOME/bin/rmiregistry (by the no-cp-rmiregistry script, which
+	   is called by the start-rmiregistry script, which is in turn called
+	   by the internal-server-run script).
 
 	1. Most batch queues copy a batch script before executing it, which
 	   breaks any reliance on the $0 variable.  Accordingly, you may have
@@ -138,7 +156,10 @@ out-of-the-box, requiring a few caveats:
 	   out the shell script code that does the prepending if this
 	   behavior is not appropriate for your environment.
 
-	4. The script relies on other scripts in its bin directory.
+	4. The script relies on other scripts in its bin directory, and
+	   expects the file dbparser.jar to be located in its parent
+	   directory.  The script finds these relatively-located resources
+	   by using the $0 variable (see point No. 1, above).
 
 	5. When the reap variable is defined, there is a section of
 	   code at the end of the script that logs onto all hosts and

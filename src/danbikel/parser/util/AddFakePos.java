@@ -51,24 +51,24 @@ public class AddFakePos {
       File goldFile = new File(args[0]);
       try { goldIn = new FileInputStream(goldFile); }
       catch (FileNotFoundException fnfe) {
-        System.err.println("error: file \"" + args[0] + "\" does not exist");
-        System.exit(1);
+	System.err.println("error: file \"" + args[0] + "\" does not exist");
+	System.exit(1);
       }
     }
     if (args.length > 1) {
       if (!args[1].equals("-")) {
-        File file = new File(args[1]);
-        try { in = new FileInputStream(file); }
-        catch (FileNotFoundException fnfe) {
-          System.err.println("error: file \"" + args[1] + "\" does not exist");
-          System.exit(1);
-        }
+	File file = new File(args[1]);
+	try { in = new FileInputStream(file); }
+	catch (FileNotFoundException fnfe) {
+	  System.err.println("error: file \"" + args[1] + "\" does not exist");
+	  System.exit(1);
+	}
       }
     }
     BufferedReader br = new BufferedReader(new InputStreamReader(in));
     SexpTokenizer tok = null;
     SexpTokenizer goldTok = null;
-    String enc = System.getProperty("file.encoding");
+    String enc = Language.encoding();
     try {
       tok = new SexpTokenizer(in, enc, 8192);
       goldTok = new SexpTokenizer(goldIn, enc, 8192);
@@ -81,19 +81,19 @@ public class AddFakePos {
     Sexp curr = null, goldCurr = null;
     try {
       while ((curr = Sexp.read(tok)) != null) {
-        goldCurr = Sexp.read(goldTok);
+	goldCurr = Sexp.read(goldTok);
 	goldCurr = Language.training().removeNullElements(goldCurr);
 	preterms.clear();
 	goldWords.clear();
 	collectPreterms(goldCurr);
-        if (goldCurr == null) {
-          System.err.println("error: ran out of sentences in gold file!");
-          break;
-        }
-        if (curr == nullSym)
-          curr = goldWords;
-        addFakePos(curr);
-        System.out.println(curr);
+	if (goldCurr == null) {
+	  System.err.println("error: ran out of sentences in gold file!");
+	  break;
+	}
+	if (curr == nullSym)
+	  curr = goldWords;
+	addFakePos(curr);
+	System.out.println(curr);
       }
     }
     catch (IOException ioe) {
@@ -123,8 +123,8 @@ public class AddFakePos {
 	Sexp word = sentList.get(i);
 	SexpList preterm = preterms.listAt(i);
 	Sexp pos = isException(preterm) ? preterm.get(0) : fakePos;
-        SexpList wordList = new SexpList(2).add(pos).add(word);
-        sentList.set(i, wordList);
+	SexpList wordList = new SexpList(2).add(pos).add(word);
+	sentList.set(i, wordList);
       }
     }
   }

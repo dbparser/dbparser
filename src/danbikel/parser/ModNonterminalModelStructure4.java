@@ -77,10 +77,9 @@ public class ModNonterminalModelStructure4 extends ProbabilityStructure {
       hist.add(0, side);
       break;
     case 3:
-      // for p(M(t)_i | P)
-      hist = histories[backOffLevel]; // efficiency hack: don't need subcat
-      hist.clear();
+      // for p(M(t)_i | P, subcat)
       hist.add(0, parent);
+      hist.add(1, modEvent.subcat());
       break;
     }
     return hist;
@@ -115,11 +114,6 @@ public class ModNonterminalModelStructure4 extends ProbabilityStructure {
       hist.add(side);
       break;
     case 2:
-      // for p(M(t)_i | P, M_i-1, side)
-      hist.add(Language.training.removeGapAugmentation(modEvent.parent()));
-      hist.add(prevModLabel);
-      hist.add(side);
-      break;
     case 3:
       // for p(M(t)_i | P, M_i-1, side)
       hist.add(Language.training.removeGapAugmentation(modEvent.parent()));
@@ -151,18 +145,7 @@ public class ModNonterminalModelStructure4 extends ProbabilityStructure {
    * which will never be used when decoding.
    */
   public boolean removeHistory(int backOffLevel, Event history) {
-    // this method assumes the parent component of histories for
-    // back-off levels 0 and 1 will be at index 0.  IF THIS CHANGES,
-    // this method will need to change accordingly.
-    switch (backOffLevel) {
-    case 0:
-      return history.get(0, 0) == topSym;
-    case 1:
-      return history.get(0, 0) == topSym;
-    case 2:
-      return false;
-    }
-    return false;
+    return history.get(0, 0) == topSym;
   }
 
   public ProbabilityStructure copy() {

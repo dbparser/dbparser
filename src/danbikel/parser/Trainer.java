@@ -52,7 +52,8 @@ public class Trainer implements Serializable {
    * One must set the unknownWordThreshold to 1 in order to perfectly emulate
    * Collins' trainer's output file.
    */
-  private final static boolean outputCollins = false;
+  private final static boolean outputCollins =
+    Settings.getBoolean(Settings.outputCollins);
   private final static Symbol collinsTop = Symbol.add("TOP");
   /** This should only be true if training on the 39832 sentences of
       the WSJ Penn Treebank, Sections 02-21 (and if emulation of Mike
@@ -624,8 +625,8 @@ public class Trainer implements Serializable {
       if (tree.headWord().tag() != traceTag) {
 	Word headWord = tree.headWord();
 	if (vocabCounter.count(headWord.word()) < unknownWordThreshold) {
-	  if (keepLowFreqTags)
-	    addToPosMap(posMap, headWord);
+	  if (keepLowFreqTags && !keepAllWords)
+	    addToPosMap(headWord.word(), headWord.tag());
 	  boolean isFirstWord = tree.leftIdx() == 0;
 	  Symbol oldWord = tree.originalHeadWord();
 	  if (oldWord == null)
@@ -1042,8 +1043,8 @@ public class Trainer implements Serializable {
     Iterator it = events.keySet().iterator();
     while (it.hasNext()) {
       TrainerEvent event = (TrainerEvent)it.next();
-      addToPosMap(posMap, event.headWord());
-      addToPosMap(posMap, event.modHeadWord());
+      addToPosMap(event.headWord());
+      addToPosMap(event.modHeadWord());
     }
   }
 
@@ -1052,15 +1053,31 @@ public class Trainer implements Serializable {
   /**
    * Called by {@link #collectStats} and
    * {@link #alterLowFrequencyWords(HeadTreeNode)}.
+   *
+   * @param word the Word object containing word (and possibly a word-feature
+   * vector) and a tag with which that word (and possibly feature vector) has
+   * been observed with
    */
-  protected final void addToPosMap(Map posMap, Word word) {
+  protected final void addToPosMap(Word word) {
     if (isRealWord(word)) {
-      SexpList mapSet = (SexpList)posMap.get(word.word());
-      if (mapSet == null)
-	posMap.put(word.word(), (mapSet = new SexpList(2)).add(word.tag()));
-      else if (!mapSet.contains(word.tag()))
-	mapSet.add(word.tag());
+      addToPosMap(word.word(), word.tag());
+      if (keepAllWords && word.features() != null)
+        addToPosMap(word.features(), word.tag());
     }
+  }
+
+  /**
+   * Called by {@link #addToPosMap(Word)}.
+   *
+   * @param word the word with which to associate a part of speech
+   * @param tag the part-of-speech tag associated with the specified word
+   */
+  protected final void addToPosMap(Symbol word, Symbol tag) {
+    SexpList mapSet = (SexpList)posMap.get(word);
+    if (mapSet == null)
+      posMap.put(word, (mapSet = new SexpList(2)).add(tag));
+    else if (!mapSet.contains(tag))
+      mapSet.add(tag);
   }
 
   /** Called by {@link #collectStats}. */
@@ -2152,7 +2169,7 @@ public class Trainer implements Serializable {
       usage();
     }
 
-    if (trainingFilename != null && objectOutputFilename == null) {
+    if (trainerEventInputFilename != null && objectOutputFilename == null) {
       System.err.println("\nerror: must specify a <derived data output " +
                          "file> when specifying <trainer event input file> " +
                          "with second \"-l\"\n");

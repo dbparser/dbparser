@@ -266,8 +266,9 @@ public abstract class ProbabilityStructure implements Serializable {
 
 
   /**
-   * Returns the reusable transition object, with its history set to the result
-   * of calling <code>getHistory(trainerEvent, backOffLevel)</code> and its
+   * Returns the reusable transition object for the specified back-off level,
+   * with its history set to the result of calling
+   * <code>getHistory(trainerEvent, backOffLevel)</code> and its
    * future the result of <code>getFuture(trainerEvent, backOffLevel)</code>.
    *
    * @param trainerEvent the event from which a transition is to be extracted

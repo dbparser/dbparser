@@ -1,11 +1,10 @@
 #!/bin/tcsh -f
 
-set java = /usr/java/jdk1.3.1_03/bin/java
-
-set classpath = $1
-set host = $2
-set logDir = $3
-set args = ($argv[4-$#argv])
+set java = $1
+set classpath = $2
+set host = $3
+set logDir = $4
+set args = ($argv[5-$#argv])
 
 set parent = `dirname $0`/..
 set classes = $parent/classes

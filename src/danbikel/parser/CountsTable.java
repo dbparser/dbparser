@@ -6,8 +6,8 @@ import java.io.*;
 import java.util.*;
 
 /**
- * Provides a mapping between objects and integer counts that may be
- * incremented or decremented.
+ * Provides a mapping between objects and floating-point (<code>double</code>)
+ * counts that may be incremented or decremented.
  */
 public interface CountsTable extends danbikel.util.MapToPrimitive {
   /**

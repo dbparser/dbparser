@@ -46,6 +46,7 @@ public class EMDecoder extends Decoder {
    */
   private final static boolean debugOutputAllCounts = false;
   private final static boolean debugInsideProbs = true;
+  private final static boolean debugOutputAllInsideProbs = false;
 
   private final static Symbol ADJP = Symbol.add("ADJP");
   private final static Symbol S = Symbol.add("S");
@@ -370,7 +371,7 @@ public class EMDecoder extends Decoder {
 	EMItem item = sortedItems[level][itemIdx];
 	// handle base case
 	if (item.label() == topSym)
-	  item.setOutsideProb(probCertain);
+          item.setOutsideProb(probCertain);
 	if (item.outsideProb() > probImpossible) {
 	  EMItem.AntecedentPair pair = item.antecedentPairs();
 	  for ( ; pair != null; pair = pair.next()) {
@@ -449,6 +450,10 @@ public class EMDecoder extends Decoder {
       //        sentenceProbInverse * eventProb *
       //        ante1.insideProb() * ante2.insideProb() * item.outsideProb(),
       if (item.outsideProb() > probImpossible) {
+        if (debugOutputAllInsideProbs) {
+          System.err.println(className + ": span=(" + start + "," + end +
+                             "), " + item);
+        }
 	EMItem.AntecedentPair pair = item.antecedentPairs();
 	for ( ; pair != null; pair = pair.next()) {
 	  EMItem ante1 = pair.first();
@@ -786,9 +791,9 @@ public class EMDecoder extends Decoder {
       Symbol modificandLabel = (Symbol)modificand.label();
       boolean modificandLabelP = modificandLabel == NPB;
       boolean modLabelP = modLabel == PP;
-      debugFlag = (side == Constants.RIGHT &&
-		   ((modificand.start() == 19 && modificand.end() == 23) &&
-		    (modifier.start() == 24 && modifier.end() == 24)));
+      int spanStart = Math.min(modificand.start(), modifier.start());
+      int spanEnd = Math.max(modificand.end(), modifier.end());
+      debugFlag = spanStart == 10 && spanEnd == 13;
       if (debugFlag) {
 	System.err.println(className + ".join: trying to extend modificand\n" +
 			   modificand + "\nwith modifier\n" + modifier);

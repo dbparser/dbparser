@@ -94,7 +94,6 @@ import java.io.*;
  * @see     Object#hashCode()
  * @see     Collection
  * @see	    Map
- * @see	    TreeMap
  * @see	    Hashtable
  * @since 1.2
  */
@@ -294,14 +293,42 @@ public class HashMapDouble extends AbstractMap
       int hash = key.hashCode();
       int index = (hash & 0x7FFFFFFF) % tab.length;
       for (Entry e = tab[index]; e != null; e = e.next)
-	if ((e.hash == hash) && key.equals(e.key))
-	  return e.value;
+        if ((e.hash == hash) && key.equals(e.key))
+          return e.value;
     } else {
       for (Entry e = tab[0]; e != null; e = e.next)
 	if (e.key==null)
 	  return e.value;
     }
 
+    return Double.NaN;
+  }
+
+  public double getDouble(Object key, int hash) {
+    Entry tab[] = table;
+
+    int index = (hash & 0x7FFFFFFF) % tab.length;
+    for (Entry e = tab[index]; e != null; e = e.next)
+      if ((e.hash == hash) && key.equals(e.key))
+        return e.value;
+    return Double.NaN;
+  }
+
+  protected double getAndMakeMRU(Object key, int hash) {
+    Entry tab[] = table;
+
+    int index = (hash & 0x7FFFFFFF) % tab.length;
+    for (Entry e = tab[index], prev = null; e != null;
+         prev = e, e = e.next) {
+      if ((e.hash == hash) && key.equals(e.key)) {
+        if (prev != null) {
+          prev.next = e.next;
+          e.next = tab[index];
+          tab[index] = e;
+        }
+        return e.value;
+      }
+    }
     return Double.NaN;
   }
 
@@ -319,7 +346,7 @@ public class HashMapDouble extends AbstractMap
    * @return the value to which this map maps the specified key.
    * @param key key whose associated value is to be returned.
    *
-   * @see #putAndRemove(Object,Object)
+   * @see #putAndRemove(Object,double)
    */
   protected double getAndMakeMRU(Object key) {
     Entry tab[] = table;
@@ -329,14 +356,14 @@ public class HashMapDouble extends AbstractMap
       int index = (hash & 0x7FFFFFFF) % tab.length;
       for (Entry e = tab[index], prev = null; e != null;
            prev = e, e = e.next) {
-	if ((e.hash == hash) && key.equals(e.key)) {
+        if ((e.hash == hash) && key.equals(e.key)) {
           if (prev != null) {
             prev.next = e.next;
             e.next = tab[index];
             tab[index] = e;
           }
-	  return e.value;
-	}
+          return e.value;
+        }
       }
     } else {
       for (Entry e = tab[0], prev = null; e != null;
@@ -535,6 +562,32 @@ public class HashMapDouble extends AbstractMap
     count++;
   }
 
+  public void put(Object key, int hashCode, double value) {
+    // Makes sure the key is not already in the HashMap.
+    Entry tab[] = table;
+    int hash = hashCode;
+    int index = (hash & 0x7FFFFFFF) % tab.length;
+    for (Entry e = tab[index] ; e != null ; e = e.next) {
+      if ((e.hash == hash) && key.equals(e.key)) {
+        e.value = value;
+        return;
+      }
+    }
+    modCount++;
+    if (count >= threshold) {
+      // Rehash the table if the threshold is exceeded
+      rehash();
+
+      tab = table;
+      index = (hash & 0x7FFFFFFF) % tab.length;
+    }
+
+    // Creates the new entry.
+    Entry e = new Entry(hash, key, value, tab[index]);
+    tab[index] = e;
+    count++;
+  }
+
   /**
    * Associates the specified value with the specified key in this map
    * while removing an essentially random element from the map.
@@ -595,6 +648,61 @@ public class HashMapDouble extends AbstractMap
       }
     }
 
+    modCount++;
+
+    // don't rehash when removing almost as many as putting!!!
+    /*
+    if (count >= threshold) {
+      // Rehash the table if the threshold is exceeded
+      rehash();
+
+      tab = table;
+      index = (hash & 0x7FFFFFFF) % tab.length;
+    }
+    */
+
+    // first, remove last entry in singly-linked list, if possible
+    for (Entry e = tab[index], prev = null; e != null;
+         prev = e, e = e.next) {
+      if (e.next == null) {
+        if (prev == null)
+          tab[index] = null;
+        else
+          prev.next = null;
+        //e.value = null;
+        count--;
+        break;
+      }
+    }
+    // Creates the new entry.
+    Entry e = new Entry(hash, key, value, tab[index]);
+    tab[index] = e;
+    count++;
+  }
+
+  protected void putAndRemove(Object key, int hashCode, double value) {
+    // Makes sure the key is not already in the HashMap.
+    Entry tab[] = table;
+    int hash = hashCode;
+    int index = 0;
+
+    index = (hash & 0x7FFFFFFF) % tab.length;
+    // if an equivalent key exists, make its entry the head of
+    // the singly linked list before returning the previously-associated
+    // value (the LRU condition will thus be satisfied)
+    for (Entry e = tab[index], prev = null; e != null;
+         prev = e, e = e.next) {
+      if ((e.hash == hash) && key.equals(e.key)) {
+        e.value = value;
+        // now make e the head of the list, if it isn't already
+        if (e != tab[index]) {
+          prev.next = e.next;
+          e.next = tab[index];
+          tab[index] = e;
+        }
+        return;
+      }
+    }
     modCount++;
 
     // don't rehash when removing almost as many as putting!!!

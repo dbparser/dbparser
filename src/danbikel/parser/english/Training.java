@@ -65,6 +65,11 @@ public class Training extends danbikel.parser.Training {
     readMetadata(metadataTok);
   }
 
+  public Sexp preProcess(Sexp tree) {
+    super.preProcess(tree);
+    fixSubjectlessSentences(tree);
+    return tree;
+  }
   /**
    * Reads metadata to fill in {@link danbikel.parser.Training#argContexts} and
    * {@link danbikel.parser.Training#semTagArgStopSet}.  Does no format
@@ -185,6 +190,39 @@ public class Training extends danbikel.parser.Training {
 
   protected boolean isTypeOfSentence(Symbol label) {
     return label.toString().charAt(0) == 'S';
+  }
+
+  /**
+   * De-transforms sentence labels changed by {@link
+   * #relabelSubjectlessSentences(Sexp)} when the subjectless sentence node has
+   * children prior to its head child that are arguments.
+   */
+  public Sexp fixSubjectlessSentences(Sexp tree) {
+    if (treebank.isPreterminal(tree))
+      return tree;
+    if (tree.isList()) {
+      SexpList treeList = tree.list();
+      int treeListLen = treeList.length();
+      Symbol parent = treeList.symbolAt(0);
+      Symbol subjectlessSentenceLabel = treebank.subjectlessSentenceLabel();
+      if (treebank.stripAugmentation(parent) == subjectlessSentenceLabel) {
+	// first, find head
+	int headIdx = headFinder.findHead(treeList);
+	// if there are arguments prior to head, this must be changed back
+	// to a regular sentence label
+	for (int i = headIdx - 1; i >= 1; i--) {
+	  SexpList child = treeList.listAt(i);
+	  Symbol childLabel = treeList.getChildLabel(i);
+	  if (isArgumentFast(childLabel)) {
+	    treeList.set(0, treebank.sentenceLabel());
+	    break;
+	  }
+	}
+      }
+      for (int i = 1; i < treeList.length(); i++)
+	fixSubjectlessSentences(treeList.get(i));
+    }
+    return tree;
   }
 
   protected Sexp unrepairBaseNPs(Sexp tree) {

@@ -2,6 +2,7 @@ package danbikel.parser;
 
 import danbikel.lisp.*;
 import java.io.Serializable;
+import java.util.*;
 
 /**
  * A class to represent the gap generation event implicit in the models
@@ -55,7 +56,7 @@ public class GapEvent implements TrainerEvent, Cloneable {
    */
   public GapEvent(Sexp sexp) {
     this(sexp.list().symbolAt(0),
-	 new Word(sexp.list().get(1)),
+	 Words.get(sexp.list().get(1)),
 	 sexp.list().symbolAt(2),
 	 sexp.list().symbolAt(3));
   }
@@ -76,6 +77,20 @@ public class GapEvent implements TrainerEvent, Cloneable {
     this.headWord = headWord;
     this.parent = parent;
     this.head = head;
+  }
+
+  void canonicalize(Map map) {
+    headWord = (Word)getCanonical(map, headWord);
+  }
+
+  Object getCanonical(Map map, Object obj) {
+    Object mapObj = map.get(obj);
+    if (mapObj == null) {
+      map.put(obj, obj);
+      return obj;
+    }
+    else
+      return mapObj;
   }
 
   // accessors
@@ -104,6 +119,10 @@ public class GapEvent implements TrainerEvent, Cloneable {
    * event
    */
   public boolean side() { throw new UnsupportedOperationException(); }
+
+  public void setHeadWord(Word word) {
+    this.headWord = word;
+  }
 
   /**
    * Returns <code>true</code> if the specified object is an instance of

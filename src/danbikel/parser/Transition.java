@@ -1,5 +1,6 @@
 package danbikel.parser;
 
+import java.util.Map;
 import java.io.Serializable;
 
 /**
@@ -67,5 +68,20 @@ public class Transition implements Serializable {
   /** Returns a deep copy of this <code>Transition</code> object. */
   public Transition copy() {
     return new Transition(future.copy(), history.copy());
+  }
+
+  public Transition copyCanonical(Map canonicalFutures,
+                                  Map canonicalHistories) {
+    Event canonicalHistory = (Event)canonicalHistories.get(history);
+    if (canonicalHistory == null) {
+      canonicalHistory = history.copy();
+      canonicalHistories.put(canonicalHistory, canonicalHistory);
+    }
+    Event canonicalFuture = (Event)canonicalFutures.get(future);
+    if (canonicalFuture == null) {
+      canonicalFuture = future.copy();
+      canonicalFutures.put(canonicalFuture, canonicalFuture);
+    }
+    return new Transition(canonicalFuture, canonicalHistory);
   }
 }

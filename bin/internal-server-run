@@ -17,12 +17,9 @@ set reap
 set date = `date '+%Y.%m.%d'`
 set time = `date '+%H.%M'`
 
-#set dir = `dirname $0`
-#set scriptDir = `cd $dir  ; echo $cwd`
-# we now hard-code value of $scriptDir
-set scriptDir = ~/jbproject/dbparser/bin
-#set parent = `cd $scriptDir/.. ; echo $cwd`
-set parent = $scriptDir:h
+set dir = `dirname $0`
+set scriptDir = `cd $dir  ; echo $cwd`
+set parent = `cd $scriptDir/.. ; echo $cwd`
 set jarFile = $parent/dbparser.jar
 
 # prepend parent of this script's directory to a shell variable version

@@ -1000,6 +1000,21 @@ public class Settings implements Serializable {
     "parser.decoder.useOnlySuppliedTags";
 
   /**
+   * The property to specify whether the decoder should substitute a known word
+   * when the only tag for an unknown word is closed-class (i.e., the tag
+   * was never observed with the unknown word during training).
+   * <p>
+   * The value of this property should be (the string representation of)
+   * a boolean (conversion is performed by the method
+   * <code>Boolean.valueOf</code>).
+   * <p>
+   * The value of this constant is
+   * <code>"parser.decoder.substituteWordsForClosedClassTags"</code>.
+   */
+  public final static String decoderSubstituteWordsForClosedClassTags =
+    "parser.decoder.substituteWordsForClosedClassTags";
+
+  /**
    * The property to specify whether node labels in trees output by the
    * decoder include their lexical head information, which is normally only
    * used internally by the decoder.  Even though this setting is grouped

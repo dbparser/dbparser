@@ -9,7 +9,7 @@ import java.util.*;
  * Provides a mapping between objects and integer counts that may be
  * incremented or decremented.
  */
-public class BiCountsTable extends danbikel.util.HashMapTwoInts {
+public class BiCountsTable extends danbikel.util.HashMapTwoDoubles {
   /**
    * Constructs an empty <code>CountsTable</code>.
    */
@@ -53,16 +53,16 @@ public class BiCountsTable extends danbikel.util.HashMapTwoInts {
    * key
    */
   public void add(Object key, int index) {
-    add(key, index, 1);
+    add(key, index, 1.0);
   }
 
-  public int count(Object key, int index) {
+  public double count(Object key, int index) {
     /*
     if (index < 0 || index > 1)
       throw new IllegalArgumentException();
     */
     MapToPrimitive.Entry e = getEntry(key);
-    return (e == null ? 0 : e.getIntValue(index));
+    return (e == null ? 0.0 : e.getDoubleValue(index));
   }
 
   /**
@@ -75,11 +75,11 @@ public class BiCountsTable extends danbikel.util.HashMapTwoInts {
    * it falls below the specified threshold; the value of this argument
    * must be either 0 or 1
    */
-  public void removeItemsBelow(int threshold, int atIndex) {
+  public void removeItemsBelow(double threshold, int atIndex) {
     Iterator it = entrySet().iterator();
     while (it.hasNext()) {
       MapToPrimitive.Entry entry = (MapToPrimitive.Entry)it.next();
-      if (entry.getIntValue(atIndex) < threshold)
+      if (entry.getDoubleValue(atIndex) < threshold)
         it.remove();
     }
   }

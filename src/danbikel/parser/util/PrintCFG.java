@@ -81,6 +81,8 @@ public class PrintCFG {
    * collects all CFG expansions and prints them, one per line, in the form
    * <tt>LHS -> RHS</tt>, to standard output.
    * <pre>usage: [- | <filename>] [-ct | --convert-tags]</pre>
+   * where the <tt>-ct|--convert-tags</tt> option indicates to convert all
+   * part-of-speech tags to the string <tt>POS</tt>.
    */
   public static void main(String[] args) {
     boolean convertTags = false;
@@ -114,8 +116,18 @@ public class PrintCFG {
 	new OutputStreamWriter(System.out, Language.encoding());
       Writer writer = new BufferedWriter(outStreamWriter, bufSize);
       int sentNum;
-      for (sentNum = 0; (curr = Sexp.read(tok)) != null; sentNum++)
-	printCFGExpansions(writer, curr, convertTags);
+      for (sentNum = 0; (curr = Sexp.read(tok)) != null; sentNum++) {
+        if (!Language.training().isValidTree(curr)) {
+          // maybe curr has extra set of parens
+          if (curr.isList()) {
+            curr = curr.list().first();
+          }
+        }
+        if (Language.training().isValidTree(curr))
+          printCFGExpansions(writer, curr, convertTags);
+        else
+          System.err.println("tree No. " + sentNum + " invalid");
+      }
       writer.flush();
       System.err.println("number of sentences processed: " + sentNum);
     }

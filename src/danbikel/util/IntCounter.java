@@ -35,6 +35,8 @@ public class IntCounter implements Comparable, Serializable {
   /** Gets the current count. */
   public final int get() { return count; }
 
+  public final void set(int count) { this.count = count; }
+
   public int hashCode() { return count; }
 
   public String toString() { return String.valueOf(count); }

@@ -42,6 +42,20 @@ public class CountsTable extends danbikel.util.HashMapInt {
     super(initialCapacity, loadFactor);
   }
 
+  public void add(Object key) {
+    add(key, 0, 1);
+  }
+
+  public int count(Object key) {
+    MapToPrimitive.Entry e = getEntry(key);
+    return (e == null ? 0 : e.getIntValue(0));
+  }
+
+  public int count(Object key, int hashCode) {
+    MapToPrimitive.Entry e = getEntry(key, hashCode);
+    return (e == null ? 0 : e.getIntValue(0));
+  }
+
   /**
    * Outputs all the mappings of this map in as S-expressions of the form
    * <pre>(name key value)</pre>
@@ -55,7 +69,7 @@ public class CountsTable extends danbikel.util.HashMapInt {
       writer.write(" ");
       writer.write(String.valueOf(o));
       writer.write(" ");
-      writer.write(count(o));
+      writer.write(String.valueOf(count(o)));
       writer.write(")\n");
     }
   }

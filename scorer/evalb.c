@@ -21,8 +21,8 @@
 #include <string.h>
 #include <malloc.h>
 
-#define OUTPUT_RECALL_ERRORS
-#define OUTPUT_SPURIOUS_BRACKETS
+#define OUTPUT_RECALL_ERRORS 0
+#define OUTPUT_SPURIOUS_BRACKETS 0
 
 /* Internal Data format -------------------------------------------*/
 /*                                                                 */
@@ -759,11 +759,14 @@ calc_result()
     if(wn1 != wn2){
 
 #ifndef DC
-	Error("Length unmatch (%d|%d)\n",wn1,wn2);
+	Error("Length unmatch (%d|%d) (sent=%d)\n",wn1,wn2,Line);
 	individual_result(0,0,0,0,0,0);
 #else
-      fprintf(stderr, "Length unmatch (%d|%d)\n",wn1,wn2);
+      fprintf(stderr, "Length unmatch (%d|%d) (sent=%d)\n",wn1,wn2,Line);
       massage_data();
+#ifdef DB
+      r_bn2 = 0;
+#endif
         individual_result(wn1,r_bn1, 0, 0, 0, 0);
 #endif
 	return;
@@ -804,22 +807,22 @@ calc_result()
     }
 
 #ifdef DB
-#ifdef OUTPUT_SPURIOUS_BRACKETS
-    for (j = 0; j < bn2; j++) {
-      if (bracket2[j].result == 0) {
-	fprintf(stdout, "produced spurious bracket %s %d %d\n",
-		bracket2[j].label, bracket2[j].start, (bracket2[j].end - 1));
+    if (OUTPUT_SPURIOUS_BRACKETS) {
+      for (j = 0; j < bn2; j++) {
+	if (bracket2[j].result == 0) {
+	  fprintf(stdout, "produced spurious bracket %s %d %d\n",
+		  bracket2[j].label, bracket2[j].start, (bracket2[j].end - 1));
+	}
       }
     }
-#endif
-#ifdef OUTPUT_RECALL_ERRORS
-    for (i = 0; i < bn1; i++) {
-      if (bracket1[i].result == 0) {
-	fprintf(stdout, "didn't recall gold bracket %s %d %d\n",
-		bracket1[i].label, bracket1[i].start, (bracket1[i].end - 1));
+    if (OUTPUT_RECALL_ERRORS) {
+      for (i = 0; i < bn1; i++) {
+	if (bracket1[i].result == 0) {
+	  fprintf(stdout, "didn't recall gold bracket %s %d %d\n",
+		  bracket1[i].label, bracket1[i].start, (bracket1[i].end - 1));
+	}
       }
     }
-#endif
 #endif
 
     /* crossing */

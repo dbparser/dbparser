@@ -1,9 +1,10 @@
-DEPTH = 	..
+DEPTH = 	../..
 
 ODIR =		.
 LOCAL_PACKAGES =	danbikel.util danbikel.util.proxy danbikel.lisp \
 			danbikel.switchboard \
-			danbikel.parser danbikel.parser.english \
+			danbikel.parser \
+			danbikel.parser.english danbikel.parser.chinese \
 			danbikel.parser.util
 
 PACKAGES = 	$(LOCAL_PACKAGES) danbikel.wordnet
@@ -48,6 +49,7 @@ danbikel.util.CLASSES =	$(OBJDIR)/AbstractFixedSizeList.class \
 			$(OBJDIR)/HashMapDouble.class \
 			$(OBJDIR)/HashMapInt.class \
 			$(OBJDIR)/HashMapPrimitive.class \
+			$(OBJDIR)/HashMapTwoDoubles.class \
 			$(OBJDIR)/HashMapTwoInts.class \
 			$(OBJDIR)/IntCounter.class \
 			$(OBJDIR)/IntPair.class \
@@ -81,10 +83,10 @@ danbikel.switchboard.CLASSES =	$(OBJDIR)/AbstractClient.class \
 				$(OBJDIR)/AbstractServer.class \
 				$(OBJDIR)/AbstractSwitchboardUser.class \
 				$(OBJDIR)/Client.class \
+				$(OBJDIR)/DefaultNoHeaderObjectWriter.class \
 				$(OBJDIR)/DefaultObjectReader.class \
 				$(OBJDIR)/DefaultObjectReaderFactory.class \
 				$(OBJDIR)/DefaultObjectWriter.class \
-				$(OBJDIR)/DefaultNoHeaderObjectWriter.class \
 				$(OBJDIR)/DefaultObjectWriterFactory.class \
 				$(OBJDIR)/Failover.class \
 				$(OBJDIR)/NumberedObject.class \
@@ -107,22 +109,27 @@ danbikel.switchboard.STUBS =	$(OBJDIR)/AbstractSwitchboardUser_Stub.class \
 
 danbikel.parser.CLASSES =	$(MODEL_STRUCTURE_CLASSES) \
 				$(OBJDIR)/AbstractEvent.class \
+				$(OBJDIR)/BaseNPAwareShifter.class \
 				$(OBJDIR)/BiCountsTable.class \
-				$(OBJDIR)/Collins.class \
-				$(OBJDIR)/Item.class \
 				$(OBJDIR)/Chart.class \
 				$(OBJDIR)/CKYChart.class \
 				$(OBJDIR)/CKYItem.class \
+				$(OBJDIR)/Collins.class \
 				$(OBJDIR)/Constants.class \
+				$(OBJDIR)/Constraint.class \
+				$(OBJDIR)/ConstraintSetFactory.class \
+				$(OBJDIR)/ConstraintSet.class \
+				$(OBJDIR)/ConstraintSets.class \
 				$(OBJDIR)/CountsTable.class \
 				$(OBJDIR)/CountsTrio.class \
 				$(OBJDIR)/Decoder.class \
 				$(OBJDIR)/DecoderServer.class \
 				$(OBJDIR)/DecoderServerRemote.class \
+				$(OBJDIR)/DefaultShifter.class \
 				$(OBJDIR)/Event.class \
 				$(OBJDIR)/GapEvent.class \
-				$(OBJDIR)/HeadFinder.class \
 				$(OBJDIR)/HeadEvent.class \
+				$(OBJDIR)/HeadFinder.class \
 				$(OBJDIR)/HeadTreeNode.class \
 				$(OBJDIR)/Item.class \
 				$(OBJDIR)/Language.class \
@@ -143,6 +150,8 @@ danbikel.parser.CLASSES =	$(MODEL_STRUCTURE_CLASSES) \
 				$(OBJDIR)/SexpObjectReader.class \
 				$(OBJDIR)/SexpObjectReaderFactory.class \
 				$(OBJDIR)/SexpSubcatEvent.class \
+				$(OBJDIR)/Shift.class \
+				$(OBJDIR)/Shifter.class \
 				$(OBJDIR)/SingletonWordList.class \
 				$(OBJDIR)/StartSwitchboard.class \
 				$(OBJDIR)/Subcat.class \
@@ -159,6 +168,9 @@ danbikel.parser.CLASSES =	$(MODEL_STRUCTURE_CLASSES) \
 				$(OBJDIR)/Training.class \
 				$(OBJDIR)/Transition.class \
 				$(OBJDIR)/Treebank.class \
+				$(OBJDIR)/UnlexTreeConstraint.class \
+				$(OBJDIR)/UnlexTreeConstraintSetFactory.class \
+				$(OBJDIR)/UnlexTreeConstraintSet.class \
 				$(OBJDIR)/Word.class \
 				$(OBJDIR)/WordFeatures.class \
 				$(OBJDIR)/WordArrayList.class \
@@ -177,6 +189,14 @@ danbikel.parser.english.CLASSES =	$(OBJDIR)/HeadFinder.class \
 					$(OBJDIR)/WordFeatures.class
 
 danbikel.parser.english.RESOURCES =	$(OBJDIR)/data
+
+danbikel.parser.chinese.CLASSES =	$(OBJDIR)/HeadFinder.class \
+					$(OBJDIR)/SimpleWordFeatures.class \
+					$(OBJDIR)/Training.class \
+					$(OBJDIR)/Treebank.class \
+					$(OBJDIR)/WordFeatures.class
+
+danbikel.parser.chinese.RESOURCES =	$(OBJDIR)/data
 
 danbikel.parser.util.CLASSES =	$(OBJDIR)/AddFakePos.class \
 				$(OBJDIR)/DebugChart.class \
@@ -198,7 +218,7 @@ WINDOWTITLE =	'WordNet Parser'
 DOCTITLE =	'WordNet Parser'
 HEADER =	'WordNet Parser'
 BOTTOM =	'Author: <a target="_blank" href="http://www.cis.upenn.edu/~dbikel">Dan Bikel</a>.'
-LINKS =		-link '$(JDK1.3API_LINK)' -link '$(WORDNET_LINK)'
+LINKS =		-link '$(JDK1.4API_LINK)' -link '$(WORDNET_LINK)'
 JAVADOC_PACKAGES = $(LOCAL_PACKAGES)
 
 ###############################################################################

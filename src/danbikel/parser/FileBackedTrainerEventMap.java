@@ -16,11 +16,98 @@ import java.io.*;
  * such as those that rely simply on the ability to iterate over all
  * observed events.  One such operation is the additive derivation of
  * counts as implemented by the method
- * {@link Model#deriveCounts(MapToPrimitive,Filter,double,FlexibleMap)}.
+ * {@link Model#deriveCounts(CountsTable,Filter,double,FlexibleMap)}.
  */
-public class FileBackedTrainerEventMap extends AbstractMapToPrimitive {
+public class FileBackedTrainerEventMap
+  extends AbstractMapToPrimitive implements CountsTable {
+
+  /**
+   * Inner class to implement caching iterator.  While the main thread
+   * is reading elements from the "grab cache", another thread is reading ahead
+   * from the file to fill the "fill cache".
+   */
+  class CachingIterator implements Iterator, Runnable {
+    final static int defaultCacheSize = 2500;
+
+    Iterator it;
+    int cacheSize;
+    List grabCache;
+    List fillCache;
+    int grabCacheIdx;
+    volatile boolean moreElements;
+    volatile int timeToSwap = 0;
+    Time time;
+
+    CachingIterator(Iterator it) {
+      this(it, defaultCacheSize);
+    }
+
+    CachingIterator(Iterator it, int cacheSize) {
+      this.cacheSize = cacheSize;
+      this.it = it;
+      grabCacheIdx = cacheSize;
+      grabCache = new ArrayList(cacheSize);
+      fillCache = new ArrayList(cacheSize);
+      moreElements = it.hasNext();
+      new Thread(this, "CachingIterator for " + file).start();
+    }
+
+    synchronized void swap() {
+      timeToSwap++;
+      if (timeToSwap < 2) {
+        //time = new Time();
+        try { wait(); }
+        catch (InterruptedException ie) { System.err.println(ie); }
+        return;
+      }
+      //System.err.println("time between swap: " + time);
+      //time = null;
+      timeToSwap = 0;
+      grabCacheIdx = 0;
+      List tmpList = grabCache;
+      grabCache = fillCache;
+      fillCache = tmpList;
+      fillCache.clear();
+      // the next line matters when the last fillCache has been swapped over
+      // to be the grab cache, and it is smaller than the original cache size
+      cacheSize = grabCache.size();
+      notifyAll();
+    }
+
+    public boolean hasNext() {
+      return grabCacheIdx < cacheSize || fillCache.size() > 0 || moreElements;
+    }
+    public Object next() {
+      if (!hasNext())
+        throw new NoSuchElementException();
+      // if we grabbed the last object in the grab cache, but there
+      // are more objects in the fill cache (or there will be when the fill
+      // thread is done), then do the swap
+      if (hasNext() && grabCacheIdx == cacheSize) {
+        swap();
+      }
+      return grabCache.get(grabCacheIdx++);
+    }
+    public void remove() {
+      throw new UnsupportedOperationException();
+    }
+    public void run() {
+      while (moreElements) {
+        while (moreElements && fillCache.size() < cacheSize) {
+          fillCache.add(it.next());
+          if (!it.hasNext())
+            moreElements = false;
+        }
+        if (fillCache.size() > 0)
+          swap();
+      }
+    }
+  }
+
   private File file;
   private Symbol type;
+  private int size = -1;
+  private LinkedList cache = new LinkedList();
 
   public FileBackedTrainerEventMap(Symbol type, String filename)
     throws FileNotFoundException {
@@ -38,14 +125,52 @@ public class FileBackedTrainerEventMap extends AbstractMapToPrimitive {
     this.type = type;
   }
 
+  private String unmodifiableMapMsg() {
+    return getClass().getName() + " implements unmodifiable map";
+  }
+
+  public void addAll(CountsTable other) {
+    throw new UnsupportedOperationException(unmodifiableMapMsg());
+  }
+
+  public void putAll(CountsTable other) {
+    throw new UnsupportedOperationException(unmodifiableMapMsg());
+  }
+
+  public void add(Object key) {
+    throw new UnsupportedOperationException(unmodifiableMapMsg());
+  }
+
+  public double count(Object key) {
+    MapToPrimitive.Entry entry = getEntry(key);
+    return (entry == null ? 0.0 : entry.getDoubleValue());
+  }
+
+  public double count(Object key, int hashCode) {
+    MapToPrimitive.Entry entry = getEntry(key, hashCode);
+    return (entry == null ? 0.0 : entry.getDoubleValue());
+  }
+
+  public void removeItemsBelow(double threshold) {
+    throw new UnsupportedOperationException(unmodifiableMapMsg());
+  }
+
+  public void output(String filename, java.io.Writer writer) {
+    throw new UnsupportedOperationException(getClass().getName() +
+                                            "silly to copy a map that is " +
+                                            "already file-backed");
+  }
 
   public Set entrySet() {
     return new java.util.AbstractSet() {
       public int size() {
-        Iterator it = entrySet().iterator();
-        int size = 0;
-        for ( ; it.hasNext(); it.next(), size++)
-          ;
+        if (size == -1) {
+          // compute size once and for all
+          Iterator it = entrySet().iterator();
+          size = 0;
+          for (; it.hasNext(); it.next(), size++)
+            ;
+        }
         return size;
       }
       public Iterator iterator() {
@@ -57,14 +182,12 @@ public class FileBackedTrainerEventMap extends AbstractMapToPrimitive {
         catch (IOException ioe) {
           throw new RuntimeException(ioe.toString());
         }
-        return Trainer.getEventIterator(tok, type);
+        return new CachingIterator(Trainer.getEventIterator(tok, type));
       }
     };
   }
   public void removeRandom(int bucketIndex) {
-    String msg =
-      "Method removeRandom not implemented, as this is an unmodifiable map";
-    throw new UnsupportedOperationException(msg);
+    throw new UnsupportedOperationException(unmodifiableMapMsg());
   }
   public MapToPrimitive.Entry getEntry(Object key) {
     Iterator it = entrySet().iterator();
@@ -75,17 +198,15 @@ public class FileBackedTrainerEventMap extends AbstractMapToPrimitive {
     }
     return null;
   }
-  public MapToPrimitive.Entry getEntryMRU(Object key) {
-    throw new java.lang.UnsupportedOperationException("Method getEntryMRU() not yet implemented.");
-  }
+
   public MapToPrimitive.Entry getEntry(Object key, int hashCode) {
     return getEntry(key);
   }
-  public MapToPrimitive.Entry getEntryMRU(Object key, int hashCode) {
-    /**@todo Implement this danbikel.util.MapToPrimitive abstract method*/
-    throw new java.lang.UnsupportedOperationException("Method getEntryMRU() not yet implemented.");
+  public MapToPrimitive.Entry getEntryMRU(Object key) {
+    throw new UnsupportedOperationException();
   }
-  public static void main(String[] args) {
+  public MapToPrimitive.Entry getEntryMRU(Object key, int hashCode) {
+    throw new UnsupportedOperationException();
   }
 
 }

@@ -222,7 +222,8 @@ public class Trainer implements Serializable {
   private Symbol gapAugmentation = Language.training.gapAugmentation();
   private Symbol traceTag = Language.training.traceTag();
 
-  // various filters used by deriveCounts and deriveSubcatMaps
+  // various filters used by deriveCounts, deriveSubcatMaps and
+  // deriveModNonterminalMaps
   Filter allPass = new AllPass();
   Filter nonTop = new Filter() {
       public boolean pass(Object obj) {
@@ -234,22 +235,12 @@ public class Trainer implements Serializable {
         return ((TrainerEvent)obj).parent() == topSym;
       }
     };
-  Filter leftOnly = new Filter() {
+  Filter nonStopAndNonTop = new Filter() {
       public boolean pass(Object obj) {
-        return ((TrainerEvent)obj).side() == Constants.LEFT;
+        ModifierEvent modEvent = (ModifierEvent)obj;
+        return modEvent.modifier() != stopSym && modEvent.parent() != topSym;
       }
-    };
-  Filter rightOnly = new Filter() {
-      public boolean pass(Object obj) {
-        return ((TrainerEvent)obj).side() == Constants.RIGHT;
-      }
-    };
-  Filter nonStop = new Filter() {
-      public boolean pass(Object obj) {
-        return ((ModifierEvent)obj).modifier() != stopSym;
-      }
-    };
-
+  };
 
 
   // constructor
@@ -940,40 +931,16 @@ public class Trainer implements Serializable {
 				   globalModelStructureNumber,
 				   Settings.rightSubcatModelStructureNumber,
 				   Settings.rightSubcatModelStructureClass));
-      Model leftModNonterminalModel =
+      Model modNonterminalModel =
 	new Model(getProbStructure(modNonterminalModelStructureClassnamePrefix,
 				   globalModelStructureNumber,
 				   Settings.modNonterminalModelStructureNumber,
 				   Settings.modNonterminalModelStructureClass));
-      Model rightModNonterminalModel =
-	new Model(getProbStructure(modNonterminalModelStructureClassnamePrefix,
-				   globalModelStructureNumber,
-				   Settings.modNonterminalModelStructureNumber,
-				   Settings.modNonterminalModelStructureClass));
-      Model leftModWordModel =
+      Model modWordModel =
 	new Model(getProbStructure(modWordModelStructureClassnamePrefix,
 				   globalModelStructureNumber,
 				   Settings.modWordModelStructureNumber,
 				   Settings.modWordModelStructureClass));
-      Model rightModWordModel =
-	new Model(getProbStructure(modWordModelStructureClassnamePrefix,
-				   globalModelStructureNumber,
-				   Settings.modWordModelStructureNumber,
-				   Settings.modWordModelStructureClass));
-
-      // since the left- and right-nonterminal generation models use
-      // identical probability structures, as well as the left- and right-word
-      // generation models, we set the additional data field, so that
-      // the probability structures can be made "aware" of which side
-      // of the head they model generation; see javadoc comment for
-      // ModWordModelStructure2.removeHistory(int,Event) method to find out why
-      // this is useful and necessary
-      Symbol leftSym = Constants.leftSym;
-      Symbol rightSym = Constants.rightSym;
-      leftModNonterminalModel.getProbStructure().setAdditionalData(leftSym);
-      rightModNonterminalModel.getProbStructure().setAdditionalData(rightSym);
-      leftModWordModel.getProbStructure().setAdditionalData(leftSym);
-      rightModWordModel.getProbStructure().setAdditionalData(rightSym);
 
       danbikel.util.HashMap canonical = new danbikel.util.HashMap(1003, 1.5f);
 
@@ -990,55 +957,33 @@ public class Trainer implements Serializable {
       gapModel.deriveCounts(gapEvents, allPass, th, canonical);
       leftSubcatModel.deriveCounts(headEvents, nonTop, th, canonical);
       rightSubcatModel.deriveCounts(headEvents, nonTop, th, canonical);
-      leftModNonterminalModel.deriveCounts(modifierEvents, leftOnly, th,
-                                           canonical);
-      rightModNonterminalModel.deriveCounts(modifierEvents, rightOnly, th,
-                                            canonical);
-      leftModWordModel.deriveCounts(modifierEvents, allPass, th, canonical);
-      rightModWordModel.deriveCounts(modifierEvents, allPass, th, canonical);
+      modNonterminalModel.deriveCounts(modifierEvents, allPass, th, canonical);
+      modWordModel.deriveCounts(modifierEvents, allPass, th, canonical);
 
       // somewhat of a hack: we allow counts for a back-off level from
       // one model to be shared with another model; in this case, the
-      // last level of back-off from the leftModWordModel is being
+      // last level of back-off from the modWordModel is being
       // shared (i.e., will be used) as the last level of back-off for
-      // rightModWordModel and for topLexModel, as the last levels of
-      // all these models should just be estimating p(w | t)
-      System.err.println("Sharing last level of leftModWordModel to be " +
-			 "last level of rightModWordModel\n\tand last level " +
-			 "of topLexModel.");
+      // topLexModel, as the last levels of both these models should just
+      // be estimating p(w | t)
+      System.err.println("Sharing last level of modWordModel to be " +
+			 "last level of topLexModel.");
       int modWordLastLevel =
-	leftModWordModel.getProbStructure().numLevels() - 1;
-      leftModWordModel.share(modWordLastLevel,
-			     rightModWordModel, modWordLastLevel);
+	modWordModel.getProbStructure().numLevels() - 1;
       int topLexLastLevel =
 	topLexModel.getProbStructure().numLevels() - 1;
-      leftModWordModel.share(modWordLastLevel, topLexModel, topLexLastLevel);
+      modWordModel.share(modWordLastLevel, topLexModel, topLexLastLevel);
 
 
       deriveSubcatMaps(leftSubcatModel.getProbStructure(),
 		       rightSubcatModel.getProbStructure(),
                        canonical);
 
-      deriveModNonterminalMaps(leftModNonterminalModel.getProbStructure(),
-                               rightModNonterminalModel.getProbStructure(),
+      deriveModNonterminalMaps(modNonterminalModel.getProbStructure(),
                                canonical);
 
       System.err.println("Canonical events HashMap stats: " +
                          canonical.getStats());
-
-      /*
-      Iterator it = canonicalEventLists.keySet().iterator();
-      while (it.hasNext()) {
-        Object canonObj = it.next();
-        System.err.print("canonical event: " + canonObj);
-        if (canonObj instanceof Sexp) {
-          it.remove();
-          System.err.println("...removed");
-        }
-        else
-          System.err.println();
-      }
-      */
 
       //canonicalEventLists = null;
       /*
@@ -1048,8 +993,6 @@ public class Trainer implements Serializable {
       System.err.println("done");
       */
 
-      if (leftModNonterminalMap == null)
-        System.err.println("aiiee!  it is null!");
       modelCollection.set(lexPriorModel,
 			  nonterminalPriorModel,
 			  topNonterminalModel,
@@ -1058,10 +1001,8 @@ public class Trainer implements Serializable {
 			  gapModel,
 			  leftSubcatModel,
 			  rightSubcatModel,
-			  leftModNonterminalModel,
-			  rightModNonterminalModel,
-			  leftModWordModel,
-			  rightModWordModel,
+			  modNonterminalModel,
+			  modWordModel,
 			  vocabCounter,
 			  wordFeatureCounter,
 			  nonterminals,
@@ -1145,42 +1086,33 @@ public class Trainer implements Serializable {
   /**
    * Called by {@link #deriveCounts}.
    *
-   * @param leftMS the left modifying nonterminal model structure
-   * @param rightMS the right modifying nonterminal model structure
+   * @param modMS the modifying nonterminal model structure
+   * @param canonicalMap the map of canonicalized objects
    */
-  private void deriveModNonterminalMaps(ProbabilityStructure leftMS,
-				        ProbabilityStructure rightMS,
+  private void deriveModNonterminalMaps(ProbabilityStructure modMS,
                                         FlexibleMap canonicalMap) {
     System.err.println("Deriving modifying nonterminal maps.");
 
-    int leftMSLastLevel = leftMS.numLevels() - 1;
-    int rightMSLastLevel = rightMS.numLevels() - 1;
+    int modMSLastLevel = modMS.numLevels() - 1;
 
-    Filter filter = nonStop;
+    // we want to ignore stop-word modifiers, as well as the "fake" modifier
+    // of +TOP+ that is the root of the observed tree; the nonStopAndNonTop
+    // filter accomplishes this
+    Filter filter = nonStopAndNonTop;
     //Filter filter = allPass;
     Iterator events = modifierEvents.keySet().iterator();
     while (events.hasNext()) {
       ModifierEvent modEvent = (ModifierEvent)events.next();
       if (!filter.pass(modEvent))
         continue;
-      if (modEvent.side() == Constants.LEFT) {
-        Event leftContext =
-  	  leftMS.getHistory(modEvent, leftMSLastLevel).copy();
-        leftContext.canonicalize(canonicalMap);
-        Event leftFuture =
-          leftMS.getFuture(modEvent, leftMSLastLevel).copy();
-        leftFuture.canonicalize(canonicalMap);
-        addToValueSet(leftModNonterminalMap, leftContext, leftFuture);
-      }
-      else {
-        Event rightContext =
-  	  rightMS.getHistory(modEvent, rightMSLastLevel).copy();
-        rightContext.canonicalize(canonicalMap);
-        Event rightFuture =
-          rightMS.getFuture(modEvent, rightMSLastLevel).copy();
-        rightFuture.canonicalize(canonicalMap);
-        addToValueSet(rightModNonterminalMap, rightContext, rightFuture);
-      }
+      boolean leftSide = modEvent.side() == Constants.LEFT;
+      Map modNonterminalMap =
+        leftSide ? leftModNonterminalMap : rightModNonterminalMap;
+      Event context = modMS.getHistory(modEvent, modMSLastLevel).copy();
+      context.canonicalize(canonicalMap);
+      Event future = modMS.getFuture(modEvent, modMSLastLevel).copy();
+      future.canonicalize(canonicalMap);
+      addToValueSet(modNonterminalMap, context, future);
     }
 
     outputModNonterminalMaps();
@@ -1244,12 +1176,6 @@ public class Trainer implements Serializable {
    * nonterminal occurrences.  Called by {@link #deriveCounts}.
    */
   private void derivePriors() {
-    // note that since ProbabilityStructure and Model objects are all set
-    // up to compute posterior probabilities, we "fake" a prior probability
-    // by making all histories be identical; in this case, p_prior(w,t)
-    // is really computed as p(w,t | event.parent()), where event.parent()
-    // is guaranteed (by the code below) to be stopSym
-
     Iterator it = headEvents.entrySet().iterator();
     while (it.hasNext()) {
       MapToPrimitive.Entry entry = (MapToPrimitive.Entry)it.next();
@@ -1265,7 +1191,10 @@ public class Trainer implements Serializable {
       MapToPrimitive.Entry entry = (MapToPrimitive.Entry)it.next();
       ModifierEvent event = (ModifierEvent)entry.getKey();
       int count = entry.getIntValue();
-      if (isRealWord(event.modHeadWord())) {
+      // we make sure to check that the parent of the modifier event is not
+      // +TOP+ so that we don't include the hack whereby we pretend we
+      // observed the root of the observed tree to "modify" +TOP+
+      if (event.parent() != topSym && isRealWord(event.modHeadWord())) {
 	priorEvents.add(new PriorEvent(event.modHeadWord(), event.modifier()),
 			count);
       }

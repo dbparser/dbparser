@@ -25,11 +25,43 @@ import danbikel.lisp.*;
  * of history in the Markov process.
  */
 public interface Shift {
-  public void shift(TrainerEvent event, SexpList list,
-		    Sexp prevMod, Sexp currMod);
-  public void shift(TrainerEvent event, WordList wordList,
-		    Word prevWord, Word currWord);
+  /**
+   * Shifts the previously-generated modifier label into the history.
+   *
+   * @param event the <tt>TrainerEvent</tt> whose history is to be updated
+   * @param list the current history of previously-generated modifiers
+   * @param prevMod the previously-generated modifier
+   */
+  public void shift(TrainerEvent event, SexpList list, Sexp prevMod);
+  /**
+   * Shifts the previously-generated modifier head word into the history.
+   *
+   * @param event the <tt>TrainerEvent</tt> whose history is to be updated
+   * @param wordList the current history of previously-generated modifier
+   *                 head words
+   * @param prevWord the head word of the previously-generated modifier
+   */
+  public void shift(TrainerEvent event, WordList wordList, Word prevWord);
 
-  public boolean skip(Item item, Sexp prevMod, Sexp currMod);
-  public boolean skip(Item item, Word prevWord, Word currWord);
+  /**
+   * Returns whether the previously-generated modifier should be skipped
+   * when constructing a history for the specified chart item.
+   *
+   * @param item the <tt>CKYItem</tt> object whose history is being constructed
+   * @param prevMod the previously-generated modifier
+   * @return whether or not to skip the specified previous modifier when
+   * constructing the modifier history for the specified chart item
+   */
+  public boolean skip(Item item, Sexp prevMod);
+  /**
+   * Returns whether the previously-generated modifier head word should be
+   * skipped when constructing a history for the specified chart item.
+   *
+   * @param item the <tt>CKYItem</tt> object whose history is being constructed
+   * @param prevWord the head word of the previously-generated modifier
+   * @return whether or not to skip the specified previous modifier's head word
+   * when constructing the modifier head word history for the specified
+   * chart item
+   */
+  public boolean skip(Item item, Word prevWord);
 }

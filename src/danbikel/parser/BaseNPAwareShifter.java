@@ -60,10 +60,13 @@ public class BaseNPAwareShifter implements Shift {
       // treat punctuation and conjunction as conditionally independent:
       // if one follows the other, the previous element is *not* shifted
       // into the history list
+      /*
       doShift = !((Language.treebank.isPunctuation(prevModSym) &&
 		   Language.treebank.isConjunction(currModSym)) ||
 		  (Language.treebank.isConjunction(prevModSym) &&
 		   Language.treebank.isPunctuation(currModSym)));
+      */
+      doShift = true;
     }
     if (doShift) {
       list.remove(list.length() - 1);
@@ -104,10 +107,13 @@ public class BaseNPAwareShifter implements Shift {
       // treat punctuation and conjunction as conditionally independent:
       // if one follows the other, the previous element is *not* shifted
       // into the history list
+      /*
       doShift = !((Language.treebank.isPunctuation(prevWord.tag()) &&
 		   Language.treebank.isConjunction(currWord.tag())) ||
 		  (Language.treebank.isConjunction(prevWord.tag()) &&
 		   Language.treebank.isPunctuation(currWord.tag())));
+      */
+      doShift = true;
     }
     if (doShift)
       wordList.shift(prevWord);
@@ -146,10 +152,13 @@ public class BaseNPAwareShifter implements Shift {
     // treat punctuation and conjunction as conditionally independent:
     // if one follows the other, the previous element is *not* shifted
     // into the history list
+    /*
     else return ((Language.treebank.isPunctuation(prevModSym) &&
 		  Language.treebank.isConjunction(currModSym)) ||
 		 (Language.treebank.isConjunction(prevModSym) &&
 		  Language.treebank.isPunctuation(currModSym)));
+    */
+    else return false;
   }
 
   /**
@@ -183,9 +192,12 @@ public class BaseNPAwareShifter implements Shift {
     // treat punctuation and conjunction as conditionally independent:
     // if one follows the other, the previous element is *not* shifted
     // into the history list
+    /*
     else return ((Language.treebank.isPunctuation(prevWord.tag()) &&
 		  Language.treebank.isConjunction(currWord.tag())) ||
 		 (Language.treebank.isConjunction(prevWord.tag()) &&
 		  Language.treebank.isPunctuation(currWord.tag())));
+    */
+    else return false;
   }
 }

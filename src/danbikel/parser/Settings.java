@@ -9,7 +9,7 @@ import java.io.*;
 /**
  * Provides static settings for this package, primarily via an internal
  * {@link Properties} object.  All recognized properties of this package and
- * the provide language packages are provided as publicly-accessible constants.
+ * the supplied language packages are provided as publicly-accessible constants.
  * <p>
  * A settings file for a particular language must provide the property
  * <code>headTablePrefix + language</code>.<br> A settings file for a
@@ -34,7 +34,7 @@ import java.io.*;
  * <p>
  * To obtain a default settings file as a template for modification, put the
  * following code in a file called <tt>GetSettings.java</tt> and then run
- * <tt>java&nbsp;GetDefaultSettings</code> from the command line or your
+ * <tt>java&nbsp;GetDefaultSettings</tt> from the command line or your
  * Java development environment:
  * <pre>
  * import danbikel.parser.Settings;
@@ -68,7 +68,7 @@ public class Settings implements Serializable {
   /** The official name of this program. */
   public final static String progName = "WordNet Parser";
   /** The official version of this program. */
-  public final static String version = "0.8";
+  public final static String version = "0.9";
   /**
    * The prefix that all properties for this parser should have
    * (to be used when finding system properties that are meant to be included
@@ -180,6 +180,29 @@ public class Settings implements Serializable {
   public final static String subcatFactoryClass = "parser.subcatFactoryClass";
 
   /**
+   * The property to specify the fully-qualified classname of the
+   * <code>Shift</code> object to be used by the <code>Shifter</code>
+   * static class.
+   *
+   * @see Shift
+   * @see Shifter
+   * @see DefaultShifter
+   */
+  public final static String shifterClass = "parser.shifterClass";
+
+  /**
+   * The property to specify the fully-qualified classname of the
+   * <code>ConstraintSetFactory</code> object to be used by the
+   * <code>ConstraintSets</code> static class.
+   *
+   * @see ConstraintSets
+   * @see ConstraintSet
+   * @see Constraint
+   */
+  public final static String constraintSetFactoryClass =
+    "parser.constraintSetFactoryClass";
+
+  /**
    * The prefix string used to specify a language's file encoding
    * property.  For example, for Chinese, the file encoding is available
    * by calling
@@ -202,6 +225,29 @@ public class Settings implements Serializable {
    */
   public final static String precomputeProbs =
     "parser.model.precomputeProbabilities";
+
+  /**
+   * The property to specify whether to perform deficient estimation of
+   * probabilities (as per Mike Collins' bug in his thesis parser).
+   * Specifically, if this property is <tt>true</tt>, then all
+   * deleted-interpolation probabilities are estimated using a lambda
+   * weight for the final level of back-off, as per for the formula<br>
+   * <i>l</i><sub>1</sub>*<i>e</i><sub>1</sub> +
+   * (1 - <i>l</i><sub>1</sub>) * (<i>l</i><sub>2</sub>*<i>e</i><sub>2</sub> +
+   * (1 - <i>l</i><sub>2</sub>) * <i>l</i><sub>3</sub>*<i>e</i><sub>3</sub>)
+   * where <i>l<sub>i</sub></i> is a lambda for backoff level <i>i</i>
+   * and <i>e<sub>i</sub></i> is an estimate for backoff level <i>i</i>.
+   * If this property is <tt>false</tt>, then the formula is estimated in
+   * the correct fashion:<br>
+   * <i>l</i><sub>1</sub>*<i>e</i><sub>1</sub> +
+   * (1 - <i>l</i><sub>1</sub>) * (<i>l</i><sub>2</sub>*<i>e</i><sub>2</sub> +
+   * (1 - <i>l</i><sub>2</sub>) * <i>e</i><sub>3</sub>)
+   * <p>
+   * The value of this constant is
+   * <code>"parser.model.collinsDeficientEstimation"</code>.
+   */
+  public final static String collinsDeficientEstimation =
+    "parser.model.collinsDeficientEstimation";
 
   /**
    * The property to specify whether or not the <code>ModelCollection</code>
@@ -248,6 +294,37 @@ public class Settings implements Serializable {
    */
   public final static String headFinderWarnDefaultRule =
     "parser.headfinder.warnDefaultRule";
+
+  /**
+   * Property to specify whether <tt>Training.addGapInformation(Sexp)</tt>
+   * threads gap information or simply leaves the training trees untouched.
+   * The value of this property should be (the string representation of)
+   * a boolean (conversion is performed by the method
+   * <code>Boolean.valueOf</code>).
+   * <p>
+   * The value of this constant is
+   * <code>"parser.training.addGapInfo"</code>.
+   *
+   * @see Training#addGapInformation(Sexp)
+   */
+  protected static final String addGapInfo =
+    "parser.training.addGapInfo";
+
+  /**
+   * The property to specify whether
+   * <tt>Training.repairBaseNPs(Sexp)</tt> alters the training tree or
+   * leaves it untouched.  If the value of this property is
+   * <tt>false</tt>, then the tree is untouched.  The value of this
+   * property should be (the string representation of) a boolean
+   * (conversion is performed by the method
+   * <code>Boolean.valueOf</code>).
+   * <p>
+   * The value of this constant is
+   * <code>"parser.training.collinsRepairBaseNPs"</code>.
+   *
+   * @see Training#repairBaseNPs(Sexp) */
+  protected static final String collinsRepairBaseNPs =
+    "parser.training.collinsRepairBaseNPs";
 
   /**
    * The property to specify the threshold below which words are
@@ -303,6 +380,23 @@ public class Settings implements Serializable {
    * @see Trainer
    */
   public final static String keepAllWords = "parser.trainer.keepAllWords";
+
+  /**
+   * The property to specify whether the trainer includes
+   * low-frequency words in its part of speech map.  Normally, such
+   * low-frequency words get converted to word-feature vectors, and it
+   * is <i>only</i> those vector-tag pairs that get added to the part
+   * of speech map.  If this property is set to be <tt>true</tt>,
+   * however, mappings from the original words to their parts of
+   * speech will also be added to the part of speech map.
+   * <p>
+   * The value of this constant is
+   * <code>&quot;parser.trainer.keepLowFreqTags&quot;</code>.
+   *
+   * @see #useLowFreqTags
+   * @see Trainer
+   */
+  public final static String keepLowFreqTags = "parser.trainer.keepLowFreqTags";
 
   /**
    * The property to specify how many previous modifiers the trainer outputs
@@ -640,6 +734,20 @@ public class Settings implements Serializable {
     "parser.trainer.modWordStructureModelClass";
 
   /**
+   * The property to specify whether certain sentences are skipped
+   * during training on sections 02 through 21 of the Penn Treebank Wall
+   * Street Journal corpus in order to mimic Mike Collins' trainer on this
+   * now-standard training corpus.  This property should not be set to
+   * <tt>true</tt> if training on any corpus other than the Penn Treebank
+   * Wall Street Journal corpus.
+   * <p>
+   * The value of this constants is
+   * <code>"parser.trainer.collinsSkipWSJSentences"</code>.
+   */
+  public final static String collinsSkipWSJSentences =
+    "parser.trainer.collinsSkipWSJSentences";
+
+  /**
    * The property to specify the fully-qualified name of the subclass
    * of {@link Item} to be used for chart items.
    * <p>
@@ -664,6 +772,26 @@ public class Settings implements Serializable {
    */
   public final static String maxSentLen =
     "parser.decoder.maxSentenceLength";
+
+  /**
+   * The property to specify whether to use tags collected from
+   * low-frequency words by the trainer when seeding the chart, if the
+   * current word is a low-frequency word observed when training.  If
+   * <code>true</code>, and if {@link #keepLowFreqTags} was true
+   * during training, causes the decoder to attempt to find tags
+   * observed with this word in training, even if it was a
+   * low-frequency word.  If <code>false</code>, the decoder will
+   * simply choose the first-best tag supplied by the input sentence,
+   * or, if the input does not contain pre-tagged words, will use all
+   * tags observed with the word's feature vector.
+   * <p>
+   * The value of this constant is
+   * <code>"parser.decoder.useLowFreqTags"</code>.
+   *
+   * @see #keepLowFreqTags
+   * @see Decoder
+   */
+  public final static String useLowFreqTags = "parser.decoder.useLowFreqTags";
 
   /**
    * The property to specify whether or not the decoding algorithm should
@@ -876,7 +1004,27 @@ public class Settings implements Serializable {
 
   // data members
 
-  private static Properties settings = new Properties();
+  private static Properties settings = new Properties() {
+    /**
+     * This overridden definition ensures that variables are always
+     * expanded when new mappings are added.  This means that when properties
+     * are loaded from a file, variable expansion happens correctly:
+     * convenience variables (which are like macro definitions) defined in the
+     * properties file are entered into the property object as they are
+     * discovered, allowing mappings on subsequent lines of the file that rely
+     * on those definitions to be properly expanded.
+     *
+     * @param key the key to be mapped to the specified value in this map
+     * @param value the value to be added to this map for the specified key
+     * @return the previous value of the specified key in this hashtable,
+     *         or <code>null</code> if it did not have one
+     */
+    public synchronized Object put(Object key, Object value) {
+      StringBuffer valueBuffer = new StringBuffer((String)value);
+      Text.expandVars(this, valueBuffer);
+      return super.put(key, valueBuffer.toString());
+    }
+  };
 
   // static handles onto the settings dir and settings file
   private static File settingsDir = null;
@@ -930,9 +1078,10 @@ public class Settings implements Serializable {
 
   /**
    * Loads the properties from the file of the specified filename, using
-   * {@link Properties#load(InputStream)}.
+   * {@link #load(File)}.
    *
    * @param filename the name of the file containing properties to load
+   * @throws IOException if {@link #load(File)} throws an <tt>IOException</tt>
    */
   public static void load(String filename) throws IOException {
     load(new File(filename));
@@ -940,9 +1089,12 @@ public class Settings implements Serializable {
 
   /**
    * Loads the properties from the specified file, using
-   * {@link Properties#load(InputStream)}.
+   * {@link #load(InputStream)}.
    *
    * @param file the file containing properties to load
+   * @throws IOException if creating a <tt>FileInputStream</tt> throws
+   * an <tt>IOException</tt> or if the call to {@link #load(InputStream)}
+   * throws an <tt>IOException</tt>
    */
   public static void load(File file) throws IOException {
     try {
@@ -1036,9 +1188,7 @@ public class Settings implements Serializable {
    * @param value the value to which to set the property <code>name</code>
    */
   public static void set(String name, String value) {
-    StringBuffer valueBuffer = new StringBuffer(value);
-    Text.expandVars(settings, valueBuffer);
-    settings.setProperty(name, valueBuffer.toString());
+    settings.setProperty(name, value);
   }
 
   /**
@@ -1051,7 +1201,7 @@ public class Settings implements Serializable {
     return settings.getProperty(name);
   }
 
-  /** Returns a copy of the internal <code>Properties</code> object. */
+  /** Returns a deep copy of the internal <code>Properties</code> object. */
   public static Properties getSettings() {
     Properties settingsCopy = new Properties();
     settingsCopy.putAll(settings);

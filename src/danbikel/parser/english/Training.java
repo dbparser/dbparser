@@ -149,7 +149,8 @@ public class Training extends danbikel.parser.Training {
       Symbol parent = treeList.symbolAt(0);
       int headIdx = headFinder.findHead(treeList);
       if (headIdx == 0)
-	System.err.println(tree);
+	System.err.println(className +
+			   ": error: couldn't find head for tree: " + tree);
       Symbol headChildLabel = treeList.getChildLabel(headIdx);
       Symbol sg = treebank.subjectlessSentenceLabel();
       /*

@@ -2,6 +2,7 @@ package danbikel.switchboard;
 
 import danbikel.util.TimeoutSocketFactory;
 import danbikel.util.Time;
+import danbikel.util.IntCounter;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.util.*;
@@ -158,6 +159,7 @@ public class Switchboard
   private static final String msgFileHeader =
   "----------------------------------------";
   private static final boolean debug = false;
+  private static final int firstFileId = 0;
 
   // static data members
 
@@ -207,11 +209,14 @@ public class Switchboard
     OutputStream logStream;
     ObjectWriter log;
 
+    // next object to be returned by nextObject method
+    NumberedObject nextNumberedObject;
+
     // state of object processing
-    private volatile int currObjectNum = 0;
-    private volatile int numObjectsProcessed = 0;
+    private int currObjectNum = 0;
+    private int numObjectsProcessed = 0;
     private int numObjectsProcessedThisRun = 0;
-    private volatile boolean moreObjects = true;
+    private boolean moreObjects = true;
 
     // constructors
 
@@ -256,8 +261,8 @@ public class Switchboard
 	}
       }
 
-      String msg = className + ": opening input file \"" + inName + "\" " +
-	"(ID number " + id + ")";
+      String msg = className + ": enqueuing input file \"" + inName + "\" " +
+	"(ID number " + id + ") for processing";
       log(msg);
 
       in = objReaderFactory.get(inName, encoding, bufSize);
@@ -275,6 +280,9 @@ public class Switchboard
 	  recover();
 	}
       }
+
+      // read first object to set nextObject data member
+      readNextObject();
 
       //if (clobber && done()) {
       if (done()) {
@@ -311,36 +319,90 @@ public class Switchboard
       c.newFile(inName, outName);
     }
 
+    void readNextObject() {
+      readNextObject(-1);
+    }
+
+    /**
+     * Reads the next object from the input file, constructs a NumberedObject
+     * (with the appropriate number) and sets the {@link #nextNumberedObject}
+     * data member.
+     *
+     * @param clientId the ID number of the client calling this method
+     */
+    void readNextObject(int clientId) {
+      Object nextObject = null;
+      try { nextObject = in.readObject(); }
+      catch (IOException ioe) {
+	if (verbose) {
+	  if (clientId == -1) {
+	    logFailure("nextObject");
+	  }
+	  else {
+	    logFailure("nextObject", clientId);
+	  }
+	}
+      }
+      if (nextObject == null) {
+	moreObjects = false;
+	nextNumberedObject = null;
+	/*
+	if (verbose) {
+	  String msg = "IOData.readNextObject: no more objects";
+	  if (clientId == -1)
+	    log(msg);
+	  else
+	    log(msg, clientId);
+	}
+	*/
+      }
+      else {
+	/*
+	if (verbose) {
+	  String msg =
+	    "IOData.readNextObject: read object " + currObjectNum +
+	    " from file No. " + id;
+	  if (clientId == -1)
+	    log(msg);
+	  else
+	    log(msg, clientId);
+	}
+	*/
+	nextNumberedObject =
+	  new NumberedObject(currObjectNum++, id, false, nextObject);
+      }
+    }
+
     /**
      * Gets the next numbered object from the input file or stream.
      *
      * @param clientId the ID of the client requesting the object (used
      * by this method only for error-reporting purposes)
+     * @return the next object to be processed from the file represented by
+     * this <code>IOData</code> object, or <code>null</code> if there are
+     * no more objects to process (all objects in the file have already
+     * been doled out to clients)
      */
     synchronized NumberedObject nextObject(int clientId) {
+      /*
       if (!moreObjects) {
 	notifyIfDone();
 	return null;
       }
-      Object nextObject = null;
-      try { nextObject = in.readObject(); }
-      catch (IOException ioe) {
-	if (verbose)
-	  logFailure("nextObject", clientId);
-      }
-      if (nextObject == null) {
-	moreObjects = false;
-	notifyIfDone();
-	return null;
-      }
-      else {
-	if (verbose)
-	  log("nextObject: got object " + currObjectNum +
+      */
+      NumberedObject retval = this.nextNumberedObject;
+      if (retval != null)
+	readNextObject();
+      if (verbose) {
+	if (retval == null) {
+	  log("IOData.nextObject: no more objects in file No. " + id, clientId);
+	}
+	else {
+	  log("IOData.nextObject: returning object " + retval.number() +
 	      " from file No. " + id, clientId);
-	NumberedObject numObj =
-	  new NumberedObject(currObjectNum++, id, false, nextObject);
-	return numObj;
+	}
       }
+      return retval;
     }
 
     synchronized void writeToLog(NumberedObject numObj) {
@@ -379,6 +441,17 @@ public class Switchboard
     /** Returns <code>true</code> when object processing is done. */
     synchronized boolean done() {
       return (!moreObjects && numObjectsProcessed == currObjectNum);
+    }
+
+    /**
+     * Returns whether or not there are more objects to read from the input
+     * file.  If this method returns <code>false</code>, it indicates that
+     * all objects have been read from the input file, and have either
+     * been processed and written to the log file, or are currently being
+     * processed.
+     */
+    synchronized boolean moreObjectsToRead() {
+      return moreObjects;
     }
 
     /**
@@ -599,6 +672,10 @@ public class Switchboard
 	{@link Switchboard#processFile(String,String,String,boolean)}. */
     public void run() {
       dumpOutput();
+    }
+
+    public String toString() {
+      return "\"" + inName + "\" (ID=" + id + ")";
     }
   }
 
@@ -860,9 +937,18 @@ public class Switchboard
   // global state of object processing
   /** Stack of objects to be processed. */
   private LinkedList toProcess = new LinkedList();
-  private int nextFileId = 0;
-  /** A Map from file ID Integer objects to IOData objects. */
-  private Map files = Collections.synchronizedMap(new HashMap());
+  private int maxFileId = 0;
+  /**
+   * A map from file ID IntCounter objects to IOData objects for all files
+   * that are not yet done (are either unopened or have not yet had all
+   * their objects processed).
+   */
+  private Map files = new HashMap();
+  /**
+   * A map from file ID IntCounter objects to IOData objects for all files
+   * that have not yet been opened.
+   */
+  private Map unopenedFiles = new HashMap();
   private volatile IOData currFile = null;
   private ThreadGroup dumpers = new ThreadGroup("Dumpers");
   private volatile int totalNumObjectsProcessed = 0;
@@ -1436,8 +1522,7 @@ public class Switchboard
     this.msgs = msgs;
 
     msgs.println(msgFileHeader);
-    msgs.println(className + ": starting up at time " +
-		 (System.currentTimeMillis() / 1000));
+    msgs.println(className + ": starting up");
 
     tsf = new TimeoutSocketFactory(0, 0);
     //dumpers.setDaemon(true);
@@ -1496,6 +1581,15 @@ public class Switchboard
    *   }
    * }
    * </pre>
+   * The above code processes each file in sequence, where each call
+   * to <code>processFile</code> returns only when the file has been completely
+   * processed.  In order to simply enqueue all files for processing and then
+   * be notified when all processing is complete, the user should call
+   * {@link #processFile(String,String,String,boolean)} with a value
+   * of <code>false</code> for the final argument, indicating not to wait.
+   * After all files have been enqueued, the user may call to
+   * {@link #cleanupWhenAllFilesAreDone}, which will not return until all
+   * enqueued files have been processed.
    *
    * @param settings the settings that should be set before this object is
    * exported and bound, or <code>null</code> if {@link #setSettings} should
@@ -1505,7 +1599,9 @@ public class Switchboard
    * should not be called with the specified value
    *
    * @see #processFile(String)
+   * @see #processFile(String,String,String,boolean)
    * @see #cleanup
+   * @see #cleanupWhenAllFilesAreDone
    * @see #setSettings(Properties)
    * @see #setEncoding(String)
    * @see #export */
@@ -1632,27 +1728,26 @@ public class Switchboard
    */
   public void processFile(String inFilename, String outFilename,
 			  String logFilename, boolean wait) {
+    IOData fileToProcess = null;
     synchronized (this) {
       Thread dumper = null;
       try {
-	currFile =
-	  new IOData(nextFileId++, inFilename, outFilename, logFilename);
-	synchronized (consumers) {
-	  if (consumers.size() > 0) {
-	    Iterator it = consumers.iterator();
-	    while (it.hasNext()) {
-	      Consumer c = (Consumer)it.next();
-	      currFile.registerConsumer(c);
-	    }
-	  }
+	fileToProcess =
+	  new IOData(maxFileId++, inFilename, outFilename, logFilename);
+
+	if (fileToProcess.done() == false) {
+	  IntCounter fileToProcessId = new IntCounter(fileToProcess.id);
+	  files.put(fileToProcessId, fileToProcess);
+	  unopenedFiles.put(fileToProcessId, fileToProcess);
 	}
 	// start dumper thread if the input file does not appear to have
-	// been previously processed and output to the output file
+	// been previously processed and output to the output file;
+	// also, add the new IOData object to the files map
 	if (logFilename != null && outFilename != null &&
-	    currFile.done() == false) {
+	    fileToProcess.done() == false) {
 	  dumper = new Thread(dumpers,
-			      currFile,
-			      "Dumper (file " + currFile.id + ")");
+			      fileToProcess,
+			      "Dumper (file " + fileToProcess.id + ")");
 	  dumper.start();
 	}
       }
@@ -1663,10 +1758,10 @@ public class Switchboard
       }
     }
     if (wait) {
-      synchronized (currFile) {
+      synchronized (fileToProcess) {
 	try {
-	  while (!currFile.done())
-	    currFile.wait();
+	  while (!fileToProcess.done())
+	    fileToProcess.wait();
 	}
 	catch (InterruptedException ie) {
 	  System.err.println(ie);
@@ -1947,6 +2042,56 @@ public class Switchboard
 
   // object server methods
 
+  /**
+   * Helper method for {@link #nextObject(int)} that finds the next
+   * file in the <code>files</code> map, sets the <code>currFile</code>
+   * data member and informs consumers of a new file, if one is found.
+   */
+  void gotoNextFile(int clientId) {
+    if (unopenedFiles.size() == 0)
+      return;
+
+    // keep increasing file id number until we get to next file
+    IntCounter nextFileId =
+      new IntCounter(currFile == null ? firstFileId : currFile.id + 1);
+
+    while ((currFile = (IOData)files.get(nextFileId)) == null &&
+	   nextFileId.get() < maxFileId) {
+      nextFileId.increment();
+    }
+
+    // if we found a new file, currFile will be non-null, so tell all
+    // the consumers about it
+    if (currFile != null) {
+      synchronized (consumers) {
+	if (consumers.size() > 0) {
+	  Iterator it = consumers.iterator();
+	  while (it.hasNext()) {
+	    Consumer c = (Consumer)it.next();
+	    currFile.registerConsumer(c);
+	  }
+	}
+      }
+
+      if (unopenedFiles.containsKey(nextFileId) == false)
+	logFailure("uh-oh: " + nextFileId.get() +
+		   " should be in unopenedFiles map, but is not");
+      unopenedFiles.remove(nextFileId);
+
+      log("opening file " + currFile + " for processing");
+    }
+  }
+
+  NumberedObject getObjectFromCurrFileAndAssignToClient(ClientData clientData) {
+    NumberedObject numObj = null;
+    if (currFile != null) {
+      numObj = currFile.nextObject(clientData.id);
+      if (numObj != null)
+	clientData.objectsInProgress.put(numObj.uid(), numObj);
+    }
+    return numObj;
+  }
+
   public synchronized NumberedObject nextObject(int clientId)
     throws RemoteException {
 
@@ -1954,9 +2099,15 @@ public class Switchboard
 
     NumberedObject numObj = null;
     if (toProcess.size() == 0) {
-      numObj = currFile.nextObject(clientData.id);
-      if (numObj != null)
-	clientData.objectsInProgress.put(numObj.uid(), numObj);
+      // we've got to grab something from a file
+      // if we couldn't grab a next object from the current file
+      // (possibly because we haven't even started processing the very first
+      // file), go to the next enqueued file and try to read from it
+      if ((currFile == null || !currFile.moreObjectsToRead()) &&
+	  unopenedFiles.size() > 0) {
+	gotoNextFile(clientId);
+      }
+      numObj = getObjectFromCurrFileAndAssignToClient(clientData);
     }
     else {
       numObj = (NumberedObject)toProcess.removeLast();
@@ -1969,18 +2120,6 @@ public class Switchboard
     // start timer if this is the first object of switchboard's life
     if (timer == null)
       timer = new Time();
-
-    if (currFile.done()) {
-      synchronized (consumers) {
-	if (consumers.size() > 0) {
-	  Iterator it = consumers.iterator();
-	  while (it.hasNext()) {
-	    Consumer c = (Consumer)it.next();
-	    c.processingComplete(currFile.inName, currFile.outName);
-	  }
-	}
-      }
-    }
 
     return numObj;
   }
@@ -2008,8 +2147,10 @@ public class Switchboard
     synchronized (consumers) {
       consumers.add(consumer);
     }
-    if (currFile != null)
-      currFile.registerConsumer(consumer);
+    synchronized (this) {
+      if (currFile != null)
+	currFile.registerConsumer(consumer);
+    }
   }
 
   public void putObject(int clientId,
@@ -2017,6 +2158,8 @@ public class Switchboard
 			long millis) throws RemoteException {
     ClientData clientData = null;
     Object objectId = null;
+
+    IOData file = null;
 
     synchronized (this) {
       clientData = checkValidClient("putObject", clientId);
@@ -2032,9 +2175,25 @@ public class Switchboard
 	  logFailure(errMsg, clientId);
 	throw new RemoteException(errMsg);
       }
+
+      // grab IOData object for this NumberedObject
+      // (we don't use files map if we don't have to)
+      if (currFile != null && obj.fileId() == currFile.id)
+	file = currFile;
+      else
+	file = (IOData)files.get(new IntCounter(obj.fileId()));
+
+      if (file == null) {
+	String errMsg =
+	  "putObject: client " + clientId + " processed object " + objectId +
+	  " from an unknown file";
+	if (verbose)
+	  logFailure(errMsg, clientId);
+	throw new RemoteException(errMsg);
+      }
     }
 
-    currFile.writeToLog(obj);
+    file.writeToLog(obj);
 
     synchronized (msgs) {
       int numClients = clients.size();
@@ -2051,7 +2210,46 @@ public class Switchboard
 			   totalNumObjectsProcessedThisRun));
     }
 
-    currFile.notifyIfDone();
+    if (file.done()) {
+      //log("client " + clientId + " has completed " + file);
+      synchronized (consumers) {
+	if (consumers.size() > 0) {
+	  Iterator it = consumers.iterator();
+	  while (it.hasNext()) {
+	    Consumer c = (Consumer)it.next();
+	    c.processingComplete(file.inName, file.outName);
+	  }
+	}
+      }
+      //log("client " + clientId + " trying to grab lock");
+      synchronized (this) {
+	files.remove(new IntCounter(file.id));
+	//System.err.println("notifying all");
+	this.notifyAll();
+      }
+      log("finished processing file " + file);
+    }
+    file.notifyIfDone();
+  }
+
+  public void waitUntilAllFilesAreDone() {
+    synchronized (this) {
+      try {
+	while (!files.isEmpty()) {
+	  this.wait();
+	}
+      }
+      catch (InterruptedException ie) {
+	System.err.println(ie);
+	logFailure("waitUntilAllFilesAreDone: thread interrupted " +
+		   "(" + ie + ")");
+      }
+    }
+  }
+
+  public void cleanupWhenAllFilesAreDone() {
+    waitUntilAllFilesAreDone();
+    cleanup();
   }
 
   /**
@@ -2059,11 +2257,13 @@ public class Switchboard
    * processing is complete.
    */
   public void cleanup() {
-    if (currFile != null && !currFile.done())
+    if (!files.isEmpty())
       log(className + ": warning: cleaning up while processsing is incomplete");
 
-    dumpers.interrupt();
+    //dumpers.interrupt();
     //keepAlives.interrupt();
+
+    boolean now = true;
 
     synchronized (this) {
       if (verbose)
@@ -2078,7 +2278,7 @@ public class Switchboard
 	if (verbose)
 	  log("trying to kill client No. " + userData.id);
 
-	try { user.die(true); }
+	try { user.die(now); }
 	catch (RemoteException re) {}
       }
 
@@ -2094,7 +2294,7 @@ public class Switchboard
 	if (verbose)
 	  log("trying to kill server No. " + userData.id);
 
-	try { user.die(true); }
+	try { user.die(now); }
 	catch (RemoteException re) {}
       }
     }

@@ -19,7 +19,7 @@ done
 outname=dbparser.tgz
 trap 'rm -f $outname; exit 1' HUP INT QUIT TERM
 echo "Unpacking..."
-tail -n +@LINES@ $0 > $outname
+tail +@LINES@ $0 > $outname
 if [ -x /bin/gunzip -o -x /usr/bin/gunzip ]; then
     echo "Extracting..."
     gunzip -c $outname | tar xvf -

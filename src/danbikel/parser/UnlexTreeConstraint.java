@@ -10,11 +10,12 @@ import java.util.*;
  * to only pursue theories consistent with that unlexicalized tree.
  */
 public class UnlexTreeConstraint implements Constraint, SexpConvertible {
-  private UnlexTreeConstraint parent = null;
-  private List children = Collections.EMPTY_LIST;
+  private UnlexTreeConstraint parent;
+  private List children;
   private Symbol label;
   private int start;
   private int end;
+  private boolean satisfied;
 
   public UnlexTreeConstraint(Sexp tree) {
     this(null, tree, new IntCounter(0));
@@ -24,6 +25,7 @@ public class UnlexTreeConstraint implements Constraint, SexpConvertible {
                               Sexp tree, IntCounter currWordIdx) {
     if (Language.treebank.isPreterminal(tree)) {
       this.parent = parent;
+      children = Collections.EMPTY_LIST;
       Word word = Language.treebank.makeWord(tree);
       label = word.tag();
       start = end = currWordIdx.get();
@@ -47,9 +49,9 @@ public class UnlexTreeConstraint implements Constraint, SexpConvertible {
 
   public boolean isLeaf() { return children.size() == 0; }
 
-  public boolean isSatisfiedByChild(Item childItem) {
-    return (childItem.getConstraint().getParent() == this &&
-            children.contains(childItem.getConstraint()));
+  public boolean isViolatedByChild(Item childItem) {
+    return !(childItem.getConstraint().getParent() == this &&
+             children.contains(childItem.getConstraint()));
   }
 
   public Constraint getParent() { return parent; }
@@ -93,10 +95,12 @@ public class UnlexTreeConstraint implements Constraint, SexpConvertible {
     // list of leaves, and thus this case should normally not be considered;
     // but just in case a brain-dead programmer creates a decoder that is
     // inefficient in this way, here's the code to deal with it
-    if (ckyItem.isPreterminal())
-      return isLocallySatisfiedBy(item);
+    if (ckyItem.isPreterminal()) {
+      satisfied = isLocallySatisfiedBy(item) && spanMatches(item);
+      return satisfied;
+    }
 
-    if (!isLocallySatisfiedBy(item))
+    if (!isLocallySatisfiedBy(item) || !spanMatches(item))
       return false;
 
     // now, make sure that number of children equals number of child constraints
@@ -127,26 +131,36 @@ public class UnlexTreeConstraint implements Constraint, SexpConvertible {
       if (currConstraint != children.get(constraintIdx))
         return false;
     }
+    satisfied = true;
     return true;
   }
 
+  public boolean hasBeenSatisfied() { return satisfied; }
+
   public boolean isLocallySatisfiedBy(Item item) {
+    return item.label() == label;
+  }
+
+  protected boolean spanMatches(Item item) {
     CKYItem ckyItem = (CKYItem)item;
-    return (ckyItem.label() == label &&
-            ckyItem.start() == start &&
-            ckyItem.end() == end);
+    return ckyItem.start() == start && ckyItem.end() == end;
   }
 
   public Sexp toSexp() {
     SexpList retVal = new SexpList(children.size() + 1);
 
-    SexpList thisNode =
-      new SexpList(3).add(label).add(Symbol.get(start)).add(Symbol.get(end));
+    Symbol thisNode = Symbol.add(label.toString() + "-" + start + "-" + end);
 
     retVal.add(thisNode);
     for (int i = 0; i < children.size(); i++)
       retVal.add(((SexpConvertible)children.get(i)).toSexp());
 
     return retVal;
+  }
+
+  public String toString() {
+    return "label=" + label + ", span=(" + start + "," + end +
+           "), parentLabel=" +
+           (parent == null ? "null" : parent.label.toString());
   }
 }

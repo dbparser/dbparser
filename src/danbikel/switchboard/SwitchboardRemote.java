@@ -82,6 +82,12 @@ public interface SwitchboardRemote extends Remote {
   public final static String sortOutput =
     "switchboard.sortOutput";
 
+  public final static String switchboardPolicyFile =
+    "switchboard.policyFile";
+
+  public final static String switchboardDisableHttp =
+    "switchboard.disableHttp";
+
   /**
    * The property to specify the interval, in milliseconds, between
    * client requests for an object to process, after {@link #nextObject(int)}
@@ -101,6 +107,18 @@ public interface SwitchboardRemote extends Remote {
    */
   public final static String clientNextObjectInterval =
     "switchboard.client.nextObjectInterval";
+
+  public final static String clientPolicyFile =
+    "switchboard.client.policyFile";
+
+  public final static String clientDisableHttp =
+    "switchboard.client.disableHttp";
+
+  public final static String serverPolicyFile =
+    "switchboard.server.policyFile";
+
+  public final static String serverDisableHttp =
+    "switchboard.server.disableHttp";
 
   /**
    * Gets the value for the specified  setting (property) from the internal
@@ -255,7 +273,15 @@ public interface SwitchboardRemote extends Remote {
    * if there is not currently an object to be processed.  Clients should
    * continually call this method, waiting a fixed interval between calls,
    * until they are told to die.  The interval between calls should be the
-   * value of the property {@link #clientNextObjectInterval}.
+   * value of the property {@link #clientNextObjectInterval}.<br>
+   *
+   * <b>N.B.</b>: <code>NumberedObject</code> instances contain two data
+   * members that are <i>immutable</i>: the object's unique ID number, and
+   * another unique ID number indicating the file from which the object was
+   * read, for which there is no public accessor.  It is therefore crucial that
+   * clients manipulate and use <i>the very same</i>
+   * <code>NumberedObject</code> <i>instance</i> as the second argument to the
+   * {@link #putObject(int,NumberedObject,long)} method.
    *
    * @param clientId the ID number of the client requesting the next object
    * @return the next object to process in the input file specified to
@@ -268,7 +294,15 @@ public interface SwitchboardRemote extends Remote {
   public NumberedObject nextObject(int clientId) throws RemoteException;
 
   /**
-   * Sends a processed object back to the switchboard object.
+   * Sends a processed object back to the switchboard object.<br>
+   *
+   * <b>N.B.</b>: <code>NumberedObject</code> instances contain two data
+   * members that are <i>immutable</i>: the object's unique ID number, and
+   * another unique ID number indicating the file from which the object was
+   * read, for which there is no public accessor.  It is therefore crucial that
+   * clients manipulate and use <i>the very same</i>
+   * <code>NumberedObject</code> <i>instance</i> that was retrieved using the
+   * {@link #nextObject(int)} method as the second argument to the this method.
    *
    * @param clientId the ID number of the client requesting the next object
    * @param object the processed object and its number, or <code>null</code>

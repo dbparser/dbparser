@@ -14,8 +14,8 @@
   <property category="idl" name="ProcessIDL" value="false" />
   <property category="runtime.0" name="RunnableType" value="com.borland.jbuilder.runtime.ApplicationRunner" />
   <property category="runtime.0" name="application.class" value="danbikel.parser.Parser" />
-  <property category="runtime.0" name="application.parameters" value="-is /scratch2/wsj-02-21.no-probs.obj -sa /scratch2/wsj-2.1887" />
-  <property category="runtime.0" name="application.vmparameters" value="-server -Xms500m -Xmx500m" />
+  <property category="runtime.0" name="application.parameters" value="-is /scratch2/wsj-02-21.obj -sa /scratch2/wsj-0.1" />
+  <property category="runtime.0" name="application.vmparameters" value="-server -Xms400m -Xmx400m" />
   <property category="runtime.0" name="appserver.ejbJarsSaved" value="1" />
   <property category="runtime.0" name="appserver.parameters" value="-jts -jns -jss -jdb" />
   <property category="runtime.0" name="appserver.servername" value="ejbcontainer" />
@@ -32,7 +32,6 @@
   <property category="sys" name="CompanyLabel" value="Company:" />
   <property category="sys" name="Copyright" value="Copyright (c) 2001" />
   <property category="sys" name="CopyrightLabel" value="Copyright:" />
-  <property category="sys" name="DefaultPackage" value="danbikel.util" />
   <property category="sys" name="Description" value="" />
   <property category="sys" name="DescriptionLabel" value="Description:" />
   <property category="sys" name="DocPath" value="doc" />

@@ -195,7 +195,7 @@
     <file path="settings/em.properties"/>
   </node>
   <node name="danbikel.util Doclet" type="Javadoc">
-    <property category="docletJavadoc" name="additionalOptions" value="-breakiterator -link http://java.sun.com/j2se/1.4/docs/api -windowtitle &quot;Dan Bikel's Utility Packages&quot; -doctitle &quot;Dan Bikel's Utility Packages&quot; -header &quot;Utility Packages&quot; -bottom &quot;Author: &lt;a href=\&quot;http://www.cis.upenn.edu/~dbikel/\&quot;&gt;Dan Bikel.&lt;/a&gt;&quot;"/>
+    <property category="docletJavadoc" name="additionalOptions" value="-breakiterator -link http://java.sun.com/j2se/1.4/docs/api -windowtitle &quot;Dan Bikel&rsquo;s Utility Packages&quot; -doctitle &quot;Dan Bikel&rsquo;s Utility Packages&quot; -header &quot;Utility Packages&quot; -bottom &quot;Author: &lt;a href=\&quot;http://www.cis.upenn.edu/~dbikel/\&quot;&gt;Dan Bikel.&lt;/a&gt;&quot;"/>
     <property category="docletJavadoc" name="use" value="1"/>
     <property category="javadoc" name="documentAllPackages" value="0"/>
     <property category="javadoc" name="packages.1" value="danbikel.util"/>
@@ -225,7 +225,7 @@
     <property category="archiving" name="targetPath" value="dbparser.jar"/>
   </node>
   <node name="Standard Doclet" type="Javadoc">
-    <property category="docletJavadoc" name="additionalOptions" value="-breakiterator -link http://java.sun.com/j2se/1.4/docs/api -overview &quot;overview.html&quot; -windowtitle &quot;Dan Bikel's Parser&quot; -doctitle &quot;Dan Bikel's Parser&quot; -header &quot;Parser&quot; -bottom &quot;Author: &lt;a target=\&quot;_blank\&quot; href=\&quot;http://www.cis.upenn.edu/~dbikel/\&quot;&gt;Dan Bikel.&lt;/a&gt;&quot;"/>
+    <property category="docletJavadoc" name="additionalOptions" value="-breakiterator -link http://java.sun.com/j2se/1.4/docs/api -overview &quot;overview.html&quot; -windowtitle &quot;Dan Bikel&rsquo;s Parser&quot; -doctitle &quot;Dan Bikel&rsquo;s Parser&quot; -header &quot;Parser&quot; -bottom &quot;Author: &lt;a target=\&quot;_blank\&quot; href=\&quot;http://www.cis.upenn.edu/~dbikel/\&quot;&gt;Dan Bikel.&lt;/a&gt;&quot;"/>
     <property category="docletJavadoc" name="use" value="1"/>
     <property category="javadoc" name="scope" value="protected"/>
     <property category="nodeJavadoc" name="buildWithProject" value="0"/>

@@ -131,8 +131,8 @@ and the Ant output directory might be "classes.ant".-->
              packagenames="danbikel.util,danbikel.util.proxy"
 	     protected="true"
 	     use="true"
-	     windowtitle="Dan Bikel's Utility Packages"
-	     doctitle="Dan Bikel's Utility Packages"
+	     windowtitle="Dan Bikel&rsquo;s Utility Packages"
+	     doctitle="Dan Bikel&rsquo;s Utility Packages"
 	     header="Utility Packages"
 	     bottom="Author: &lt;a href=&quot;http://www.cis.upenn.edu/~dbikel/&quot;&gt;Dan Bikel.&lt;/a&gt;"
 	     additionalparam="-breakiterator">
@@ -145,8 +145,8 @@ and the Ant output directory might be "classes.ant".-->
              protected="true"
 	     use="true"
 	     overview="${src}/overview.html"
-	     windowtitle="Dan Bikel's Parser"
-	     doctitle="Dan Bikel's Parser"
+	     windowtitle="Dan Bikel&rsquo;s Parser"
+	     doctitle="Dan Bikel&rsquo;s Parser"
 	     header="Parser"
 	     bottom="Author: &lt;a href=&quot;http://www.cis.upenn.edu/~dbikel/&quot;&gt;Dan Bikel.&lt;/a&gt;"
 	     additionalparam="-breakiterator">

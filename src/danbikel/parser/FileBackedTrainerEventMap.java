@@ -42,12 +42,10 @@ public class FileBackedTrainerEventMap extends AbstractMapToPrimitive {
   public Set entrySet() {
     return new java.util.AbstractSet() {
       public int size() {
-        Time time = new Time();
         Iterator it = entrySet().iterator();
         int size = 0;
         for ( ; it.hasNext(); it.next(), size++)
           ;
-        System.err.println("figured out size in " + time);
         return size;
       }
       public Iterator iterator() {

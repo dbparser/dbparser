@@ -78,7 +78,7 @@ public class EMParser extends Parser {
     else if (sent.isAllSymbols())
       return emdecoder.parseAndCollectEventCounts(sent);
     else {
-      System.err.println(className + ": error: sentence \"" + sent +
+      err.println(className + ": error: sentence \"" + sent +
 			 "\" has a bad format:\n\tmust either be all symbols " +
 			 "or a list of lists of the form (<word> (<tag>*))");
       return null;

@@ -69,30 +69,56 @@ public class Parser
   protected String internalInputFilename = null;
   protected String internalOutputFilename = null;
 
+  /**
+   * A {@link PrintWriter} object wrapped around {@link System#err} for
+   * printing in the proper character encoding.
+   */
+  protected PrintWriter err;
+
   public Parser(String derivedDataFilename)
     throws RemoteException, IOException, ClassNotFoundException,
 	   NoSuchMethodException, java.lang.reflect.InvocationTargetException,
 	   IllegalAccessException, InstantiationException {
     server = getNewDecoderServer(derivedDataFilename);
     decoder = getNewDecoder(0, server);
+    setUpErrWriter();
   }
 
   public Parser(DecoderServerRemote server)
     throws RemoteException, IOException, ClassNotFoundException {
     this.server = server;
     decoder = getNewDecoder(0, server);
+    setUpErrWriter();
   }
 
   public Parser(int timeout) throws RemoteException {
     super(timeout);
+    setUpErrWriter();
   }
   public Parser(int timeout, int port) throws RemoteException {
     super(timeout, port);
+    setUpErrWriter();
   }
   public Parser(int port,
 		RMIClientSocketFactory csf, RMIServerSocketFactory ssf)
     throws RemoteException {
     super(port, csf, ssf);
+    setUpErrWriter();
+  }
+
+  private void setUpErrWriter() {
+    OutputStreamWriter errosw = null;
+    try {
+      errosw = new OutputStreamWriter(System.err, Language.encoding());
+    }
+    catch (UnsupportedEncodingException uee) {
+      System.err.println(className + ": error: couldn't create err output " +
+			 "stream using encoding " + Language.encoding() +
+			 "(reason: " + uee + ")");
+      System.err.println("\tusing default encoding instead");
+      errosw = new OutputStreamWriter(System.err);
+    }
+    err = new PrintWriter(errosw, true);
   }
 
   /*
@@ -190,7 +216,7 @@ public class Parser
 			   getConstraintsFromTree(sent));
     }
     else {
-      System.err.println(className + ": error: sentence \"" + sent +
+      err.println(className + ": error: sentence \"" + sent +
 			 "\" has a bad format:\n\tmust either be all symbols " +
 			 "or a list of lists of the form (<word> (<tag>*))");
       return null;
@@ -321,7 +347,7 @@ public class Parser
    * it is highly undesirable to lose the work).
    */
   protected void switchboardFailure() {
-    System.err.println(sent);
+    err.println(sent);
   }
 
   /**
@@ -419,19 +445,19 @@ public class Parser
     Time totalTime = new Time();
     Time time = new Time();
     for (int i = 1; ((sent = Sexp.read(tok)) != null); i++) {
-      System.err.println("processing sentence No. " + i + ": " + sent);
+      err.println("processing sentence No. " + i + ": " + sent);
       time.reset();
       Sexp parsedSent = parse(sent.list());
-      System.err.println("elapsed time: " + time);
-      System.err.println("cummulative average elapsed time: " +
+      err.println("elapsed time: " + time);
+      err.println("cummulative average elapsed time: " +
 			 Time.elapsedTime(totalTime.elapsedMillis() / i));
       out.write(String.valueOf(parsedSent));
       out.write("\n");
       if (flushAfterEverySentence)
 	out.flush();
     }
-    System.err.println("\ntotal elapsed time: " + totalTime);
-    System.err.println("\nHave a nice day!");
+    err.println("\ntotal elapsed time: " + totalTime);
+    err.println("\nHave a nice day!");
     out.flush();
   }
 

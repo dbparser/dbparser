@@ -263,7 +263,7 @@ parse <max.
 \backslash 
 
 \newline 
-      <parse tree input file>
+      <input file>
 \layout Standard
 
 The parser does not need as much memory as the trainer; for English, a value

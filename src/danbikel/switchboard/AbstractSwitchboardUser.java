@@ -226,7 +226,8 @@ public abstract class AbstractSwitchboardUser
 				    RMIClientSocketFactory csf,
 				    RMIServerSocketFactory ssf)
     throws RemoteException {
-    UnicastRemoteObject.exportObject(this, port, csf, ssf);
+    //UnicastRemoteObject.exportObject(this, port, csf, ssf);
+    UnicastRemoteObject.exportObject(this, port);
     setClassName();
   }
 
@@ -251,6 +252,7 @@ public abstract class AbstractSwitchboardUser
     boolean autoFlush = true;
     getSwitchboard(name, verbose, new PrintWriter(System.err, autoFlush));
   }
+
   /**
    * Repeatedly tries to get the switchboard stub from the bootstrap registry.
    * The number of times is determined by the value of
@@ -289,6 +291,91 @@ public abstract class AbstractSwitchboardUser
 	  err.println("couldn't get switchboard: " + nbe);;
       }
     }
+  }
+
+  /**
+   * Repeatedly tries the specified number of times to get the switchboard
+   * stub from the bootstrap registry.
+   *
+   * @param name the name of the switchboard in the bootstrap registry
+   * @param tries the number of times to try to get the switchboard from
+   * the bootstrap registry
+   * @return a stub from which to access the switchboard
+   *
+   * @throws MalformedURLException if the specified name is a malformed URL
+   */
+  public static SwitchboardRemote getSwitchboard(String name, int tries)
+    throws MalformedURLException {
+    return getSwitchboard(name, tries, false);
+  }
+
+  /**
+   * Repeatedly tries the specified number of times to get the switchboard
+   * stub from the bootstrap registry.
+   *
+   * @param name the name of the switchboard in the bootstrap registry
+   * @param tries the number of times to try to get the switchboard from
+   * the bootstrap registry
+   * @param verbose if <code>true</code>, indicates to print error messages
+   * to <code>System.err</code> if an exception is raised during any of the
+   * attempts to get the switchboard
+   * @return a stub from which to access the switchboard
+   *
+   * @throws MalformedURLException if the specified name is a malformed URL
+   */
+  public static SwitchboardRemote getSwitchboard(String name, int tries,
+						 boolean verbose)
+    throws MalformedURLException {
+    boolean autoFlush = true;
+    return getSwitchboard(name, tries, verbose,
+			  new PrintWriter(System.err, autoFlush));
+  }
+
+  /**
+   * Repeatedly tries the specified number of times to get the switchboard
+   * stub from the bootstrap registry.
+   *
+   * @param name the name of the switchboard in the bootstrap registry
+   * @param tries the number of times to try to get the switchboard from
+   * the bootstrap registry
+   * @param verbose if <code>true</code>, indicates to print error messages
+   * to the specified <code>PrintWriter</code> if an exception is raised
+   * during any of the attempts to get the switchboard
+   * @param err the writer to which error messages should be printed if
+   * <code>verbose</code> is <code>true</code> (no messages are printed if
+   * <code>verbose</code> is <code>false</code>)
+   * @return a stub from which to access the switchboard
+   *
+   * @throws MalformedURLException if the specified name is a malformed URL
+   */
+  public static SwitchboardRemote getSwitchboard(String name, int tries,
+						 boolean verbose,
+						 PrintWriter err)
+    throws MalformedURLException {
+    if (tries < 1) {
+      String msg = "AbstractSwitchboardUser.getSwitchboard: " +
+		   "tries must be greater than zero";
+      throw new IllegalArgumentException(msg);
+    }
+    SwitchboardRemote switchboard = null;
+    boolean success = false;
+    for (int i = 0; !success && i < tries; i++) {
+      try {
+	switchboard = (SwitchboardRemote)Naming.lookup(name);
+	// actually try the switchboard, to make sure its not an old stub
+	switchboard.getKeepAliveMaxRetries();
+	success = true;
+      }
+      catch (RemoteException re) {
+	if (verbose)
+	  err.println("couldn't get switchboard: " + re);;
+      }
+      catch (NotBoundException nbe) {
+	if (verbose)
+	  err.println("couldn't get switchboard: " + nbe);;
+      }
+    }
+    return switchboard;
   }
 
   /** Sets the className data member to the name of the runtime class

@@ -22,7 +22,7 @@ set scorerDir = `cd $scriptDir/../scorer; echo $cwd`
 set addFakePos = $scriptDir/addFakePos
 
 set scorer = $scorerDir/evalb
-set paramFile = $scorerDir/COLLINS.prm
+set paramFile = $scorerDir/BIKEL.prm
 
 # if user has specified param file, grab it and shift argv over by two
 if ("$argv[1]" == "-p") then

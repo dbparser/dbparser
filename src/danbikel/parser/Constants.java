@@ -28,7 +28,7 @@ public class Constants {
 
   /**
    * A constant to represent the logarithm of zero, equal to
-   * {@link Double#NEGATIVE_INFINITY}.
+   * <code>Double#NEGATIVE_INFINITY</code>.
    */
   public static final double logOfZero = Double.NEGATIVE_INFINITY;
 

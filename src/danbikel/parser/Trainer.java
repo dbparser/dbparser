@@ -1,11 +1,12 @@
 package danbikel.parser;
 
+import java.io.*;
+import java.util.*;
 import java.util.HashMap;
+
 import danbikel.lisp.*;
 import danbikel.util.*;
-import danbikel.parser.util.Util;
-import java.util.*;
-import java.io.*;
+import danbikel.util.AbstractMapToPrimitive.*;
 
 /**
  * Derives all counts necessary to compute the probabilities for this parser,
@@ -2002,6 +2003,7 @@ public class Trainer implements Serializable {
 
   private final static String[] usageMsg = {
     "usage: [-help] [-sf <settings file> | --settings <settings file>]",
+    "\t[-it | --incremental-training]",
     "\t[-l <input file> [-l <trainer event input file>] ]",
     "\t[-scan <derived data scan file>]",
     "\t[-i <training file>] [-o <output file>]",
@@ -2010,6 +2012,9 @@ public class Trainer implements Serializable {
     "where",
     "\t-help prints this usage message",
     "\t<settings file> is an optionally-specified settings file",
+    "\t-it|--incremental-training indicates to read and derive counts",
+    "\t\tincrementally when both an <input file> and a",
+    "\t\t<derived data output file> are specified",
     "\t<training file> is a Treebank file containing training parse trees",
     "\t<output file> is the events output file (use \"-\" for stdout)",
     "\t<input file> is an <output file> from a previous run to load",
@@ -2038,6 +2043,21 @@ public class Trainer implements Serializable {
       System.err.println(usageMsg[i]);
     System.exit(1);
   }
+
+  protected static void incrementalTrain(Trainer trainer,
+                                         String inputFilename)
+    throws FileNotFoundException, UnsupportedEncodingException, IOException {
+    int eventChunkSize = Settings.getInteger(Settings.maxEventChunkSize);
+    SexpTokenizer inputFileTok =
+      getStandardSexpStream(new File(inputFilename));
+    FlexibleMap canonical = new danbikel.util.HashMap(100003, 1.5f);
+    while (inputFileTok.ttype != StreamTokenizer.TT_EOF) {
+      trainer.readStats(inputFileTok, eventChunkSize);
+      trainer.deriveCounts(false, canonical);
+      trainer.clearEventCounters();
+    }
+  }
+
 
   /**
    * Takes arguments according to the following usage:
@@ -2072,6 +2092,7 @@ public class Trainer implements Serializable {
    */
   public static void main(String[] args) {
     boolean stripOuterParens = false, auto = true;
+    boolean incrementalTraining = false;
     String trainingFilename = null, outputFilename = null, inputFilename = null;
     String trainerEventInputFilename = null;
     String settingsFilename = null, objectOutputFilename = null;
@@ -2127,6 +2148,9 @@ public class Trainer implements Serializable {
 	}
 	else if (args[i].equals("-auto"))
 	  auto = true;
+        else if (args[i].equals("-it") ||
+                 args[i].equals("--incremental-training"))
+          incrementalTraining = true;
 	else if (args[i].equals("-help"))
 	  usage();
 	else {
@@ -2146,10 +2170,18 @@ public class Trainer implements Serializable {
       usage();
     }
 
+    if (incrementalTraining &&
+        !(inputFilename != null && objectOutputFilename != null)) {
+      System.err.println("\nerror: must specify both <input file> and " +
+                         "<derived data output file>\n\twith -it option\n");
+      usage();
+    }
+
     if (trainingFilename != null && objectOutputFilename == null) {
       System.err.println("\nerror: must specify a <derived data output " +
                          "file> when specifying <trainer event input file> " +
-                         "with second \"-l\"");
+                         "with second \"-l\"\n");
+      usage();
     }
 
     try {
@@ -2157,8 +2189,8 @@ public class Trainer implements Serializable {
 	Settings.load(settingsFilename);
     }
     catch (IOException ioe) {
-      System.err.println("warning: problem loading settings file \"" +
-			 settingsFilename + "\"");
+      System.err.println("\nwarning: problem loading settings file \"" +
+			 settingsFilename + "\"\n");
     }
 
     String encoding = Language.encoding();
@@ -2196,33 +2228,19 @@ public class Trainer implements Serializable {
         Time time = new Time();
         System.err.println("Loading observations from \"" + inputFilename +
                            "\".");
-        trainer.readStats(new File(inputFilename));
-        /*
-        if (trainerEventInputFilename != null) {
-          System.err.println("Creating file-backed observation counts tables " +
-                             "from \"" + trainerEventInputFilename + "\".");
-          String teif = trainerEventInputFilename;
-          trainer.headEvents =
-            new FileBackedTrainerEventMap(headEventSym, teif);
-          trainer.modifierEvents =
-            new FileBackedTrainerEventMap(modEventSym, teif);
-          trainer.gapEvents =
-            new FileBackedTrainerEventMap(gapEventSym, teif);
+        if (incrementalTraining) {
+          // user can only specify to do incremental training when user
+          // wants to derive counts
+          incrementalTrain(trainer, inputFilename);
         }
-        */
+        else {
+          trainer.readStats(new File(inputFilename));
+        }
         if (trainerEventInputFilename != null) {
           // user may only specify a trainer event input filename along with
           // an object output file, so we know that user must want to derive
           // counts from this trainer event input file
-          int eventChunkSize = Settings.getInteger(Settings.maxEventChunkSize);
-          SexpTokenizer trainerEventTok =
-            getStandardSexpStream(new File(trainerEventInputFilename));
-          FlexibleMap canonical = new danbikel.util.HashMap(100003, 1.5f);
-          while (trainerEventTok.ttype != StreamTokenizer.TT_EOF) {
-            trainer.readStats(trainerEventTok, eventChunkSize);
-            trainer.deriveCounts(false, canonical);
-            trainer.clearEventCounters();
-          }
+          incrementalTrain(trainer, trainerEventInputFilename);
         }
         System.err.println("Finished reading observations in " + time + ".");
       }

@@ -85,6 +85,26 @@ public class Decoder implements Serializable {
   /** The last level of back-off in the right subcat generation model
       structure. */
   protected int rightSubcatPSLastLevel;
+  /**
+   * A map from contexts of the last back-off level of the left modifying
+   * nonterminal generation model to possible modifying nonterminal labels.
+   */
+  protected Map leftModNonterminalMap;
+  /**
+   * A map from contexts of the last back-off level of the right modifying
+   * nonterminal generation model to possible modifying nonterminal labels.
+   */
+  protected Map rightModNonterminalMap;
+  /** The left modifying nonterminal generation model structure. */
+  protected ProbabilityStructure leftModNonterminalPS;
+  /** The last level of back-off in the left modifying nonterminal generation
+      model structure. */
+  protected int leftModNonterminalPSLastLevel;
+  /** The right modifying nonterminal generation model structure. */
+  protected ProbabilityStructure rightModNonterminalPS;
+  /** The last level of back-off in the right modifying nonterminal generation
+      model structure. */
+  protected int rightModNonterminalPSLastLevel;
   // these next two data members are used by {@link #preProcess}
   protected Map prunedPretermsPosMap;
   protected Map prunedPunctuationPosMap;
@@ -231,6 +251,14 @@ public class Decoder implements Serializable {
       this.rightSubcatMap = server.rightSubcatMap();
       this.leftSubcatPS = server.leftSubcatProbStructure().copy();
       this.rightSubcatPS = server.rightSubcatProbStructure().copy();
+      this.leftModNonterminalMap = server.leftModNonterminalMap();
+      if (leftModNonterminalMap == null)
+        System.err.println("aiiee!  leftModNonterminalMap is null!!!");
+      this.rightModNonterminalMap = server.rightModNonterminalMap();
+      this.leftModNonterminalPS =
+        server.leftModNonterminalProbStructure().copy();
+      this.rightModNonterminalPS =
+        server.rightModNonterminalProbStructure().copy();
       prunedPretermsPosMap = new HashMap();
       Set prunedPreterms = server.prunedPreterms();
       it = prunedPreterms.iterator();
@@ -238,7 +266,7 @@ public class Decoder implements Serializable {
         Word word = Language.treebank.makeWord((Sexp)it.next());
         prunedPretermsPosMap.put(word.word(), word.tag());
       }
-      //System.err.println("prunedPretermsPosMap: " + prunedPretermsPosMap);
+      System.err.println("prunedPretermsPosMap: " + prunedPretermsPosMap);
       prunedPunctuationPosMap = new HashMap();
       Set prunedPunctuation = server.prunedPunctuation();
       it = prunedPunctuation.iterator();
@@ -254,6 +282,9 @@ public class Decoder implements Serializable {
     leftSubcatPSLastLevel = leftSubcatPS.numLevels() - 1;
     rightSubcatPSLastLevel = rightSubcatPS.numLevels() - 1;
 
+    leftModNonterminalPSLastLevel = leftModNonterminalPS.numLevels() - 1;
+    rightModNonterminalPSLastLevel = rightModNonterminalPS.numLevels() - 1;
+
     String useCellLimitStr = Settings.get(Settings.decoderUseCellLimit);
     boolean useCellLimit = Boolean.valueOf(useCellLimitStr).booleanValue();
     if (useCellLimit)
@@ -261,7 +292,8 @@ public class Decoder implements Serializable {
     String usePruneFactStr = Settings.get(Settings.decoderUsePruneFactor);
     boolean usePruneFact = Boolean.valueOf(usePruneFactStr).booleanValue();
     if (usePruneFact) {
-      pruneFact = Double.parseDouble(Settings.get(Settings.decoderPruneFactor));
+      pruneFact = Math.log(10) *
+                  Double.parseDouble(Settings.get(Settings.decoderPruneFactor));
     }
     String useCommaConstraintStr =
       Settings.get(Settings.decoderUseCommaConstraint);
@@ -300,7 +332,8 @@ public class Decoder implements Serializable {
       Symbol word = (downcaseWords ?
                      Symbol.get(sentence.get(i).toString().toLowerCase()) :
                      sentence.symbolAt(i));
-      if (prunedPretermsPosMap.containsKey(word)) {
+      if (prunedPretermsPosMap.containsKey(word) &&
+          !word.toString().equals("'")) {
         sentence.remove(i);
         originalWords.remove(i);
         if (tags != null)
@@ -635,16 +668,39 @@ public class Decoder implements Serializable {
 	continue;
       }
 
-      Iterator leftItems = chart.get(start, split);
+      Iterator leftItems, rightItems;
+
+      // for each possible right modifier (something in the span [split+1,end]
+      // that HAS received its stop probabilities), try to find a left
+      // modificand (something in the span [start,split] that has NOT received
+      // its stop probabilities)
+      rightItems = chart.get(split + 1, end);
+      while (rightItems.hasNext()) {
+        CKYItem rightItem = (CKYItem)rightItems.next();
+        if (rightItem.stop()) {
+          leftItems = chart.get(start, split);
+          while (leftItems.hasNext()) {
+            CKYItem leftItem = (CKYItem)leftItems.next();
+            if (!leftItem.stop())
+              joinItems(leftItem, rightItem, Constants.RIGHT);
+          }
+        }
+      }
+
+      // for each possible left modifier (something in the span [start,split]
+      // that HAS received its stop probabilities), try to find a right
+      // modificand (something in the span [split+1,end] that has NOT received
+      // its stop probabilities)
+      leftItems = chart.get(start, split);
       while (leftItems.hasNext()) {
         CKYItem leftItem = (CKYItem)leftItems.next();
-        Iterator rightItems = chart.get(split + 1, end);
-        while (rightItems.hasNext()) {
-          CKYItem rightItem = (CKYItem)rightItems.next();
-	  if (!leftItem.stop() && rightItem.stop())
-	    joinItems(leftItem, rightItem, Constants.RIGHT);
-	  else if (leftItem.stop() && !rightItem.stop())
-	    joinItems(rightItem, leftItem, Constants.LEFT);
+        if (leftItem.stop()) {
+          rightItems = chart.get(split + 1, end);
+          while (rightItems.hasNext()) {
+            CKYItem rightItem = (CKYItem)rightItems.next();
+            if (!rightItem.stop())
+              joinItems(rightItem, leftItem, Constants.LEFT);
+          }
         }
       }
     }
@@ -746,6 +802,9 @@ public class Decoder implements Serializable {
                  modificand.verb(side),
                  side);
 
+    if (!futurePossible(modEvent, side))
+      return;
+
     if (debugJoin) {
       if (modificand.headWord().tag() == mdSym &&
           modificand.headWord().word() == willSym) {
@@ -800,6 +859,26 @@ public class Decoder implements Serializable {
     boolean added = chart.add(lowerIndex, higherIndex, newItem);
     if (!added)
       chart.reclaimItem(newItem);
+  }
+
+  private boolean futurePossible(ModifierEvent modEvent, boolean side) {
+    boolean onLeft = side == Constants.LEFT;
+    ProbabilityStructure modPS =
+      (onLeft ? leftModNonterminalPS : rightModNonterminalPS);
+    int lastLevel =
+      (onLeft ? leftModNonterminalPSLastLevel : rightModNonterminalPSLastLevel);
+    Map modMap = (onLeft ? leftModNonterminalMap : rightModNonterminalMap);
+    Event historyContext = modPS.getHistory(modEvent, lastLevel);
+    Set possibleFutures = (Set)modMap.get(historyContext);
+    if (possibleFutures != null) {
+      Event currentFuture = modPS.getFuture(modEvent, lastLevel);
+      if (possibleFutures.contains(currentFuture))
+        return true;
+    }
+    else {
+      //no possible futures for history context
+    }
+    return false;
   }
 
   protected void addUnariesAndStopProbs(int start, int end)

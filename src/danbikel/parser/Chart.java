@@ -44,6 +44,19 @@ public abstract class Chart implements Serializable {
       topItem = null;
       topLogProb = Constants.logOfZero;
     }
+    void setTopInfo() {
+      // go through all items and set topItem and topLogProb data members
+      topItem = null;
+      topLogProb = Constants.logOfZero;
+      Iterator it = map.keySet().iterator();
+      while (it.hasNext()) {
+        Item item = (Item)it.next();
+        if (item.logProb() > topLogProb) {
+          topLogProb = item.logProb();
+          topItem = item;
+        }
+      }
+    }
   }
 
   // data members
@@ -188,7 +201,7 @@ public abstract class Chart implements Serializable {
    *
    * @param size the size to be set for this chart
    */
-  protected void setSizeAndClear(int size) {
+  public void setSizeAndClear(int size) {
     setSize(size);
     clear();
   }
@@ -199,7 +212,7 @@ public abstract class Chart implements Serializable {
    *
    * @param size the size to be set for this chart
    */
-  protected void setSize(int size) {
+  public void setSize(int size) {
     if (this.size < size) {
       this.size = size;
       chart = new Entry[size][size];
@@ -208,10 +221,10 @@ public abstract class Chart implements Serializable {
 
   /**
    * Checks every map of the chart covering a span less than or equal to
-   * size and clears it; if a chart entry is <code>null</code>, then a
-   * new map is created.
+   * size and clears it; if a chart entry is <code>null</code>, then a new
+   * map is created.
    */
-  protected void clear() {
+  public void clear() {
     totalItems = 0;
     if (debugNumItemsGenerated) {
       totalItemsGenerated = 0;
@@ -219,12 +232,14 @@ public abstract class Chart implements Serializable {
     if (debugNumPrunedItems) {
       numPrePruned = numPruned = 0;
     }
-    for (int i = 0; i < size; i++)
-      for (int j = i; j < size; j++)
-	if (chart[i][j] == null)
-	  chart[i][j] = new Entry();
-	else
-	  chart[i][j].clear();
+    for (int i = 0; i < size; i++) {
+      for (int j = i; j < size; j++) {
+        if (chart[i][j] == null)
+          chart[i][j] = new Entry();
+        else
+          chart[i][j].clear();
+      }
+    }
   }
 
   /**
@@ -694,6 +709,13 @@ public abstract class Chart implements Serializable {
     System.err.println("num cache adds: " + Model.numCacheAdds +
 		       "; num canonical hits: " + Model.numCanonicalHits);
     Model.numCacheAdds = Model.numCanonicalHits = 0;
+  }
+
+  /**
+   * Sets the prune factor.
+   */
+  public void setPruneFactor(double pruneFact) {
+    this.pruneFact = pruneFact;
   }
 
   /**

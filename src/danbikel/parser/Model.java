@@ -49,7 +49,7 @@ public class Model implements Serializable {
    * underflow warning and not emit any expected events for that sentence.  If
    * a history context was only observed in the one or more sentences that have
    * underflow problems in a particular EM iteration, then it will effectively
-   * not be observed in that iteration.
+   * not be observed in that iteration, nor in any subsequent iteration.
    */
   protected final static boolean warnSmoothingHasHistoryNotInTraining = false;
   protected final static boolean precomputeProbs =

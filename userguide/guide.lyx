@@ -171,16 +171,6 @@ parser.trainer.maxEventChunkSize
 ).
  This prevents the trainer from reading the entire observations file into
  memory before deriving counts.
- Note that incremental training may not be performed when precomputing probabili
-ties (when the setting 
-\family typewriter 
-parser.model.precomputeProbabilities
-\family default 
- is 
-\family typewriter 
-true
-\family default 
-).
  Type
 \layout LyX-Code
 
@@ -792,16 +782,6 @@ Note the use of the
 , and reduces the RAM footprint considerably (all the heap sizes in this
  section are applicable when training on the standard Penn Treebank WSJ
  training set, Sections 02--21).
- Note that incremental training may not be performed when precomputing probabili
-ties (when the setting 
-\family typewriter 
-parser.model.precomputeProbabilities
-\family default 
- is 
-\family typewriter 
-true
-\family default 
-).
 \layout Standard
 
 For the curious, incremental training is performed by iteratively reading

@@ -1949,7 +1949,12 @@ public class Trainer implements Serializable {
 	}
 	break;
       case posMapType:
-	posMap.put(event.get(1), event.get(2));
+	//posMap.put(event.get(1), event.get(2));
+	Symbol word = event.symbolAt(1);
+	SexpList posList = event.listAt(2);
+	int numPos = posList.length();
+	for (int posIdx = 0; posIdx < numPos; posIdx++)
+	  addToPosMap(word, posList.symbolAt(posIdx));
 	break;
       case vocabType:
 	count = Double.parseDouble(event.symbolAt(2).toString());

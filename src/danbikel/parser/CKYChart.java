@@ -65,4 +65,15 @@ public class CKYChart extends Chart {
     if (c.size() > 0)
       itemPool.putBackAll(c);
   }
+
+  /**
+   * Returns <code>true</code> if the specified item has received its
+   * stop probabilities (that is, if <code>item.stop() == true</code>).
+   *
+   * @param item the item to be tested
+   */
+  protected boolean cellLimitShouldApplyTo(Item item) {
+    //return ((CKYItem)item).stop();
+    return true;
+  }
 }

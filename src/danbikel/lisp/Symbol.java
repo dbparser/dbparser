@@ -89,7 +89,19 @@ abstract public class Symbol extends Sexp {
    */
   abstract protected Object getSymKey();
 
-  public Sexp deepCopy() { return this; }
+  public final Sexp deepCopy() { return this; }
+
+  /**
+   * Returns <code>false</code>, as no instance of a subclass of this abstract
+   * base class can be a list.
+   */
+  public final boolean isList() { return false; }
+
+  /**
+   * Returns <code>true</code>, as any instance of a subclass of this abstract
+   * base class is a symbol.
+   */
+  public final boolean isSymbol() { return true; }
 
   /**
    * Returns the unique <code>Symbol</code> whose print name is

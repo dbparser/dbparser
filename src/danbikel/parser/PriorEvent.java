@@ -89,4 +89,7 @@ public class PriorEvent implements TrainerEvent, Cloneable {
   public TrainerEvent copy() {
     return new PriorEvent(headWord.copy(), label);
   }
+  public TrainerEvent shallowCopy() {
+    return new PriorEvent(headWord, label);
+  }
 }

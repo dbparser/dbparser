@@ -525,6 +525,7 @@ public class CKYItem extends Item implements SexpConvertible {
     this.rightVerb = rightVerb;
     this.stop = stop;
     containsVerb = containsVerbUndefined;
+    garbage = false;
   }
 
   public Constraint getConstraint() { return constraint; }
@@ -832,11 +833,11 @@ public class CKYItem extends Item implements SexpConvertible {
       " (@" + System.identityHashCode(this) + ")";
   }
 
-  private final static String shortBool(boolean bool) {
+  protected final static String shortBool(boolean bool) {
     return bool ? "t" : "f";
   }
 
-  private final static String shortContainsVerb(byte containsVerbValue) {
+  protected final static String shortContainsVerb(byte containsVerbValue) {
     return (containsVerbValue == containsVerbUndefined ? "undef" :
 	    (containsVerbValue == containsVerbTrue ? "t" : "f"));
   }
@@ -870,6 +871,7 @@ public class CKYItem extends Item implements SexpConvertible {
     this.logPrior = other.logPrior;
     this.constraint = other.constraint;
     containsVerb = containsVerbUndefined;
+    garbage = false;
     return this;
   }
 

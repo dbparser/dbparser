@@ -20,6 +20,9 @@ import java.io.*;
  */
 public class AnalyzeDisns {
 
+  private final static int toZeroIdx = 0;
+  private final static int toPrevIdx = 1;
+
   /**
    * Returns the entropy of the specified distribution.
    *
@@ -75,21 +78,22 @@ public class AnalyzeDisns {
 
   /**
    * Returns <i>D</i>(<code>disnP</code>&nbsp;||&nbsp;<code>disnQ</code>),
-   * where <i>D</i> is <i>relative entropy</i>, and where each of the
-   * specified arguments is a distribution of log-probabilities.
+   * where <i>D</i> is the Kullback-Leibler divergence (<i>relative
+   * entropy</i>), and where each of the specified arguments is a distribution
+   * of log-probabilities.
    *
    * @param disnP a distribution of log-probabilities
    * @param disnQ a distribution of log-probabilities
    * @return <i>D</i>(<code>disnP</code>&nbsp;||&nbsp;<code>disnQ</code>)
    */
-  public static double relEntropyFromLogProbs(double[] disnP, double[] disnQ) {
-    double relEntropy = 0.0;
+  public static double klDistFromLogProbs(double[] disnP, double[] disnQ) {
+    double klDist = 0.0;
     for (int i = disnP.length - 1; i >= 0; i--) {
       if (disnP[i] == Constants.logOfZero)
 	continue;
-      relEntropy += Math.exp(disnP[i]) * ((disnP[i] - disnQ[i])/Math.log(2));
+      klDist += Math.exp(disnP[i]) * ((disnP[i] - disnQ[i])/Math.log(2));
     }
-    return relEntropy;
+    return klDist;
   }
 
   public static void analyzeModWordDisn(ModelCollection mc, String eventStr)
@@ -146,7 +150,7 @@ public class AnalyzeDisns {
     System.arraycopy(tmpProbs, 0, probs, 0, probIdx);
 
     System.err.println("total prob. mass is " + total);
-      
+
     System.err.println("entropy is " + entropy(probs) + " bits");
 
     /*
@@ -204,7 +208,7 @@ public class AnalyzeDisns {
    * @return the specified array of <code>double</code>, having been modified
    * to contain a distribution of log-probabilities at indices <code>0</code>
    * through <code>futures.size() - 1</code>
-   * 
+   *
    * @throws ArrayIndexOutOfBoundsException if the specified array of
    * <code>double</code> (the <code>disn</code> parameter) is of length less
    * than <code>futures.size()</code>
@@ -248,8 +252,9 @@ public class AnalyzeDisns {
     String filename = structureClassName + ".disns";
     System.err.println("Writing distribution stats to \"" + filename + "\".");
     // create file for this model
-    PrintWriter writer =
-      new PrintWriter(new BufferedWriter(new FileWriter(filename)));
+    OutputStream os = new FileOutputStream(filename);
+    OutputStreamWriter osw = new OutputStreamWriter(os, Language.encoding());
+    PrintWriter writer =  new PrintWriter(new BufferedWriter(osw));
 
     // set up temporary data structures for getFutures and getLogProbDisn
     // methods
@@ -272,13 +277,13 @@ public class AnalyzeDisns {
       Iterator it = entrySet.iterator();
       while (it.hasNext()) {
 	MapToPrimitive.Entry entry = (MapToPrimitive.Entry)it.next();
-	hist = (Event)entry.getKey();
-	double count  = entry.getDoubleValue(CountsTrio.hist);
-	double diversity = entry.getDoubleValue(CountsTrio.diversity);
-	double[] logProbDisn = getLogProbDisn(model, level, hist,
+        hist = (Event)entry.getKey();
+        double count  = entry.getDoubleValue(CountsTrio.hist);
+        double diversity = entry.getDoubleValue(CountsTrio.diversity);
+        double[] logProbDisn = getLogProbDisn(model, level, hist,
 					      futures, disn, tmpTrans);
-	int numNonZeroProbs = 0;
-	for (int i = logProbDisn.length - 1; i >= 0; i--)
+        int numNonZeroProbs = 0;
+        for (int i = logProbDisn.length - 1; i >= 0; i--)
 	  if (logProbDisn[i] != Constants.logOfZero)
 	    numNonZeroProbs++;
 	writer.println(level + "\t" + hist + "\t" + count + "\t" +
@@ -291,41 +296,63 @@ public class AnalyzeDisns {
   }
 
   /**
-   * Creates a file named after the probability structure of the specified
-   * model and writes relative entropies between the zeroeth-level back-off
-   * distributions and the other back-off distributions.  Specifically, the
-   * file will contain one line for each zeroeth-level (maximal-context)
-   * history with the following elements, separated by tab characters:
+   * Creates two files named after the probability structure of the specified
+   * model, and writes Kullback-Leibler divergences (relative entropies)
+   * between the zeroeth-level back-off distributions and the other back-off
+   * distributions to one file and writes Jensen-Shannon divergences between
+   * zeroeth-level back-off distributions and the other back-off distributions
+   * to the other file.  The KL divergence file will have the extension
+   * <tt>&quot;.kl&quot;</tt> and the JS divergence file will have the
+   * extension <tt>&quot;.js&quot;</tt>.
+   * <p>
+   * Specifically, the KL divergence file will contain one line for each
+   * zeroeth-level (maximal-context) history with the following elements,
+   * separated by tab characters:
    * <ul>
    * <li><tt>hist_0</tt>
    * <li><b>foreach</b> back-off level <i>i</i>&nbsp;&gt;&nbsp;0
    *   <ul>
-   *     <li><tt>hist_i</tt>&nbsp;&nbsp;
-   *            <i>D</i>(<tt>hist_0</tt>&nbsp;||&nbsp;<tt>hist_i</tt>)&nbsp;
-   *            &nbsp;<i>D</i>(<tt>hist_i-1</tt>&nbsp;||&nbsp;<tt>hist_i</tt>)
+   *     <li><tt>hist_i</tt>
+   *     <li><i>c</i>(<tt>hist_0</tt>)/<i>c</i>(<tt>hist_i</tt>)
+   *     <li><i>D</i>(<tt>hist_0</tt>&nbsp;||&nbsp;<tt>hist_i</tt>)
+   *     <li><i>c</i>(<tt>hist_i-1</tt>)/<i>c</i>(<tt>hist_i</tt>)
+   *     <li><i>D</i>(<tt>hist_i-1</tt>&nbsp;||&nbsp;<tt>hist_i</tt>)
    *   </ul>
    * </ul>
    * where <tt>hist_i</tt> is an S-expression of the history at back-off level
-   * <i>i</i> and where <i>D</i> is the relative entropy function.
+   * <i>i</i>, <i>D</i> is the relative entropy function and <i>c</i> is
+   * the count of a history context int training, meaning that the quantity
+   * <i>c</i>(<tt>hist_i-1</tt>)/<i>c</i>(<tt>hist_i</tt>) is the probability
+   * of seeing the extra context in <tt>hist_i-1</tt> compared to
+   * <tt>hist_i</tt>.
    * <p>
    * For example, if a model has three back-off levels (a zeroeth,
    * maximal-context level and two more levels, each with less context), then
-   * each line will contain seven elements separated by tab characters, where
+   * each line will contain 11 elements separated by tab characters, where
    * the first element is the S-expression of the zeroeth back-off level
-   * history and with three elements (the history's S-expression and the two
-   * relative entropy values) for each of the other two back-off levels.
+   * history and with five elements for each of the other two back-off levels.
+   * <p>
+   * The JS divergence file will contain one line for each non-zeroeth-level
+   * history with the following four elements, separated by tab characters:
+   * <ul>
+   * <li><tt>i</tt> (the back-off level of <tt>hist_i</tt>)
+   * <li><tt>hist_i</tt>
+   * <li><i>JS</i>(<tt>hist_0</tt>&nbsp;||&nbsp;<tt>hist_i</tt>)
+   * <li><i>JS</i>(<tt>hist_i-1</tt>&nbsp;||&nbsp;<tt>hist_i</tt>)
+   * </ul>
+   * where <i>JS</i> is the Jensen-Shannon divergence function.
    *
    * @param model the model whose distributions are to be analyzed
    */
-  public static void writeRelEntropyStats(Model model) throws IOException {
+  public static void writeKLDistStats(Model model) throws IOException {
     ProbabilityStructure structure = model.getProbStructure();
     String structureClassName = structure.getClass().getName();
-    String filename = structureClassName + ".rel-ent";
-    System.err.println("Writing relative entropy stats to \"" + filename +
+    String klFilename = structureClassName + ".kl";
+    System.err.println("Writing KL divergence stats to \"" + klFilename +
 		       "\".");
-    // create file for this model
-    PrintWriter writer =
-      new PrintWriter(new BufferedWriter(new FileWriter(filename)));
+    OutputStream os = new FileOutputStream(klFilename);
+    OutputStreamWriter osw = new OutputStreamWriter(os, Language.encoding());
+    PrintWriter writer = new PrintWriter(new BufferedWriter(osw));
 
     int numLevels = structure.numLevels();
 
@@ -344,24 +371,40 @@ public class AnalyzeDisns {
 	  }
 	};
 
+    // set up temporary data structures for computing Jensen-Shannon
+    // divergences
+    BiCountsTable[] js = new BiCountsTable[numLevels];
+    for (int level = 1; level < numLevels; level++)
+      js[level] = new BiCountsTable();
+
     // foreach history "hist" at back-off level 0
     //   print hist
     //   foreach back-off level i greater than 0 (less context)
-    //     print hist_i D(hist_0 || hist_i) D(hist_i-1 || hist_i)
+    //     print hist_i p(hist_0   | hist_i) D(hist_0 || hist_i)
+    //                  p(hist_i-1 | hist_i) D(hist_i-1 || hist_i)
     //       (where D(p||q) is relative entropy)
     //   print newline
     Event hist = null;
+    double count = 0.0, oldCount = 0.0, zeroLevelCount = 0.0;
     Set entrySet = model.counts[0].history().entrySet();
     Iterator it = entrySet.iterator();
     while (it.hasNext()) {
       MapToPrimitive.Entry entry = (MapToPrimitive.Entry)it.next();
       hist = (Event)entry.getKey();
+      boolean prevLevelHistFirstSeen = true;
+      count = entry.getDoubleValue(CountsTrio.hist);
+      zeroLevelCount = oldCount = count;
       writer.print(hist);
       // put disn for hist_0 into zeroLevelDisn
       getLogProbDisn(model, 0, hist, futures, zeroLevelDisn, tmpTrans);
       for (int level = 1; level < numLevels; level++) {
 	// get this level's hist from previous level's using histBackOffMap
 	hist = (Event)model.histBackOffMap[level - 1].get(hist);
+	MapToPrimitive.Entry currHistEntry =
+	  model.counts[level].history().getEntry(hist);
+	count = currHistEntry.getDoubleValue(CountsTrio.hist);
+	double probExtraContextToZero = zeroLevelCount / count;
+	double probExtraContextToPrev = oldCount / count;
 	// put curr disn for this hist into currDisn
 	// first, check cache
 	double[] cached = (double[])disnCache[level].get(hist);
@@ -373,15 +416,48 @@ public class AnalyzeDisns {
 	  getLogProbDisn(model, level, hist, futures, currDisn, tmpTrans);
 	  disnCache[level].put(hist, currDisn);
 	}
-	double relEntToZero  = relEntropyFromLogProbs(zeroLevelDisn, currDisn);
-	double relEntToPrev =
-	  level > 1 ? relEntropyFromLogProbs(prevDisn, currDisn) : relEntToZero;
-	writer.print("\t" + hist + "\t" + relEntToZero + "\t" + relEntToPrev);
+	double klDistToZero  = klDistFromLogProbs(zeroLevelDisn, currDisn);
+	double klDistToPrev =
+	  level > 1 ? klDistFromLogProbs(prevDisn, currDisn) : klDistToZero;
 
-	// currDisn becomes prevDisn
+	boolean currLevelHistUnseen = js[level].getEntry(hist) == null;
+
+	js[level].add(hist, toZeroIdx, probExtraContextToZero * klDistToZero);
+	// only add to js dist to prev when prev was first seen, since we only
+	// want to sum over unique "expansions" for the current level hist
+	if (prevLevelHistFirstSeen)
+	  js[level].add(hist, toPrevIdx, probExtraContextToPrev * klDistToPrev);
+
+	writer.print("\t" + hist + "\t" +
+		     probExtraContextToZero + "\t" + klDistToZero + "\t" +
+		     probExtraContextToPrev + "\t" + klDistToPrev);
+
+	// currDisn becomes prevDisn and count becomes oldCount
 	prevDisn = currDisn;
+	oldCount = count;
+
+	prevLevelHistFirstSeen = currLevelHistUnseen;
       }
       writer.println();
+    }
+    writer.flush();
+    writer.close();
+
+    String jsFilename = structureClassName + ".js";
+    System.err.println("Writing Jensen-Shannon divergence stats to \"" +
+		       jsFilename + "\".");
+    os = new FileOutputStream(jsFilename);
+    osw = new OutputStreamWriter(os, Language.encoding());
+    writer = new PrintWriter(new BufferedWriter(osw));
+    for (int level = 1; level < numLevels; level++) {
+      Iterator entries = js[level].entrySet().iterator();
+      while (entries.hasNext()) {
+	MapToPrimitive.Entry entry = (MapToPrimitive.Entry)entries.next();
+	hist = (Event)entry.getKey();
+	double jsToZero = entry.getDoubleValue(toZeroIdx);
+	double jsToPrev = entry.getDoubleValue(toPrevIdx);
+	writer.println(level + "\t" + hist + "\t" + jsToZero + "\t" + jsToPrev);
+      }
     }
     writer.flush();
     writer.close();
@@ -421,13 +497,13 @@ public class AnalyzeDisns {
       // output all histories
       //outputHistories(mwm);
       /*
-      String modEventStr = args.length > 1 ? args[1] : 
+      String modEventStr = args.length > 1 ? args[1] :
 	"((foo VB) (to TO) VP-A (+START+) " +
 	"((+START+ +START+)) VP TO (VP-A) false right)";
-      
+
       analyzeModWordDisn(mc, modEventStr);
       */
-      
+
       // for each Model in ModelCollection (using ModelCollection.modelList)
       //   for each Model within each Model (using Model.getModel)
       //     writeModelStats(Model)
@@ -437,11 +513,11 @@ public class AnalyzeDisns {
 	int numModels = model.numModels();
 	for (int i = 0; i < numModels; i++) {
 	  Model ithModel = model.getModel(i);
-	  //writeModelStats(ithModel);
+	  writeModelStats(ithModel);
 	  String structureClassName =
 	    ithModel.getProbStructure().getClass().getName();
 	  if (structureNames.contains(structureClassName))
-	    writeRelEntropyStats(ithModel);
+	    writeKLDistStats(ithModel);
 	}
       }
     }

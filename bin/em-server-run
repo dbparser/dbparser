@@ -1,0 +1,187 @@
+#!/bin/tcsh -f
+
+# check that required args are present
+if ($#argv != 3) then
+    echo "usage: <derived data file> <input file> <output dir>"
+    exit 1
+endif
+
+set RSH = ssh
+set java = /usr/java/jdk1.3.1_03/bin/java
+
+# date and time variables, upon which $experimentDir is based
+# --these will be modified when this script is time-stamped and copied
+# to $experimentDir
+set date = `date '+%Y.%m.%d'`
+set time = `date '+%H.%M'`
+
+#set dir = `dirname $0`
+#set scriptDir = `cd $dir  ; echo $cwd`
+set scriptDir = ~/jbproject/dbparser/bin
+#set parent = `cd $scriptDir/.. ; echo $cwd`
+set parent = ~/jbproject/dbparser
+set classes = $parent/classes
+
+# prepend parent of this script's directory to a shell variable version
+# of CLASSPATH, so we use classes of this particular sandbox
+set classpath = $classes\:$CLASSPATH
+
+# the first two required arguments
+# --these will be modified when this script is time-stamped and copied
+# to $experimentDir
+set derivedDataFile = $1
+set inFile = $2
+# the third required argument
+set outputDir = $3
+
+# guess that gold file is simply $inFile.gold
+set goldFile = $inFile.gold
+
+# the all-important output directory for this experiment
+set experimentDir = ~/experiments/$date/$time
+
+# scripts used by this script
+set startClientScript = $scriptDir/start-em-client
+#set printNodesScript = $scriptDir/print-nodes
+set rmiregistryScript = $scriptDir/start-rmiregistry
+set scorerScript = $scriptDir/score
+
+# bookkeeping output files (pid files, node file script file)
+set pidFile = $experimentDir/pids
+set rmiregistryPidFile = $experimentDir/rmiregistry-pid
+set nodeFile = $experimentDir/nodes
+set scriptFile = $experimentDir/$0:t
+
+# make all switchboard output files be in output directory
+set sbMsgFile = $experimentDir/switchboard.messages
+set outFile = $outputDir/$inFile:t:r.observed
+set logFile = $experimentDir/$inFile:t.log
+
+# set variable to indicate switchboard policy file to JVM
+set sbPolicy = "-Djava.security.policy=$parent/policy-files/switchboard.policy"
+set sbCodebase = "-Djava.rmi.server.codebase=file://$classes/"
+
+# scorer directory
+set scorerDir = $parent/scorer
+
+#set nodes = `$printNodesScript`
+set nodes = ($NODES)
+
+# the following is only necessary when NOT using bpsh: we need
+# to prepend "node" to every nodename (which is simply an integer)
+set tmpNodes = ()
+foreach node ($nodes)
+    set tmpNodes = ($tmpNodes node$node)
+end
+set nodes = ($tmpNodes)
+
+if ($#nodes == 0) then
+    echo "No nodes found!"
+    exit 1
+endif
+
+# set switchboard host to be the first in the list of nodes
+set sbHost = $nodes[1]
+
+# set client nodes to be all nodes except the one on which the switchboard
+# is running, unless there aren't enough nodes; if there are more than 2
+# nodes, start client on third node (allowing switchboard to run on first
+# two nodes, which should provide it with two processors)
+if ($#nodes > 2) then
+    set firstClientNode = 3
+else if ($#nodes == 2) then
+    set firstClientNode = 2
+else
+    set firstClientNode = 1
+endif
+set clientHosts = ($nodes[$firstClientNode-$#nodes])
+
+# make experiment output directory, if possible
+echo "Making directory"
+echo "	$experimentDir"
+mkdir -p $experimentDir
+if ($status != 0) then
+    echo "Couldn't create experiment directory.  Exiting."
+    exit -1
+endif
+
+# make output directory, if possible
+if (! -d $outputDir) then
+    echo "Making directory"
+    echo "	$outputDir"
+    mkdir -p $outputDir
+    if ($status != 0) then
+	echo "Couldn't create output directory.  Exiting."
+    endif
+endif
+
+# start rmiregistry on switchboard host
+$rmiregistryScript $sbHost $rmiregistryPidFile
+
+echo "Creating pid file"
+echo "	$pidFile"
+
+/bin/rm -f $pidFile
+
+# start clients
+#
+# the script that starts the client uses the name of the host simply
+# as the basis of its output log; since sometimes to nodes can have the
+# same name (when they are multiprocessors), we append a unique integer
+# to the hostname that is passed to the start client script
+set sbNameRMI = "//$sbHost/Switchboard"
+@ i = 1
+foreach host ($clientHosts)
+    echo Starting client on $host
+    $RSH -n $host $startClientScript $classpath $host-$i $experimentDir \
+	-is $derivedDataFile $sbNameRMI &
+    echo -n "$! " >> $pidFile
+    @ i++
+end
+
+echo "Putting nodes used in this experiment into"
+echo "	$nodeFile"
+echo $nodes > $nodeFile
+
+# if this is *not* a time-stampted script, copy it into log directory
+set timeStamp = "# time-stamped script"
+if (`tail -1 $0` != "$timeStamp") then
+    echo ""
+    echo "Creating time-stamped version of this shell script:"
+    echo "	$scriptFile"
+    # we need to put a backslash before every forward slash, since
+    # the shell will process the sed expression before sed processes it
+    set sedInFile = `echo $inFile | sed -e 's/\//\\\//g'`
+    set sedDDF = `echo $derivedDataFile | sed -e 's/\//\\\//g'`
+    set sedOutputDir = `echo $outputDir | sed -e 's/\//\\\//g'`
+    set sedScriptDir = `echo $scriptDir | sed -e 's/\//\\\//g'`
+    sed -e "s/^\(set date = \).*/\1$date/" -e "s/^\(set time = \).*/\1$time/" \
+	-e "s/^\(set inFile = \).*/\1($sedInFile)/" \
+        -e "s/^\(set derivedDataFile = \).*/\1$sedDDF/" \
+	-e "s/^\(set outputDir = \).*/\1$sedOutputDir/" \
+	-e "s/^\(set scriptDir = \).*/\1$sedScriptDir/" $0 > $scriptFile
+    echo $timeStamp >> $scriptFile
+    chmod +x $scriptFile
+endif
+
+# start switchboard
+echo Starting switchboard on $sbHost
+$RSH -n $sbHost $java -server -cp $classpath -Xms1000m -Xmx1000m \
+	$sbPolicy $sbCodebase \
+	danbikel.parser.StartEMSwitchboard \
+	-msg $sbMsgFile $inFile -o $outFile -log $logFile
+
+# finally, if gold file exists, try to score
+if (-f $goldFile) then
+    # make sure scorer has been compiled
+    (cd $scorerDir ; make)
+    $scorerScript $goldFile $outFile > $outFile.score
+endif
+
+# kill off rmi registry proc
+echo "Killing rmiregistry"
+#kill `cat $rmiregistryPidFile`
+$RSH $sbHost 'killall rmiregistry'
+
+echo "Killing clients, if any are still alive"
+kill `cat $pidFile`

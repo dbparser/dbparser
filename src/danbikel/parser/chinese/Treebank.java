@@ -25,7 +25,7 @@ import danbikel.parser.Nonterminal;
  * Provides data and methods speciifc to the structures found in the Chinese
  * Treebank.
  */
-public class Treebank extends danbikel.parser.Treebank {
+public class Treebank extends danbikel.parser.lang.AbstractTreebank {
 
   // the characters that are delimiters of augmented nonterminal labels
   private final static String augmentationDelimStr = "-=|";

@@ -26,7 +26,7 @@ import danbikel.parser.Nonterminal;
  * Treebank (the Penn Treebank) or any other treebank that conforms to the
  * Treebank II annotation guidelines for part-of-speech tagging and bracketing.
  */
-public class Treebank extends danbikel.parser.Treebank {
+public class Treebank extends danbikel.parser.lang.AbstractTreebank {
 
   // the characters that are delimiters of augmented nonterminal labels
   private final static String augmentationDelimStr = "-+";

@@ -745,7 +745,7 @@ public class Switchboard
   private class ClientData extends SwitchboardUserData {
     // data members
     private int serverId = -1;
-    // a map from object numbers (Integer objects) to NumberedObject objects
+    // a map from object uid's to NumberedObject objects
     private Map objectsInProgress;
     private Client client;
 
@@ -1549,6 +1549,60 @@ public class Switchboard
     return null;
   }
 
+  /**
+   * Calls {@link #setPolicyFile(String)} with the value of the
+   * {@link SwitchboardRemote#switchboardPolicyFile} property obtained from
+   * the specified <code>Properties</code> object.
+   *
+   * @param props the <code>Properties</code> object from which to
+   * obtain the value of the {@link SwitchboardRemote#switchboardPolicyFile}
+   * property
+   */
+  public static void setPolicyFile(Properties props) {
+    setPolicyFile(props.getProperty(SwitchboardRemote.switchboardPolicyFile));
+  }
+
+  /**
+   * Calls {@link #setPolicyFile(Class,String)} with the specified class
+   * and the value of the {@link SwitchboardRemote#switchboardPolicyFile}
+   * property obtained from the specified <code>Properties</code> object.
+   *
+   * @param props the <code>Properties</code> object from which to
+   * obtain the value of the {@link SwitchboardRemote#switchboardPolicyFile}
+   * property
+   */
+  public static void setPolicyFile(Class cl, Properties props) {
+    setPolicyFile(cl,
+		  props.getProperty(SwitchboardRemote.switchboardPolicyFile));
+  }
+
+  /**
+   * Sets the system property <tt>"java.security.policy"</tt> to be the
+   * URL of the specified resource obtained from the
+   * <code>SwitchboardRemote</code> class.
+   *
+   * @param resource the resource to obtain from {@link SwitchboardRemote}
+   * that will be the value of the system property
+   * <tt>"java.security.policy"</tt>
+   */
+  public static void setPolicyFile(String resource) {
+    setPolicyFile(SwitchboardRemote.class, resource);
+  }
+
+  /**
+   * Sets the system property <tt>"java.security.policy"</tt> to be the
+   * URL of the specified resource obtained from the specified class.
+   *
+   * @param resource the resource to obtain from the specified class
+   * that will be the value of the system property
+   * <tt>"java.security.policy"</tt>
+   */
+  public static void setPolicyFile(Class cl, String resource) {
+    if (System.getProperty("java.security.policy") == null) {
+      java.net.URL policyURL = cl.getResource(resource);
+      System.setProperty("java.security.policy", policyURL.toString());
+    }
+  }
 
   // registration methods
 
@@ -1799,6 +1853,7 @@ public class Switchboard
     setKeepAliveMaxRetries();
     setServerDeathKillClients();
     setSortOutput();
+    setDisableHttp();
   }
 
   private void setSocketTimeout() {
@@ -1845,6 +1900,16 @@ public class Switchboard
       String sortOutputStr = settings.getProperty(SwitchboardRemote.sortOutput);
       if (sortOutputStr != null)
 	sortOutput = Boolean.valueOf(sortOutputStr).booleanValue();
+    }
+  }
+
+  private void setDisableHttp() {
+    if (settings != null) {
+      String disableHttpStr =
+	settings.getProperty(SwitchboardRemote.switchboardDisableHttp);
+      if (disableHttpStr != null) {
+	System.setProperty("java.rmi.server.disableHttp", disableHttpStr);
+      }
     }
   }
 

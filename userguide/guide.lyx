@@ -171,6 +171,16 @@ parser.trainer.maxEventChunkSize
 ).
  This prevents the trainer from reading the entire observations file into
  memory before deriving counts.
+ Note that incremental training may not be performed when precomputing probabili
+ties (when the setting 
+\family typewriter 
+parser.model.precomputeProbabilities
+\family default 
+ is 
+\family typewriter 
+true
+\family default 
+).
  Type
 \layout LyX-Code
 
@@ -215,7 +225,7 @@ The trainer outputs two files: an
 \family typewriter 
 .obj
 \family default 
- file, which is a series of serizlied Java objects containing the actual,
+ file, which is a series of serialized Java objects containing the actual,
  derived counts used by the parser.
  The 
 \family typewriter 
@@ -782,6 +792,16 @@ Note the use of the
 , and reduces the RAM footprint considerably (all the heap sizes in this
  section are applicable when training on the standard Penn Treebank WSJ
  training set, Sections 02--21).
+ Note that incremental training may not be performed when precomputing probabili
+ties (when the setting 
+\family typewriter 
+parser.model.precomputeProbabilities
+\family default 
+ is 
+\family typewriter 
+true
+\family default 
+).
 \layout Standard
 
 For the curious, incremental training is performed by iteratively reading
@@ -874,4 +894,135 @@ Developer-level documentation is available in the
  directory.
  Currently, not all methods and classes are documented.
  
+\layout Subsection
+
+
+\emph on 
+k-
+\emph default 
+best Parsing
+\layout Standard
+
+As of version 0.9.4, there is a hack to do 
+\emph on 
+k
+\emph default 
+-best parsing, where basically dynamic programming is eliminated by having
+ no two chart items be equivalent (thanks to Mike Collins for suggesting
+ this hack).
+ There are three settings one should adjust in order to do 
+\emph on 
+k
+\emph default 
+-best parsing:
+\layout Itemize
+
+
+\family typewriter 
+parser.chart.itemClass=danbikel.parser.CKYItem$KBestHack
+\layout Itemize
+
+
+\family typewriter 
+parser.decoder.kBest=
+\family default 
+\emph on 
+k
+\emph default 
+ (where 
+\emph on 
+k
+\emph default 
+ is the desired maximum number of best parses to output)
+\layout Itemize
+
+
+\family typewriter 
+parser.decoder.pruneFactor=
+\family default 
+<
+\emph on 
+something smaller than 4
+\emph default 
+> (you want to use a small beam to avoid pursuing too many theories---remember,
+ we have simply turned off dynamic programming)
+\layout Standard
+
+The output of the parser is slightly different when 
+\begin_inset Formula $k>1$
+\end_inset 
+
+: in this case, instead of an S-expression representing a tree, it is a
+ list of S-expressions representing trees (a list of lists), in decreasing
+ order of likelihood.
+\layout Subsection
+
+Knesser-Ney Smoothing
+\layout Standard
+
+The type of smoothing used is determined by the type of 
+\family typewriter 
+Model
+\family default 
+ object that a 
+\family typewriter 
+ProbabilityStructure
+\family default 
+ instance wraps itself in, as determined by the method 
+\family typewriter 
+ProbabilityStructure.newModel
+\family default 
+.
+ The default behavior is to create an instance of 
+\family typewriter 
+Model
+\family default 
+, which uses a variant of Witten-Bell smoothing.
+\layout Standard
+
+However, this default behavior can be changed in a concrete subclass of
+ 
+\family typewriter 
+ProbabilityStructure
+\family default 
+ by overriding the 
+\family typewriter 
+newModel
+\family default 
+ method, or by simply using a run-time setting, 
+\family typewriter 
+parser.probabilityStructure.defaultModelClass
+\family default 
+.
+ The default value for this setting is 
+\begin_inset Quotes eld
+\end_inset 
+
+
+\family typewriter 
+danbikel.parser.Model
+\family default 
+
+\begin_inset Quotes erd
+\end_inset 
+
+, but Knesser-Ney smoothing can be used by default by changing this setting
+ to be 
+\begin_inset Quotes eld
+\end_inset 
+
+
+\family typewriter 
+danbikel.parser.InterpolatedKnesserNeyModel
+\family default 
+
+\begin_inset Quotes erd
+\end_inset 
+
+.
+ For more information on this setting, see the documentation for the 
+\family typewriter 
+danbikel.parser.Settings
+\family default 
+ class.
 \the_end

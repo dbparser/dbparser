@@ -47,12 +47,18 @@ public class Transition implements Serializable {
     return code;
   }
 
+  public int hashCode(int historyHashCode) {
+    return (historyHashCode << 2) ^ future.hashCode();
+  }
+
   /**
    * Returns <code>true</code> if <code>obj</code> is an instance of
    * <code>Transition</code> and has future and history components that
    * are respectively equal to this object's future and history components.
    */
   public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
     if (!(obj instanceof Transition))
       return false;
     Transition other = (Transition)obj;

@@ -11,9 +11,10 @@ set settingsProp = "-Dparser.settingsFile=$settingsFile"
 
 set parent = `dirname $0`/..
 set classes = $parent/classes
-
+set jarFile = $parent/dbparser.jar
 set clientPolicy = "-Djava.security.policy=$parent/policy-files/client.policy"
-set clientCodebase = "-Djava.rmi.server.codebase=file://$classes/"
+#set clientCodebase = "-Djava.rmi.server.codebase=file://$classes/"
+set clientCodebase = "-Djava.rmi.server.codebase=file://$jarFile"
 set disableHttp = "-Djava.rmi.server.disableHttp=true"
 
 # start the parser

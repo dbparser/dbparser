@@ -186,6 +186,14 @@ public class DecoderServer
     return modelCollection.rightSubcatMap();
   }
 
+  public Map leftModNonterminalMap() throws RemoteException {
+    return modelCollection.leftModNonterminalMap();
+  }
+
+  public Map rightModNonterminalMap() throws RemoteException {
+    return modelCollection.rightModNonterminalMap();
+  }
+
   public Set prunedPreterms() throws RemoteException {
     return modelCollection.prunedPreterms();
   }
@@ -216,6 +224,30 @@ public class DecoderServer
     return modelCollection.rightSubcatModel().getProbStructure();
   }
 
+  /**
+   * The probability structure for the submodel that generates modifiers
+   * on the left-hand side of head constituents.  This structure is needed
+   * to derive most-general contexts (using the last level of back-off)
+   * in order to determine all possible modifiers for a given
+   * context, using the {@link #leftModNonterminalMap()}.
+   */
+  public ProbabilityStructure leftModNonterminalProbStructure()
+  throws RemoteException {
+    return modelCollection.leftModNonterminalModel().getProbStructure();
+  }
+
+  /**
+   * The probability structure for the submodel that generates modifiers
+   * on the right-hand side of head constituents.  This structure is needed
+   * to derive most-general contexts (using the last level of back-off)
+   * in order to determine all possible modifiers for a given
+   * context, using the {@link #rightModNonterminalMap()}.
+   */
+  public ProbabilityStructure rightModNonterminalProbStructure()
+  throws RemoteException {
+    return modelCollection.rightModNonterminalModel().getProbStructure();
+  }
+
   /** Returns 1.0. */
   public double testProb() throws RemoteException {
     return 1.0;
@@ -243,31 +275,55 @@ public class DecoderServer
     if (event.parent() == topSym)
       return logProbTop(id, event);
     else {
-      return (modelCollection.headModel().estimateLogProb(id, event) +
-	      modelCollection.leftSubcatModel().estimateLogProb(id, event) +
-	      modelCollection.rightSubcatModel().estimateLogProb(id, event));
+      double headProb = modelCollection.headModel().estimateLogProb(id, event);
+      if (headProb == Constants.logOfZero)
+	return Constants.logOfZero;
+      double leftSubcatProb =
+	modelCollection.leftSubcatModel().estimateLogProb(id, event);
+      if (leftSubcatProb == Constants.logOfZero)
+	return Constants.logOfZero;
+      double rightSubcatProb =
+	modelCollection.rightSubcatModel().estimateLogProb(id, event);
+      if (rightSubcatProb == Constants.logOfZero)
+	return Constants.logOfZero;
+      return headProb + leftSubcatProb + rightSubcatProb;
     }
   }
 
   public double logProbTop(int id, TrainerEvent event) {
     Model topNTModel = modelCollection.topNonterminalModel();
     Model topLexModel = modelCollection.topLexModel();
-    return (topNTModel.estimateLogProb(id, event) +
-	    topLexModel.estimateLogProb(id, event));
+    double ntProb = topNTModel.estimateLogProb(id, event);
+    if (ntProb == Constants.logOfZero)
+      return Constants.logOfZero;
+    double lexProb = topLexModel.estimateLogProb(id, event);
+    if (lexProb == Constants.logOfZero)
+      return Constants.logOfZero;
+    return ntProb + lexProb;
   }
 
   public double logProbLeft(int id, TrainerEvent event) {
     Model leftModNTModel = modelCollection.leftModNonterminalModel();
     Model leftModWordModel = modelCollection.leftModWordModel();
-    return (leftModNTModel.estimateLogProb(id, event) +
-	    leftModWordModel.estimateLogProb(id, event));
+    double leftModNTProb = leftModNTModel.estimateLogProb(id, event);
+    if (leftModNTProb == Constants.logOfZero)
+      return Constants.logOfZero;
+    double leftWordProb = leftModWordModel.estimateLogProb(id, event);
+    if (leftWordProb == Constants.logOfZero)
+      return Constants.logOfZero;
+    return leftModNTProb + leftWordProb;
   }
 
   public double logProbRight(int id, TrainerEvent event) {
     Model rightModNTModel = modelCollection.rightModNonterminalModel();
     Model rightModWordModel = modelCollection.rightModWordModel();
-    return (rightModNTModel.estimateLogProb(id, event) +
-	    rightModWordModel.estimateLogProb(id, event));
+    double rightModNTProb = rightModNTModel.estimateLogProb(id, event);
+    if (rightModNTProb == Constants.logOfZero)
+      return Constants.logOfZero;
+    double rightWordProb = rightModWordModel.estimateLogProb(id, event);
+    if (rightWordProb == Constants.logOfZero)
+      return Constants.logOfZero;
+    return rightModNTProb + rightWordProb;
   }
 
   public double logProbMod(int id, TrainerEvent event, boolean side) {

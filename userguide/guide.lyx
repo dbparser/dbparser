@@ -56,8 +56,7 @@ Settings files
 The parser comes with several, crucial settings files, all located in the
 \layout LyX-Code
 
-<parser\SpecialChar ~
-home>/settings
+<parser home>/settings
 \layout Standard
 
 directory.
@@ -248,8 +247,12 @@ Parsing
 Uniprocessor or non--distributed computing environment
 \layout Standard
 
-The easiest way to parse in a non-distributed fashion is to use the <parser
- home>/bin/parse script, the usage of which is:
+The easiest way to parse in a non-distributed fashion is to use the 
+\family typewriter 
+<parser\SpecialChar ~
+home>/bin/parse
+\family default 
+ script, the usage of which is:
 \layout LyX-Code
 
 parse <max.
@@ -267,8 +270,8 @@ The parser does not need as much memory as the trainer; for English, a value
 \family default 
  for 
 \family typewriter 
-<max.
- heap>
+<max.\SpecialChar ~
+heap>
 \family default 
  should suffice.
 \layout Standard
@@ -387,7 +390,10 @@ Note that you can specify multiple input files.
 \layout Standard
 
 The following three input file lists are all treated the same by the internal-se
-rver-run script (it's really the java class danbikel.parser.StartSwitchboard
+rver-run script (it's really the java class 
+\family typewriter 
+danbikel.parser.StartSwitchboard
+\family default 
  that is performing this magic):
 \layout Itemize
 
@@ -695,11 +701,11 @@ java -Xms800m -Xmx800m -Dparser.settingsFile=<settings>
 \backslash 
 
 \newline 
-danbikel.parser.Trainer -i <training file> 
+        danbikel.parser.Trainer -i <training file> 
 \backslash 
 
 \newline 
--o <observed file> -od <derived data file>
+        -o <observed file> -od <derived data file>
 \layout Standard
 
 You can see its full usage by executing
@@ -724,11 +730,11 @@ java -Xms400m -Xmx400m -Dparser.settingsFile=<settings>
 \backslash 
 
 \newline 
-danbikel.parser.Parser -is <derived data file> 
+        danbikel.parser.Parser -is <derived data file> 
 \backslash 
 
 \newline 
--sa <sentence input file>
+        -sa <sentence input file>
 \layout Standard
 
 You can see its full usage by executing
@@ -738,9 +744,15 @@ java danbikel.parser.Parser -help
 \layout Standard
 
 The Java class used for starting the switchboard, which is the central component
- in a distributed-computing run, is danbikel.parser.StartSwitchboard.
- You can see its full usage by executing java danbikel.parser.StartSwitchboard
- -help
+ in a distributed-computing run, is 
+\family typewriter 
+danbikel.parser.StartSwitchboard
+\family default 
+.
+ You can see its full usage by executing
+\layout LyX-Code
+
+java danbikel.parser.StartSwitchboard -help
 \layout Standard
 
 Developer-level documentation is available in the 

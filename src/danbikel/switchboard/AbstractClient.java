@@ -179,7 +179,9 @@ public abstract class AbstractClient
    * the parameter values are cached in this object, in the {@link #retries},
    * {@link #sleepTime} and {@link #failover} data members.  This allows
    * the {@link #reRegister} method to properly re-wrap a new server
-   * when it gets one after a switchboard failure.
+   * when it gets one after a switchboard failure.  If this method is called
+   * with <code>retries == 0</code> and <code>failover == false</code>,
+   * then it simply returns, having done no proxy wrapping.
    * <p>
    * <b>N.B.</b>: This method re-assigns the <code>protected</code>
    * data member <code>server</code>.  If subclasses have cached a reference
@@ -213,6 +215,11 @@ public abstract class AbstractClient
    * @see #server
    */
   protected void tolerateFaults(int retries, int sleepTime, boolean failover) {
+    if (retries == 0 && !failover) {
+      faultTolerant = false;
+      return;
+    }
+
     // cache these settings, in case we need to get a new server
     this.retries = retries;
     this.sleepTime = sleepTime;
@@ -445,7 +452,7 @@ public abstract class AbstractClient
 	}
 
 	Object processed = null;
-        long processingTime = System.currentTimeMillis();
+	long processingTime = System.currentTimeMillis();
 	try { processed = process(obj.get()); }
 	catch (RemoteException re) {
 	  System.err.println(className +
@@ -453,7 +460,7 @@ public abstract class AbstractClient
 			     obj.number() + " (" + re + ")");
 	  processed = null;
 	}
-        processingTime = System.currentTimeMillis() - processingTime;
+	processingTime = System.currentTimeMillis() - processingTime;
 
 	if (processed != null) {
 	  obj.setProcessed(true);

@@ -35,21 +35,21 @@ public class Parser
   public final static String outputFilenameSuffix = ".parsed";
 
   // data members
-  private DecoderServerRemote server;
-  private SexpList sent;
-  private Decoder decoder;
-  private boolean localServer = false;
+  protected DecoderServerRemote server;
+  protected SexpList sent;
+  protected Decoder decoder;
+  protected boolean localServer = false;
 
   public Parser(String derivedDataFilename)
     throws RemoteException, IOException, ClassNotFoundException {
     server = new DecoderServer(derivedDataFilename);
-    decoder = new Decoder(0, server);
+    decoder = getNewDecoder(0, server);
   }
 
   public Parser(DecoderServerRemote server)
     throws RemoteException, IOException, ClassNotFoundException {
     this.server = server;
-    decoder = new Decoder(0, server);
+    decoder = getNewDecoder(0, server);
   }
 
   public Parser(int timeout) throws RemoteException {
@@ -62,6 +62,10 @@ public class Parser
 		RMIClientSocketFactory csf, RMIServerSocketFactory ssf)
     throws RemoteException {
     super(port, csf, ssf);
+  }
+
+  protected Decoder getNewDecoder(int id, DecoderServerRemote server) {
+    return new Decoder(id, server);
   }
 
   protected void getServer() throws RemoteException {
@@ -114,7 +118,7 @@ public class Parser
     }
   }
 
-  private boolean sentContainsWordsAndTags(SexpList sent) {
+  protected boolean sentContainsWordsAndTags(SexpList sent) {
     int size = sent.size();
     for (int i = 0; i < size; i++) {
       if (!wordTagList(sent.get(i)))
@@ -123,7 +127,7 @@ public class Parser
     return true;
   }
 
-  private boolean wordTagList(Sexp sexp) {
+  protected boolean wordTagList(Sexp sexp) {
     if (sexp.isSymbol())
       return false;
     SexpList list = sexp.list();
@@ -134,7 +138,7 @@ public class Parser
             list.get(1).isList() && list.get(1).list().isAllSymbols());
   }
 
-  private SexpList getWords(SexpList sent) {
+  protected SexpList getWords(SexpList sent) {
     int size = sent.size();
     SexpList wordList = new SexpList(size);
     for (int i = 0; i < size; i++)
@@ -142,11 +146,11 @@ public class Parser
     return wordList;
   }
 
-  private SexpList getWordsFromTree(Sexp tree) {
+  protected SexpList getWordsFromTree(Sexp tree) {
     return getWordsFromTree(new SexpList(), tree);
   }
 
-  private SexpList getWordsFromTree(SexpList wordList, Sexp tree) {
+  protected SexpList getWordsFromTree(SexpList wordList, Sexp tree) {
     if (Language.treebank.isPreterminal(tree)) {
       Word word = Language.treebank.makeWord(tree);
       wordList.add(word.word());
@@ -160,12 +164,12 @@ public class Parser
     return wordList;
   }
 
-  private SexpList getTagListsFromTree(Sexp tree) {
+  protected SexpList getTagListsFromTree(Sexp tree) {
     Sexp taggedSentence = Util.collectTaggedWords(tree);
     return getTagLists(taggedSentence.list());
   }
 
-  private SexpList getTagLists(SexpList sent) {
+  protected SexpList getTagLists(SexpList sent) {
     int size = sent.size();
     SexpList tagLists = new SexpList(size);
     for (int i = 0; i < size; i++)
@@ -175,7 +179,7 @@ public class Parser
 
   protected Object process(Object obj) throws RemoteException {
     if (decoder == null) {
-      decoder = new Decoder(id, server);
+      decoder = getNewDecoder(id, server);
     }
     sent = (SexpList)obj;
     return parse(sent);
@@ -372,8 +376,15 @@ public class Parser
                              "\" does not exist");
           return;
         }
-        if (settingsFilename != null)
+        if (settingsFilename != null) {
+          File settingsFile = new File(settingsFilename);
+          if (!settingsFile.exists()) {
+            System.err.println(className + ": error: settings file \"" +
+                               settingsFilename + "\" does not exist");
+            return;
+          }
           Settings.load(settingsFilename);
+        }
         parser = new Parser(derivedDataFilename);
         int bufSize = Constants.defaultFileBufsize;
         OutputStreamWriter osw =

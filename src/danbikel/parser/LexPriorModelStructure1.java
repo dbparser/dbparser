@@ -1,5 +1,7 @@
 package danbikel.parser;
 
+import danbikel.lisp.*;
+
 public class LexPriorModelStructure1 extends ProbabilityStructure {
   public LexPriorModelStructure1() {
     super();
@@ -7,6 +9,9 @@ public class LexPriorModelStructure1 extends ProbabilityStructure {
 
   public int maxEventComponents() { return 2; }
   public int numLevels() { return 1; }
+
+  public double lambdaFudge(int backOffLevel) { return 0.0; }
+  public double lambdaFudgeTerm(int backOffLevel) { return 1.0; }
 
   public Event getHistory(TrainerEvent trainerEvent, int backOffLevel) {
     PriorEvent priorEvent = (PriorEvent)trainerEvent;
@@ -19,8 +24,11 @@ public class LexPriorModelStructure1 extends ProbabilityStructure {
     MutableEvent future = futures[backOffLevel];
     future.clear();
     PriorEvent priorEvent = (PriorEvent)trainerEvent;
-    future.add(priorEvent.headWord().word());
-    future.add(priorEvent.headWord().tag());
+    Word headWord = priorEvent.headWord();
+    Symbol word =
+      headWord.features() != null ? headWord.features() : headWord.word();
+    future.add(word);
+    future.add(headWord.tag());
     return future;
   }
 

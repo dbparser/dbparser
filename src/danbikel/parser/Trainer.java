@@ -451,8 +451,7 @@ public class Trainer implements Serializable {
 
   private static final SexpList newStartList(int numPrevMods) {
     SexpList startList = new SexpList(numPrevMods);
-    int startListLen = startList.length();
-    for (int i = 0; i < startListLen; i++)
+    for (int i = 0; i < numPrevMods; i++)
       startList.add(Language.training.startSym());
     return startList;
   }

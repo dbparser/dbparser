@@ -635,7 +635,8 @@ public class Decoder implements Serializable {
     SexpList langSpecific =
       Language.training.preProcessTest(sentence, originalWords, tags);
     sentence = langSpecific.listAt(0);
-    tags = langSpecific.listAt(1);
+    if (tags != null)
+      tags = langSpecific.listAt(1);
   }
 
   protected void postProcess(Sexp tree) {

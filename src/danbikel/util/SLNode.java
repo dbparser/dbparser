@@ -34,7 +34,9 @@ public class SLNode {
   }
 
   /**
-   * Returns the length of this list.
+   * Returns the length of this list.  This method begins by counting the
+   * current node, traversing <code>next</code> pointers until <code>null</code>
+   * is reached.
    */
   public int length() {
     int len = 1;

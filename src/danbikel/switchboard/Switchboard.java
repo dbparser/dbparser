@@ -1921,6 +1921,8 @@ public class Switchboard
    * created by the switchboard's factories are character-based).
    */
   public void setEncoding(String enc) {
+    if (verbose)
+      log("using encoding " + enc);
     encoding = enc;
   }
 

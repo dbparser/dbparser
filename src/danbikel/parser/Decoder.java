@@ -24,6 +24,10 @@ public class Decoder implements Serializable {
   private final static boolean debugStops = false;
   private final static boolean debugUnaries = false;
   private final static boolean debugUnariesAndStopProbs = false;
+  private final static boolean debugAnalyzeChart = true;
+  private final static String debugGoldFilenameProperty =
+    "parser.debug.goldFilename";
+  private final static boolean debugAnalyzeBestDerivation = false;
   private final static boolean debugOutputChart = false;
   private final static String debugChartFilenamePrefix = "chart";
   private final static boolean debugCommaConstraint = false;
@@ -188,6 +192,10 @@ public class Decoder implements Serializable {
   private float avgSentLen = 0.0f;
   private int numSents = 0;
 
+  // data member to use when debugAnalyzeChart is true
+  // (and when the property "parser.debug.goldFilename" has been set)
+  private SexpTokenizer goldTok;
+
   /**
    * Constructs a new decoder that will use the specified
    * <code>DecoderServer</code> to get all information and probabilities
@@ -263,6 +271,19 @@ public class Decoder implements Serializable {
     useCommaConstraint = Boolean.valueOf(useCommaConstraintStr).booleanValue();
 
     chart = new CKYChart(cellLimit, pruneFact);
+
+    if (debugAnalyzeChart) {
+      String goldFilename = Settings.get(debugGoldFilenameProperty);
+      if (goldFilename != null) {
+	try {
+	  goldTok = new SexpTokenizer(goldFilename, Language.encoding(),
+				      Constants.defaultFileBufsize);
+	}
+	catch (Exception e) {
+	  throw new RuntimeException(e.toString());
+	}
+      }
+    }
   }
 
   /**
@@ -542,6 +563,7 @@ public class Decoder implements Serializable {
       }
     }
 
+    double prevTopLogProb = chart.getTopLogProb(0, sentLen - 1);
     chart.resetTopLogProb(0, sentLen - 1);
     addTopUnaries(sentLen - 1);
 
@@ -561,6 +583,37 @@ public class Decoder implements Serializable {
       }
     }
 
+    if (debugAnalyzeChart) {
+      Sexp goldTree = null;
+      try {
+	goldTree = Sexp.read(goldTok);
+	if (goldTree != null)
+	  danbikel.parser.util.DebugChart.findConstituents("chart-debug: ",
+                                                           downcaseWords,
+							   chart, topRankedItem,
+                                                           sentence,
+                                                           goldTree);
+	else
+	  System.err.println(className + ": couldn't read gold parse tree " +
+			     "for chart analysis of sentence " + sentenceIdx);
+      }
+      catch (IOException ioe) {
+	System.err.println(className + ": couldn't read gold parse tree " +
+			   "for chart analysis of sentence " + sentenceIdx);
+      }
+    }
+
+    if (debugAnalyzeBestDerivation) {
+      String prefix = "derivation-debug for sent. " + sentenceIdx + " (len=" +
+	sentLen + "): ";
+      danbikel.parser.util.DebugChart.printBestDerivationStats(prefix,
+							       chart,
+							       sentLen,
+							       topSym,
+							       prevTopLogProb,
+							       topRankedItem);
+    }
+
     if (debugOutputChart) {
       try {
 	String chartFilename =
@@ -573,6 +626,8 @@ public class Decoder implements Serializable {
 				   Constants.defaultFileBufsize);
 	ObjectOutputStream os = new ObjectOutputStream(bos);
         os.writeObject(chart);
+        os.writeObject(topRankedItem);
+        os.writeObject(sentence);
 	os.writeObject(originalWords);
         os.close();
       }
@@ -632,59 +687,6 @@ public class Decoder implements Serializable {
     Iterator toAdd = topProbItemsToAdd.iterator();
     while (toAdd.hasNext())
       chart.add(0, end, (CKYItem)toAdd.next());
-  }
-
-  protected void completeOld(int start, int end) throws RemoteException {
-    for (int split = start; split < end; split++) {
-
-      if (commaConstraintViolation(start, split, end)) {
-	if (debugCommaConstraint) {
-	  System.err.println(className +
-                             ": constraint violation at (start,split,end+1)=(" +
-			     start + "," + split + "," + (end + 1) +
-			     "); word at end+1 = " + getSentenceWord(end + 1));
-	}
-	continue;
-      }
-
-      Iterator leftItems, rightItems;
-
-      // for each possible right modifier (something in the span [split+1,end]
-      // that HAS received its stop probabilities), try to find a left
-      // modificand (something in the span [start,split] that has NOT received
-      // its stop probabilities)
-      rightItems = chart.get(split + 1, end);
-      while (rightItems.hasNext()) {
-        CKYItem rightItem = (CKYItem)rightItems.next();
-        if (rightItem.stop()) {
-          leftItems = chart.get(start, split);
-          while (leftItems.hasNext()) {
-            CKYItem leftItem = (CKYItem)leftItems.next();
-            if (!leftItem.stop())
-              joinItems(leftItem, rightItem, Constants.RIGHT);
-          }
-        }
-      }
-
-      // for each possible left modifier (something in the span [start,split]
-      // that HAS received its stop probabilities), try to find a right
-      // modificand (something in the span [split+1,end] that has NOT received
-      // its stop probabilities)
-      leftItems = chart.get(start, split);
-      while (leftItems.hasNext()) {
-        CKYItem leftItem = (CKYItem)leftItems.next();
-        if (leftItem.stop()) {
-          rightItems = chart.get(split + 1, end);
-          while (rightItems.hasNext()) {
-            CKYItem rightItem = (CKYItem)rightItems.next();
-            if (!rightItem.stop())
-              joinItems(rightItem, leftItem, Constants.LEFT);
-          }
-        }
-      }
-    }
-    addUnariesAndStopProbs(start, end);
-    chart.prune(start, end);
   }
 
   protected void complete(int start, int end) throws RemoteException {

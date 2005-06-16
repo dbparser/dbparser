@@ -71,7 +71,7 @@
     <option name="PUT_FOCUS_INTO_COMMENT" value="false" />
     <option name="SHOW_CHECKIN_OPTIONS" value="true" />
     <option name="FORCE_NON_EMPTY_COMMENT" value="false" />
-    <option name="LAST_COMMIT_MESSAGE" value="* Fixed buggy bug-fix to output head lexicalized labels bug." />
+    <option name="LAST_COMMIT_MESSAGE" value="* Treebank interface and default implementation in danbikel.parser.lang now provide abstraction over what characters get used when the parser.decoder.outputHeadLexicalizedLabels setting is true." />
     <option name="SAVE_LAST_COMMIT_MESSAGE" value="true" />
     <option name="CHECKIN_DIALOG_SPLITTER_PROPORTION" value="0.8" />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="false" />
@@ -112,17 +112,17 @@
     <option name="HIDE_WARNINGS" value="false" />
   </component>
   <component name="FileEditorManager" split-orientation="vertical" split-proportion="0.5">
-    <first-group selected-file="file://$PROJECT_DIR$/src/danbikel/parser/english/Treebank.java">
+    <first-group selected-file="file://$PROJECT_DIR$/src/danbikel/parser/arabic/Treebank.java">
       <entry file="file://$PROJECT_DIR$/src/danbikel/parser/arabic/Treebank.java" pinned="false">
         <provider selected="true" editor-type-id="text-editor">
-          <state line="230" column="52" selection-start="7835" selection-end="7835" vertical-scroll-proportion="0.2971768">
+          <state line="240" column="54" selection-start="8376" selection-end="8376" vertical-scroll-proportion="0.35066864">
             <folding />
           </state>
         </provider>
       </entry>
       <entry file="file://$PROJECT_DIR$/src/danbikel/parser/chinese/Treebank.java" pinned="false">
         <provider selected="true" editor-type-id="text-editor">
-          <state line="25" column="27" selection-start="882" selection-end="882" vertical-scroll-proportion="0.33283803">
+          <state line="253" column="54" selection-start="8717" selection-end="8717" vertical-scroll-proportion="0.35066864">
             <folding>
               <element signature="imports" expanded="true" />
             </folding>
@@ -131,7 +131,7 @@
       </entry>
       <entry file="file://$PROJECT_DIR$/src/danbikel/parser/english/Treebank.java" pinned="false">
         <provider selected="true" editor-type-id="text-editor">
-          <state line="263" column="48" selection-start="9143" selection-end="9143" vertical-scroll-proportion="0.33283803">
+          <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0">
             <folding>
               <element signature="imports" expanded="true" />
             </folding>
@@ -572,7 +572,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/danbikel/parser/chinese/Treebank.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="25" column="27" selection-start="882" selection-end="882" vertical-scroll-proportion="0.33283803">
+        <state line="253" column="54" selection-start="8717" selection-end="8717" vertical-scroll-proportion="0.35066864">
           <folding>
             <element signature="imports" expanded="true" />
           </folding>
@@ -581,14 +581,14 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/danbikel/parser/arabic/Treebank.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="230" column="52" selection-start="7835" selection-end="7835" vertical-scroll-proportion="0.2971768">
+        <state line="240" column="54" selection-start="8376" selection-end="8376" vertical-scroll-proportion="0.35066864">
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/danbikel/parser/english/Treebank.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="263" column="48" selection-start="9143" selection-end="9143" vertical-scroll-proportion="0.33283803">
+        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0">
           <folding>
             <element signature="imports" expanded="true" />
           </folding>

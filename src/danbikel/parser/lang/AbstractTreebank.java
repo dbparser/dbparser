@@ -39,7 +39,7 @@ public abstract class AbstractTreebank implements Treebank, Serializable {
    * A set of nonterminal labels (<code>Symbol</code> objects) that
    * {@link #defaultParseNonterminal(Symbol,Nonterminal)} should use when
    * determining the base nonterminal label.  If this behavior is desired,
-   * this arry should be assigned in in the constructor of a subclass.
+   * this array should be assigned in in the constructor of a subclass.
    * This hook into the behavior of <code>defaultParseNonterminal</code> is
    * primarily intended for the unfortunate case when Treebank designers have
    * nonterminal labels that contain the delimiters used for augmenting

@@ -14,7 +14,7 @@ import danbikel.lisp.*;
  * Provides methods for language-specific processing of training parse trees.
  * This class&rsquo; primary purpose is simply to fill in the {@link
  * #argContexts}, {@link #semTagArgStopSet} and {@link #nodesToPrune} data
- * members using aç metadata resource.  If this capability is desired in another
+ * members using a metadata resource.  If this capability is desired in another
  * language package, this class may be subclassed.
  * <p/>
  * This class also re-defined the method {@link danbikel.parser.Training#addBaseNPs(Sexp)},

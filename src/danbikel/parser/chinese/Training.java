@@ -33,7 +33,7 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
   /**
    * The default constructor, to be invoked by {@link danbikel.parser.Language}.
    * This constructor looks for a resource named by the property
-   * <code>çmetadataPropertyPrefix + language</code>
+   * <code>metadataPropertyPrefix + language</code>
    * where <code>metadataPropertyPrefix</code> is the value of
    * the constant {@link #metadataPropertyPrefix} and <code>language</code>
    * is the value of <code>Settings.get(Settings.language)</code>.

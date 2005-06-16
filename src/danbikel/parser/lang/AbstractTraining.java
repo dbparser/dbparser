@@ -81,7 +81,7 @@ public abstract class AbstractTraining implements Training, Serializable {
    */
   protected final static Symbol nodesToPruneSym = Symbol.add("prune-nodes");
   /**
-   * The prefix of the property of the metadata reçsource required by the
+   * The prefix of the property of the metadata resource required by the
    * default constructor of concrete subclasses.  The value of this constant
    * is <code>&quot;parser.training.metadata.&quot;</code>.
    */

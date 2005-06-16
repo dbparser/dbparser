@@ -15,7 +15,7 @@ import danbikel.lisp.*;
  * Even though this subclass of {@link danbikel.parser.Training} is
  * in the default English language package, its primary purpose is simply
  * to fill in the {@link #argContexts}, {@link #semTagArgStopSet} and
- * {@link #nodesToPrune} data members using a mçetadata resource.  If this
+ * {@link #nodesToPrune} data members using a metadata resource.  If this
  * capability is desired in another language package, this class may be
  * subclassed.
  * <p>

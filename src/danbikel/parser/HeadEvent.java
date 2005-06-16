@@ -48,14 +48,18 @@ public class HeadEvent implements TrainerEvent, Cloneable {
   }
 
   /**
-   * Constructs a new <code>HeadEvent</code> object, setting all its
-   * data members to the specified values.
+   * Constructs a new <code>HeadEvent</code> object, setting all its data
+   * members to the specified values.
    *
-   * @param headWord the head word
-   * @param parent the parent nonterminal label
-   * @param head the head nonterminal label
-   * @param leftSubcat the left subcategorization frame
-   * @param rightSubcat the right subcategorization frame
+   * @param headWord    the head word
+   * @param parent      the parent nonterminal label
+   * @param head        the head nonterminal label
+   * @param leftSubcat  an S-expression representation of the left
+   *                    subcategorization frame, to be converted to a {@link
+   *                    Subcat} instance via {@link Subcats#get(SexpList)}
+   * @param rightSubcat an S-expression representation of the right
+   *                    subcategorization frame, to be converted to a {@link
+   *                    Subcat} instance via {@link Subcats#get(SexpList)}
    */
   public HeadEvent(Word headWord, Symbol parent, Symbol head,
 		   SexpList leftSubcat, SexpList rightSubcat) {
@@ -63,6 +67,16 @@ public class HeadEvent implements TrainerEvent, Cloneable {
 	 Subcats.get(leftSubcat), Subcats.get(rightSubcat));
   }
 
+  /**
+   * Constructs a new <code>HeadEvent</code> object, settings all its data
+   * members to the specified values.
+   *
+   * @param headWord    the head word
+   * @param parent      the parent nonterminal label
+   * @param head        the head nonterminal label
+   * @param leftSubcat  the left subcategorization frame
+   * @param rightSubcat the right subcategorization frame
+   */
   public HeadEvent(Word headWord, Symbol parent, Symbol head,
 		   Subcat leftSubcat, Subcat rightSubcat) {
     set(headWord, parent, head, leftSubcat, rightSubcat);

@@ -69,9 +69,12 @@ public class ProbabilityCache extends danbikel.util.HashMapDouble {
 
   /**
    * Constructs a <code>ProbabilityCache</code> with the specified maximum
-   * capacity.
+   * capacity and the default replacement strategy.
    *
    * @param maxCapacity the maximum number of elements held by this cache
+   *
+   * @see #BUCKET_LRU
+   * @see #setStrategy(int)
    */
   public ProbabilityCache(int maxCapacity) {
     //super(minCapacity);
@@ -81,7 +84,8 @@ public class ProbabilityCache extends danbikel.util.HashMapDouble {
   }
   /**
    * Constructs a <code>ProbabilityCache</code> with the specified maximum
-   * capacity and the specified initial capacity.
+   * capacity, the specified initial capacity and the default replacement
+   * strategy.
    *
    * @param maxCapacity the maximum number of elements held by this cache
    * @param initialCapacity the initial capacity of the underlying
@@ -98,7 +102,8 @@ public class ProbabilityCache extends danbikel.util.HashMapDouble {
   }
   /**
    * Constructs a <code>ProbabilityCache</code> with the specified maximum
-   * capacity, the specified initial capacity and the specified load factor.
+   * capacity, the specified initial capacity, the specified load factor and
+   * the default replacement strategy.
    *
    * @param maxCapacity the maximum number of elements held by this cache
    * @param initialCapacity the initial capacity of the underlying
@@ -121,15 +126,21 @@ public class ProbabilityCache extends danbikel.util.HashMapDouble {
    * Sets the strategy for replacement when the size limit of this cache has
    * been reached.
    *
+   * @return this probability cache object
+   *
+   * @see #RANDOM
    * @see #BUCKET_LRU
-   * @see #setStrategy(int)
+   * @see #HALF_LIFE
+   * @see #CLEAR_ALL
    */
-  public void setStrategy(int strategy) {
+  public ProbabilityCache setStrategy(int strategy) {
     if (strategy < MIN_STRATEGY_IDX || strategy > MAX_STRATEGY_IDX)
       throw new IllegalArgumentException();
     this.strategy = strategy;
     if (strategy == RANDOM)
       rand = new Random(System.currentTimeMillis());
+    
+    return this;
   }
 
   /**
@@ -215,11 +226,29 @@ public class ProbabilityCache extends danbikel.util.HashMapDouble {
   */
 
   //public final synchronized double putAndRemove(Object key, double probability) {
+  /**
+   * A synonym for <code>putAndRemove(key, key.hashCode(), probability)</code>.
+   * @param key the key to be inserted into this cache
+   * @param probability the probability of the key
+   * @return the old probability of the specified key, or {@link Double#NaN}
+   * if the key did not exist in this map
+   */
   public final double putAndRemove(Object key, double probability) {
     return putAndRemove(key, key.hashCode(), probability);
   }
 
   //public final synchronized double putAndRemove(Object key, int hash,
+  /**
+   * Puts the specified key into the cache with the specified probability,
+   * removing the least-recently used key from this key's bucket if the bucket
+   * is not currently empty.
+   *
+   * @param key the key to be inserted into this cache
+   * @param hash the hash value of the specified key
+   * @param probability the probability of the specified key
+   * @return the old probability of the specified key, or {@link Double#NaN}
+   * if the key did not exist in this map
+   */
   public final double putAndRemove(Object key, int hash,
 						double probability) {
     MapToPrimitive.Entry entry = getEntryMRU(key, hash);

@@ -107,6 +107,26 @@ public class ModifierEvent implements TrainerEvent, Cloneable {
 	 head, Subcats.get(subcat), verbIntervening, side);
   }
 
+  /**
+   * Constructs a new <code>ModifierEvent</code> object, settings its
+   * data members to the values specified.
+   *
+   * @param modHeadWord the head word of the modifying nonterminal of this
+   * modifier event
+   * @param headWord the head word of the head child being modified
+   * @param modifier the nonterminal label of the modifier
+   * @param previousMods a list of previous modifying nonterminal labels
+   * @param parent the parent nonterminal label
+   * @param head the head child nonterminal label
+   * @param subcat a set of arguments on the specified side of the head that
+   * have yet to be generated
+   * @param verbIntervening a boolean representing whether or a not a verb
+   * has been generated anywhere in the subtrees between the head child
+   * and the current modifier
+   * @param side a boolean that is equal to {@link Constants#LEFT} if this
+   * modifier lies on the left side of the head child or equal to
+   * {@link Constants#RIGHT} if this modifier lies on the right side
+   */
   public ModifierEvent(Word modHeadWord,
 		       Word headWord,
 		       Symbol modifier,
@@ -121,6 +141,39 @@ public class ModifierEvent implements TrainerEvent, Cloneable {
 	head, subcat, verbIntervening, side);
   }
 
+  /**
+   * Constructs a new <code>ModifierEvent</code> object for use when
+   * outputting training events in the format of Mike Collins&rsquo; parser,
+   * settings its data members to the values specified.
+   *
+   * @param modHeadWord the head word of the modifying nonterminal of this
+   * modifier event
+   * @param headWord the head word of the head child being modified
+   * @param modifier the nonterminal label of the modifier
+   * @param previousMods a list of previous modifying nonterminal labels
+   * @param parent the parent nonterminal label
+   * @param head the head child nonterminal label
+   * @param subcat a set of arguments on the specified side of the head that
+   * have yet to be generated
+   * @param prevPunc the previously-generated punctuation word or
+   * <code>null</code> if the last modifier was neither punctuation nor
+   * a conjunction
+   * @param prevConj the previously-generated conjunction or <code>null</code>
+   * if the last modifier was neither punctuation nor a conjunction
+   * @param isConjPConj indicates whether the previously-generated modifier
+   * was a conjunction that was part of a conjoined phrase as per
+   * the definitions of Mike Collins&rsquo; model
+   * @param verbIntervening a boolean representing whether or a not a verb
+   * has been generated anywhere in the subtrees between the head child
+   * and the current modifier
+   * @param headAdjacent indicates whether the current modifier is adjacent
+   * to the head child
+   * @param side a boolean that is equal to {@link Constants#LEFT} if this
+   * modifier lies on the left side of the head child or equal to
+   * {@link Constants#RIGHT} if this modifier lies on the right side
+   *
+   * @see Settings#outputCollins
+   */
   public ModifierEvent(Word modHeadWord,
 		       Word headWord,
 		       Symbol modifier,
@@ -211,6 +264,14 @@ public class ModifierEvent implements TrainerEvent, Cloneable {
    */
   public boolean verbIntervening() { return verbIntervening; }
 
+  /**
+   * Returns whether the current modifier is adjacent to the head child.
+   * This method is only appropriate when outputting Collins-format
+   * trainer events.
+   * @return whether the current modifier is adjacent to the head child.
+   *
+   * @see Settings#outputCollins
+   */
   public boolean headAdjacent() { return headAdjacent; }
 
   /**
@@ -220,19 +281,33 @@ public class ModifierEvent implements TrainerEvent, Cloneable {
    */
   public boolean side() { return side; }
 
-  // package-access mutators
+  /**
+   * Sets the head word of the modifier.
+    * @param modHeadWord the head word of the modifier
+   */
   public void setModHeadWord(Word modHeadWord) {
     this.modHeadWord = modHeadWord;
   }
+  /**
+   * Sets the head word of the head child and parent.
+   * @param headWord the head word
+   */
   public void setHeadWord(Word headWord) {
     this.headWord = headWord;
   }
+
+  // package-level access mutators
   void setModifier(Symbol modifier) {
     this.modifier = modifier;
   }
   void setPreviousMods(SexpList previousMods) {
     this.previousMods = previousMods;
   }
+
+  /**
+   * Sets the previous words list.
+   * @param previousWords the previous words list
+   */
   public void setPreviousWords(WordList previousWords) {
     this.previousWords = previousWords;
   }
@@ -410,6 +485,10 @@ public class ModifierEvent implements TrainerEvent, Cloneable {
 			     side);
   }
 
+  /**
+   * Returns a shallow copy of this event.
+   * @return a shallow copy of this event
+   */
   public TrainerEvent shallowCopy() {
     return new ModifierEvent(modHeadWord, headWord, modifier,
 			     previousMods, previousWords, parent, head,

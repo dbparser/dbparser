@@ -7,23 +7,51 @@ import java.util.*;
 
 /**
  * An implementation of a constraint to sit in a tree structure of constraints
- * that represent a particular, unlexicalized tree, constraining a decoder
- * to only pursue theories consistent with that unlexicalized tree.
+ * that represents a particular, unlexicalized tree, constraining a decoder
+ * to only pursue derivations consistent with that unlexicalized tree.
  */
 public class UnlexTreeConstraint implements Constraint, SexpConvertible {
+  /** The parent of this constraint. */
   protected UnlexTreeConstraint parent;
+  /** The children of this constraint. */
   protected List children;
+  /** The nonterminal label associated with this constraint. */
   protected Symbol label;
+  /** The start index of the span associated with this constraint. */
   protected int start;
+  /** The end index of the span associated with this constraint. */
   protected int end;
+  /**
+   * Contains whether this constraint has been satisfied at least once during
+   * the bottom-up decoding process.
+   */
   protected boolean satisfied;
 
+  /**
+   * Constructs the root constraint of a tree of constraints isomorphic to the
+   * specified unlexicalized tree.
+   * @param tree the unlexicalized syntactic tree with which to construct
+   * this constraint and all its constraint subtrees
+   */
   public UnlexTreeConstraint(Sexp tree) {
     this(null, tree, new IntCounter(0));
   }
 
+  /**
+   * Constructs an empty constraint.
+   */
   protected UnlexTreeConstraint() {}
 
+  /**
+   * Constructs a tree of constraints isomorphic to the specified unlexicalized
+   * syntactic tree.
+   *
+   * @param parent      the parent of the constraint subtree to be constructed
+   * @param tree        the unlexicalized syntactic tree for which an isomorphic
+   *                    constraint tree is to be constructed
+   * @param currWordIdx the index of the leftmost word, threaded throughout the
+   *                    recursive calls to this constructor
+   */
   protected UnlexTreeConstraint(UnlexTreeConstraint parent,
 				Sexp tree, IntCounter currWordIdx) {
     if (Language.treebank().isPreterminal(tree)) {
@@ -52,23 +80,68 @@ public class UnlexTreeConstraint implements Constraint, SexpConvertible {
     }
   }
 
+  /**
+   * Returns whether this constraint corresponds to a leaf (a preterminal).
+   * @return whether this constraint corresponds to a leaf (a preterminal)
+   */
   public boolean isLeaf() { return children.size() == 0; }
 
+  /**
+   * Returns whether this constraint is violated by the specified child chart
+   * item. Violation occurs when the specified child item's parent's constraint
+   * is not this constraint or if the specified child item's constraint is not
+   * equal to any of this constraint's child constraints.
+   *
+   * @param childItem the child chart item item to be tested against this
+   *                  constraint
+   * @return whether this constraint is violated by the specified child chart
+   *         item
+   */
   public boolean isViolatedByChild(Item childItem) {
     return !(childItem.getConstraint().getParent() == this &&
 	     children.contains(childItem.getConstraint()));
   }
 
+  /**
+   * Returns the parent of this constraint.
+   * @return the parent of this constraint
+   */
   public Constraint getParent() { return parent; }
+  /**
+   * Returns the children of this constraint.
+   * @return the children of this constraint
+   */
   protected List getChildren() { return children; }
+  /**
+   * Returns the nonterminal label associated with this constraint.
+   * @return the nonterminal label associated with this constraint
+   */
   public Symbol label() { return label; }
+  /**
+   * Returns the start index of the span covered by this constraint.
+   * @return the start index of the span covered by this constraint
+   */
   public int start() { return start; }
+  /**
+   * Returns the end index of the span covered by this constraint.
+   * @return the end index of the span covered by this constraint
+   */
   public int end() { return end; }
 
+  /**
+   * Throws an {@link UnsupportedOperationException}.
+   */
   public boolean isViolatedBy(Item item) {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * Simply returns true and sets this constraint's satisfaction bit to
+   * be true.
+   * @param item the preterminal item to be tested against this constraint
+   * @return true and sets this constraint's satisfaction bit to
+   * be true
+   */
   protected boolean isSatisfiedByPreterminal(CKYItem item) {
     //if (isLocallySatisfiedBy(item) && spanMatches(item)) {
     if (true) {
@@ -150,18 +223,44 @@ public class UnlexTreeConstraint implements Constraint, SexpConvertible {
     return true;
   }
 
+  /**
+   * Returns whether this constraint has been satisfied by at least one
+   * chart item.
+   * @return whether this constraint has been satisfied by at least one
+   * chart item
+   */
   public boolean hasBeenSatisfied() { return satisfied; }
 
+  /**
+   * Returns whether the specified chart item satisfies the local information
+   * contained in this constraint (span and nonterminal label).
+   *
+   * @param item the chart item to be tested against this constraint
+   * @return whether the specified chart item satisfies the local information
+   *         contained in this constraint (span and nonterminal label)
+   */
   public boolean isLocallySatisfiedBy(Item item) {
     return (item.label() == label ||
 	    Language.treebank().getCanonical((Symbol)item.label()) == label);
   }
 
+  /**
+   * Returns whether the specified item's span matches that of this constraint.
+   * @param item the chart item whose span is to be compared to that of
+   * this constraint
+   * @return whether the specified item's span matches that of this constraint
+   */
   protected boolean spanMatches(Item item) {
     CKYItem ckyItem = (CKYItem)item;
     return ckyItem.start() == start && ckyItem.end() == end;
   }
 
+  /**
+   * Returns a symbolic expression version of the constraint tree rooted
+   * at this constraint.
+   * @return a symbolic expression version of the constraint tree rooted
+   * at this constraint
+   */
   public Sexp toSexp() {
     SexpList retVal = new SexpList(children.size() + 1);
 
@@ -174,6 +273,12 @@ public class UnlexTreeConstraint implements Constraint, SexpConvertible {
     return retVal;
   }
 
+  /**
+   * Returns a human-readable string representation of the local information
+   * of this constraint (for debugging purposes).
+   * @return a human-readable string representation of the local information
+   * of this constraint
+   */
   public String toString() {
     return "label=" + label + ", span=(" + start + "," + end +
 	   "), parentLabel=" +

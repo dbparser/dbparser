@@ -45,7 +45,7 @@ public class ModWordModelStructure3 extends ProbabilityStructure {
     case 1:
       // for p(w_i | M(t)_i, P, H, t, verbIntervening, map(M_i-1), subcat, side)
       Symbol mappedPrevModSym =
-	Collins.mapPrevMod(modEvent.previousMods().symbolAt(0));
+	NTMapper.map(modEvent.previousMods().symbolAt(0));
       hist.add(0, Language.training().removeGapAugmentation(modEvent.modifier()));
       hist.add(0, modEvent.modHeadWord().tag());
       hist.add(0, Language.training().removeGapAugmentation(modEvent.parent()));

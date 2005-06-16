@@ -9,22 +9,17 @@ import danbikel.lisp.*;
 import danbikel.parser.Language;
 import danbikel.parser.Nonterminal;
 
-/*
- * Provides data and methods speciifc to the structures found in the English
- * Treebank (the
- * <a target="_blank"
- * href="http://www.cis.upenn.edu/~treebank/">Penn Treebank</a>) or any other
- * treebank that conforms to the Treebank II annotation guidelines for
- * <a target="_blank" href="ftp://ftp.cis.upenn.edu/pub/treebank/doc/tagguide.ps.gz">part-of-speech tagging</a>
- * and
- * <a target="_blank"
- * href="ftp://ftp.cis.upenn.edu/pub/treebank/doc/manual/">bracketing</a>.
- */
-
 /**
  * Provides data and methods speciifc to the structures found in the English
  * Treebank (the Penn Treebank) or any other treebank that conforms to the
  * Treebank II annotation guidelines for part-of-speech tagging and bracketing.
+ * <p/>
+ * <b>Important note</b>: This class is similar to {@link Treebank}, except
+ * that it is &ldquo;broken&rdquo; in the sense that instead of doing the
+ * closest possible emulation of Collins&rsquo; parsing model, it only uses
+ * details found in Collins&rsquo; published papers.  See <a
+ * href="http://www.cis.upenn.edu/~dbikel/papers/collins-intricacies.pdf">Intricacies
+ * of Collins&rdquo; Parsing Model</a>.
  */
 public class BrokenTreebank extends danbikel.parser.lang.AbstractTreebank {
 

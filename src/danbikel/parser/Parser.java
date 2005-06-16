@@ -17,11 +17,12 @@ import java.lang.reflect.*;
  * A parsing client.  This class parses sentences by implementing the
  * {@link AbstractClient#process(Object)} method of its {@link
  * AbstractClient superclass}.  All top-level probabilities are
- * computed by a <code>DecoderServer</code> object, which is either local
+ * computed by a <code>DecoderServerRemote</code> object, which is either local
  * or is a stub whose methods are invoked via RMI.  The actual
  * parsing is implemented in the <code>Decoder</code> class.
  *
  * @see AbstractClient
+ * @see DecoderServerRemote
  * @see DecoderServer
  * @see Decoder
  */
@@ -37,8 +38,35 @@ public class Parser
     Settings.get(Settings.decoderClass);
   private final static String decoderServerClassName =
     Settings.get(Settings.decoderServerClass);
+  
+  protected static String invocationTargetExceptionMsg =
+    "ERROR: IT IS LIKELY THAT YOU HAVE ATTEMPTED TO LOAD AN OLD VERSION OF\n" +
+    "\tA SERIALIZED JAVA OBJECT; PLEASE RE-TRAIN TO PRODUCE A NEW\n" +
+    "\tDERIVED DATA FILE";
+  
+  /**
+   * An array of types containing a single element,
+   * <code>String.class</code>. Used for fetching constructors of classes
+   * that take a single argument of type <code>String</code>.
+   *
+   * @see #getNewParser(String)
+   * @see #getNewDecoderServer(String)
+   */
   protected final static Class[] stringTypeArr = {String.class};
+  /**
+   * An array of types containing a single element,
+   * <code>Integer.TYPE</code>. Used when fetching the approrpriate constructor
+   * of this class in the static &ldquo;named constructor&rdquo; {@link
+   * #getNewParser(int)}.
+   */
   protected final static Class[] intTypeArr = {Integer.TYPE};
+  /**
+   * An array of types used for fetching the constructor of {@link Decoder}
+   * that takes two arguments of type <code>int</code> and of type
+   * <code>DecoderServerRemote</code>.
+   *
+   * @see #getNewDecoder(int,DecoderServerRemote)
+   */
   protected final static Class[] newDecoderTypeArr =
     {Integer.TYPE,DecoderServerRemote.class};
 
@@ -49,6 +77,10 @@ public class Parser
     Boolean.valueOf(Settings.get(Settings.keepAllWords)).booleanValue();
 
   // public constants
+  /**
+   * The suffix to attach to input files by default when creating their
+   * associated output files.
+   */
   public final static String outputFilenameSuffix = ".parsed";
 
   // protected static data
@@ -59,14 +91,31 @@ public class Parser
   protected static Class parserClass = Parser.class;
 
   // data members
+  /** The server for the internal {@link Decoder} to use when parsing. */
   protected DecoderServerRemote server;
+  /** The current sentence being processed. */
   protected SexpList sent;
+  /** The internal {@link Decoder} that performs the actual parsing. */
   protected Decoder decoder;
+  /**
+   * Indicates whether the {@link DecoderServerRemote} instance is local
+   * or remote (an RMI stub).
+   */
   protected boolean localServer = false;
   // the next two data members are only used when not in stand-alone mode
   // (i.e., when using the switchboard), and when the user has specified
   // an input filename and, optionally, an output filename
+  /**
+   * The name of the input file to be processed (only used when this parser is
+   * in stand-alone mode, not using the
+   * {@link danbikel.switchboard.Switchboard}.
+   */
   protected String internalInputFilename = null;
+  /**
+   * The name of the output file to be processed (only used when this parser is
+   * in stand-alone mode, not using the
+   * {@link danbikel.switchboard.Switchboard}.
+   */
   protected String internalOutputFilename = null;
 
   /**
@@ -75,8 +124,28 @@ public class Parser
    */
   protected PrintWriter err;
 
+  /**
+   * Constructs a new {@link Parser} instance that will construct an internal
+   * {@link DecoderServer} for its {@link Decoder} to use when parsing.
+   *
+   * @param derivedDataFilename the name of the derived data file to pass to the
+   *                            constructor of the {@link DecoderServer} class
+   *                            when creating an internal instance
+   * @throws RemoteException
+   * @throws ClassNotFoundException if {@link #getNewDecoderServer(String)}
+   *                                throws this exception
+   * @throws NoSuchMethodException  if {@link #getNewDecoderServer(String)}
+   *                                throws this excception
+   * @throws java.lang.reflect.InvocationTargetException
+   *                                if {@link #getNewDecoderServer(String)}
+   *                                throws this excception
+   * @throws IllegalAccessException if {@link #getNewDecoderServer(String)}
+   *                                throws this excception
+   * @throws InstantiationException if {@link #getNewDecoderServer(String)}
+   *                                throws this excception
+   */
   public Parser(String derivedDataFilename)
-    throws RemoteException, IOException, ClassNotFoundException,
+    throws RemoteException, ClassNotFoundException,
 	   NoSuchMethodException, java.lang.reflect.InvocationTargetException,
 	   IllegalAccessException, InstantiationException {
     server = getNewDecoderServer(derivedDataFilename);
@@ -84,21 +153,50 @@ public class Parser
     setUpErrWriter();
   }
 
-  public Parser(DecoderServerRemote server)
-    throws RemoteException, IOException, ClassNotFoundException {
+  /**
+   * Constructs a new parsing client where the internal {@link Decoder} will
+   * use the specified server.
+   * @param server the server for the {@link Decoder} to use
+   * @throws RemoteException
+   */
+  public Parser(DecoderServerRemote server) throws RemoteException {
     this.server = server;
     decoder = getNewDecoder(0, server);
     setUpErrWriter();
   }
 
+  /**
+   * Constructs a new parsing client with the specified timeout value for its
+   * sockets (not needed with recent RMI implementations from Sun).
+   * @param timeout the timeout value for RMI client and server sockets
+   * @throws RemoteException
+   */
   public Parser(int timeout) throws RemoteException {
     super(timeout);
     setUpErrWriter();
   }
+  /**
+   * Constructs a new parsing client with the specified timeout value for its
+   * sockets (not needed with recent RMI implementations from Sun) and with
+   * the specified listening port for receiving remote method invocations.
+   *
+   * @param timeout the timeout value for RMI client and server sockets
+   * @param port the port for this RMI server
+   * @throws RemoteException
+   */
   public Parser(int timeout, int port) throws RemoteException {
     super(timeout, port);
     setUpErrWriter();
   }
+  /**
+   * Constructs a new parsing client with the specified RMI port and
+   * client and server socket factories.
+   *
+   * @param port the port on which to receive remote method invocations
+   * @param csf the client socket factory for this RMI client
+   * @param ssf the server socket factory for this RMI server
+   * @throws RemoteException
+   */
   public Parser(int port,
 		RMIClientSocketFactory csf, RMIServerSocketFactory ssf)
     throws RemoteException {
@@ -142,8 +240,38 @@ public class Parser
   }
 
   // helper method for the "stand-alone" constructor
+  /**
+   * Gets a new decoder server for when creating a stand-alone parsing client
+   * (i.e., a parsing client that creates its own {@link DecoderServerRemote}
+   * instance).
+   *
+   * @param derivedDataFilename the name of the derived data file to pass to the
+   *                            constructor of {@link DecoderServer} that takes
+   *                            this name as an argument
+   * @return a new decoder server for when creating a stand-alone parsing client
+   *
+   * @throws ClassNotFoundException if the class specified by {@link
+   *                                Settings#decoderServerClass} cannot be
+   *                                found
+   * @throws NoSuchMethodException  if the class specified by {@link
+   *                                Settings#decoderServerClass} has no
+   *                                constructor that takes a single {@link
+   *                                String}
+   * @throws java.lang.reflect.InvocationTargetException
+   *                                if the constructor of the class specified by
+   *                                {@link Settings#decoderServerClass} (the
+   *                                invocation target) throws an exception
+   *                                (which will be wrapped in this type of
+   *                                exception)
+   * @throws IllegalAccessException if this class is not allowed to access the
+   *                                single-string constructor of the class
+   *                                specified by {@link Settings#decoderServerClass}
+   * @throws InstantiationException if there's a problem instantiating a new
+   *                                instance of the class specified by {@link
+   *                                Settings#decoderServerClass}
+   */
   protected static DecoderServer getNewDecoderServer(String derivedDataFilename)
-    throws RemoteException, IOException, ClassNotFoundException,
+    throws ClassNotFoundException,
 	   NoSuchMethodException, java.lang.reflect.InvocationTargetException,
 	   IllegalAccessException, InstantiationException {
 
@@ -158,6 +286,12 @@ public class Parser
     return server;
   }
 
+  /**
+   * Unless it is time to die, this method continually tries the switchboard
+   * until it can assign this client a server.
+   *
+   * @throws RemoteException
+   */
   protected void getServer() throws RemoteException {
     // the following check is necessary, as this method will be called
     // by reRegister, which is called when Switchboard failure is
@@ -205,6 +339,32 @@ public class Parser
     return sent;
   }
 
+  /**
+   * Parses the specified sentence, which can be in one of three formats.
+   * <ul>
+   * <li>Format 1 is where each word is supplied with a list of possible
+   * part-of-speech tags, and is described in detail in the documentation for
+   * the method {@link #sentContainsWordsAndTags(SexpList)}.
+   * <li>Format 2 is where the list contains only symbols that are the words of
+   * the sentence to be parsed.
+   * <li>Format 3 is where the specified list is in the format of a valid parse
+   * tree.  In this case, the tree will be used to get parsing constraints.
+   * Typically, then, the parse trees passed are underspecified.  For example,
+   * the tree<br>
+   * <tt>(S (JJ Bad) (NNP John) (VP (VBD sat) (RB quietly)))</tt><br>
+   * encodes the constraint that an <tt>S</tt> spans the entire sentence
+   * and a <tt>VP</tt> spans the last two words, but has nothing else to say
+   * about any constituents that may cover the first two words. The type of
+   * constraints used is determined by the
+   * {@link Settings#constraintSetFactoryClass} setting.
+   * </ul>
+   *
+   * @param sent the sentence to be parsed
+   * @return the parsed version of the specified sentence, or <code>null</code>
+   *         if no parse could be produced using the current model
+   *
+   * @throws RemoteException
+   */
   public Sexp parse(SexpList sent) throws RemoteException {
     if (sentContainsWordsAndTags(sent))
       return decoder.parse(getWords(sent), getTagLists(sent));
@@ -223,6 +383,24 @@ public class Parser
     }
   }
 
+  /**
+   * Converts certain words (leaves) in the specified tree to their associated
+   * word-feature vectors.  If the boolean value of {@link
+   * Settings#keepAllWords} is <code>true</code>, then only words that were
+   * never observed in training are converted; otherwise, only words that were
+   * observed less than the {@linkplain Settings#unknownWordThreshold the
+   * unknown word threshold} are converted.  This method intentionally performs
+   * the same conversion of words as would be performed by {@link
+   * DecoderServerRemote#convertUnknownWords(danbikel.lisp.SexpList)}. In fact,
+   * it uses
+   * {@link DecoderServerRemote#convertUnknownWord(danbikel.lisp.Symbol,int)}
+   * as a helper method.
+   *
+   * @param tree        the tree whose low-frequency or unobserved words are to
+   *                    be converted to feature vectors
+   * @param currWordIdx the threaded word index of the sentence
+   * @return the specified tree, having been modified in-place
+   */
   protected Sexp convertUnknownWords(Sexp tree, IntCounter currWordIdx) {
     if (Language.treebank().isPreterminal(tree)) {
       Word wordObj = Language.treebank().makeWord(tree);
@@ -267,6 +445,15 @@ public class Parser
     return tree;
   }
 
+  /**
+   * After {@linkplain #convertUnknownWords(Sexp,IntCounter) converting
+   * unknown words} in the specified parse tree, this method constructs
+   * a constraint set using the method {@link ConstraintSets#get(Object)}.
+   *
+   * @param tree the tree from which to construct a set of parsing constraints
+   * @return a set of parsing constraints for use when parsing the specified
+   * tree
+   */
   protected ConstraintSet getConstraintsFromTree(Sexp tree) {
     // since we're about to destructively modify tree, let's deeply copy it
     tree = tree.deepCopy();
@@ -274,6 +461,39 @@ public class Parser
     return ConstraintSets.get(tree);
   }
 
+  /**
+   * A method to determine if the sentence to be parsed is in the format
+   * where part-of-speech tags are supplied along with the words.  The
+   * format is defined by the following BNF specification:
+   * <p/>
+   * <table>
+   * <tr><td valign=top>(&nbsp;&lt;wordTagList&gt;*&nbsp;)
+   *                    where</td></tr>
+   * <tr><td valign=top>&lt;wordTagList&gt;</td><td>::=</td>
+   *     <td valign=top>(&nbsp;&lt;word&gt;&nbsp;&lt;tagList&gt;&nbsp;)</td>
+   * </tr>
+   * <tr><td valign=top>&lt;word&gt;</td><td>::=</td>
+   *     <td valign=top>a symbol representing a word in the sentence to be
+   *                    parsed</td>
+   * </tr>
+   * <tr><td valign=top>&lt;tagList&gt;</td><td valign=top>::=</td>
+   *     <td valign=top>(&nbsp;&lt;tag&gt;+&nbsp;)</td>
+   * </tr>
+   * <tr><td valign=top>&lt;tag&gt;</td><td valign=top>::=</td>
+   *     <td valign=top>a symbol that represents a possible part-of-speech tag
+   *                    for the word with which it is associated</td>
+   * </tr>
+   * </table>
+   * <p/>
+   * An example of this format is
+   * <pre>
+   * ((John (NNP)) (sat (VBD VB)) (. (.)))
+   * </pre>
+   * Typically, only a single tag is supplied with each word.
+   * @param sent the sentence to be tested
+   * @return whether the specified list is in the format where a list of tags
+   * is supplied with each word of the sentence to be parsed
+   */
   protected boolean sentContainsWordsAndTags(SexpList sent) {
     int size = sent.size();
     for (int i = 0; i < size; i++) {
@@ -283,6 +503,16 @@ public class Parser
     return true;
   }
 
+  /**
+   * Returns whether the specified S-expression is a list of length two
+   * whose first element is a symbol and whose second element is a list
+   * of one or more symbols.
+   *
+   * @param sexp the S-expression to be tested
+   * @return whether the specified S-expression is a list of length two
+   * whose first element is a symbol and whose second element is a list
+   * of one or more symbols
+   */
   protected boolean wordTagList(Sexp sexp) {
     if (sexp.isSymbol())
       return false;
@@ -294,6 +524,16 @@ public class Parser
 	    list.get(1).isList() && list.get(1).list().isAllSymbols());
   }
 
+  /**
+   * Returns a new list containing only the words of the sentence to be
+   * parsed when the sentence is in the format described in the comment
+   * for the {@link #sentContainsWordsAndTags(SexpList)} method.
+   *
+   * @param sent the sentence whose words are to be extracted into a new list
+   * @return a new list containing only the words of the sentence to be
+   * parsed when the sentence is in the format described in the comment
+   * for the {@link #sentContainsWordsAndTags(SexpList)} method
+   */
   protected SexpList getWords(SexpList sent) {
     int size = sent.size();
     SexpList wordList = new SexpList(size);
@@ -302,10 +542,24 @@ public class Parser
     return wordList;
   }
 
+  /**
+   * Returns a new list containing the word symbols from the specified tree.
+   * @param tree the tree from which to extract a list of its words
+   * @return a new list containing the word symbols from the specified tree
+   */
   protected SexpList getWordsFromTree(Sexp tree) {
     return getWordsFromTree(new SexpList(), tree);
   }
 
+  /**
+   * Gets the words of the sentence to be parsed from the specified parse
+   * tree.
+   * @param wordList the list to which the words of the specified tree
+   * are to be added
+   * @param tree the tree from which to extract word symbols
+   * @return the specified <code>wordList</code> object, having been modified
+   * so that each word symbol from the specified tree was added to its end
+   */
   protected SexpList getWordsFromTree(SexpList wordList, Sexp tree) {
     if (Language.treebank.isPreterminal(tree)) {
       Word word = Language.treebank.makeWord(tree);
@@ -320,11 +574,29 @@ public class Parser
     return wordList;
   }
 
+  /**
+   * Collects a list of symbols that are the part-of-speech tags (preterminals)
+   * of the specified tree.
+   *
+   * @param tree the tree from which to extract a list of part-of-speech tags
+   * @return a new list of symbols that are the part-of-speech tags
+   *         (preterminals) of the specified tree.
+   */
   protected SexpList getTagListsFromTree(Sexp tree) {
     Sexp taggedSentence = Util.collectTaggedWords(tree);
     return getTagLists(taggedSentence.list());
   }
 
+  /**
+   * Returns a new list of the tag lists for each word when the specified
+   * sentence is in the format described in the comments for the {@link
+   * #sentContainsWordsAndTags(SexpList)}.
+   *
+   * @param sent the sentence from which to extract tag lists
+   * @return a new list of the tag lists for each word when the specified
+   *         sentence is in the format described in the comments for the {@link
+   *         #sentContainsWordsAndTags(SexpList)}
+   */
   protected SexpList getTagLists(SexpList sent) {
     int size = sent.size();
     SexpList tagLists = new SexpList(size);
@@ -333,6 +605,18 @@ public class Parser
     return tagLists;
   }
 
+  /**
+   * Parses the specified object, which must be a {@link SexpList}.
+   *
+   * @param obj the {@link SexpList} to parse
+   * @return a parsed version of the sentence contained in the specified {@link
+   *         SexpList}, or <code>null</code> if no parse was possible under the
+   *         current model
+   *
+   * @throws RemoteException
+   *
+   * @see #parse(SexpList)
+   */
   protected Object process(Object obj) throws RemoteException {
     if (decoder == null) {
       decoder = getNewDecoder(id, server);
@@ -356,30 +640,55 @@ public class Parser
    * @see Settings#sbUserTimeout
    */
   protected static int getTimeout() {
-    String timeoutStr = Settings.get(Settings.sbUserTimeout);
-    return (timeoutStr != null ? Integer.parseInt(timeoutStr) :
-	    defaultTimeout);
+    return Settings.getIntProperty(Settings.sbUserTimeout, defaultTimeout);
   }
 
+  /**
+   * Returns the integer value of {@link Settings#serverMaxRetries}, or the
+   * specified fallback default value if that property does not exist.
+   *
+   * @param defaultValue the fallback default value to return if {@link
+   *                     Settings#serverMaxRetries} does not exist
+   * @return the integer value of {@link Settings#serverMaxRetries}, or the
+   *         specified fallback default value if that property does not exist
+   */
   protected static int getRetries(int defaultValue) {
-    return getIntProperty(Settings.serverMaxRetries, defaultValue);
+    return Settings.getIntProperty(Settings.serverMaxRetries, defaultValue);
   }
 
+  /**
+   * Returns the integer value of {@link Settings#serverRetrySleep}, or the
+   * specified fallback default value if that property does not exist.
+   *
+   * @param defaultValue the fallback default to return if {@link
+   *                     Settings#serverRetrySleep} does not exist
+   * @return the integer value of {@link Settings#serverRetrySleep}, or the
+   *         specified fallback default value if that property does not exist.
+   */
   protected static int getRetrySleep(int defaultValue) {
-    return getIntProperty(Settings.serverRetrySleep, defaultValue);
+    return Settings.getIntProperty(Settings.serverRetrySleep, defaultValue);
   }
 
+  /**
+   * Returns the boolean value of {@link Settings#serverFailover}, or the
+   * specified fallback default value if that property does not exist.
+   *
+   * @param defaultValue the fallback default value to return if {@link
+   *                     Settings#serverFailover} does not exist
+   * @return the boolean value of {@link Settings#serverFailover}, or the
+   *         specified fallback default value if that property does not exist
+   */
   protected static boolean getFailover(boolean defaultValue) {
-    String failoverStr = Settings.get(Settings.serverFailover);
-    return ((failoverStr == null) ? defaultValue :
-	    Boolean.valueOf(failoverStr).booleanValue());
+    return Settings.getBooleanProperty(Settings.serverFailover, defaultValue);
   }
 
-  protected static int getIntProperty(String property, int defaultValue) {
-    String propStr = Settings.get(property);
-    return (propStr == null) ? defaultValue : Integer.parseInt(propStr);
-  }
-
+  /**
+   * Runs this parsing client within its enclosing thread: if {@link
+   * #internalInputFilename} is <code>null</code>, then this method invokes
+   * {@link #processObjectsThenDie()}; otherwise, this method processes {@link
+   * #internalInputFilename} and outputs to {@link #internalOutputFilename} by
+   * invoking {@link #processInputFile(String,String)}.
+   */
   public void run() {
     if (internalInputFilename == null) {
       try {
@@ -408,13 +717,28 @@ public class Parser
     }
   }
 
-
+  /**
+   * Sets the {@link #internalInputFilename} and {@link #internalOutputFilename}
+   * members of this parsing client to the specified values.
+   *
+   * @param inputFilename the name of the input file to process
+   * @param outputFilename the name of the output file to create
+   */
   protected void setInternalFilenames(String inputFilename,
 				      String outputFilename) {
     internalInputFilename = inputFilename;
     internalOutputFilename = outputFilename;
   }
 
+  /**
+   * Parses the sentences contained in the specified input file, outputting the
+   * results to the specified output file.
+   *
+   * @param inputFilename  the input file to process
+   * @param outputFilename the output file to create
+   * @throws IOException if there is a problem creating the input file stream or
+   *                     writing to the created output file stream
+   */
   protected void processInputFile(String inputFilename, String outputFilename)
     throws IOException {
 
@@ -462,13 +786,30 @@ public class Parser
   }
 
   // main stuff
+  /**
+   * The bound RMI name of the {@link Switchboard} specified on the command line
+   * (defaults to {@link Switchboard#defaultBindingName}).
+   */
   protected static String switchboardName = Switchboard.defaultBindingName;
+  /** The derived data filename specified on the command line. */
   protected static String derivedDataFilename = null;
+  /** The input filename specified on the command line. */
   protected static String inputFilename = null;
+  /** The output filename specified on the command line. */
   protected static String outputFilename = null;
+  /** The settings file to use specified on the command line. */
   protected static String settingsFilename = null;
+  /** The number of parsing client to create in this JVM. */
   protected static int numClients = 1;
+  /**
+   * Indicates whether this is a stand-alone client, or is using a switchboard,
+   * as specified on the command line.
+   */
   protected static boolean standAlone = false;
+  /**
+   * Indicates whether the user specified on the command line for this client
+   * to grab its settings from the switchboard.
+   */
   protected static boolean grabSBSettings = true;
 
   private static final String[] usageMsg = {
@@ -612,6 +953,13 @@ public class Parser
     return true;
   }
 
+  /**
+   * Checks the specified settings and issues warnings to
+   * <code>System.err</code> when a current setting differs.
+   *
+   * @param sbSettings the settings to compare with the current run-time
+   * settings
+   */
   protected static void checkSettings(Properties sbSettings) {
     Iterator it = sbSettings.entrySet().iterator();
     while (it.hasNext()) {
@@ -629,6 +977,12 @@ public class Parser
     }
   }
 
+  /**
+   * Grabs the settings from the {@link Switchboard} instance and sets
+   * to be the current run-time settings.
+   * @param sb the switchboard from which to grab settings for this client
+   * @throws RemoteException
+   */
   public static void setSettingsFromSwitchboard(SwitchboardRemote sb)
     throws RemoteException {
     Properties sbSettings = sb.getSettings();
@@ -637,6 +991,31 @@ public class Parser
     Settings.setSettings(sbSettings);
   }
 
+  /**
+   * Returns a new parsing client constructed via its single-{@link String}
+   * constructor using the specified derived data filename as the argument. The
+   * run-time type of the returned parsing client will be equal to the value of
+   * {@link #parserClass} member.
+   *
+   * @param derivedDataFilename the derived data filename with which to
+   *                            construct a new parsing client instance
+   * @return a new parsing client with an internal decoder using the derived
+   * data contained in the specified file
+   *
+   * @throws NoSuchMethodException     if the class specified by {@link
+   *                                   #parserClass} does not have a constructor
+   *                                   that accepts a single {@link String} as
+   *                                   its argument
+   * @throws InvocationTargetException if the constructor of the class specified
+   *                                   by {@link #parserClass} throws an
+   *                                   exception
+   * @throws IllegalAccessException    if the constructor of the class specified
+   *                                   by {@link #parserClass} cannot be
+   *                                   accessed
+   * @throws InstantiationException    if there is a problem instantiating a new
+   *                                   instance of the class specified by {@link
+   *                                   #parserClass}
+   */
   protected static Parser getNewParser(String derivedDataFilename)
     throws NoSuchMethodException, InvocationTargetException,
 	   IllegalAccessException, InstantiationException {
@@ -646,6 +1025,30 @@ public class Parser
     return parser;
   }
 
+  /**
+   * Returns a new parsing client constructed via its single-<code>int</code>
+   * constructor using the specified timeout value as the argument. The
+   * run-time type of the returned parsing client will be equal to the value of
+   * {@link #parserClass} member.
+   *
+   * @param timeout the timeout value for the client- and server-side sockets
+   * of this RMI object
+   * @return a new parsing client that uses the switchboard
+   *
+   * @throws NoSuchMethodException     if the class specified by {@link
+   *                                   #parserClass} does not have a constructor
+   *                                   that accepts a single {@link String} as
+   *                                   its argument
+   * @throws InvocationTargetException if the constructor of the class specified
+   *                                   by {@link #parserClass} throws an
+   *                                   exception
+   * @throws IllegalAccessException    if the constructor of the class specified
+   *                                   by {@link #parserClass} cannot be
+   *                                   accessed
+   * @throws InstantiationException    if there is a problem instantiating a new
+   *                                   instance of the class specified by {@link
+   *                                   #parserClass}
+   */
   protected static Parser getNewParser(int timeout)
     throws NoSuchMethodException, InvocationTargetException,
 	   IllegalAccessException, InstantiationException {
@@ -655,10 +1058,31 @@ public class Parser
     return parser;
   }
 
+  /**
+   * Returns a new {@link File} object for the specified filename, or
+   * <code>null</code> if the specified file does not exist. An error
+   * message will be output to <code>System.err</code> if the specified
+   * file does not exist.
+   * @param filename the filename for which to create a new {@link File}
+   * object
+   * @return a new {@link File} object for the specified filename, or
+   * <code>null</code> if the specified file does not exist.
+   */
   public static File getFile(String filename) {
     return getFile(filename, true);
   }
 
+  /**
+   * Returns a new {@link File} object for the specified filename, or
+   * <code>null</code> if the specified file does not exist.
+   * file does not exist.
+   * @param filename the filename for which to create a new {@link File}
+   * object
+   * @param verbose indicates whether to output an error message to
+   * <code>System.err</code> if the specified file does not exist
+   * @return a new {@link File} object for the specified filename, or
+   * <code>null</code> if the specified file does not exist.
+   */
   public static File getFile(String filename, boolean verbose) {
     File file = new File(filename);
     if (file.exists()) {
@@ -676,7 +1100,17 @@ public class Parser
    * Contacts the switchboard, registers this parsing client and
    * gets sentences from the switchboard, parses them and returns them,
    * until the switchboard indicates there are no more sentences to
-   * process.  Multiple such clients may be created.
+   * process.  Multiple such clients may be created.  Execute the command
+   * <pre>
+   * java danbikel.parser.Parser -help
+   * </pre>
+   * for complete usage information.
+   * <p/>
+   * <b>Input file formats</b>: Input files processed by this class
+   * when it is in its stand-alone mode must contain a series of S-expressions,
+   * where each S-expression represents a sentence to be parsed.  There are
+   * three acceptable input formats for these S-expressions, described in
+   * the documentation for the {@link #parse(SexpList)} method.
    */
   public static void main(String[] args) {
     if (!processArgs(args))
@@ -704,6 +1138,7 @@ public class Parser
 	System.err.println(iae);
       }
       catch (java.lang.reflect.InvocationTargetException ite) {
+	System.err.println(invocationTargetExceptionMsg);
 	ite.printStackTrace();
       }
       catch (NoSuchMethodException nsme) {
@@ -789,6 +1224,7 @@ public class Parser
 	System.err.println(iae);
       }
       catch (java.lang.reflect.InvocationTargetException ite) {
+	System.err.println(invocationTargetExceptionMsg);
 	ite.printStackTrace();
       }
       catch (NoSuchMethodException nsme) {

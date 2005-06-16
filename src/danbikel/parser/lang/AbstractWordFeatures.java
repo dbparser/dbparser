@@ -8,7 +8,8 @@ import java.io.Serializable;
  * Provides a default abstract implementation of the {@link WordFeatures}
  * interface.
  */
-public abstract class AbstractWordFeatures implements WordFeatures, Serializable {
+public abstract class AbstractWordFeatures
+  implements WordFeatures, Serializable {
   /**
    * The unique symbol to represent unknown words.  The default value
    * is the return value of <code>Symbol.add(&quot;+unknown+&quot;)</code>;

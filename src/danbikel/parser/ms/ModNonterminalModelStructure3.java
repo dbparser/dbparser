@@ -65,7 +65,7 @@ public class ModNonterminalModelStructure3 extends ProbabilityStructure {
     case 2:
       // for p(M(t)_i | P, H, verbIntervening, map(M_i-1), subcat, side)
       Symbol mappedPrevMod =
-	Collins.mapPrevMod(modEvent.previousMods().symbolAt(0));
+	NTMapper.map(modEvent.previousMods().symbolAt(0));
       hist.add(0, Language.training().removeGapAugmentation(modEvent.parent()));
       hist.add(0, Language.training().removeGapAugmentation(modEvent.head()));
       hist.add(0, verbInterveningSym);

@@ -10,6 +10,10 @@ import java.io.Serializable;
  * <li> the word's part of speech
  * <li> an optional representation of the word's features
  * </ul>
+ *
+ * @see WordFactory
+ * @see Words
+ * @see WordFeatures
  */
 public class Word implements Serializable, Cloneable, SexpConvertible {
 
@@ -19,10 +23,20 @@ public class Word implements Serializable, Cloneable, SexpConvertible {
   // data members
   // N.B.: IF ANY MORE DATA MEMBERS ARE ADDED, make sure to update
   // the copy method
+  /** The word itself. */
   protected Symbol word;
+  /** The part-of-speech of {@link #word}. */
   protected Symbol tag;
+  /**
+   * A word-feature vector of {@link #word}.
+   *
+   * @see WordFeatures
+   */
   protected Symbol features;
 
+  /**
+   * Constructs a new instance with <code>null</code> for all data members.
+   */
   protected Word() {}
 
   /**
@@ -35,12 +49,31 @@ public class Word implements Serializable, Cloneable, SexpConvertible {
     this(word, tag, null);
   }
 
+  /**
+   * Creates a new Word object with the specified word, part of speech
+   * and word-feature vector.
+   * @param word the word
+   * @param tag the word's part of speech
+   * @param features the word's feature vector (see {@link WordFeatures})
+   */
   public Word(Symbol word, Symbol tag, Symbol features) {
     this.word = word;
     this.tag = tag;
     this.features = features;
   }
 
+  /**
+   * Constructs a word using the symbols contained in the specified
+   * S-expression, which must be a list of at least two symbols.  The first
+   * symbol is taken to be the word, the second its part of speech.  The
+   * optional third symbol is the word's feature vector ({@link #features} is
+   * left <code>null</code> if the specified list has only two elements).
+   *
+   * @param s the S-expression from which to construct a new {@link Word}
+   *          instance; this S-expression must be a {@link SexpList} of length
+   *          at least two, and containing all {@link Symbol} objects as its
+   *          elements
+   */
   public Word(Sexp s) {
     checkSexp(s);
     SexpList sexp = s.list();
@@ -50,6 +83,16 @@ public class Word implements Serializable, Cloneable, SexpConvertible {
     features = (sexpLen >= 3 ? sexp.symbolAt(2) : null);
   }
 
+  /**
+   * Checks that the S-expression passed to {@link #Word(Sexp)} is the right
+   * format. Throws an {@link IllegalArgumentException} if the specified {@link
+   * Sexp} is not in the right format.
+   *
+   * @param s the S-expression from which to construct a new {@link Word}
+   *          instance; this S-expression must be a {@link SexpList} of length
+   *          at least two, and containing all {@link Symbol} objects as its
+   *          elements
+   */
   protected void checkSexp(Sexp s) {
     if (s.isList() == false)
       throw new IllegalArgumentException(className +
@@ -159,6 +202,11 @@ public class Word implements Serializable, Cloneable, SexpConvertible {
     return b.toString();
   }
 
+  /**
+   * Returns a clone of this object, which is effectively a deep copy,
+   * since all data members of unique {@link Symbol} references.
+   * @return a clone of this object
+   */
   public Object clone() {
     try {
       return super.clone();

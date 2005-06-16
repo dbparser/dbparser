@@ -184,6 +184,16 @@ public interface Training {
    */
   public boolean isArgumentFast(Symbol label);
 
+  /**
+   * Returns the canonical version of the specified argument nonterminal,
+   * crucially including its argument augmentation.  For example,
+   * in the English Penn Treebank, the canonical version of <tt>NP-CLR-A</tt>
+   * would typically be <tt>NP-A</tt>, where <tt>A</tt> is the argument
+   * augmentation.
+   *
+   * @param argLabel the argument nonterminal to be canonicalized
+   * @return the canonical version of the specified argument nonterminal
+   */
   public Symbol getCanonicalArg(Symbol argLabel);
 
   /**
@@ -427,19 +437,6 @@ public interface Training {
    */
   public Word topWord();
 
-
-  /**
-   * Returns the symbol used in the {@link #argContexts} map to identify
-   * an offset from the head child.
-   */
-  /*
-  public Symbol headSym();
-
-  public Symbol headPreSym();
-
-  public Symbol headPostSym();
-*/
-
   /**
    * Returns a static set of possible argument nonterminals.
    *
@@ -450,6 +447,11 @@ public interface Training {
   // a couple of utility methods for removing gap/arg augmentations
   // very efficiently
 
+  /**
+   * Removes any argument augmentations from the specified nonterminal label.
+   * @param label the label whose argument augmentations are to be removed
+   * @return a new label with no argument augmentations
+   */
   public Symbol removeArgAugmentation(Symbol label);
 
   /**
@@ -464,5 +466,10 @@ public interface Training {
    */
   public Sexp removeGapAugmentation(Sexp sexp);
 
+  /**
+   * Post-processes a parse tree after decoding, eseentially undoing
+   * the steps performed in {@linkplain #preProcess(Sexp) preprocessing}.
+   * @param tree the tree to be post-processed
+   */
   public void postProcess(Sexp tree);
 }

@@ -11,7 +11,9 @@ import java.io.*;
  * data structure mirrors the head relations of this parser, where the
  * underlying lexicalized grammar productions are of the form
  * <blockquote>
- * P -> L<sub><i>n</i></sub>L<sub><i>n</i>-1</sub> ... H ... R<sub><i>n</i>-1</sub>L<sub><i>n</i></sub>
+ * P &rarr; L<sub><i>n</i></sub>L<sub><i>n</i>-1</sub>
+ * <sup>&hellip;</sup> H <sup>&hellip;</sup>
+ * R<sub><i>n</i>-1</sub>R<sub><i>n</i></sub>
  * </blockquote>
  * Since the order of the modifying nonterminals is from adjacent to the head
  * outward, this data structure stores modifying nonterminals in this order.
@@ -62,6 +64,11 @@ public class HeadTreeNode implements Serializable, SexpConvertible {
     this.postMods = postMods;
   }
 
+  /**
+   * Constructs a new instance from the specified parse tree.
+   * @param tree the parse tree from which to construct a new
+   * {@link HeadTreeNode}
+   */
   public HeadTreeNode(Sexp tree) {
     this(tree, new IntCounter());
   }
@@ -141,6 +148,10 @@ public class HeadTreeNode implements Serializable, SexpConvertible {
     System.err.println(className + ": something very bad happened");
   }
 
+  /**
+   * Returns whether this node represents a preterminal.
+   * @return whether this node represents a preterminal.
+   */
   public boolean isPreterminal() { return headChild == null; }
 
 
@@ -169,6 +180,11 @@ public class HeadTreeNode implements Serializable, SexpConvertible {
 
 
   // mutators
+  /**
+   * Sets the original version of the head word of this node, before any
+   * downcasing or other transformations were applied during training.
+   * @param originalHeadWord the original head word to set for this node
+   */
   public void setOriginalHeadWord(Symbol originalHeadWord) {
     this.originalHeadWord = originalHeadWord;
   }
@@ -199,6 +215,10 @@ public class HeadTreeNode implements Serializable, SexpConvertible {
     }
   }
 
+  /**
+   * Returns a string representation of the tree rooted at this node.
+   * @return a string representation of the tree rooted at this node
+   */
   public String toString() {
     StringBuffer sb = new StringBuffer();
     toString(sb, 0);

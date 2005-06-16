@@ -1,6 +1,7 @@
 package danbikel.switchboard;
 
 import java.rmi.Remote;
+import java.rmi.RemoteException;
 
 /**
  * Specification for a consumer of objects that have already been processed
@@ -30,7 +31,8 @@ public interface Consumer extends Remote {
    * @param outputFilename the name of the (optional) output file to be
    * created from the specified input file
    */
-  public void newFile(String inputFilename, String outputFilename);
+  public void newFile(String inputFilename, String outputFilename)
+    throws RemoteException;
 
   /**
    * Tells this consumer to consume the specified object that has been
@@ -39,7 +41,7 @@ public interface Consumer extends Remote {
    * @param numObj the processed switchboard object to be consumed by this
    * consumer instance
    */
-  public void consume(NumberedObject numObj);
+  public void consume(NumberedObject numObj) throws RemoteException;
 
   /**
    * Indicates that processing is complete for the specified input/output
@@ -48,5 +50,6 @@ public interface Consumer extends Remote {
    * @param inputFilename the name of the current input file
    * @param outputFilename the name of the output file
    */
-  public void processingComplete(String inputFilename, String outputFilename);
+  public void processingComplete(String inputFilename, String outputFilename)
+    throws RemoteException;
 }

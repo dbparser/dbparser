@@ -39,8 +39,9 @@ public class Constants {
   /** A symbol constant to represent falsity. */
   public static final Symbol falseSym = Symbol.add("false");
 
+  /** A symbol constant to represent negation.  */
   public static final Symbol notSym = Symbol.add("not");
-
+  /** A symbol constant to represent Kleene star. */
   public static final Symbol kleeneStarSym = Symbol.add("*");
 
   /**

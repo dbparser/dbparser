@@ -169,11 +169,30 @@ abstract public class Sexp implements Externalizable {
   }
 
 
+  /**
+   * Reads this {@link Sexp} object from the specified object stream (to be
+   * implemented by all concrete subclasses).
+   *
+   * @param oi the object input stream
+   * @throws IOException if the underlying stream has an exception
+   * @throws ClassNotFoundException if the class of the object that is read
+   * cannot be found
+   */
   public abstract void readExternal(ObjectInput oi)
     throws IOException, ClassNotFoundException;
 
+  /**
+   * Writes this {@link Sexp} object from the specified object stream (to be
+   * implemented by all concrete subclasses).
+   * @param oo the object output stream to which this object will be written
+   * @throws IOException if the underlying stream thrown an exception
+   */
   public abstract void writeExternal(ObjectOutput oo) throws IOException;
 
+  /**
+   * A (very simple) test driver for this class.
+   * @param args arguments (all currently ignored)
+   */
   public static void main(String[] args) {
     try {
       //System.out.println(Sexp.read("(a"));

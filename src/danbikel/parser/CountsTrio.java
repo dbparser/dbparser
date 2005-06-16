@@ -15,13 +15,13 @@ import java.io.Serializable;
 public class CountsTrio implements Serializable {
   // public constants
   /**
-   * The constant to be used as an index when adding or retrieving
-   * history counts from the <code>BiCountsTable</code>.
+   * The constant to be used as an index when adding or retrieving history
+   * counts from the <code>BiCountsTable</code> returned by {@link #history()}.
    */
   public final static int hist = 0;
   /**
-   * The constant to be used as an index when adding or retrieving
-   * diversity counts from the <code>BiCountsTable</code>.
+   * The constant to be used as an index when adding or retrieving diversity
+   * counts from the <code>BiCountsTable</code> returned by {@link #history()}.
    */
   public final static int diversity = 1;
 

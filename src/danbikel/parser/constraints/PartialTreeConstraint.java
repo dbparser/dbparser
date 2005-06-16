@@ -12,22 +12,79 @@ import java.util.*;
  * constraint set of these objects.
  */
 public class PartialTreeConstraint implements Constraint, SexpConvertible {
+  /**
+   * The parent constraint of this constraint.
+   */
   protected PartialTreeConstraint parent;
+  /**
+   * All child constraints of this constraint.
+   */
   protected List children;
+  /**
+   * The nonterminal label associated with this constraint.
+   */
   protected Symbol label;
+  /**
+   * A {@link Nonterminal} object for use with
+   * {@link Treebank#parseNonterminal(Symbol,Nonterminal)}.
+   */
   protected Nonterminal nt = new Nonterminal();
+  /**
+   * A {@link Nonterminal} object for use with
+   * {@link Treebank#parseNonterminal(Symbol,Nonterminal)}.
+   */
   protected Nonterminal otherNT = new Nonterminal();
+  /**
+   * The starting word index of the syntactic subtree covered by this
+   * constraint.
+   */
   protected int start;
+  /**
+   * The ending word index of the syntactic subtree covered by this constraint.
+   */
   protected int end;
+  /**
+   * Contains whether this constraint has been <i>partially satisfied</i>. A
+   * constraint of this type has been partially satisfied if, during the
+   * bottom-up decoding process, its label and other local information are
+   * found to be consisting with the derivation being pursued.
+   */
   protected boolean satisfied;
+  /**
+   * Contains whether this constraint has been <i>fully satisfied</i>.  A
+   * constraint of this type is fully satisfied if it is both {@linkplain
+   * #satisfied partially satisfied} and if all child constraints have been
+   * {@linkplain #fullySatisfied fully satisfied}.
+   */
   protected boolean fullySatisfied;
 
+  /**
+   * Constructs a tree of constraints rooted at the specified syntactic tree.
+   *
+   * @param tree a possibly-underspecified syntactic tree representing nodes
+   * and spans that must be produced by any derivation pursued by the
+   * decoder
+   */
   public PartialTreeConstraint(Sexp tree) {
     this(null, tree, new IntCounter(0));
   }
 
+  /**
+   * Constructs an empty constraint tree.
+   */
   protected PartialTreeConstraint() {}
 
+  /**
+   * A helper constructor for constructing a tree of constraints rooted
+   * at the specified subtree with the specified <code>parent</code>.
+   *
+   * @param parent the parent of the specified tree, or <code>null</code>
+   * if the specified tree has no parent
+   * @param tree the tree for which to construct an isomorphic tree of
+   * constraints
+   * @param currWordIdx the start index of the span covered by the specified
+   * tree, threaded through the recursive calls to this constructor
+   */
   protected PartialTreeConstraint(PartialTreeConstraint parent,
 				Sexp tree, IntCounter currWordIdx) {
     if (Language.treebank().isPreterminal(tree)) {
@@ -57,24 +114,74 @@ public class PartialTreeConstraint implements Constraint, SexpConvertible {
     }
   }
 
+  /**
+   * Returns whether this constraint corresponds to a preterminal in the
+   * original syntactic tree.
+   * @return whether this constraint corresponds to a preterminal in the
+   * original syntactic tree.
+   */
   public boolean isLeaf() { return children.size() == 0; }
 
+  /**
+   * Returns whether the specified child chart item violates this constraint
+   * by having a span beyond the boundaries of this constraint's span.
+   * @param childItem the child item to be tested
+   * @return whether the specified child chart item violates this constraint
+   * by having a span beyond the boundaries of this constraint's span.
+   */
   public boolean isViolatedByChild(Item childItem) {
     return !spanOK(childItem);
   }
 
+  /**
+   * Returns the parent of this constraint if this constraint has been {@link
+   * #fullySatisfied}; otherwise, returns this constraint.
+   * <p/>
+   * <b>Implementation note</b>: While this method does not always return the
+   * parent constraint of this constraint, the semantics of this method are
+   * appropriate for imposing partial tree constraints during a bottom-up
+   * decoding process.
+   *
+   * @return the parent of this constraint if this constraint has been {@link
+   *         #fullySatisfied}; otherwise, returns this constraint.
+   */
   public Constraint getParent() { return fullySatisfied ? parent : this; }
 
-
+  /**
+   * Returns the list of children of this constraint.
+   * @return the list of children of this constraint.
+   */
   protected List getChildren() { return children; }
+
+  /**
+   * Returns the nonterminal label associated with this constraint.
+   * @return the nonterminal label associated with this constraint.
+   */
   public Symbol label() { return label; }
+  /**
+   * Returns the start index of the span associated with this constraint.
+   * @return the start index of the span associated with this constraint.
+   */
   public int start() { return start; }
+  /**
+   * Returns the end index of the span associated with this constraint.
+   * @return the end index of the span associated with this constraint.
+   */
   public int end() { return end; }
 
+  /**
+   * Throws an {@link UnsupportedOperationException}, as this operation
+   * is not appropriate for partial tree constraints.
+   */
   public boolean isViolatedBy(Item item) {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * Returns <code>true</code>.
+   * @param item a preterminal derivation item
+   * @return <code>true</code> under all circumstances
+   */
   protected boolean isSatisfiedByPreterminal(CKYItem item) {
     //if (isLocallySatisfiedBy(item) && spanMatches(item)) {
     if (true) {
@@ -122,8 +229,21 @@ public class PartialTreeConstraint implements Constraint, SexpConvertible {
     return true;
   }
 
+  /**
+   * Returns whether this constraint has been <i>partially satisfied</i>.
+   * @return whether this constraint has been <i>partially satisfied</i>.
+   *
+   * @see #satisfied
+   */
   public boolean hasBeenSatisfied() { return satisfied; }
 
+  /**
+   * Returns whether the specified item's span does not exceed the bounds
+   * of the span associated with this constraint.
+   * @param item the chart item whose span is to be tested
+   * @return whether the specified item's span does not exceed the bounds
+   * of the span associated with this constraint.
+   */
   public boolean isLocallySatisfiedBy(Item item) {
     return spanOK(item);
   }
@@ -139,6 +259,17 @@ public class PartialTreeConstraint implements Constraint, SexpConvertible {
     return ckyItem.start() >= this.start && ckyItem.end() <= this.end();
   }
 
+  /**
+   * Returns whether the start and end indices of the specified chart item are
+   * equal to the start and end indices, respectively, of the span associated
+   * with this constraint.
+   *
+   * @param item the chart item whose span is to be compared to that associated
+   *             with this constraint
+   * @return whether the start and end indices of the specified chart item are
+   *         equal to the start and end indices, respectively, of the span
+   *         associated with this constraint.
+   */
   protected boolean spanMatches(Item item) {
     CKYItem ckyItem = (CKYItem)item;
     return ckyItem.start() == start && ckyItem.end() == end;
@@ -159,6 +290,13 @@ public class PartialTreeConstraint implements Constraint, SexpConvertible {
     return this.nt.subsumes(otherNT);
   }
 
+  /**
+   * Returns a symbolic expression representing the tree of constraints rooted
+   * at this constraint (intended for debugging purposes).
+   *
+   * @return a symbolic expression representing the tree of constraints rooted
+   *         at this constraint
+   */
   public Sexp toSexp() {
     SexpList retVal = new SexpList(children.size() + 1);
 
@@ -171,6 +309,11 @@ public class PartialTreeConstraint implements Constraint, SexpConvertible {
     return retVal;
   }
 
+  /**
+   * Returns a human-readable string representation of this constraint (intended
+   * for debugging purposes).
+   * @return a human-readable string representation of this constraint.
+   */
   public String toString() {
     return "label=" + label + ", span=(" + start + "," + end +
 	   "), parentLabel=" +

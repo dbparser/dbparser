@@ -5,7 +5,8 @@ import danbikel.lisp.*;
 import java.io.Serializable;
 
 /**
- * A class to represent the prior probabilities of lexicalized nonterminals.
+ * A class to represent the marginal probabilities of lexicalized nonterminals
+ * (loosely, if incorrectly, referred to as &ldquo;prior probabilities&rdquo;).
  */
 public class PriorEvent implements TrainerEvent, Cloneable {
   // data members
@@ -27,7 +28,9 @@ public class PriorEvent implements TrainerEvent, Cloneable {
   }
 
   // accessors
+  /** Returns the head word of this event. */
   public Word headWord() { return headWord; }
+  /** Returns the nonterminal label of this event. */
   public Symbol label() { return label; }
 
   /**
@@ -39,15 +42,28 @@ public class PriorEvent implements TrainerEvent, Cloneable {
    * via counting, P(X | Y) = P_prior(X) if Y is always the same.
    */
   public Symbol history() { return Language.training().stopSym(); }
+  /** Returns <code>null</code>. */
   public Symbol parent() { return null; }
+  /** Returns <code>null</code>. */
   public Word modHeadWord() { return null; }
 
 
   // mutators
+  /**
+   * Sets the head word and nonterminal label (all the data members) of this
+   * event.
+   *
+   * @param headWord the head word
+   * @param label    the nontemrinal label
+   */
   public void set(Word headWord, Symbol label) {
     this.headWord = headWord;
     this.label = label;
   }
+  /**
+   * Sets the head word of this event.
+   * @param headWord the head word
+   */
   public void setHeadWord(Word headWord) { this.headWord = headWord; }
   void setLabel(Symbol label) { this.label = label; }
 
@@ -60,6 +76,13 @@ public class PriorEvent implements TrainerEvent, Cloneable {
    */
   public boolean side() { throw new UnsupportedOperationException(); }
 
+  /**
+   * Returns whether the specified object is also an instance of this class
+   * and is equal to this object.
+   * @param obj the object to compare with this object
+   * @return whether the specified object is also an instance of this class
+   * and is equal to this object
+   */
   public boolean equals(Object obj) {
     if (this == obj)
       return true;
@@ -71,10 +94,18 @@ public class PriorEvent implements TrainerEvent, Cloneable {
     return headWordsEqual && label == other.label;
   }
 
+  /**
+   * Returns an S-expression string representation of the data in this object.
+   * @return an S-expression string representation of the data in this object.
+   */
   public String toString() {
     return "(" + headWord + " " + label + ")";
   }
 
+  /**
+   * Returns a hash code for this object.
+   * @return a hash code for this object.
+   */
   public int hashCode() {
     int code = 0;
     if (headWord != null)
@@ -89,6 +120,7 @@ public class PriorEvent implements TrainerEvent, Cloneable {
   public TrainerEvent copy() {
     return new PriorEvent(headWord.copy(), label);
   }
+  /** Returns a shallow copy of this object. */
   public TrainerEvent shallowCopy() {
     return new PriorEvent(headWord, label);
   }

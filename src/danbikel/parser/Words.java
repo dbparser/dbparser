@@ -2,6 +2,16 @@ package danbikel.parser;
 
 import danbikel.lisp.*;
 
+/**
+ * Provides static methods to create {@link Word} instances via an internal
+ * {@link WordFactory} instance.  The static methods of this class have
+ * identical signatures to those of the {@link WordFactory} interface.  The
+ * concrete type of the internal {@link WordFactory} instance is determined by
+ * the value of the {@link Settings#wordFactoryClass} setting.
+ *
+ * @see WordFactory
+ * @see Settings#wordFactoryClass
+ */
 public class Words {
 
   private final static String className = Words.class.getName();
@@ -31,13 +41,51 @@ public class Words {
     }
   }
 
+  /**
+   * Returns a new {@link Word} instance constructed from the specified
+   * S-expression.
+   *
+   * @param s the S-expression from which to construct a new {@link Word}
+   *          instance
+   * @return a new {@link Word} instance constructed from the specified
+   *         S-expression
+   *
+   * @see WordFactory#get(Sexp)
+   * @see Word#Word(Sexp)
+   */
   public static Word get(Sexp s) {
     return factory.get(s);
   }
+
+  /**
+   * Returns a new {@link Word} instance constructed from the specified word and
+   * tag symbols.
+   *
+   * @param word the word itself
+   * @param tag  the word's part of speech
+   * @return a new {@link Word} instance constructed from the specified word and
+   *         tag symbols
+   *
+   * @see WordFactory#get(Symbol,Symbol)
+   * @see Word#Word(Symbol,Symbol)
+   */
   public static Word get(Symbol word, Symbol tag) {
     return factory.get(word, tag);
   }
 
+  /**
+   * Returns a new {@link Word} instance constructed from the specified word,
+   * tag and feature-vector symbols.
+   *
+   * @param word     the word itself
+   * @param tag      the word's part of speech
+   * @param features the word's feature vector (see {@link WordFeatures})
+   * @return a new {@link Word} instance constructed from the specified word and
+   *         tag symbols
+   *
+   * @see WordFactory#get(Symbol,Symbol,Symbol)
+   * @see Word#Word(Symbol,Symbol,Symbol)
+   */
   public static Word get(Symbol word, Symbol tag, Symbol features) {
     return factory.get(word, tag, features);
   }

@@ -6,35 +6,36 @@ import java.util.*;
 import java.io.*;
 
 /**
- * Provides a bag implementation of subcat requirements (a <i>bag</i>
- * is a set that allows multiple occurrences of the same item).  This list
- * of all argument nonterminals is provided by {@link Training#argNonterminals}
- * map.  As a special case, this class also supports gap requirements,
- * that is, requirements equal to {@link Training#gapAugmentation}.
- * This class also provides a separate bin for miscellaneous subcat
- * requirements, such as those that can be matched via {@link
- * danbikel.parser.lang.AbstractTraining#headSym}.  All nonterminal
- * requirements are stripped of any augmentations before being counted in
- * this subcat bag.
- * <p>
+ * A &ldquo;broken&rdquo; version of {@link SubcatBag} that precisely reflects
+ * the details specified in Collins&rsquo; thesis (used for
+ * &ldquo;clean-room&rdquo; implementation).  <b>Catuion</b>: Changes
+ * made to the way {@link SubcatBag} operates may have rendered this class
+ * even more &ldquo;broken&rdquo; than originally intended.
+ * <p/>
+ * Provides a bag implementation of subcat requirements (a <i>bag</i> is a set
+ * that allows multiple occurrences of the same item).  This list of all
+ * argument nonterminals is provided by {@link Training#argNonterminals} map.
+ * As a special case, this class also supports gap requirements, that is,
+ * requirements equal to {@link Training#gapAugmentation}. This class also
+ * provides a separate bin for miscellaneous subcat requirements, such as those
+ * that can be matched via {@link danbikel.parser.lang.AbstractTraining#headSym}.
+ *  All nonterminal requirements are stripped of any augmentations before being
+ * counted in this subcat bag.
+ * <p/>
  * The comment for the <code>toSexp</code> method describes the way in which
  * this class represents miscellaneous requirements.
- * <p>
- * <b>Bugs</b>:
- * <ol>
- * <li>This class provides special-case bins for counting gap
- * and miscellaneous subcat requirements.  If this parsing package is
- * expanded to include additional elements that are possible
- * generative requirements, and these elements do not appear in {@link
- * Training#argNonterminals}, unless it is modified, this class will
- * simply put these elements in the miscellaneous bin.
- * <li>This class cannot collect more than 127 total occurrences of
- * requirements.  This is well beyond the number of arguments ever postulated
- * in any human language, but <i>not</i> necessarily beyond the number
- * of generative requirements that might be needed by a future parsing
- * model.  A corollary of this limitation is that the number of occurrences
- * of a particular requirement may not exceed 127.
- * </ol>
+ * <p/>
+ * <b>Bugs</b>: <ol> <li>This class provides special-case bins for counting gap
+ * and miscellaneous subcat requirements.  If this parsing package is expanded
+ * to include additional elements that are possible generative requirements, and
+ * these elements do not appear in {@link Training#argNonterminals}, unless it
+ * is modified, this class will simply put these elements in the miscellaneous
+ * bin. <li>This class cannot collect more than 127 total occurrences of
+ * requirements.  This is well beyond the number of arguments ever postulated in
+ * any human language, but <i>not</i> necessarily beyond the number of
+ * generative requirements that might be needed by a future parsing model.  A
+ * corollary of this limitation is that the number of occurrences of a
+ * particular requirement may not exceed 127. </ol>
  *
  * @see Subcats
  * @see #toSexp()

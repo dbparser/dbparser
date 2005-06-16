@@ -8,18 +8,38 @@ import danbikel.parser.Language;
 import danbikel.parser.Settings;
 import danbikel.parser.Constants;
 
+/**
+ * Reads a series of heuristics to determine the distinguished head child of a
+ * context-free production (a parent and its ordered list of children in
+ * a syntax tree).  Because a default head-finding rule is always supplied
+ * even if one is not specified, it is guaranteed that every tree in which
+ * head-finding is performed will have a unique head-lexicalization.
+ * <p/>
+ * <b>Important note</b>: This class is similar to {@link HeadFinder}, except
+ * that it is &ldquo;broken&rdquo; in the sense that instead of doing the
+ * closest possible emulation of Collins&rsquo; parsing model, it only uses
+ * details found in Collins&rsquo; published papers.  See <a
+ * href="http://www.cis.upenn.edu/~dbikel/papers/collins-intricacies.pdf">Intricacies
+ * of Collins&rdquo; Parsing Model</a> for details.
+ */
 public class BrokenHeadFinder extends danbikel.parser.lang.AbstractHeadFinder {
   Treebank treebank = Language.treebank();
 
   /**
    * Constructs an English head-finding object, getting the name of the head
-   * table from the value of
-   * <code>Settings.get(Settings.headTablePrefix&nbsp;+&nbsp;Language.getLanguage())</code>.
-   * The named head table is searched for in the locations that are searched
-   * by the method {@link Settings#getFileOrResourceAsStream(Class,String)}.
-   * <p>
+   * table from the value of <code>Settings.get(Settings.headTablePrefix&nbsp;+&nbsp;Language.getLanguage())</code>.
+   * The named head table is searched for in the locations that are searched by
+   * the method {@link Settings#getFileOrResourceAsStream(Class,String)}.
+   * <p/>
    * This constructor will be invoked upon the initialization of the
    * <code>Language</code> class.
+   * <p/>
+   * <b>Important note</b>: This class is similar to {@link HeadFinder}, except
+   * that it is &ldquo;broken&rdquo; in the sense that instead of doing the
+   * closest possible emulation of Collins&rsquo; parsing model, it only uses
+   * details found in Collins&rsquo; published papers.  See <a
+   * href="http://www.cis.upenn.edu/~dbikel/papers/collins-intricacies.pdf">Intricacies
+   * of Collins&rdquo; Parsing Model</a>.
    *
    * @see Settings#getFileOrResourceAsStream(Class, String)
    */

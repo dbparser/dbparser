@@ -5,13 +5,47 @@ import danbikel.lisp.*;
 import java.rmi.RemoteException;
 import java.util.*;
 
+/**
+ * A wrapper object for a {@link DecoderServerRemote} instance that provides
+ * probability caching.  Allmethods that return either probabilities or log
+ * probabilities first check and internal probability cache before requesting a
+ * probability using the {@link DecoderServerRemote} instance.  Cache size is
+ * determined by the value of the setting {@link Settings#decoderLocalCacheSize}.
+ *
+ * @see Settings#decoderLocalCacheSize
+ * @see Settings#decoderUseLocalProbabilityCache
+ * @see ProbabilityCache
+ */
 public class CachingDecoderServer implements DecoderServerRemote {
+  /**
+   * The stub through which all method invocations on this object will flow.
+   * Methods that return probabilities use a cache, whereas all other methods
+   * flow through to this stub directly.
+   */
   protected DecoderServerRemote stub;
+
+  /**
+   * The cache used for storing probabilities.
+   *
+   * @see Settings#decoderLocalCacheSize
+   * @see Settings#decoderUseLocalProbabilityCache
+   */
   protected ProbabilityCache cache;
+  /**
+   * The number of cache accesses over the lifetime of this object.
+   */
   protected int numAccesses = 0;
+  /**
+   * The number of cache hits over the lifetime of this object.
+   */
   protected int numHits = 0;
 
 
+  /**
+   * Constructs a new instance around the specified stub.
+   *
+   * @param stub the stub to use for flow-through calls
+   */
   public CachingDecoderServer(DecoderServerRemote stub) {
     this.stub = stub;
     String cacheSizeStr = Settings.get(Settings.decoderLocalCacheSize);
@@ -19,10 +53,21 @@ public class CachingDecoderServer implements DecoderServerRemote {
     cache = new ProbabilityCache(cacheSize);
   }
 
+  /**
+   * Inserts the specified {@link TrainerEvent} and its associated probability
+   * into this object's probability cache.
+   * @param key the event whose probability is to be cached
+   * @param value the probability to be cached
+   */
   protected void putInCache(TrainerEvent key, double value) {
     cache.put(key.copy(), value);
   }
 
+  /**
+   * The unique identifier of this {@link DecoderServerRemote} instance.
+   * @return the id of this {@link DecoderServerRemote} instance.
+   * @throws RemoteException
+   */
   public int id() throws RemoteException {
     return stub.id();
   }

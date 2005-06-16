@@ -13,10 +13,15 @@ import java.util.*;
 import java.io.*;
 
 /**
- * Provides tag mapping function for collapsing Arabic part-of-speech tags
- * to Penn Treebank equivalents.  This mapping was provided by Ann Bies.
+ * Provides tag mapping function for collapsing Arabic part-of-speech tags to
+ * Penn Treebank equivalents.  The original mapping was provided by Ann Bies of
+ * the <a href="http://www.ircs.upenn.edu/">Institute for Research in Cognitive
+ * Science</a> at the <a href="http://www.upenn.edu/">University of
+ * Pennsylvania</a>.
  */
 public class TagMap {
+  private TagMap() {}
+
   // constants
   private final static String className = TagMap.class.getName();
 

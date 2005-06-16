@@ -315,7 +315,7 @@ public class Switchboard
      * along with the name of the output file, via its
      * {@link Consumer#newFile(String,String)} method.
      */
-    void registerConsumer(Consumer c) {
+    void registerConsumer(Consumer c) throws RemoteException {
       c.newFile(inName, outName);
     }
 
@@ -407,7 +407,7 @@ public class Switchboard
       return retval;
     }
 
-    synchronized void writeToLog(NumberedObject numObj) {
+    synchronized void writeToLog(NumberedObject numObj) throws RemoteException {
       synchronized (consumers) {
 	if (consumers.size() > 0) {
 	  Iterator it = consumers.iterator();
@@ -2116,7 +2116,7 @@ public class Switchboard
    * file in the <code>files</code> map, sets the <code>currFile</code>
    * data member and informs consumers of a new file, if one is found.
    */
-  void gotoNextFile(int clientId) {
+  void gotoNextFile(int clientId) throws RemoteException {
     if (unopenedFiles.size() == 0)
       return;
 
@@ -2212,7 +2212,7 @@ public class Switchboard
    * @see #processFile(String,String,String)
    * @see #processFile(String,String,String,boolean)
    */
-  public void registerConsumer(Consumer consumer) {
+  public void registerConsumer(Consumer consumer) throws RemoteException {
     synchronized (consumers) {
       consumers.add(consumer);
     }

@@ -60,36 +60,40 @@ public class EventCountsConsumer implements Consumer, Runnable {
 
   /**
    * Constructs a new event counts consumer.  If the value of the
-   * <code>asynchronousWrite</code> parameter is <code>true</code>, then
-   * event counts will be aggregated in  an internal <code>CountsTable</code>,
-   * and at periodic intervals, the aggregated event counts will be passed
-   * off to a separate thread for appending to the current output file.
-   * This appending will happen in parallel with the
-   * consumption of new events in a freshly-cleared <code>CountsTable</code>.
-   * The interval between writing to the output file is determined by the
-   * value of {@link #getWriteInterval}.  If <code>asynchronousWrite</code> is
-   * <code>true</code> and the <code>strictWriteInterval</code> parameter is
-   * <code>true</code>, then it is guaranteed that the internal counts table
-   * will contain aggregate counts from exactly {@link #getWriteInterval}
-   * sentences before being handed off to the output thread.  If the
-   * <code>strictWriteInterval</code> parameter is <code>false</code>, then
-   * the internal counts table will contain events from <i>at least</i>
-   * {@link #getWriteInterval} sentences.  If the
-   * <code>asynchronousWrite</code> parameter is <code>false</code> then
-   * the value of this parameter will be ignored
+   * <code>asynchronousWrite</code> parameter is <code>true</code>, then event
+   * counts will be aggregated in  an internal <code>CountsTable</code>, and at
+   * periodic intervals, the aggregated event counts will be passed off to a
+   * separate thread for appending to the current output file. This appending
+   * will happen in parallel with the consumption of new events in a
+   * freshly-cleared <code>CountsTable</code>. The interval between writing to
+   * the output file is determined by the value of {@link #getWriteInterval}.
+   * If <code>asynchronousWrite</code> is <code>true</code> and the
+   * <code>strictWriteInterval</code> parameter is <code>true</code>, then it is
+   * guaranteed that the internal counts table will contain aggregate counts
+   * from exactly {@link #getWriteInterval} sentences before being handed off to
+   * the output thread.  If the <code>strictWriteInterval</code> parameter is
+   * <code>false</code>, then the internal counts table will contain events from
+   * <i>at least</i> {@link #getWriteInterval} sentences.  If the
+   * <code>asynchronousWrite</code> parameter is <code>false</code> then the
+   * value of the <code>strictWriteInterval</code> parameter will be ignored.
    *
-   * @param asynchronousWrite indicates whether or not to append event counts
-   * to the output file asynchronously (that is, in parallel)
-   * with the consumption of new event counts
+   * @param asynchronousWrite   indicates whether or not to append event counts
+   *                            to the output file asynchronously (that is, in
+   *                            parallel) with the consumption of new event
+   *                            counts
    * @param strictWriteInterval if <code>asynchronousWrite</code> is
-   * <code>true</code> and this parameter is <code>true</code>, then
-   * it is guaranteed that the internal counts table will contain aggregate
-   * counts from exactly {@link #getWriteInterval} sentences before
-   * being handed off to the output thread; if this parameter is
-   * <code>false</code>, then the internal counts table will contain events
-   * from <i>at least</i> {@link #getWriteInterval} sentences; if
-   * the <code>asynchronousWrite</code> parameter is <code>false</code> then
-   * the value of this parameter will be ignored
+   *                            <code>true</code> and this parameter is
+   *                            <code>true</code>, then it is guaranteed that
+   *                            the internal counts table will contain aggregate
+   *                            counts from exactly {@link #getWriteInterval}
+   *                            sentences before being handed off to the output
+   *                            thread; if this parameter is <code>false</code>,
+   *                            then the internal counts table will contain
+   *                            events from <i>at least</i> {@link
+   *                            #getWriteInterval} sentences; if the
+   *                            <code>asynchronousWrite</code> parameter is
+   *                            <code>false</code> then the value of this
+   *                            parameter will be ignored
    */
   public EventCountsConsumer(boolean asynchronousWrite,
 			     boolean strictWriteInterval) {
@@ -102,14 +106,25 @@ public class EventCountsConsumer implements Consumer, Runnable {
     }
   }
 
+  /** Gets the write interval for this consumer. */
   public int getWriteInterval() { return writeInterval; }
+  /** Sets the write interval for this consumer. */
   public void setWriteInterval(int writeInterval) {
     this.writeInterval = writeInterval;
   }
 
+  /**
+   * Indicates to use the count threshold specified by {@link
+   * Settings#countThreshold}, which means that events below that threshold will
+   * be removed.
+   */
   public void useCountThreshold() {
     useCountThreshold = true;
   }
+  /**
+   * Indicates not to use the count threshold specified by {@link
+   * Settings#countThreshold}.
+   */
   public void dontUseCountThreshold() {
     useCountThreshold = false;
   }
@@ -189,6 +204,15 @@ public class EventCountsConsumer implements Consumer, Runnable {
     }
   }
 
+  /**
+   * A helper method used by {@link #consume(NumberedObject)} to perform
+   * consumption of objects that are periodicially written to an output file by
+   * a separate &ldquo;dumper&rdquo; thread.  This method is only used if the
+   * <code>asynchronousWrite</code> argument to one of the constructors is
+   * <code>true</code>.
+   *
+   * @param obj the object to be consumed
+   */
   synchronized public void consumeForDumper(NumberedObject obj) {
     // note that this method is ONLY called if asynchronousWrite is true
     if (strictWriteInterval) {
@@ -279,6 +303,19 @@ public class EventCountsConsumer implements Consumer, Runnable {
     }
   }
 
+  /**
+   * Allows this object to used as a &ldquo;dumper&rdquo; thread for
+   * periodically writing consumed objects to an output file.  A dumper thread
+   * is only created when the <code>asynchronousWrite</code> argument of the
+   * constructors that take such an argument is <code>true</code>, or if
+   * {@linkplain #EventCountsConsumer() the default constructor} is used.  A
+   * dumper thread is created by {@link #newFile(String, String)}.
+   *
+   * @see #EventCountsConsumer()
+   * @see #EventCountsConsumer(boolean)
+   * @see #EventCountsConsumer(boolean,boolean)
+   * @see #newFile(String,String)
+   */
   public void run() {
     writeOutput();
   }

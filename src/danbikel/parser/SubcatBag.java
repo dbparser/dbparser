@@ -493,6 +493,12 @@ public class SubcatBag implements Subcat, Externalizable {
     return list;
   }
 
+  /**
+   * Writes this object to the specified output stream.
+   *
+   * @param stream the stream to which to write this object
+   * @throws IOException if there is a problem writing to the specified stream
+   */
   public void writeExternal(ObjectOutput stream) throws IOException {
     stream.writeByte(size());
     stream.writeInt(counts.length - 1);
@@ -501,6 +507,17 @@ public class SubcatBag implements Subcat, Externalizable {
       stream.writeByte(counts[countIdx]);
     }
   }
+
+  /**
+   * Reads a serialized instance of this class from the specified stream.
+   *
+   * @param stream the stream from which to read a serialized instance of this
+   *               class
+   * @throws IOException            if there is a problem reading from the
+   *                                specified stream
+   * @throws ClassNotFoundException if the concrete type of the object to be
+   *                                read cannot be found
+   */
   public void readExternal(ObjectInput stream)
     throws IOException, ClassNotFoundException {
     counts[sizeIdx] = stream.readByte();

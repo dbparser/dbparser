@@ -20,7 +20,21 @@ import java.io.*;
  */
 public class AnalyzeDisns {
 
+  private AnalyzeDisns() {}
+
+  /**
+   * The {@link BiCountsTable} index for retrieving the Jensen-Shannon
+   * divergence from a history context (distribution) at a particular back-off
+   * level to its corresponding zeroeth back-off level (maximal context) history
+   * context.
+   */
   public final static int toZeroIdx = 0;
+  /**
+   * The {@link BiCountsTable} index for retrieving the Jensen-Shannon
+   * divergence from a history context (distribution) at a particular back-off
+   * level to its corresponding previous back-off level (greater context)
+   * history context.
+   */
   public final static int toPrevIdx = 1;
 
   /**
@@ -96,6 +110,15 @@ public class AnalyzeDisns {
     return klDist;
   }
 
+  /**
+   * A debugging method for analyzing a particular event in the modifier
+   * word model.
+   * @param mc the model collection from which to access the modifier word
+   * model
+   * @param eventStr the string to be converted to an S-expression that
+   * represents the {@link TrainerEvent} to be analyzed
+   * @throws IOException
+   */
   public static void analyzeModWordDisn(ModelCollection mc, String eventStr)
     throws IOException {
 
@@ -160,6 +183,11 @@ public class AnalyzeDisns {
     */
   }
 
+  /**
+   * A debugging method that outputs all histories of the specified model
+   * to {@link System#out}.
+   * @param model the model whose histories are to be output
+   */
   public static void outputHistories(Model model) {
     Iterator histIt = model.counts[0].history().entrySet().iterator();
     while (histIt.hasNext()) {
@@ -227,6 +255,13 @@ public class AnalyzeDisns {
     return logProbs;
   }
 
+  /**
+   * A method to compute a model's entropy statistics for all estimated
+   * distributions.
+   * @param model the model whose entropy statistics are to be computed
+   * @return an array mapping every history of every back-off level to its
+   * entropy
+   */
   public static CountsTable[] computeModelEntropies(Model model) {
     ProbabilityStructure structure = model.getProbStructure();
     int numLevels = structure.numLevels();
@@ -235,6 +270,19 @@ public class AnalyzeDisns {
       entropy[i] = new CountsTableImpl();
     return computeModelEntropies(model, entropy);
   }
+
+  /**
+   * A method to compute a model's entropy statistics for all estimated
+   * distributions.
+   *
+   * @param model   the model whose entropy statistics are to be computed
+   * @param entropy an array of length
+   *                <code>model.getProbStructure().numLevels()</code>
+   *                in which to store entropy statistics for every history of
+   *                every back-off level of the specified model
+   * @return an array mapping every history of every back-off level to its
+   *         entropy
+   */
   public static CountsTable[] computeModelEntropies(Model model,
 						    CountsTable[] entropy) {
     ProbabilityStructure structure = model.getProbStructure();
@@ -344,6 +392,15 @@ public class AnalyzeDisns {
     writer.close();
   }
 
+  /**
+   * Returns an array of {@link CountsTable} instances in which to store the
+   * entropy of every history at every back-off level.  The array will
+   * necessarily be of length <code>model.getProbStructure().numLevels()</code>.
+   *
+   * @param model the model for which entropies are to be computed
+   * @return an array of {@link CountsTable} instances in which to store the
+   * entropy of every history at every back-off level
+   */
   public static CountsTable[] newEntropyCountsTables(Model model) {
     ProbabilityStructure structure = model.getProbStructure();
     int numLevels = structure.numLevels();
@@ -354,6 +411,19 @@ public class AnalyzeDisns {
     return entropy;
   }
 
+  /**
+   * Returns an array of {@link BiCountsTable} instances in which to store the
+   * JS divergence of every history at every back-off level, both to the
+   * previous back-off level and to the zeroeth back-off level.  The array will
+   * necessarily be of length <code>model.getProbStructure().numLevels()</code>.
+   *
+   * @param model the model for which entropies are to be computed
+   * @return an array of {@link BiCountsTable} instances in which to store the
+   *         JS divergence of every history at every back-off level
+   *
+   * @see #toPrevIdx
+   * @see #toZeroIdx
+   */
   public static BiCountsTable[] newJSCountsTables(Model model) {
     ProbabilityStructure structure = model.getProbStructure();
     int numLevels = structure.numLevels();
@@ -363,6 +433,18 @@ public class AnalyzeDisns {
     return js;
   }
 
+  /**
+   * A method invoked by {@link Model} when {@link
+   * Settings#modelDoPruning} is <tt>true</tt>: entropy values and
+   * JS divergence values are used in the parameter-pruning method.
+   *
+   * @param model the model whose entropies and JS divergence statistics
+   * are to be computed
+   * @param entropy the array of counts tables in which to store the
+   * entropies of the specified model's distributions
+   * @param js the array of {@link BiCountsTable} objects in which to store
+   * the JS divergence statistics of the specified model's distributions
+   */
   public static void computeEntropyAndJSStats(Model model,
 					      CountsTable[] entropy,
 					      BiCountsTable[] js) {

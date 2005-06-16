@@ -5,9 +5,11 @@ import java.io.*;
 import danbikel.lisp.*;
 
 /**
- * This class is identical to {@link danbikel.parser.chinese.Training}, except
- * that it overrides {@link
- * danbikel.parser.lang.AbstractTraining#addBaseNPs(Sexp)} to do nothing.
+ * This class is identical to its superclass
+ * {@link danbikel.parser.chinese.Training},
+ * except that it overrides
+ * {@link danbikel.parser.lang.AbstractTraining#addBaseNPs(Sexp)}
+ * to do nothing.
  */
 public class NoNPBTraining extends Training {
   /**
@@ -32,7 +34,12 @@ public class NoNPBTraining extends Training {
     return tree;
   }
 
-  /** Test driver for this class. */
+  /**
+   * Test driver for this class. Simply invokes <code>main</code> of the
+   * superclass with the specified argument array.
+   *
+   * @see Training#main(String[])
+   */
   public static void main(String[] args) {
     Training.main(args);
   }

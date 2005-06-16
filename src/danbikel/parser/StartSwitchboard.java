@@ -9,6 +9,8 @@ import java.rmi.server.*;
 
 public class StartSwitchboard {
 
+  private StartSwitchboard() {}
+
   // constants
   private static final String outFilenameSuffix = ".parsed";
 
@@ -63,6 +65,11 @@ public class StartSwitchboard {
     "\t-- ends a list of items (such as log files)"
   };
 
+  /**
+   * Removes any and all directory components of the specified filename.
+   * @param filename the filename from which to get the tail
+   * @return the tail of the specified filename
+   */
   protected final static String getTail(String filename) {
     int lastSepIdx = filename.lastIndexOf(File.separator) + 1;
     return filename.substring(lastSepIdx);

@@ -105,6 +105,15 @@ public class SymbolicCollectionWriter implements Serializable {
     writer.write(")\n");
   }
 
+  /**
+   * Writes the specified set to the specified writer (with no header).
+   * Synonymous with <code>writeSet(set,&nbsp;null,&nbsp;writer)</code>.
+   * @param set the set whose elements are to be written to the specified
+   * writer
+   * @param writer the writer to which to write the specified set
+   * @throws IOException if there is a problem writing the elements
+   * of the specified set to the specified writer
+   */
   public static void writeSet(Set set, Writer writer) throws IOException {
     writeSet(set, null, writer);
   }

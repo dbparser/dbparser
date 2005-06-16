@@ -4,6 +4,8 @@ import java.util.HashMap;
 import danbikel.util.*;
 import danbikel.lisp.*;
 import danbikel.parser.constraints.*;
+import danbikel.parser.util.Util;
+
 import java.io.*;
 import java.util.*;
 import java.rmi.*;
@@ -14,10 +16,22 @@ import java.rmi.*;
 public class Decoder implements Serializable {
 
   // inner class for decoding timeouts
+  /**
+   * Exception to be thrown when the maximum parse time has been reached.
+   *
+   * @see Settings#maxParseTime
+   */
   protected static class TimeoutException extends Exception {
+    /**
+     * Constructs a new timeout exception with no message.
+     */
     TimeoutException() {
       super();
     }
+    /**
+     * Constructs a new timeout exception with the specified message.
+     * @param s the message for this timeout exception
+     */
     TimeoutException(String s) {
       super(s);
     }
@@ -86,14 +100,27 @@ public class Decoder implements Serializable {
 
   // constants
   private final static String className = Decoder.class.getName();
+  /** The value of {@link Constants#LEFT} cached for better readability. */
   protected final static boolean LEFT = Constants.LEFT;
+  /** The value of {@link Constants#RIGHT} cached for better readability. */
   protected final static boolean RIGHT = Constants.RIGHT;
   // cache some constants from Constants class, for more readable code
+  /** The value of {@link Constants#logOfZero} cached for readability. */
   protected final static double logOfZero = Constants.logOfZero;
+  /** The value of {@link Constants#logProbCertain} cached for readability. */
   protected final static double logProbCertain = Constants.logProbCertain;
-
+  /**
+   * An array of {@link Subcat} of length zero.
+   *
+   * @see #getPossibleSubcats(java.util.Map,HeadEvent,ProbabilityStructure,int)
+   */
   protected final static Subcat[] zeroSubcatArr = new Subcat[0];
 
+  /**
+   * A writer wrapped around {@link System#err} for error messages that might
+   * contain encoding-specific characters.  The encoding of the writer
+   * is {@link Language#encoding()}.
+   */
   protected final static PrintWriter err;
   static {
     Writer osw = null;
@@ -114,8 +141,17 @@ public class Decoder implements Serializable {
    * A list containing only {@link Training#startSym()}, which is the
    * type of list that should be used when there are zero real previous
    * modifiers (to start the Markov modifier process).
+   *
+   * @see Trainer#newStartList()
    */
   protected final SexpList startList = Trainer.newStartList();
+  /**
+   * A list containing only {@link Training#startWord()}, which is the
+   * type of list that should be used when there are zero real previous
+   * modifiers (to start the Markov modifier process).
+   *
+   * @see Trainer#newStartWordList()
+   */
   protected final WordList startWordList = Trainer.newStartWordList();
 
   // data members
@@ -129,17 +165,27 @@ public class Decoder implements Serializable {
   protected SexpList sentence;
   /** The length of the current sentence, cached here for convenience. */
   protected int sentLen;
+  /**
+   * The maximum length of sentences to be parsed.  All sentences greater
+   * than this length will be skipped.
+   * @see Settings#maxSentLen
+   */
   protected int maxSentLen =
     Integer.parseInt(Settings.get(Settings.maxSentLen));
   /**
    * The maximum number of top-scoring parses for the various
    * <code>parse</code> methods to return.
+   * @see Settings#kBest
    */
   protected int kBest =
     Math.max(1, Integer.parseInt(Settings.get(Settings.kBest)));
-  /** The timer (used when Settings.maxParseTime is greater than zero) */
+  /**
+   * The timer (used when Settings.maxParseTime is greater than zero).
+   * @see Settings#maxParseTime
+   */
   protected final int maxParseTime =
     Integer.parseInt(Settings.get(Settings.maxParseTime));
+  /** An object for keeping track of wall-clock time. */
   protected Time time = new Time();
   /** The parsing chart. */
   protected CKYChart chart;
@@ -199,8 +245,24 @@ public class Decoder implements Serializable {
       model structure. */
   protected int modNonterminalPSLastLevel;
   // these next three data members are used by {@link #preProcess}
+  /**
+   * A map of each word pruned during training to its set of part-of-speech tags
+   * observed with its pruned instances.  This map is used by {@link
+   * Training#removeWord Training.removeWord}.
+decod   * @see DecoderServerRemote#prunedPreterms()
+   */
   protected Map prunedPretermsPosMap;
+  /**
+   * The set of part-of-speech tags of words pruned during training.  This set
+   * is used by {@link Training#removeWord Training.removeWord}.
+   * @see DecoderServerRemote#prunedPreterms()
+   */
   protected Set prunedPretermsPosSet;
+  /**
+   * A map of each punctuation word that was pruned during training to the
+   * set of its parts of speech observed with the pruned instances.
+   * @see DecoderServerRemote#prunedPunctuation()
+   */
   protected Map prunedPunctuationPosMap;
   // these next two data members are also kept in CKYChart, but we keep
   // them here as well, for debugging purposes
@@ -257,6 +319,10 @@ public class Decoder implements Serializable {
    */
   protected boolean useHeadToParentMap =
     Settings.getBoolean(Settings.decoderUseHeadToParentMap);
+  /**
+   * The boolean value of the {@link Settings#useSimpleModNonterminalMap}
+   * setting.
+   */
   protected boolean useSimpleModNonterminalMap =
     Settings.getBoolean(Settings.useSimpleModNonterminalMap);
   /**
@@ -313,15 +379,20 @@ public class Decoder implements Serializable {
   protected List stopProbItemsToAdd = new ArrayList();
   // lookup TrainerEvent objects (created once here, and constantly mutated
   // throughout decoding)
+  /** A reusable {@link PriorEvent} object for look-ups in tables. */
   protected PriorEvent lookupPriorEvent = new PriorEvent(null, null);
+  /** A reusable {@link HeadEvent} object for look-ups in tables. */
   protected HeadEvent lookupHeadEvent =
     new HeadEvent(null, null, null, emptySubcat, emptySubcat);
+  /** A reusable {@link ModifierEvent} object for look-ups in tables. */
   protected ModifierEvent lookupModEvent =
     new ModifierEvent(null, null, null, SexpList.emptyList, null, null, null,
 		      emptySubcat, false, false);
+  /** A reusable {@link ModifierEvent} object for look-ups in tables. */
   protected ModifierEvent lookupLeftStopEvent =
     new ModifierEvent(null, null, null, SexpList.emptyList, null, null, null,
 		      emptySubcat, false, false);
+  /** A reusable {@link ModifierEvent} object for look-ups in tables. */
   protected ModifierEvent lookupRightStopEvent =
     new ModifierEvent(null, null, null, SexpList.emptyList, null, null, null,
 		      emptySubcat, false, false);
@@ -339,25 +410,83 @@ public class Decoder implements Serializable {
    */
   protected Set wordSet = new HashSet();
   // data member used by both getPrevMods and getPrevModWords
+  /**
+   * A reusable list node for use by {@link #getPrevMods} and {@link
+   * #getPrevModWords}.
+   */
   protected SLNode tmpChildrenList = new SLNode(null, null);
   // data members used by getPrevMods
+  /**
+   * A reflexive map in which to store canonical versions of {@link SexpList}
+   * objects that represent unlexicalized previous modifier lists.
+   */
   protected Map canonicalPrevModLists = new danbikel.util.HashMap();
+  /**
+   * A reusable object for constructing previous modifier lists for chart
+   * items.
+   */
   protected SexpList prevModLookupList = new SexpList(numPrevMods);
   // data members used by getPrevModWords
+  /**
+   * A reusable object for constructing previous left-modifier word lists for
+   * chart items.
+   */
   protected WordList prevModWordLeftLookupList =
     WordListFactory.newList(numPrevMods);
+  /**
+   * A reusable object for constructing previous right-modifier word lists for
+   * chart items.
+   */
   protected WordList prevModWordRightLookupList =
     WordListFactory.newList(numPrevMods);
   // data members used by joinItems
+  /** A (currently unused) reusable lookup object. */
   protected Subcat lookupSubcat = Subcats.get();
   // data members used by futurePossible (when using simpleModNonterminalMap)
+  /**
+   * A reusable object used for constructing parent-head-side triples when
+   * employing the simpler of two methods for determining whether a particular modifier
+   * is possible in the context of a particular parent-head-side combination.
+   *
+   * @see Settings#useSimpleModNonterminalMap
+   * @see DecoderServerRemote#simpleModNonterminalMap()
+   */
   protected SexpList parentHeadSideLookupList =
     new SexpList(3).add(null).add(null).add(null);
+  /**
+   * A reusable object used for constructing a partially-lexicalized modifier
+   * nonterminal when employing the simpler of two methods for determining
+   * whether a particular modifier is possible in the context of a particular
+   * parent-head-side combination.
+   *
+   * @see Settings#useSimpleModNonterminalMap
+   * @see DecoderServerRemote#simpleModNonterminalMap()
+   */
   protected SexpList partiallyLexedModLookupList =
     new SexpList(2).add(null).add(null);
   // values for comma constraint-finding
+  /** The boolean value of {@link Settings#decoderUseCommaConstraint}. */
   protected boolean useCommaConstraint;
+  /**
+   * A reusable array for storing which words are considered commas for the
+   * comma-pruning constraint.  If a word at index <tt>i</tt> is such a comma,
+   * then <code>commaForPruning[i]</code> will be <code>true</code> after {@link
+   * #setCommaConstraintData()} has been invoked.
+   *
+   * @see Settings#decoderUseCommaConstraint
+   * @see #setCommaConstraintData()
+   */
   protected boolean[] commaForPruning;
+  /**
+   * A reusable array for storing which words are considered conjunctions for
+   * the conjunction-pruning constraint.  If a word at index <tt>i</tt> is such
+   * a conjunction, then <code>conjForPruning[i]</code> will be
+   * <code>true</code> after {@link #setCommaConstraintData()} has been
+   * invoked.
+   *
+   * @see Settings#decoderUseCommaConstraint
+   * @see #setCommaConstraintData()
+   */
   protected boolean[] conjForPruning;
 
   /** Cached value of {@link Settings#keepAllWords}, for efficiency and
@@ -463,7 +592,7 @@ public class Decoder implements Serializable {
       it = prunedPreterms.iterator();
       while (it.hasNext()) {
 	Word word = Language.treebank.makeWord((Sexp)it.next());
-	prunedPretermsPosMap.put(word.word(), word.tag());
+	Util.addToValueSet(prunedPretermsPosMap, word.word(), word.tag());
 	prunedPretermsPosSet.add(word.tag());
       }
       if (debugPrunedPretermsPosMap)
@@ -473,7 +602,7 @@ public class Decoder implements Serializable {
       it = prunedPunctuation.iterator();
       while (it.hasNext()) {
 	Word word = Language.treebank.makeWord((Sexp)it.next());
-	prunedPunctuationPosMap.put(word.word(), word.tag());
+	Util.addToValueSet(prunedPunctuationPosMap, word.word(), word.tag());
       }
       if (debugPrunedPunctuationPosMap)
 	System.err.println("prunedPunctuationPosMap: " +
@@ -527,10 +656,23 @@ public class Decoder implements Serializable {
     }
   }
 
+  /**
+   * Wraps the normal {@link DecoderServerRemote} instance in a caching
+   * version.
+   *
+   * @see Settings#decoderUseLocalProbabilityCache
+   * @see CachingDecoderServer
+   */
   protected void wrapCachingServer() {
     server = new CachingDecoderServer(server);
   }
 
+  /**
+   * Converts the values of the read-only {@link #headToParentMap} from {@link
+   * Set} objects to arrays of {@link Symbol}, that is, arrays of type
+   * <code>Symbol[]</code>. This is an optimization so that there is no need to
+   * create a new iterator object for each traversal of the set.
+   */
   protected void convertHeadToParentMap() {
     if (debugConvertHeadMap)
       System.err.print(className + ": converting head map...");
@@ -579,6 +721,17 @@ public class Decoder implements Serializable {
     }
   }
 
+  /**
+   * Returns whether the specified word was raised as part of the
+   * punctuation-raising procedure performed during training.
+   *
+   * @param word the word to be tested
+   * @return whether the specified word was raised as part of the
+   *         punctuation-raising procedure performed during training.
+   *
+   * @see Training#raisePunctuation(Sexp)
+   * @see #prunedPunctuationPosMap
+   */
   protected boolean isPuncRaiseWord(Sexp word) {
     return prunedPunctuationPosMap.containsKey(word);
   }
@@ -607,6 +760,14 @@ public class Decoder implements Serializable {
       err.println();
   }
 
+  /**
+   * Performs all preprocessing to the specified coordinated lists of
+   * words and part-of-speech tags of the sentence that is about to be parsed.
+   * @param sentence a list of words in a sentence to be parsed
+   * @param tags a list of part-of-speech tags in a sentence to be parsed,
+   * coordinated with the specified list of words
+   * @throws RemoteException
+   */
   protected void preProcess(SexpList sentence, SexpList tags)
   throws RemoteException {
     // preserve original sentence
@@ -695,6 +856,13 @@ public class Decoder implements Serializable {
       tags = langSpecific.listAt(1);
   }
 
+  /**
+   * Performs post-processing on a sentence that has been parsed.
+   * @param tree the parse tree of a sentence that has been parsed.
+   *
+   * @see Settings#restorePrunedWords
+   * @see Training#postProcess(Sexp)
+   */
   protected void postProcess(Sexp tree) {
     restoreOriginalWords(tree, 0);
     if (restorePrunedWords)
@@ -735,6 +903,13 @@ public class Decoder implements Serializable {
     return wordIdx;
   }
 
+  /**
+   * Restores pruned words to a parsed sentence.
+   * @param tree the parse tree of a sentence that has been parsed
+   *
+   * @see #postProcess(Sexp)
+   * @see Settings#restorePrunedWords
+   */
   protected void restorePrunedWords(Sexp tree) {
     int wordIdx = restorePrunedWordsRecursive(tree, 0);
     while (wordIdx < originalSentence.length()) {
@@ -751,6 +926,15 @@ public class Decoder implements Serializable {
     }
   }
 
+  /**
+   * The recursive helper method for {@link #restorePrunedWords(Sexp)}.  This
+   * method restores all words except those pruned from the very end of the
+   * original sentence.
+   * @param tree the tree whose pruned words are to be restored
+   * @param wordIdx the current word idx (threaded through this recursive function)
+   * @return the word index of the last word in the specified tree whose
+   * pruned words were restored
+   */
   protected int restorePrunedWordsRecursive(Sexp tree, int wordIdx) {
     Treebank treebank = Language.treebank;
     if (treebank.isPreterminal(tree))
@@ -842,6 +1026,22 @@ public class Decoder implements Serializable {
     return null;
   }
 
+  /**
+   * Gets the set of possible part-of-speech tags for a word in the sentence
+   * to be parsed.  The set returned is a list of symbols.
+   * @param tags the list of supplied part-of-speech tags with the current
+   * sentence, or <code>null</code> if no tags were supplied
+   * @param wordIdx the index of the word whose possible tags
+   * are to be gotten
+   * @param word the word at the specified index whose possible tags
+   * are to be gotten
+   * @param wordIsUnknown whether the specified word is unknown, as far
+   * as the {@link DecoderServerRemote} is concerned
+   * @param origWord the original word before any mapping to a word-feature vector
+   * @param tmpSet a temporary set used during the invocation of this method
+   * @return the set of possible part-of-speech tags for a word in the sentence
+   * to be parsed, as a list of symbols
+   */
   protected SexpList getTagSet(SexpList tags, int wordIdx, Symbol word,
 			       boolean wordIsUnknown, Symbol origWord,
 			       HashSet tmpSet) {
@@ -1055,6 +1255,13 @@ public class Decoder implements Serializable {
     } // end for each word index
   }
 
+  /**
+   * Gets the canonical {@link Word} object for the specified object.
+   * @param lookup the {@link Word} object to be canonicalized
+   * @return the canonical {@link Word} object for the specified object.
+   *
+   * @see #canonicalWords
+   */
   protected Word getCanonicalWord(Word lookup) {
     Word canonical = (Word)canonicalWords.get(lookup);
     if (canonical == null) {
@@ -1064,6 +1271,14 @@ public class Decoder implements Serializable {
     return canonical;
   }
 
+  /**
+   * Returns a new list that is the union of the two specified lists.
+   * @param l1 the first list whose element are to be in the union
+   * @param l2 the second list whose element are to be in the union
+   * @param tmpSet a temporary set to be used during the invocation of this
+   * method
+   * @return a new list that is the union of the two specified lists.
+   */
   protected SexpList setUnion(SexpList l1, SexpList l2, Set tmpSet) {
     tmpSet.clear();
     for (int i = 0; i < l1.length(); i++)
@@ -1077,15 +1292,54 @@ public class Decoder implements Serializable {
     return union;
   }
 
+  /**
+   * Parses the specified sentence.
+   *
+   * @param sentence a list of symbols representing words of a sentence to be
+   *                 parsed
+   * @return a parse tree for the specified sentence, or <code>null</code> if no
+   *         parse could be found or if a {@link TimeoutException} is thrown
+   *
+   * @throws RemoteException if the internal {@link DecoderServerRemote}
+   *                         instance throws an exception, or some other
+   *                         exception is thrown
+   */
   protected Sexp parse(SexpList sentence) throws RemoteException {
     return parse(sentence, null);
   }
 
+  /**
+   * Parses the specified sentence using the supplied list of part-of-speech
+   * tags.
+   * @param sentence a list of symbols representing the words of a sentence
+   * to be parsed
+   * @param tags a list of part-of-speech tags (symbols) coordinated with
+   * the specified list of words
+   * @return a parse tree for the specified sentence, or <code>null</code> if no
+   *         parse could be found or if a {@link TimeoutException} is thrown
+   * @throws RemoteException if the internal {@link DecoderServerRemote}
+   *                         instance throws an exception, or some other
+   *                         exception is thrown
+   */
   protected Sexp parse(SexpList sentence, SexpList tags)
     throws RemoteException {
     return parse(sentence, tags, null);
   }
 
+  /**
+   * Parses the specified sentence using the supplied list of part-of-speech
+   * tags and the supplied set of parsing constraints.
+   * @param sentence a list of symbols representing the words of a sentence
+   * to be parsed
+   * @param tags a list of part-of-speech tags (symbols) coordinated with
+   * the specified list of words
+   * @param constraints a set of parsing constraints for the specified sentence
+   * @return a parse tree for the specified sentence, or <code>null</code> if no
+   *         parse could be found or if a {@link TimeoutException} is thrown
+   * @throws RemoteException if the internal {@link DecoderServerRemote}
+   *                         instance throws an exception, or some other
+   *                         exception is thrown
+   */
   protected Sexp parse(SexpList sentence, SexpList tags,
 		       ConstraintSet constraints)
     throws RemoteException {
@@ -1327,6 +1581,16 @@ public class Decoder implements Serializable {
     }
   }
 
+  /**
+   * Adds hiden root nonterminal probabilities.  That is, for each derivation
+   * spanning the entire sentence from index 0 to the specified end index, this
+   * method produces new chart items in which the probability of producing that
+   * derivation given {@link Training#topSym()} has been multiplied to the
+   * existing item's score.
+   *
+   * @param end the index of the last word of the sentence being parsed
+   * @throws RemoteException
+   */
   protected void addTopUnaries(int end) throws RemoteException {
     topProbItemsToAdd.clear();
     Iterator sentSpanItems = chart.get(0, end);
@@ -1363,6 +1627,23 @@ public class Decoder implements Serializable {
       chart.add(0, end, (CKYItem)toAdd.next());
   }
 
+  /**
+   * Constructs all possible items spanning the specified indices and adds them
+   * to the chart.  This involves joining modificands (items to be modified)
+   * with modifiers when the modificand has not yet received its stop
+   * probabilities and when the spans of both modificand and modifier cover the
+   * specified span.
+   *
+   * @param start the index of the first word in the span for which all chart
+   *              items are to be created and added to the chart
+   * @param end   the index of the last word in the span for which all chart
+   *              items are to be created and added to the chart
+   * @throws RemoteException
+   * @throws TimeoutException if the boolean value of {@link Settings#maxParseTime}
+   *                          is greater than zero has been reached while
+   *                          parsing
+   * @see #joinItems(CKYItem,CKYItem,boolean)
+   */
   protected void complete(int start, int end)
     throws RemoteException, TimeoutException {
     for (int split = start; split < end; split++) {
@@ -1746,6 +2027,22 @@ public class Decoder implements Serializable {
     return possibleFutures;
   }
 
+  /**
+   * Finds all possible parent-head (or <i>unary</i>) productions using the root
+   * node of each existing chart item within the specified span as the head,
+   * creates new items based on these existing items, multiplying in the
+   * parent-head probability; then, using these new items, this method also
+   * creates additional new items in which stop probabilities have been
+   * multiplied; all new items are added to the chart. Stop probabilities are
+   * the probabilities associated with generating {@link Training#stopSym()} as
+   * a modifier on either side of a production.
+   *
+   * @param start the index of the first word in the span
+   * @param end   the index of the last word in the span
+   * @throws RemoteException
+   * @see #addUnaries(CKYItem, java.util.List)
+   * @see #addStopProbs(CKYItem, java.util.List)
+   */
   protected void addUnariesAndStopProbs(int start, int end)
   throws RemoteException {
     prevItemsAdded.clear();
@@ -1802,6 +2099,20 @@ public class Decoder implements Serializable {
     currItemsAdded = exchange;
   }
 
+  /**
+   * Finds all possible parent-head (or <i>unary</i>) productions using the root
+   * node of the specified chart item as the head, creates new items based on
+   * the specified item, multiplying in the parent-head probability.  All new
+   * items are added to the chart; those that are successfully added are also
+   * stored in the specified <code>itemsAdded</code> list.
+   *
+   * @param item       the item for which unary productions are to be added
+   * @param itemsAdded an empty list in which all new chart items will be
+   *                   stored
+   * @return the specified <code>itemsAdded</code> list having been modified
+   *
+   * @throws RemoteException
+   */
   protected List addUnaries(CKYItem item, List itemsAdded)
   throws RemoteException {
     // get possible parent nonterminals
@@ -1968,6 +2279,20 @@ public class Decoder implements Serializable {
     return itemsAdded;
   }
 
+  /**
+   * Gets all possible {@link Subcat}s for the context contained in the
+   * specified {@link HeadEvent}.
+   *
+   * @param subcatMap the map of contexts to sets of possible {@link Subcat}
+   *                  objects (each set is an array of {@link Subcat})
+   * @param headEvent the head event for whose context possible subcats are to
+   *                  be gotten
+   * @param subcatPS  the probability structure for generating subcats
+   * @param lastLevel the last level of back-off for the specified subcat
+   *                  probability structure
+   * @return all possible {@link Subcat}s for the context contained in the
+   *         specified {@link HeadEvent}
+   */
   protected final Subcat[] getPossibleSubcats(Map subcatMap, HeadEvent headEvent,
 					    ProbabilityStructure subcatPS,
 					    int lastLevel) {
@@ -1976,6 +2301,22 @@ public class Decoder implements Serializable {
     return subcats == null ? zeroSubcatArr : subcats;
   }
 
+  /**
+   * Adds stop probabilities to the specified item and adds these items to the
+   * chart; as a side effect, all items successfully added to the chart are also
+   * stored in the specified <code>itemsAdded</code> list.  Stop probabilities
+   * are the probabilities associated with generating {@link Training#stopSym()}
+   * as a modifier on either side of a production.
+   *
+   * @param item       the item for which stop probabilites are to be added,
+   *                   creating a new &ldquo;stopped&rdquo; item
+   * @param itemsAdded a list into which chart items added by this method are to
+   *                   be stored
+   * @return the specified <code>itemsAdded</code> list, modified by this
+   *         method
+   *
+   * @throws RemoteException
+   */
   protected List addStopProbs(CKYItem item, List itemsAdded)
     throws RemoteException {
     if (!(item.leftSubcat().empty() && item.rightSubcat().empty()))
@@ -2079,6 +2420,8 @@ public class Decoder implements Serializable {
    * Creates a new previous-modifier list given the specified current list
    * and the last modifier on a particular side.
    *
+   * @param item the item for which a previous-modifier list is to be
+   * constructed
    * @param modChildren the last node of modifying children on a particular
    * side of the head of a chart item
    * @return the list whose first element is the label of the specified
@@ -2087,7 +2430,7 @@ public class Decoder implements Serializable {
    * (which is "bumped off" the edge, since the previous-modifier list
    * has a constant length)
    */
-  private final SexpList getPrevMods(CKYItem item, SLNode modChildren) {
+  protected SexpList getPrevMods(CKYItem item, SLNode modChildren) {
     if (modChildren == null)
       return startList;
     prevModLookupList.clear();
@@ -2119,8 +2462,24 @@ public class Decoder implements Serializable {
     return canonical;
   }
 
-  private final WordList getPrevModWords(CKYItem item, SLNode modChildren,
-					 boolean side) {
+  /**
+   * Creates a new previous-modifier word list given the specified current list
+   * and the last modifier on a particular side.
+   *
+   * @param item        the item for which a previous-modifier list is to be
+   *                    constructed
+   * @param modChildren the last node of modifying children on a particular side
+   *                    of the head of a chart item
+   * @param side        the side of the specified item's head child on which the
+   *                    specified modifier children occur
+   * @return the list whose first element is the head word of the specified
+   *         modifying child and whose subsequent elements are those of the
+   *         specified <code>itemPrevMods</code> list, without its final element
+   *         (which is "bumped off" the edge, since the previous-modifier list
+   *         has a constant length)
+   */
+  protected WordList getPrevModWords(CKYItem item, SLNode modChildren,
+				     boolean side) {
     if (modChildren == null)
       return startWordList;
     WordList wordList =
@@ -2151,10 +2510,27 @@ public class Decoder implements Serializable {
    * word is not a comma and when it is not the case that the word at
    * <code>end</code> is <i>not</i> a conunction.  The check for a conjunction
    * is to allow chart items representing partial derivations of the form
-   * <tt>P --&gt; <i>alpha</i> , CC</tt>, where <i>alpha</i> is a sequence
-   * of nonterminals.  This addition to Mike Collins' definition of the comma
-   * constraint was necessary because, unlike in Collins' parser, commas
-   * and conjunctions are generated in two separate steps.
+   * <blockquote>
+   * <tt>P</tt>&nbsp;&rarr;&nbsp;<i>&alpha;&nbsp;&beta;&nbsp;&gamma;</i>
+   * </blockquote>
+   * where
+   * <ul>
+   * <li><i>&alpha;</i> is a sequence of nonterminals,
+   * <li><i>&beta;</i> is a single nonterminal that is the comma preterminal,
+   *     as defined by {@link Treebank#isComma(Symbol)} and
+   * <li><i>&gamma;</i> is a single nonterminal that is a conjunction
+   *     preterminal, as defined by {@link Treebank#isConjunction(Symbol)}.
+   * </ul>
+   * <p/>
+   * In the English Penn Treebank, the concrete form of this partial
+   * derivation would be
+   * <blockquote>
+   * <tt>P</tt>&nbsp;&rarr;&nbsp;<i>&alpha;</i>&nbsp;<tt>,&nbsp;CC</tt>
+   * </blockquote>
+   * <p/>
+   * This addition to Mike Collins&rsquo; definition of the comma constraint
+   * was necessary because, unlike in Collins' parser, commas and conjunctions
+   * are generated in two separate steps.
    */
   protected final boolean commaConstraintViolation(int start,
 						   int split,

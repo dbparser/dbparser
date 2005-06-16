@@ -178,4 +178,24 @@ public class Util {
     else
       sb.append(tree);
   }
+
+  /**
+   * Adds <code>value</code> to the set that is the vale of <code>key</code>
+   * in <code>map</code>; creates this set if a mapping doesn't already
+   * exist for <code>key</code>.
+   *
+   * @param map the map to be updated
+   * @param key the key in <code>map</code> whose value set is to be updated
+   * @param value the value to be added to <code>key</code>'s value set
+   */
+  public final static void addToValueSet(Map map,
+					 Object key,
+					 Object value) {
+    Set valueSet = (Set)map.get(key);
+    if (valueSet == null) {
+      valueSet = new HashSet();
+      map.put(key, valueSet);
+    }
+    valueSet.add(value);
+  }
 }

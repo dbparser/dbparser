@@ -110,6 +110,10 @@ public interface Event extends Serializable {
    */
   public int canonicalize(Map canonical);
 
+  /**
+   * Returns the hash code for this event.
+   * @return the hash code for this event
+   */
   public int hashCode();
 
   /**

@@ -7,7 +7,7 @@ public class EventCountsWriterFactory implements ObjectWriterFactory {
   private final static int minBufSize = 81920;
 
   /**
-   * Constructs a new <code>EventWriterFactory</code>.
+   * Constructs a new <code>EventCountsWriterFactory</code>.
    */
   public EventCountsWriterFactory() {
   }

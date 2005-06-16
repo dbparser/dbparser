@@ -16,6 +16,13 @@ public class InterpolatedKnesserNeyModel extends Model {
   // data members
   protected double optimalDiscountEstimate;
 
+  /**
+   * Constructs a {@link Model} instance that uses interpolated Knesser-Ney
+   * smoothing instead of the default smoothing method when estimating
+   * probabilities.
+   * @param structure the probability structure for which this model will
+   * estimate probabilities
+   */
   public InterpolatedKnesserNeyModel(ProbabilityStructure structure) {
     super(structure);
   }
@@ -116,6 +123,21 @@ public class InterpolatedKnesserNeyModel extends Model {
     */
   }
 
+  /**
+   * Returns the smoothed probability estimate of a transition contained in the
+   * specified <code>TrainerEvent</code> object.  The smoothing method employed
+   * will be the interpolated version of Knesser-Ney.
+   *
+   * @param probStructure a <code>ProbabilityStructure</code> object that is
+   *                      either {@link #structure} or a copy of it, used for
+   *                      temporary storage during the computation performed by
+   *                      this method
+   * @param event         the <code>TrainerEvent</code> containing a transition
+   *                      from a history to a future whose smoothed probability
+   *                      is to be computed
+   * @return the smoothed probability estimate of a transition contained in the
+   *         specified <code>TrainerEvent</code> object
+   */
   protected double estimateProb(ProbabilityStructure probStructure,
                                 TrainerEvent event) {
     ProbabilityStructure structure = probStructure;

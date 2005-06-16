@@ -10,7 +10,8 @@ import java.rmi.*;
 
 
 /**
- * Provides the methods necessary to perform CKY parsing on input sentences.
+ * Provides the methods necessary to perform constrained CKY parsing on input
+ * sentences so as to perform the E-step of the Inside-Outside EM algorithm.
  */
 public class EMDecoder extends Decoder {
   // debugging constants
@@ -78,13 +79,26 @@ public class EMDecoder extends Decoder {
    * as described by Stolcke (1995) and Goodman (1999).
    */
   protected final static int MAX_UNARY_PRODUCTIONS = 5;
+  /** The value of {@link Constants#probCertain}. */
   protected final static double probCertain = Constants.probCertain;
+  /** The value of {@link Constants#probImpossible}. */
   protected final static double probImpossible = Constants.probImpossible;
 
-  protected final static Subcat[] zeroSubcatArr = new Subcat[0];
-
   // data members
+  /**
+   * A temporary storage area used by {@link #addTopUnaries} for storing
+   * items to be added to the chart when iterating over a cell in the chart.
+   * <p/>
+   * <b>Bugs</b>: It is a design error to have created this {@link Set} member
+   * with the same name as the {@link Decoder#topProbItemsToAdd ArrayList}
+   * member in the superclass.  The designer of this class should be
+   * appropriately flogged.
+   */
   protected Set topProbItemsToAdd = new HashSet();
+  /**
+   * The value of all sentences' inside probabilities in log-space.  Used to
+   * gather training data log-likelihood at the end of each EM iteration.
+   */
   protected double cummulativeInsideLogProb = 0.0;
   // data members used when debugSentenceSize is true
   private float avgSentLen = 0.0f;
@@ -159,16 +173,60 @@ public class EMDecoder extends Decoder {
     } // end for each tag
   }
 
+  /**
+   * Constrain-parses the specified sentence and computes expected top-level
+   * (maximal context) event counts.  This method performs the E-step of the
+   * Inside-Outside EM algorithm (with a little bit of M thrown in, in that
+   * events are aggregated over the entire sentence).
+   *
+   * @param sentence a list of symbols representing the words of a sentence
+   * @return a counts table of the top-level (maximal context) events generated
+   *         while constrain-parsing this sentence
+   *
+   * @throws RemoteException
+   */
   protected CountsTable parseAndCollectEventCounts(SexpList sentence)
     throws RemoteException {
     return parseAndCollectEventCounts(sentence, null);
   }
 
-  protected CountsTable parseAndCollectEventCounts(SexpList sentence, SexpList tags)
+  /**
+   * Constrain-parses the specified sentence and computes expected top-level
+   * (maximal context) event counts.  This method performs the E-step of the
+   * Inside-Outside EM algorithm (with a little bit of M thrown in, in that
+   * events are aggregated over the entire sentence).
+   *
+   * @param sentence a list of symbols representing the words of a sentence
+   * @param tags     a list of symbols that represent the part-of-speech tags of
+   *                 the words of the specified sentence (coordinated with the
+   *                 specified list of words)
+   * @return a counts table of the top-level (maximal context) events generated
+   *         while constrain-parsing this sentence
+   *
+   * @throws RemoteException
+   */
+  protected CountsTable parseAndCollectEventCounts(SexpList sentence,
+						   SexpList tags)
     throws RemoteException {
     return parseAndCollectEventCounts(sentence, tags, null);
   }
 
+  /**
+   * Constrain-parses the specified sentence and computes expected top-level
+   * (maximal context) event counts.  This method performs the E-step of the
+   * Inside-Outside EM algorithm (with a little bit of M thrown in, in that
+   * events are aggregated over the entire sentence).
+   *
+   * @param sentence    a list of symbols representing the words of a sentence
+   * @param tags        a list of symbols that represent the part-of-speech tags
+   *                    of the words of the specified sentence (coordinated with
+   *                    the specified list of words)
+   * @param constraints a set of parsing constraints
+   * @return a counts table of the top-level (maximal context) events generated
+   *         while constrain-parsing this sentence
+   *
+   * @throws RemoteException
+   */
   protected CountsTable parseAndCollectEventCounts(SexpList sentence,
 						   SexpList tags,
 						   ConstraintSet constraints)
@@ -331,6 +389,10 @@ public class EMDecoder extends Decoder {
     return eventCounts;
   }
 
+  /**
+   * Computes outside probabilities for the entire chart.  This step depends
+   * on having computed inside probabilities via constrain-parsing first.
+   */
   protected void computeOutsideProbs() {
     for (int span = sentLen; span > 0; span--) {
       int split = sentLen - span + 1;
@@ -341,6 +403,13 @@ public class EMDecoder extends Decoder {
     }
   }
 
+  /**
+   * Computes outside probabilities for all derivations in the specified span.
+   * @param start the index of the first word in the span whose chart items'
+   * outside probabilities are to be computed
+   * @param end  the index of the last word in the span whose chart items'
+   * outside probabilities are to be computed
+   */
   protected void computeOutsideProbs(int start, int end) {
     // first, do a topological sort on items
     int[] levelCounts = chart.unaryLevelCounts(start, end);
@@ -397,6 +466,12 @@ public class EMDecoder extends Decoder {
     }
   }
 
+  /**
+   * Returns a counts table with the expected couunt of all top-level events
+   * produced when constrain-parsing the current sentence.
+   * @return a counts table with the expected couunt of all top-level events
+   * produced when constrain-parsing the current sentence.
+   */
   protected CountsTable computeEventCounts() {
     eventCounts.clear();
     double sentenceProb = 0.0; // set initially to additive identity
@@ -437,6 +512,19 @@ public class EMDecoder extends Decoder {
     return eventCounts;
   }
 
+  /**
+   * Computes expected counts for top-level (maximal context) events produced for the specified span
+   * when decoding the current sentence; stores these events and their expected
+   * counts in the specified {@link CountsTable} object.
+   *
+   * @param start the index of the first word in the span whose expected event
+   * counts are to be computed
+   * @param end the index of the last word in the span whose expected event
+   * counts are to be computed
+   * @param sentenceProbInverse the inverse of the total inside probability
+   * of the current sentence under the current model
+   * @param counts the table in which to store expected event counts
+   */
   protected void computeEventCounts(int start, int end,
 				    double sentenceProbInverse,
 				    CountsTable counts) {

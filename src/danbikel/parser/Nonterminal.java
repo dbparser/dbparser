@@ -8,12 +8,17 @@ import java.io.Serializable;
  * nonterminal annotation: the base label, any augmentations and any index.
  * Not following the traditional object-oriented design principles, this class
  * is used strictly for representing the data present in a complex nonterminal,
- * but that data is easily manipulated by two methods of the {@link Treebank}
- * class, <code>Treebank.parseNonterminal</code> and
+ * but that data is easily manipulated by several methods of {@link Treebank},
+ * such as <code>Treebank.parseNonterminal</code> and
  * <code>Treebank.addAugmentation</code>.
  *
  * @see Treebank#parseNonterminal(Symbol,Nonterminal)
  * @see Treebank#addAugmentation(Nonterminal,Symbol)
+ * @see Treebank#removeAugmentation(Nonterminal,Symbol)
+ * @see Treebank#containsAugmentation(Symbol,Symbol)
+ * @see Treebank#getTraceIndex(Sexp,Nonterminal)
+ * @see Treebank#stripAllButIndex(Symbol,Nonterminal)
+ * @see Treebank#stripIndex(Symbol,Nonterminal)
  */
 public class Nonterminal implements Serializable {
   /** The unaugmented base nonterminal. */
@@ -40,6 +45,17 @@ public class Nonterminal implements Serializable {
     this.index = index;
   }
 
+  /**
+   * Returns whether this nonterminal subsumes the specified nonterminal.  A
+   * nonterminal <i>X</i> subsumes another nonterminal <i>Y</i> if the base
+   * (unaugmented) nonterminal labels are identical and if <i>X</i> contains a
+   * subset of the nonterminal augmentations of <i>Y</i>.  For example,
+   * <tt>NP</tt> subsumes <tt>NP-SBJ</tt> and <tt>NP-TMP</tt> subsumes
+   * <tt>NP-TMP-CLR-1</tt>.
+   *
+   * @param other the nonterminal to test for subsumption with this nonterminal
+   * @return whether this nonterminal subsumes the specified nonterminal
+   */
   public boolean subsumes(Nonterminal other) {
     Symbol thisCanonicalBase = Language.treebank.getCanonical(base);
     Symbol otherCanonicalBase = Language.treebank.getCanonical(other.base);

@@ -113,7 +113,7 @@ public abstract class AbstractHeadFinder implements HeadFinder, Serializable {
 
   /**
    * The map of parent nonterminals to their arrays of
-   * {@link HeadFinder.HeadFindInstruction}.  When a head is being
+   * {@link AbstractHeadFinder.HeadFindInstruction}.  When a head is being
    * found, each <code>HeadFindInstruction</code> is applied in order until
    * one succeeds.
    *
@@ -121,13 +121,29 @@ public abstract class AbstractHeadFinder implements HeadFinder, Serializable {
    */
   protected HashMap headFindInstructions = new HashMap();
 
+  /**
+   * The value of {@link Settings#headFinderWarnDefaultRule}, cached here
+   * for readability and convenience.
+   */
   protected boolean warnDefaultRule =
-    Boolean.valueOf(Settings.get(Settings.headFinderWarnDefaultRule)).
-    booleanValue();
+    Settings.getBoolean(Settings.headFinderWarnDefaultRule);
 
+  /**
+   * The probability that the head child of a production will be chosen
+   * at random.
+   *
+   * @see Settings#headFinderRandomProb
+   */
   protected double probRandom =
     Double.parseDouble(Settings.get(Settings.headFinderRandomProb));
+  /**
+   * Set to <tt>true</tt> if {@link #probRandom} is greater than 0.0; otherwise,
+   * set to <tt>false</tt>.
+   */
   protected boolean useRand = probRandom > 0.0;
+  /**
+   * This class&rsquo; random number generator.
+   */
   protected Random rand;
 
   /**

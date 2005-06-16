@@ -42,15 +42,17 @@ public abstract class AbstractTraining implements Training, Serializable {
   private static final String className = Training.class.getName();
 
   /**
-   * Caches the boolean value of the string value of the property
-   * {@link Settings#addGapInfo} (conversion performed using
-   * <code>Boolean.valueOf</code>).
+   * Caches the boolean value of the property {@link Settings#addGapInfo}.
    */
   protected static final boolean addGapInfo =
-    Boolean.valueOf(Settings.get(Settings.addGapInfo)).booleanValue();
+    Settings.getBoolean(Settings.addGapInfo);
 
+  /**
+   * Caches the boolean value of the property
+   * {@link Settings#collinsRepairBaseNPs}.
+   */
   protected static final boolean repairBaseNPs =
-    Boolean.valueOf(Settings.get(Settings.collinsRepairBaseNPs)).booleanValue();
+    Settings.getBoolean(Settings.collinsRepairBaseNPs);
 
   // static map for stripping away argument augmentation from nonterminal labels
   private static danbikel.util.HashMap fastArgMap = new danbikel.util.HashMap();
@@ -60,9 +62,23 @@ public abstract class AbstractTraining implements Training, Serializable {
    * Static set for storing argument nonterminals.
    */
   protected static Set argNonterminals = null;
+  /**
+   * The symbol to indicate the list of argument-finding rules from a metadata
+   * resource.
+   */
   protected final static Symbol argContextsSym = Symbol.add("arg-contexts");
+  /**
+   * The symbol to indicate the list of node augmentations that prevent
+   * a node from being relabeled
+   */
   protected final static Symbol semTagArgStopListSym =
     Symbol.add("sem-tag-arg-stop-list");
+  /**
+   * The symbol to indicate the list of nodes to prune.
+   *
+   * @see #nodesToPrune
+   * @see #prune(Sexp)
+   */
   protected final static Symbol nodesToPruneSym = Symbol.add("prune-nodes");
   /**
    * The prefix of the property of the metadata reçsource required by the
@@ -108,7 +124,9 @@ public abstract class AbstractTraining implements Training, Serializable {
   private Nonterminal nonterminal2 = new Nonterminal();
   private Nonterminal addGapData = new Nonterminal();
 
+  /** Holds the value of {@link danbikel.parser.Language#treebank()}. */
   protected Treebank treebank = Language.treebank();
+  /** Holds the value of {@link danbikel.parser.Language#headFinder()}. */
   protected HeadFinder headFinder = Language.headFinder();
 
   /**
@@ -203,9 +221,22 @@ public abstract class AbstractTraining implements Training, Serializable {
    * implementation of {@link #prune(Sexp)}.  The set should only contain
    * objects of type <code>Symbol</code>, and the elements of this set
    * should be added in the constructor of a subclass.
+   *
+   * @see #prune(Sexp)
    */
   protected Set nodesToPrune;
 
+  /**
+   * Data member to store the set of words to prune for the default
+   * implementation of {@link #prune(Sexp)}.  The set should only contain
+   * objects of type <code>Symbol</code>, and the elements of this set should be
+   * added in the constructor of a subclass.  The default implementation will
+   * only prune a preterminal if both the part-of-speech tag is in {@link
+   * #nodesToPrune} <i><b>and</b></i> if the word is in this
+   * <code>wordsToPrune</code> set.
+   *
+   * @see #prune(Sexp)
+   */
   protected Set wordsToPrune;
 
   /**
@@ -617,6 +648,12 @@ public abstract class AbstractTraining implements Training, Serializable {
     return tree;
   }
 
+  /**
+   * Adds all preterminal subtrees to the specified set.
+   * @param preterms the set to which preterminal subtrees of the specified
+   * tree are to be added
+   * @param tree the tree from which to collect preterminal subtrees
+   */
   protected final void collectPreterms(Set preterms, Sexp tree) {
     if (treebank.isPreterminal(tree)) {
       preterms.add(tree);
@@ -883,6 +920,27 @@ public abstract class AbstractTraining implements Training, Serializable {
    */
   public Symbol defaultArgAugmentation() { return defaultArgAugmentation; }
 
+  /**
+   * Returns the canonical version of the specified argument nonterminal. The
+   * default implementation here takes the base of the (possibly compelx)
+   * nonterminal label and converts it via {@link Treebank#getCanonical(Symbol)}.
+   * For example, in the English Penn Treebank, <tt>S</tt> nonterminals that
+   * dominate trees with no subjects get converted to <tt>SG</tt>; if one of
+   * these is identified as an argument, it will be converted to <tt>SG-A</tt>;
+   * this method will return <tt>S-A</tt>, since <tt>S</tt> is the canonical
+   * version of <tt>SG</tt>.  This method is needed by the class {@link
+   * SubcatBag}.
+   * <br>
+   * <b>Implementation note</b>: This method uses an internal
+   * cache to perform argument label canonicalizations in O(1) expected time.
+   * For cache misses the actual canonicalization is handled by the {@link
+   * #getCanonicalArg(Symbol,Nonterminal)} method.
+   *
+   * @param label the argument nonterminal label to be canonicalized
+   * @return the canonical version of the sepcified argument label
+   *
+   * @see #getCanonicalArg(Symbol, Nonterminal)
+   */
   public Symbol getCanonicalArg(Symbol label) {
     Symbol canonicalArgLabel = (Symbol)canonicalArgCache.get(label);
     if (canonicalArgLabel == null) {
@@ -892,6 +950,21 @@ public abstract class AbstractTraining implements Training, Serializable {
     return canonicalArgLabel;
   }
 
+  /**
+   * Returns the canonical version of the specified argument nonterminal. The
+   * default implementation here takes the base of the (possibly compelx)
+   * nonterminal label and converts it via {@link Treebank#getCanonical(Symbol)}.
+   *  For example, in the English Penn Treebank, <tt>S</tt> nonterminals that
+   * dominate trees with no subjects get converted to <tt>SG</tt>; if one of
+   * these is identified as an argument, it will be converted to <tt>SG-A</tt>;
+   * this method will return <tt>S-A</tt>, since <tt>S</tt> is the canonical
+   * version of <tt>SG</tt>.  This method is needed by the class {@link
+   * SubcatBag}.
+   * @param label the argument nonterminal label whose canonical version is
+   * to be returned
+   * @param nonterminal the {@link Nonterminal} instance to be used
+   * @return the canonical version of the specified argument label
+   */
   public Symbol getCanonicalArg(Symbol label, Nonterminal nonterminal) {
     Nonterminal parsedLabel =
       treebank.parseNonterminal(label, nonterminal);
@@ -912,6 +985,21 @@ public abstract class AbstractTraining implements Training, Serializable {
   protected boolean isArgument(Symbol label, Nonterminal nonterminal) {
     return isArgument(label, nonterminal, true);
   }
+
+  /**
+   * Returns <code>true</code> if the specified nonterminal label has an
+   * argument augmentation.
+   * <br>
+   * <b>Implementation note</b>: This method is <i>not</i> thread-safe;
+   * for a thread-safe method, please use {@link #isArgumentFast(Symbol)}.
+   * @param label the label to be tested
+   * @param nonterminal the {@link Nonterminal} instance to be used for
+   * storing the parsed version of the specified nonterminal label
+   * @param parseLabel indicates whether to parse the specified label
+   * before checking whether it is an argument
+   * @return whether the specified nonterminal label has an argument
+   * augmentation
+   */
   protected boolean isArgument(Symbol label,
                                Nonterminal nonterminal,
                                boolean parseLabel) {
@@ -930,10 +1018,12 @@ public abstract class AbstractTraining implements Training, Serializable {
 
   /**
    * Returns <code>true</code> if the specified nonterminal label has an
-   * argument augmentation.  Unlike {@link #isArgument(Symbol)}, this
+   * argument augmentation.<br>
+   * <b>Implementation note</b>: Unlike {@link #isArgument(Symbol)}, this
    * method is thread-safe.  Also, after {@link #setUpFastArgMap(CountsTable)}
    * has been invoked, this method is much more efficient than
-   * {@link #isArgument(Symbol)}.
+   * {@link #isArgument(Symbol)}, as it uses an internal cache for O(1)
+   * expected time operation.
    *
    * @see #setUpFastArgMap(CountsTable)
    */
@@ -1605,6 +1695,29 @@ public abstract class AbstractTraining implements Training, Serializable {
     return tree;
   }
 
+  /**
+   * Changes the specified tree so that when the last child of an
+   * NPB is an S, the S gets raised to be a sibling immediately following
+   * the NPB.  That is, situations such as
+   * <pre>
+   * (NP
+   *   (NPB
+   *     (DT an)
+   *     (NN effort)
+   *     (S ...)))
+   * </pre>
+   * get transformed to
+   * <pre>
+   * (NP
+   *   (NPB
+   *     (DT an)
+   *     (NN effort))
+   *   (S ...))
+   * </pre>
+   *
+   * @param tree the tree whose base NPs are to be repaired
+   * @return a modified version of the specified tree
+   */
   public Sexp repairBaseNPs(Sexp tree) {
     if (repairBaseNPs)
       repairBaseNPs(null, -1, tree);
@@ -1914,8 +2027,26 @@ public abstract class AbstractTraining implements Training, Serializable {
    */
   public Symbol headSym() { return headSym; }
 
+  /**
+   * The symbol that is a possible mapping {@link #argContexts} to indicate
+   * to choose a child relative to the left side of the head as an argument.
+   * For example, an argument context might be <code>VP</code> mapping to
+   * <code>(head-left left MD VBD)</code>, meaning that the children to the left
+   * of the head child should be searched from left to right, and the first
+   * child found that is a member of the set <tt>{MD, VBD}</tt> should be
+   * considered a possible argument of the head.
+   */
   public Symbol headPreSym() { return headPreSym; }
 
+  /**
+   * The symbol that is a possible mapping {@link #argContexts} to indicate to
+   * choose a child relative to the right side of the head as an argument. For
+   * example, an argument context might be <code>PP</code> mapping to
+   * <code>(head-right left PP NP WHNP ADJP)</code>, meaning that the children
+   * to the right of the head child should be searched from left to right, and
+   * the first child found that is a member of the set <tt>{PP, NP, WHNP,
+   * ADJP}</tt> should be considered a possible argument of the head.
+   */
   public Symbol headPostSym() { return headPostSym; }
 
   /**
@@ -2142,6 +2273,14 @@ public abstract class AbstractTraining implements Training, Serializable {
     }
   }
 
+  /**
+   * Modifies each nonterminal in the specified tree to be its canonical
+   * version.
+   * @param tree the tree whose nonterminals are to be converted to their
+   * canonical versions
+   *
+   * @see Treebank#getCanonical(Symbol)
+   */
   protected void canonicalizeNonterminals(Sexp tree) {
     if (treebank.isPreterminal(tree)) {
       SexpList treeList = tree.list();

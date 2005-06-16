@@ -249,14 +249,42 @@ public class EMChart extends CKYChart {
   protected void setUpItemPool() {
     itemPool = new ObjectPool(EMItem.class, 50000);
   }
+
+  /**
+   * Returns a new {@link EMItem}.
+   * @return a new {@link EMItem}
+   */
   public EMItem getNewEMItem() {
     return (EMItem)super.getNewItem();
   }
 
+  /**
+   * Returns the number of unary levels for the chart entry at the specified
+   * span.
+   *
+   * @param start the start of the span for which to retrieve the number of
+   *              unary levels
+   * @param end   the end of the span for which to retrieve the number of unary
+   *              levels
+   * @return the number of unary levels for the chart entry at the specified
+   *         span.
+   */
   public int numUnaryLevels(int start, int end) {
     return ((Entry)chart[start][end]).numLevels;
   }
 
+  /**
+   * Returns an array of integers containing the number of chart items at each
+   * of the unary levels of the specified span.  The size of the array is the
+   * integer returne by {@link #numUnaryLevels(int, int)} for the same span.
+   *
+   * @param start the start of the span for which to retrieve the unary level
+   *              counts
+   * @param end   the start of the span for which to retrieve the unary level
+   *              counts
+   * @return an array of integers containing the number of chart items at each
+   *         of the unary levels of the specified span
+   */
   public int[] unaryLevelCounts(int start, int end) {
     return ((Entry)chart[start][end]).numItemsAtLevel;
   }

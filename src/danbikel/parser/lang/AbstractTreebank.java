@@ -135,7 +135,7 @@ public abstract class AbstractTreebank implements Treebank, Serializable {
 
   /**
    * Returns <code>true</code> is the specified nonterminal label represents a
-   * sentence in the current language's Treebank.  This method is intended to
+   * sentence in this language&rsquo;s Treebank.  This method is intended to
    * be used by implementations of {@link
    * Training#relabelSubjectlessSentences(Sexp)}.
    */
@@ -157,7 +157,7 @@ public abstract class AbstractTreebank implements Treebank, Serializable {
 
   /**
    * Returns the symbol that is used to augment nonterminals to indicate matrix
-   * subjects in the current language's Treebank.
+   * subjects in this language&rsquo;s Treebank.
    *
    * @see Training#relabelSubjectlessSentences(Sexp)
    */
@@ -165,8 +165,8 @@ public abstract class AbstractTreebank implements Treebank, Serializable {
 
   /**
    * Returns <code>true</code> if the specified S-expression represents
-   * a preterminal whose terminal element is the null element for the current
-   * language's Treebank.  This method is intended to be used by implementations
+   * a preterminal whose terminal element is the null element for this
+   * language&rsquo;s Treebank.  This method is intended to be used by implementations
    * of {@link Training#relabelSubjectlessSentences(Sexp)}.
    *
    * @see Training#relabelSubjectlessSentences(Sexp)
@@ -232,7 +232,7 @@ public abstract class AbstractTreebank implements Treebank, Serializable {
 
   /**
    * Returns <code>true</code> if the canonical version of the specified label
-   * is an NP for the current language's Treebank.
+   * is an NP for this language&rsquo;s Treebank.
    *
    * @see Training#addBaseNPs(Sexp)
    */

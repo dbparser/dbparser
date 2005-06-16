@@ -16,6 +16,11 @@ public interface ConstraintSet extends Collection {
 
   /**
    * Returns <code>true</code> if this constraint set forms a tree structure.
+   * The return value of this method for an implementation of this interface
+   * informs the {@link danbikel.parser.Decoder} using this {@link
+   * ConstraintSet} that it can optimize constrain-parsing by tightly coupling
+   * it with its bottom-up decoding algorithm.
+   *
    * @return <code>true</code> if this constraint set forms a tree structure.
    */
   public boolean hasTreeStructure();

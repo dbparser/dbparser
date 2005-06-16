@@ -10,20 +10,10 @@ import danbikel.parser.Language;
 import danbikel.parser.Nonterminal;
 
 /*
- * Provides data and methods speciifc to the structures found in the Chinese
- * Treebank (the
+ * Provides data and methods specific to the structures found in the
  * <a target="_blank"
- * href="http://www.cis.upenn.edu/~treebank/">Penn Treebank</a>) or any other
- * treebank that conforms to the Treebank II annotation guidelines for
- * <a target="_blank" href="ftp://ftp.cis.upenn.edu/pub/treebank/doc/tagguide.ps.gz">part-of-speech tagging</a>
- * and
- * <a target="_blank"
- * href="ftp://ftp.cis.upenn.edu/pub/treebank/doc/manual/">bracketing</a>.
- */
-
-/**
- * Provides data and methods speciifc to the structures found in the Chinese
- * Treebank.
+ * href="http://www.cis.upenn.edu/~chinese/">Chinese Treebank</a> or any other
+ * treebank that conforms to the same annotation guidelines.
  */
 public class Treebank extends danbikel.parser.lang.AbstractTreebank {
 
@@ -84,7 +74,7 @@ public class Treebank extends danbikel.parser.lang.AbstractTreebank {
   }
 
   /**
-   * Constructs an Chinese <code>Treebank</code> object.
+   * Constructs a Chinese <code>Treebank</code> object.
    */
   public Treebank() {
     super();
@@ -137,8 +127,9 @@ public class Treebank extends danbikel.parser.lang.AbstractTreebank {
    * @see Training#relabelSubjectlessSentences(Sexp)
    */
   public boolean isNullElementPreterminal(Sexp tree) {
+    String nullElStr = nullElementPreterminal.toString();
     return (isPreterminal(tree) &&
-	    tree.list().get(0).symbol().toString().startsWith(nullElementPreterminal.toString()));
+	    tree.list().get(0).symbol().toString().startsWith(nullElStr));
   }
 
   /**
@@ -246,8 +237,8 @@ public class Treebank extends danbikel.parser.lang.AbstractTreebank {
    * <code>label</code> already is in canonical form, it is returned.
    * The canonical mapping refers to transformations performed on nonterminals
    * during the training process.  Before obtaining a label's canonical form,
-   * it is also stripped of all Treebank augmentations, meaning that only
-   * the characters before the first occurrence of '-', '=' or '|' are kept.
+   * it is also stripped of all augmentations (see
+   * {@link #stripAugmentation(Symbol)}).
    *
    * @return a <code>Symbol</code> with the same print name as
    * <code>label</code>, except that all training transformations and Treebank
@@ -262,6 +253,21 @@ public class Treebank extends danbikel.parser.lang.AbstractTreebank {
     return ((mapEntry == null) ? strippedLabel : mapEntry);
   }
 
+  /**
+   * When the <tt>stripAugmentations</tt> argument is <tt>true</tt>, this method
+   * returns the same value as would be returned by {@link #getCanonical(Symbol)}
+   * when passed the <tt>label</tt> argument; otherwise, the specified nonterminal
+   * is canonicalized <i>unless</i> it contains augmentations, in which case
+   * it is returned untouched.
+   *
+   * @param label the nonterminal label for which a canonical form is to be
+   * returned
+   * @param stripAugmentations whether to strip augmentations from the
+   * specified nonterminal label before canonicalization
+   * @return a canonical version of the specified nonterminal label, unless
+   * <tt>stripAugmentations</tt> is <tt>false</tt> and the specified label
+   * contains one or more augmentations 
+   */
   public final Symbol getCanonical(Symbol label, boolean stripAugmentations) {
     if (stripAugmentations)
       return getCanonical(label);
@@ -285,7 +291,7 @@ public class Treebank extends danbikel.parser.lang.AbstractTreebank {
 
   /**
    * Returns a string of the three characters that serve as augmentation
-   * delimiters in the Penn Treebank: <code>&quot;-=|&quot;</code>.
+   * delimiters in the Chinese Treebank: <code>&quot;-=|&quot;</code>.
    */
   public String augmentationDelimiters() { return augmentationDelimStr; }
 }

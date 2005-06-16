@@ -6,7 +6,7 @@ import danbikel.lisp.Sexp;
 public class DefaultWordFactory implements WordFactory {
 
   /**
-   * Creates a word factory for <code>Word</code> objects.
+   * Creates a word factory for constructing {@link Word} objects.
    */
   public DefaultWordFactory() {}
 

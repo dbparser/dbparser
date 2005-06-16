@@ -8,26 +8,46 @@ import java.io.*;
 import java.util.*;
 
 /**
- * Provides access to all <code>Model</code> objects and maps
- * necessary for parsing.  By bundling all of this information
- * together, all of the objects necessary for parsing can be stored
- * and retrieved simply by serializing and de-serializing this object
- * to a Java object file.
+ * Provides access to all {@link Model} objects and maps necessary for parsing.
+ * By bundling all of this information together, all of the objects necessary
+ * for parsing can be stored and retrieved simply by serializing and
+ * de-serializing this object to a Java object file.  The types of output
+ * elements that are modeled are determined by {@link ProbabilityStructure}
+ * objects around which {@link Model} objects are wrapped, by the method {@link
+ * ProbabilityStructure#newModel()}. This collection holds ten different {@link
+ * Model} objects, each modeling a different output element of this parser
+ * (nonterminal, word, subcategorization frame, etc.) becuase each wraps a
+ * different type of {@link ProbabilityStructure} object. The concrete types of
+ * {@link ProbabilityStructure} objects are determined by various run-time
+ * settings, as described in the documentation for
+ * {@link Settings#globalModelStructureNumber}.  The other counts tables,
+ * maps and resources contained in this object are derived by the
+ * {@link Trainer}.
  *
+ * @see Settings#globalModelStructureNumber
  * @see Settings#precomputeProbs
  * @see Settings#writeCanonicalEvents
  */
 public class ModelCollection implements Serializable {
 
   // constants
+  /**
+   * Indicates whether to output verbose messages to <code>System.err</code>.
+   * The value of this constant is normally <code>true</code> (this <i>is</i>
+   * research software, after all).
+   */
   protected final static boolean verbose = true;
+  /**
+   * Indicates whether to invoke <code>System.gc()</code> after
+   * this object has been de-serialized from a stream.
+   */
   protected final static boolean callGCAfterReadingObject = false;
 
   // data members
 
   /**
    * An array containing all <code>Model</code> objects contained by this
-   * model collection, to be set up by {@link #createModelArray()}.
+   * model collection, set up by {@link #createModelArray()}.
    */
   protected transient Model[] modelArr;
   /** The model for lexical priors. */
@@ -146,10 +166,10 @@ public class ModelCollection implements Serializable {
   /**
    * Sets all the data members of this object.
    *
-   * @param lexPriorModel the model for prior probabilities of
+   * @param lexPriorModel the model for marginal probabilities of
    * lexical elements (for the estimation of the joint event that is a
    * fully lexicalized nonterminal)
-   * @param nonterminalPriorModel the model for prior probabilities of
+   * @param nonterminalPriorModel the model for conditional probabilities of
    * nonterminals given the lexical components (for the estimation of the
    * joint event that is a fully lexicalized nonterminal)
    * @param topNonterminalModel the head-generation model for heads whose
@@ -239,6 +259,10 @@ public class ModelCollection implements Serializable {
     this.canonicalEvents = canonicalEvents;
   }
 
+  /**
+   * Populates the {@link #modelArr} with the {@link Model} objects that
+   * are contained in this model collection.
+   */
   protected void createModelArray() {
     modelArr = new Model[] {
       lexPriorModel,
@@ -254,10 +278,20 @@ public class ModelCollection implements Serializable {
     };
   }
 
+  /**
+   * Returns an unmodifiable list view of the {@link Model} objects contained
+   * in this model collection.
+   * @return an unmodifiable list view of the {@link Model} objects contained
+   * in this model collection
+   */
   public List modelList() {
     return Collections.unmodifiableList(Arrays.asList(modelArr));
   }
 
+  /**
+   * Syntactic sugar for <code>modelList().iterator()</code>.
+   * @return the iterator of the list returned by {@link #modelList()}
+   */
   public Iterator modelIterator() {
     return modelList().iterator();
   }
@@ -274,15 +308,17 @@ public class ModelCollection implements Serializable {
   }
 
   /**
-   * Somewhat of a hack: we allow counts for a back-off level from
-   * one model to be shared with another model; in this case, the
-   * last level of back-off from the modWordModel is being
-   * shared (i.e., will be used) as the last level of back-off for
-   * topLexModel, as the last levels of both these models should just
-   * be estimating p(w | t).
+   * In a dangerous but effective way, this method shares counts for a back-off
+   * level from one model with another model; in this case, the last level of
+   * back-off from the {@link #modWordModel} is being shared (i.e., will be
+   * used) as the last level of back-off for {@link #topLexModel}, as the last
+   * levels of both these models typically estimate
+   * <i>p</i>(<i>w</i>&nbsp;|&nbsp;<i>t</i>).
    *
    * @param verbose indicates whether to print a message to
-   * <code>System.err</code>
+   *                <code>System.err</code>
+   *
+   * @see Settings#trainerShareCounts
    */
   public void shareCounts(boolean verbose) {
     if (verbose)
@@ -295,36 +331,120 @@ public class ModelCollection implements Serializable {
     modWordModel.share(modWordLastLevel, topLexModel, topLexLastLevel);
   }
 
+  /**
+   * Returns the number of unique (unlexicalized) nonterminals observed in
+   * the training data.
+   */
   public int numNonterminals() { return nonterminalArr.length; }
+  /**
+   * Returns the {@link #nonterminalMap} member.
+   */
   public Map getNonterminalMap() { return nonterminalMap; }
+  /**
+   * Returns the {@link #nonterminalArr} member.
+   */
   public Symbol[] getNonterminalArr() { return nonterminalArr; }
 
   // accessors
+  /**
+   * Returns the model for marginal probabilities of lexical elements (for the
+   * estimation of the joint event that is a fully lexicalized nonterminal)
+   */
   public Model lexPriorModel() { return lexPriorModel; }
+  /**
+   * Returns the model for conditional probabilities of nonterminals given the
+   * lexical components (for the estimation of the joint event that is a fully
+   * lexicalized nonterminal)
+   */
   public Model nonterminalPriorModel() { return nonterminalPriorModel; }
+  /**
+   * Returns the head-generation model for heads whose parents are {@link
+   * Training#topSym()}.
+   */
   public Model topNonterminalModel() { return topNonterminalModel; }
+  /**
+   * Returns the head-word generation model for heads of entire
+   * sentences.
+   */
   public Model topLexModel() { return topLexModel; }
+  /** Returns the head-generation model. */
   public Model headModel() { return headModel; }
+  /** Returns the gap-generation model. */
   public Model gapModel() { return gapModel; }
+  /** Returns the left subcat-generation model. */
   public Model leftSubcatModel() { return leftSubcatModel; }
+  /** Returns the right subcat-generation model. */
   public Model rightSubcatModel() { return rightSubcatModel; }
+  /** Returns the modifying nonterminal&ndash;generation model. */
   public Model modNonterminalModel() { return modNonterminalModel; }
+  /** Returns the model that generates head words of modifying nonterminals. */
   public Model modWordModel() { return modWordModel; }
+  /**
+   * Returns a mapping from {@link Symbol} objects representing words to
+   * their count in the training data.
+   */
   public CountsTable vocabCounter() { return vocabCounter; }
+  /**
+   * Returns a mapping from {@link Symbol} objects that are word features
+   * to their count in the training data.
+   */
   public CountsTable wordFeatureCounter() { return wordFeatureCounter; }
+  /**
+   * Returns a mapping of (unlexicalized) nonterminals to their counts in the
+   * training data.
+   */
   public CountsTable nonterminals() { return nonterminals; }
+  /**
+   * Returns a mapping from {@link Symbol} objects representing words to
+   * {@link SexpList} objects that contain the set of their possible parts of speech
+   * (a list of {@link Symbol}).
+   */
   public Map posMap() { return posMap; }
+  /**
+   * Returns a mapping from head labels to possible parent labels.
+   */
   public Map headToParentMap() { return headToParentMap; }
+  /**
+   * Returns a mapping from left subcat-prediction conditioning contexts
+   * (typically parent and head nonterminal labels) to all possible subcat
+   * frames.
+   */
   public Map leftSubcatMap() { return leftSubcatMap; }
+  /**
+   * Returns a mapping from right subcat-prediction conditioning contexts
+   * (typically parent and head nonterminal labels) to all possible subcat
+   * frames.
+   */
   public Map rightSubcatMap() { return rightSubcatMap; }
+  /**
+   * Returns a mapping from the last level of back-off of modifying nonterminal
+   * conditioning contexts to all possible modifying nonterminals.
+   */
   public Map modNonterminalMap() { return modNonterminalMap; }
+  /**
+   * Returns a map from unlexicalized parent-head-side triples to all possible
+   * partially-lexicalized modifying nonterminals.
+   */
   public Map simpleModNonterminalMap() { return simpleModNonterminalMap; }
+  /** Returns set of preterminals pruned during training. */
   public Set prunedPreterms() { return prunedPreterms; }
+  /** Returns set of punctuation preterminals pruned during training. */
   public Set prunedPunctuation() { return prunedPunctuation; }
 
+  /**
+   * Returns the reflexive map used to canonicalize objects created when
+   * deriving counts for all models in this model collection.
+   */
   public FlexibleMap canonicalEvents() { return canonicalEvents; }
 
   // utility method
+  /**
+   * Invokes {@link Model#getCacheStats()} on each {@link Model} contained in
+   * this model collection, and returns the results as a single {@link String}.
+   *
+   * @return a single string that is the concatenation of all of the {@link
+   *         Model#getCacheStats()} strings for the models in this collection
+   */
   public String getModelCacheStats() {
     StringBuffer sb = new StringBuffer(300 * modelArr.length);
     int numModels = modelArr.length;
@@ -336,6 +456,12 @@ public class ModelCollection implements Serializable {
 
   // I/O methods
 
+  /**
+   * Writes this object to the specified stream.
+   *
+   * @param s the stream to which to write this object
+   * @throws IOException if there is a problem writing to the specified stream
+   */
   protected void internalWriteObject(java.io.ObjectOutputStream s)
     throws IOException {
 
@@ -530,6 +656,14 @@ public class ModelCollection implements Serializable {
     */
   }
 
+  /**
+   * Reads an instance of this class from the specified stream.
+   * @param s the stream from which to read an instance of this class
+   * @throws IOException if there is a problem reading from the specified
+   * stream
+   * @throws ClassNotFoundException if any of the concrete types that
+   * are in the specified stream cannot be found
+   */
   protected void internalReadObject(java.io.ObjectInputStream s)
     throws IOException, ClassNotFoundException {
 

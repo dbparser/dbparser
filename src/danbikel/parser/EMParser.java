@@ -3,15 +3,23 @@ package danbikel.parser;
 import danbikel.util.*;
 import danbikel.lisp.*;
 import danbikel.switchboard.*;
-import danbikel.parser.constraints.*;
-import danbikel.parser.util.*;
-import java.util.*;
-import java.util.zip.*;
 import java.net.MalformedURLException;
 import java.rmi.*;
 import java.rmi.server.*;
 import java.io.*;
 
+/**
+ * An EM parsing client.  This class constrain-parses sentences by implementing the
+ * {@link AbstractClient#process(Object)} method of its {@link
+ * AbstractClient superclass}.  All top-level probabilities are
+ * computed by a <code>DecoderServer</code> object, which is either local
+ * or is a stub whose methods are invoked via RMI.  The actual
+ * parsing is implemented in the <code>EMDecoder</code> class.
+ *
+ * @see AbstractClient
+ * @see DecoderServer
+ * @see EMDecoder
+ */
 public class EMParser extends Parser {
   // private constants
   private final static boolean debug = false;
@@ -26,35 +34,122 @@ public class EMParser extends Parser {
     parserClass = EMParser.class;
   }
 
+  /**
+   * Constructs a new EM parsing client with an internal {@link
+   * DecoderServerRemote} instance constructed using the specified derived data
+   * filename.
+   *
+   * @param derivedDataFilename the derived data filename (output by the {@link
+   *                            Trainer}) to use for constructing an internal
+   *                            {@link DecoderServerRemote} instance
+   * @throws RemoteException        if this method is called from a remote stub
+   *                                and any of the other exceptions are thrown
+   * @throws ClassNotFoundException if the class specified by {@link
+   *                                Settings#decoderServerClass} is not found in
+   *                                this JVM's class path
+   * @throws NoSuchMethodException  if the class specified by {@link
+   *                                Settings#decoderServerClass} has no
+   *                                constructor taking a single {@link String}
+   *                                as an argument
+   * @throws java.lang.reflect.InvocationTargetException
+   *                                if the constructor of the class specified by
+   *                                {@link Settings#decoderServerClass} (the
+   *                                invocation target) throws an underlying
+   *                                exception
+   * @throws IllegalAccessException if the constructor of the class specified by
+   *                                {@link Settings#decoderServerClass} is not
+   *                                accessible from this class in this package
+   * @throws InstantiationException if the class specified by {@link
+   *                                Settings#decoderServerClass} is not
+   *                                instantiable because it is either an
+   *                                interface or abstract class
+   */
   public EMParser(String derivedDataFilename)
-    throws RemoteException, IOException, ClassNotFoundException,
+    throws RemoteException, ClassNotFoundException,
 	   NoSuchMethodException, java.lang.reflect.InvocationTargetException,
 	   IllegalAccessException, InstantiationException {
     super(derivedDataFilename);
   }
 
-  public EMParser(DecoderServerRemote server)
-    throws RemoteException, IOException, ClassNotFoundException {
+  /**
+   * Constructs a new EM parsing client using the specified {@link
+   * DecoderServerRemote} instance for probability lookups and for other
+   * resources needed by the decoder.
+   *
+   * @param server the server for this client's {@link Decoder} to use
+   * @throws RemoteException
+   */
+  public EMParser(DecoderServerRemote server) throws RemoteException {
     super(server);
   }
 
+  /**
+   * Constructs an EM parsing client with the specified socket timeout
+   * value.
+   *
+   * @param timeout the time in milliseconds before client-side
+   *                (switchboard-side) sockets used for this remote object time
+   *                out; a value of <tt>0</tt> specifies infinite timeout, which
+   *                is dangerous
+   * @throws RemoteException
+   */
   public EMParser(int timeout) throws RemoteException {
     super(timeout);
   }
+  /**
+   * Construct an EM parsing client with the specified socket timeout
+   * value using the specified port on which to accept RMI connections.
+   *
+   * @param timeout the time in milliseconds before client-side
+   * (switchboard-side) sockets used for this remote object time out;
+   * a value of <tt>0</tt> specifies infinite timeout, which is
+   * dangerous
+   * @param port the port on which this remote object is to receive
+   * remote method invocations
+   * @throws RemoteException
+   */
   public EMParser(int timeout, int port) throws RemoteException {
     super(timeout, port);
   }
+  /**
+   * Constructs an EM parsing client using the specified port on which to accept RMI connections
+   * and using the specified socket factories for client and server socket creation.
+   * @param port the port on which this remote object is to receive
+   * remote method invocations
+   * @param csf the socket factory for creating sockets for this RMI client
+   * @param ssf the socket factory for creating sockets for this RMI server
+   * @throws RemoteException
+   */
   public EMParser(int port,
 		RMIClientSocketFactory csf, RMIServerSocketFactory ssf)
     throws RemoteException {
     super(port, csf, ssf);
   }
 
+  /**
+   * Gets a new {@link Decoder} instance that uses the specified {@link
+   * DecoderServerRemote} instance.
+   *
+   * @param id     the id of this parsing client
+   * @param server the decoding server that the new decoder will use
+   * @return a new {@link Decoder} instance that uses the specified {@link
+   *         DecoderServerRemote} instance
+   */
   protected Decoder getNewDecoder(int id, DecoderServerRemote server) {
     decoder = new EMDecoder(id, server);
     return decoder;
   }
 
+  /**
+   * Collect expected counts for the specified partial parse tree/sentence.
+   * @param obj a {@link SexpList} that is in one of the three formats accepted
+   * by the decoder, but normally should be a (partial) parse tree
+   * from which constraints will be derived
+   * @return a {@link CountsTable} instance containing a mapping of all
+   * top-level (i.e., maximal context) events (of type {@link TrainerEvent})
+   * to their expected counts under the current model
+   * @throws RemoteException
+   */
   protected Object process(Object obj) throws RemoteException {
     if (decoder == null)
       getNewDecoder(id, server);
@@ -62,6 +157,18 @@ public class EMParser extends Parser {
     return parseAndCollectEventCounts(sent);
   }
 
+  /**
+   * Collect expected counts for the specified partial parse tree/sentence.
+   *
+   * @param sent a list that is in one of the three formats accepted by the
+   *             decoder, but normally should be a (partial) parse tree from
+   *             which constraints will be derived
+   * @return a mapping of all top-level (i.e., maximal context) events (of type
+   *         {@link TrainerEvent}) to their expected counts under the current
+   *         model
+   *
+   * @throws RemoteException
+   */
   public CountsTable parseAndCollectEventCounts(SexpList sent)
     throws RemoteException {
     EMDecoder emdecoder = (EMDecoder)decoder;
@@ -85,6 +192,15 @@ public class EMParser extends Parser {
     }
   }
 
+  /**
+   * Instead of simply invoking the {@link Training#preProcess(Sexp)} method,
+   * this method selectively invokes only some of the preprocessing methods of
+   * {@link Training}, so as to leave the rest of the transformations
+   * unconstrained.
+   *
+   * @param tree the tree to be preprocessed
+   * @return a preprocessed version of the specified parse tree
+   */
   protected SexpList preProcess(Sexp tree) {
     boolean stripOuterParens = (tree.list().length() == 1 &&
 				tree.list().get(0).isList());
@@ -301,6 +417,7 @@ public class EMParser extends Parser {
 	System.err.println(iae);
       }
       catch (java.lang.reflect.InvocationTargetException ite) {
+	System.err.println(invocationTargetExceptionMsg);
 	ite.printStackTrace();
       }
       catch (NoSuchMethodException nsme) {
@@ -381,6 +498,7 @@ public class EMParser extends Parser {
 	System.err.println(iae);
       }
       catch (java.lang.reflect.InvocationTargetException ite) {
+	System.err.println(invocationTargetExceptionMsg);
 	ite.printStackTrace();
       }
       catch (NoSuchMethodException nsme) {

@@ -12,16 +12,21 @@ import danbikel.lisp.*;
 
 /**
  * Provides methods for language-specific processing of training parse trees.
- * Even though this subclass of {@link danbikel.parser.Training} is
- * in the default English language package, its primary purpose is simply
- * to fill in the {@link #argContexts}, {@link #semTagArgStopSet} and
- * {@link #nodesToPrune} data members using aç metadata resource.  If this
- * capability is desired in another language package, this class may be
- * subclassed.
- * <p>
- * This class also re-defined the method
- * {@link danbikel.parser.Training#addBaseNPs(Sexp)}, with an important change
- * that is possibly only relevant to the Penn Treebank.
+ * This class&rsquo; primary purpose is simply to fill in the {@link
+ * #argContexts}, {@link #semTagArgStopSet} and {@link #nodesToPrune} data
+ * members using aç metadata resource.  If this capability is desired in another
+ * language package, this class may be subclassed.
+ * <p/>
+ * This class also re-defined the method {@link danbikel.parser.Training#addBaseNPs(Sexp)},
+ * with an important change that is possibly only relevant to the Penn
+ * Treebank.
+ * <p/>
+ * <b>Important note</b>: This class is similar to {@link Training}, except
+ * that it is &ldquo;broken&rdquo; in the sense that instead of doing the
+ * closest possible emulation of Collins&rsquo; parsing model, it only uses
+ * details found in Collins&rsquo; published papers.  See <a
+ * href="http://www.cis.upenn.edu/~dbikel/papers/collins-intricacies.pdf">Intricacies
+ * of Collins&rdquo; Parsing Model</a> for details.
  */
 public class BrokenTraining extends danbikel.parser.lang.AbstractTraining {
   // constants
@@ -63,6 +68,16 @@ public class BrokenTraining extends danbikel.parser.lang.AbstractTraining {
     return tree;
   }
 
+  /**
+   * Marks certain nodes as arguments by appending a suffix to their
+   * respective labels.  Collins&rsquo; implementation of his parsing model
+   * has very specific conditions under which a nonterminal may be identified
+   * as an argument; this implementation ignores some of those conditions,
+   * making this one of the reasons this class is &ldquo;broken&rdquo;.
+   * @param tree the tree in which to identify argument nodes
+   * @return the specified tree modified so that argument nodes are
+   * identified via a nonterminal augmentation (suffix)
+   */
   public Sexp identifyArguments(Sexp tree) {
     if (treebank.isPreterminal(tree))
       return tree;
@@ -264,7 +279,7 @@ public class BrokenTraining extends danbikel.parser.lang.AbstractTraining {
    * of relabelSubjectlessSentences(Sexp), since we are pretending we are
    * not aware that Mike defines subjectless sentences more strictly
    * than is conveyed by his thesis.
-   * These are a couple of ways in which this class is "broken".
+   * These are a couple of ways in which this class is &ldquo;broken&rdquo;.
    */
   protected boolean isTypeOfSentence(Symbol label) {
     return treebank.stripAugmentation(label) == treebank.sentenceLabel();
@@ -272,12 +287,19 @@ public class BrokenTraining extends danbikel.parser.lang.AbstractTraining {
 
   /**
    * This method has been written to do nothing to the specified tree.
-   * This is one way in which this class is "broken".
+   * This is one way in which this class is &ldquo;broken&rdquo;
    */
   public Sexp fixSubjectlessSentences(Sexp tree) {
     return tree;
   }
 
+  /**
+   * De-transforms NPs that were transformed by the
+   * {@link danbikel.parser.Training#repairBaseNPs(Sexp)} method.  This
+   * method is currently unused.
+   * @param tree the tree whose NPs are to be de-transformed
+   * @return a modified version of the specified tree
+   */
   protected Sexp unrepairBaseNPs(Sexp tree) {
     if (tree.isSymbol())
       return tree;
@@ -316,7 +338,7 @@ public class BrokenTraining extends danbikel.parser.lang.AbstractTraining {
   /**
    * The following method has been overridden so that the two unpublished
    * conditions under which one needs to add a normal NP level are overlooked.
-   * This is one reason why this class is "broken".
+   * This is one reason why this class is &ldquo;broken&rdquo;.
    */
   protected boolean needToAddNormalNPLevel(Sexp grandparent,
 					   int parentIdx, Sexp tree) {

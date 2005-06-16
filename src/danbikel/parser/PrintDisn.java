@@ -5,9 +5,30 @@ import danbikel.lisp.*;
 import java.util.*;
 import java.io.*;
 
+/**
+ * Provides a single static method, {@link #printLogProbDisn printLogProbDisn},
+ * as well as a {@link #main(String[])} method, to print a log-probability
+ * distribution for a particular event in a particular model of a model
+ * collection.
+ */
 public class PrintDisn {
   private PrintDisn() {}
 
+  /**
+   * Prints the log-probability distribution of the specified event at the
+   * specified back-off level of the specified model to the specified writer.
+   *
+   * @param writer   the writer to which to print a log-probability
+   *                 distribution
+   * @param mc       the model collection containing the specified model
+   * @param model    the model from which an event's log-probability
+   *                 distribution is to be printed
+   * @param level    the back-off level of the specified event
+   * @param hist     the event whose distribution is to be printed
+   * @param futures  the set of futures for the specified history
+   * @param tmpTrans a temporary storage object used during the invocation of
+   *                 this method
+   */
   public static void printLogProbDisn(PrintWriter writer, ModelCollection mc,
                                       Model model, int level, Event hist,
                                       Set futures, Transition tmpTrans) {
@@ -27,6 +48,14 @@ public class PrintDisn {
     }
   }
 
+  /**
+   * Prints an event's log-probability distribution to an output file.
+   * @param args a list of five arguments:
+   * <pre>
+   * usage: &lt;derived data filename&gt; &lt;back-off level&gt;
+   *        &lt;structure class name&gt; &lt;event&gt; &lt;output filename&gt;
+   * </pre>
+   */
   public static void main(String[] args) {
     if (args.length != 5) {
       System.err.println("error: need five arguments");

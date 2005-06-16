@@ -24,6 +24,13 @@ public class NPArgThreadTraining extends Training {
     super();
   }
 
+  /**
+   * Identical to {@link danbikel.parser.english.Training#preProcess}, except
+   * that {@link #threadNPArgAugmentations(danbikel.lisp.Sexp)} is invoked
+   * after all other preprocessing methods.
+   * @param tree the tree to be pre-processed
+   * @return the specified tree, modified by pre-processing methods 
+   */
   public Sexp preProcess(Sexp tree) {
     super.preProcess(tree);
     threadNPArgAugmentations(tree);

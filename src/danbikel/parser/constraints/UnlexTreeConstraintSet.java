@@ -36,9 +36,19 @@ public class UnlexTreeConstraintSet
    */
   protected ArrayList leaves = new ArrayList();
 
+  /**
+   * Constructs an empty set of constraints.
+    */
   public UnlexTreeConstraintSet() {
   }
 
+  /**
+   * Constructs a constraint set derived from the specified unlexicalized
+   * syntactic tree.
+   *
+   * @param tree the unlexicalized syntactic tree from which to construct a set
+   *             of constraints
+   */
   public UnlexTreeConstraintSet(Sexp tree) {
     buildConstraintSet(tree);
   }
@@ -57,6 +67,11 @@ public class UnlexTreeConstraintSet
     leaves.trimToSize();
   }
 
+  /**
+   * A helper method to collect all of the constraints in the specified
+   * cosntraint tree.
+   * @param tree the root of a tree of constraints to be collected
+   */
   protected void collectNodes(UnlexTreeConstraint tree) {
     size++;
     list.add(tree);
@@ -100,7 +115,15 @@ public class UnlexTreeConstraintSet
    */
   public boolean findNoViolations() { return false; }
 
+  /**
+   * Returns the root of the constraint tree contained by this object.
+   * @return the root of the constraint tree contained by this object
+   */
   public Constraint root() { return root; }
+  /**
+   * Returns the leaves of the constraint tree contained by this object.
+   * @return the leaves of the constraint tree contained by this object
+   */
   public List leaves() { return leaves; }
 
   /**
@@ -136,13 +159,24 @@ public class UnlexTreeConstraintSet
 	    headChildConstraintParent : null);
   }
 
+  /**
+   * Returns a string representation of the constraint tree encapsulated
+   * by this constraint set object.
+   * @return a string representation of the constraint tree encapsulated
+   * by this constraint set object
+   */
   public String toString() {
     return root.toSexp().toString();
   }
 
   // methods to comply with Collection interface
+  /** Returns the number of constraints in this constraint set. */
   public int size() { return size; }
 
+  /**
+   * Returns an iterator over the constraints in this set.
+   * @return an iterator over the constraints in this set
+   */
   public Iterator iterator() {
     return list.iterator();
   }

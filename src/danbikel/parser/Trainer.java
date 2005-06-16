@@ -3,6 +3,7 @@ package danbikel.parser;
 import danbikel.lisp.*;
 import danbikel.util.*;
 import danbikel.util.AbstractMapToPrimitive.*;
+import danbikel.parser.util.Util;
 
 import java.io.*;
 import java.util.*;
@@ -13,36 +14,36 @@ import java.util.HashMap;
 /**
  * Derives all counts necessary to compute the probabilities for this parser,
  * including the top-level counts and all derived counts.  The two additional
- * functions of this class are the loading and storing
- * of a text file containing top-level event counts and the loading and storing
- * of a Java object file containing all derived event counts.
- * <p>
+ * facilities of this class are (1) the loading and storing of a text file
+ * containing top-level event counts and (2) the loading and storing of a Java
+ * object file containing all derived event counts.
+ * <p/>
  * All top-level events or mappings are recorded as S-expressions with the
  * format
  * <pre>(name event count)</pre>
  * for events and
  * <pre>(name key value)</pre>
  * for mappings.
- * <p>
- * All derived counts are stored by the internal data structures of
- * several <code>Model</code> objects, which are in turn all contained within
- * a single <code>ModelCollection</code> object.  This class provides methods
- * to load and store a Java object file containing this
- * <code>ModelCollection</code>, as well as some initial objects containing
- * information about the <code>ModelCollection</code> object (see the
- * <tt>-scan</tt> flag in the usage of {@link #main the main method of this
- * class}).
- * <p>
+ * <p/>
+ * All derived counts are stored by the internal data structures of several
+ * <code>Model</code> objects, which are in turn all contained within a single
+ * <code>ModelCollection</code> object.  This class provides methods to load and
+ * store a Java object file containing this <code>ModelCollection</code>, as
+ * well as some initial objects containing information about the
+ * <code>ModelCollection</code> object (see the <tt>-scan</tt> flag in the usage
+ * of {@link #main the main method of this class}).
+ * <p/>
  * The various model objects capture the generation submodels of the different
- * output elements of the parser.  The smoothing levels of these
- * submodels are represented by <code>ProbabilityStructure</code> objects,
- * passed as parameters to the <code>Model</code> objects, at
- * {@link Model#Model(ProbabilityStructure) construction} time.  This
- * architecture provides a type of "plug-n-play" smoothing scheme for the
- * various submodels of this parser.
+ * output elements of the parser.  The smoothing levels of these submodels are
+ * represented by <code>ProbabilityStructure</code> objects, passed as
+ * parameters to the <code>Model</code> objects, at {@link
+ * Model#Model(ProbabilityStructure) construction} time.  This architecture
+ * provides a type of "plug-n-play" smoothing scheme for the various submodels
+ * of this parser.
  *
  * @see #main(String[])
  * @see Model
+ * @see ModelCollection
  * @see ProbabilityStructure
  */
 public class Trainer implements Serializable {
@@ -200,80 +201,248 @@ public class Trainer implements Serializable {
   // data members
 
   // settings
+  /** The value of the {@link Settings#unknownWordThreshold} setting. */
   protected int unknownWordThreshold;
+  /** The value of the {@link Settings#countThreshold} setting. */
   protected double countThreshold;
+  /** The value of the {@link Settings#derivedCountThreshold} setting. */
   protected double derivedCountThreshold;
+  /** The value of the {@link Settings#trainerReportingInterval} setting. */
   protected int reportingInterval;
+  /** The value of the {@link Settings#numPrevMods} setting. */
   protected int numPrevMods;
+  /** The value of the {@link Settings#numPrevWords} setting. */
   protected int numPrevWords;
+  /** The value of the {@link Settings#keepAllWords} setting. */
   protected boolean keepAllWords;
+  /** The value of the {@link Settings#keepLowFreqTags} setting. */
   protected boolean keepLowFreqTags;
+  /** *The value of the {@link Settings#downcaseWords} setting. */
   protected boolean downcaseWords;
 
   // data storage for training
+  /**
+   * A table for storing counts of (unlexicalized) nonterminals.  The keys
+   * are instances of {@link Symbol}.
+   */
   protected CountsTable nonterminals = new CountsTableImpl();
+  /**
+   * A table for storing counts of lexicalized nonterminal prior events.
+   * The keys are instances of {@link PriorEvent}.
+   */
   protected CountsTable priorEvents = new CountsTableImpl();
+  /**
+   * A table for storing counts of head-generation events. The keys are
+   * instances of {@link HeadEvent}.
+   */
   protected CountsTable headEvents = new CountsTableImpl();
+  /**
+   * A table for storing counts of modifier-generation events.  The keys are
+   * instances of {@link ModifierEvent}.
+   */
   protected CountsTable modifierEvents = new CountsTableImpl();
+  /**
+   * A table for storing counts of gap-generation events.  The keys are
+   * instances of {@link GapEvent}.
+   */
   protected CountsTable gapEvents = new CountsTableImpl();
+  /**
+   * A table for storing counts of vocabulary items.  The keys are instances
+   * of {@link Symbol}.
+   */
   protected CountsTable vocabCounter = new CountsTableImpl();
+  /**
+   * A table for storing counts of word feature&ndash;vectors.  The keys
+   * are instances of {@link Symbol}.
+   */
   protected CountsTable wordFeatureCounter = new CountsTableImpl();
-  protected Set vocab = new HashSet();
+  /**
+   * A map of words to lists of their observed part-of-speech tags.
+   * The keys in this map are instances of {@link Symbol}, and the values
+   * are {@link SexpList} instances that represent sets by containing
+   * lists of distinct {@link Symbol} objects.
+   */
   protected Map posMap = new HashMap();
+  /**
+   * A map of head child nonterminals to their observed parent nonterminals.
+   * The keys are instances of {@link Symbol}, and the values are {@link Set}
+   * instances containing {@link Symbol} objects.
+   */
   protected Map headToParentMap = new HashMap();
+  /**
+   * A map of events from the last back-off level of the left
+   * subcat&ndash;generation submodel to the set of possible left subcats.
+   * The keys are instnaces of {@link Event}, and the values are {@link Set}
+   * instances containing {@link Subcat} objects.
+   */
   protected Map leftSubcatMap = new HashMap();
+  /**
+   * A map of events from the last back-off level of the right
+   * subcat&ndash;generation submodel to the set of possible right subcats.
+   * The keys are instnaces of {@link Event}, and the values are {@link Set}
+   * instances containing {@link Subcat} objects.
+   */
   protected Map rightSubcatMap = new HashMap();
+  /**
+   * A map of events from the last back-off level of the modifier
+   * nonterminal&ndash;generation submodel to the set of possible futures
+   * (typically, a future is a modifier label and its head word's part-of-speech
+   * tag).  The keys are instances of {@link Event}, and the values are {@link
+   * Set} instances containing {@link Event} objects.
+   */
   protected Map modNonterminalMap = new HashMap();
+  /**
+   * A map from unlexicalized parent-head-side triples to all possible
+   * partially-lexicalized modifying nonterminals.  This map provides a simpler
+   * mechanism for determining whether a given modifier is possible in the
+   * current parent-head context than is provided by
+   * {@link #modNonterminalMap}.
+   * <p/>
+   * The keys are {@link SexpList} objects containing exactly three
+   * {@link Symbol} elements representing the following in a production:
+   * <ol>
+   * <li>an unlexicalized parent nonterminal
+   * <li>an unlexicalized head nonterminal
+   * <li>the direction of modification, either {@link Constants#LEFT} or
+   * {@link Constants#RIGHT}.
+   * </ol>
+   * <p/>
+   * The values consist of {@link Set} objects containing {@link SexpList}
+   * objects that contain exactly two {@link Symbol} elements representing a
+   * partially-lexicalized modifying nonterminal:
+   * <ol>
+   * <li>the unlexicalized modifying nonterminal
+   * <li>the part-of-speech tag of the modifying nonterminal's head word.
+   * </ol>
+   * <p/>
+   * An example of a partially-lexicalized nonterminal in the Penn Treebank
+   * is <code>NP(NNP)</code>, which is a noun phrase headed by a singular
+   * proper noun.
+   *
+   * @see Settings#useSimpleModNonterminalMap
+   */
   protected Map simpleModNonterminalMap = new HashMap();
+  /**
+   * A set of {@link Sexp} objects representing preterminals that were
+   * pruned during training.
+   *
+   * @see Training#prune(Sexp)
+   * @see Treebank#isPreterminal(Sexp)
+   */
   protected Set prunedPreterms;
+  /**
+   * Returns the set of preterminals ({@link Sexp} objects) that were
+   * punctuation elements that were &ldquo;raised away&rdquo; because they were
+   * either at the beginning or end of a sentence.
+   *
+   * @see Training#raisePunctuation(Sexp)
+   * @see Treebank#isPuncToRaise(Sexp)
+   */
   protected Set prunedPunctuation;
   // temporary map for canonicalizing subcat objects for
   // leftSubcatMap and rightSubcatMap data members
+  /**
+   * A reflexive map for storing canonical versions of {@link Subcat} objects.
+   */
   transient protected Map canonicalSubcatMap;
+  /** The value returned by <code>Subcats.get()</code>. */
   transient protected Subcat emptySubcat = Subcats.get();
-  protected HashSet wordFeatureTypes = new HashSet();
-  protected HashSet unknownWords = new HashSet();
+
+  /**
+   * The set of {@link Model} objects and other resources that describe
+   * an entire parsing model.
+   */
   protected ModelCollection modelCollection;
 
   // Model objects
+  /**
+   * The model for marginal probabilities of lexical elements (for the
+   * estimation of the joint event that is a fully lexicalized nonterminal).
+   */
   protected Model lexPriorModel;
+  /**
+   * The model for conditional probabilities of nonterminals given the
+   * lexical components (for the estimation of the joint event that is a fully
+   * lexicalized nonterminal).
+   */
   protected Model nonterminalPriorModel;
+  /**
+   * The head-generation model for heads whose parents are {@link
+   * Training#topSym()}.
+   */
   protected Model topNonterminalModel;
+  /** The head-word generation model for heads of entire sentences. */
   protected Model topLexModel;
+  /** The head-generation model. */
   protected Model headModel;
+  /** The gap-generation model. */
   protected Model gapModel;
+  /**
+   * The model for generating subcats that fall on the left side of head
+   * children.
+   */
   protected Model leftSubcatModel;
+  /**
+   * The model for generating subcats that fall on the right side of head
+   * children.
+   */
   protected Model rightSubcatModel;
+  /** The modifying nonterminal&ndash;generation model. */
   protected Model modNonterminalModel;
+  /** The model that generates head words of modifying nonterminals. */
   protected Model modWordModel;
 
-  // handle onto static WordFeatures object from Language object
+  /**
+   * A handle onto static {@link WordFeatures} object contained static inside
+   * {@link Language}.
+   */
   transient protected WordFeatures wordFeatures = Language.wordFeatures;
 
   // handles onto some data from Training for more efficient and more readable
   // code
+  /** The value of {@link Training#startSym()}. */
   protected Symbol startSym = Language.training.startSym();
+  /** The value of {@link Training#stopSym()}. */
   protected Symbol stopSym = Language.training.stopSym();
+  /** The value of {@link Training#topSym()}. */
   protected Symbol topSym = Language.training.topSym();
+  /** The value of {@link Training#startWord()}. */
   protected Word startWord = Language.training.startWord();
+  /** The value of {@link Training#stopWord()}. */
   protected Word stopWord = Language.training.stopWord();
+  /** The value of {@link Training#gapAugmentation()}. */
   protected Symbol gapAugmentation = Language.training.gapAugmentation();
+  /** The value of {@link Training#traceTag()}. */
   protected Symbol traceTag = Language.training.traceTag();
 
   // various filters used by deriveCounts, deriveSubcatMaps and
   // deriveModNonterminalMap
+  /** An instance of {@link AllPass}. */
   protected Filter allPass = new AllPass();
+  /**
+   * A filter that only allows {@link TrainerEvent} instances where the parent
+   * nonterminal is not {@link Training#topSym()}.
+   */
   protected Filter nonTop = new Filter() {
     public boolean pass(Object obj) {
       return ((TrainerEvent)obj).parent() != topSym;
     }
   };
+  /**
+   * A filter that only allows {@link TrainerEvent} instances that do not
+   * represent preterminals (where the parent is identical to the part-of-speech
+   * tag of the head word).
+   */
   protected Filter nonPreterm = new Filter() {
     public boolean pass(Object obj) {
       TrainerEvent event = (TrainerEvent)obj;
       return event.parent() != event.headWord().tag();
     }
   };
+  /**
+   * A filter that is functionally equivalent to piping objects through both
+   * {@link #nonTop} and {@link #nonPreterm}.
+   */
   protected Filter nonTopNonPreterm = new Filter() {
     public boolean pass(Object obj) {
       TrainerEvent event = (TrainerEvent)obj;
@@ -281,11 +450,19 @@ public class Trainer implements Serializable {
               event.parent() != event.headWord().tag());
     }
   };
+  /**
+   * A filter that only allows {@link TrainerEvent} instances where the parent
+   * is {@link Training#topSym()}.
+   */
   protected Filter topOnly = new Filter() {
       public boolean pass(Object obj) {
 	return ((TrainerEvent)obj).parent() == topSym;
       }
     };
+  /**
+   * A filter that disallows  {@link ModifierEvent} instances where the
+   * modifier is {@link Training#stopSym()}, but allows all other objects.
+   */
   protected Filter nonStop = new Filter() {
     public boolean pass(Object obj) {
       if (obj instanceof ModifierEvent) {
@@ -297,6 +474,11 @@ public class Trainer implements Serializable {
       }
     }
   };
+  /**
+   * A filter that disallows {@link ModifierEvent} instances where the modifier
+   * is neither {@link Training#stopSym()} nor {@link Training#topSym()}, but
+   * allows all other objects.
+   */
   protected Filter nonStopAndNonTop = new Filter() {
       public boolean pass(Object obj) {
 	if (obj instanceof ModifierEvent) {
@@ -311,7 +493,7 @@ public class Trainer implements Serializable {
 
   /**
    * Class to represent a MapToPrimitive.Entry object for use by the
-   * {@link #getEventIterator} method.
+   * {@link Trainer#getEventIterator} method.
    */
   public static class EventEntry extends AbstractMapToPrimitive.Entry {
     /**
@@ -337,6 +519,10 @@ public class Trainer implements Serializable {
       this.count = count;
     }
 
+    /**
+     * Returns the event key associated with this map entry.
+     * @return the event key associated with this map entry
+     */
     public Object getKey() {
       return event;
     }
@@ -405,6 +591,12 @@ public class Trainer implements Serializable {
     modelCollection = newModelCollection();
   }
 
+  /**
+   * Returns a new instance of {@link ModelCollection}.  Subclasses may override
+   * this method to return different sub-types of {@link ModelCollection}.
+   *
+   * @return a new instance of {@link ModelCollection}
+   */
   protected ModelCollection newModelCollection() {
     return new ModelCollection();
   }
@@ -1051,11 +1243,22 @@ public class Trainer implements Serializable {
       outputCollins(modEvent);
   }
 
+  /**
+   * Creates {@link #posMap} from the {@link #headEvents}, {@link
+   * #modifierEvents} and {@link #gapEvents} counts tables.
+   */
   public void createPosMap() {
     createPosMap(headEvents);
     createPosMap(modifierEvents);
     createPosMap(gapEvents);
   }
+
+  /**
+   * Adds to {@link #posMap} using information contained in the specified
+   * counts table.
+   * @param events the counts table of {@link TrainerEvent} instances from
+   * which to derive a mapping of words to their observed parts of speech
+   */
   public void createPosMap(CountsTable events) {
     Iterator it = events.keySet().iterator();
     while (it.hasNext()) {
@@ -1136,6 +1339,42 @@ public class Trainer implements Serializable {
     return false;
   }
 
+  /**
+   * Creates all of the internal model objects used by this trainer when
+   * constructing its internal {@link ModelCollection} object.
+   * Each model is created by first creating its {@link ProbabilityStructure}
+   * object, and then calling that object's
+   * {@link ProbabilityStructure#newModel()} method to wrap itself in a
+   * {@link Model} instance.  There are ten {@link Model} members of this class:
+   * <ul>
+   * <li>{@link #lexPriorModel}
+   * <li>{@link #nonterminalPriorModel}
+   * <li>{@link #topNonterminalModel}
+   * <li>{@link #topLexModel}
+   * <li>{@link #headModel}
+   * <li>{@link #gapModel}
+   * <li>{@link #leftSubcatModel}
+   * <li>{@link #rightSubcatModel}
+   * <li>{@link #modNonterminalModel}
+   * <li>{@link #modWordModel}
+   * </ul>
+   * In order to determine the fully-qualified class name for the associated
+   * {@link ProbabilityStructure} for each of the above models, the following
+   * algorithm is used:
+   * <ul>
+   * <li>If the fully-qualified name is specified via its settings, then
+   * an instance is used.
+   * <li>Otherwise, if there is a model structure&ndash;specific number setting
+   * found in {@link Settings}, then it is appended to the default model
+   * structure classname and an instance is used.
+   * <li>Otherwise, if the global model structure number is appended to the
+   * default model structure classname prefix and an instance is used.
+   * </ul>
+   * Please read the documentation for the
+   * {@link Settings#globalModelStructureNumber} setting for more details on
+   * all the model structure&ndash;specific settings that control which
+   * concrete subclasses of {@link ProbabilityStructure} are instantiated.
+   */
   protected void createModelObjects() {
     String globalModelStructureNumber =
       Settings.get(Settings.globalModelStructureNumber);
@@ -1221,17 +1460,41 @@ public class Trainer implements Serializable {
   }
 
   /**
-   * Derives event counts for all back-off levels of all sub-models for
-   * the current parsing model.
+   * Derives event counts for all back-off levels of all sub-models for the
+   * current parsing model.  After deriving counts, the {@link
+   * #modelCollectionSet(FlexibleMap)} method will be invoked.
+   *
+   * @see Model#deriveCounts(CountsTable,Filter, double,FlexibleMap)
    */
   public void deriveCounts() {
     deriveCounts(true);
   }
 
+  /**
+   * Derives event counts for all back-off levels of all sub-models for the
+   * current parsing model.
+   *
+   * @param setModelCollection indicates whether to invoke {@link
+   *                           #modelCollectionSet(FlexibleMap)} after deriving
+   *                           counts
+   * @see Model#deriveCounts(CountsTable,Filter, double,FlexibleMap)
+   */
   public void deriveCounts(boolean setModelCollection) {
     deriveCounts(setModelCollection, new danbikel.util.HashMap(100003, 1.5f));
   }
 
+  /**
+   * Derives event counts for all back-off levels of all sub-models for the
+   * current parsing model.
+   *
+   * @param setModelCollection indicates whether to invoke {@link
+   *                           #modelCollectionSet(FlexibleMap)} after deriving
+   *                           counts
+   * @param canonical          the {@link FlexibleMap} instance to use for
+   *                           creating a reflexive map of canonical versions of
+   *                           event objects creating when deriving counts
+   * @see Model#deriveCounts(CountsTable,Filter, double,FlexibleMap)
+   */
   public void deriveCounts(boolean setModelCollection, FlexibleMap canonical) {
     deriveCounts(derivedCountThreshold, canonical);
 
@@ -1244,6 +1507,10 @@ public class Trainer implements Serializable {
     }
   }
 
+  /**
+   * Clears the {@link #priorEvents}, {@link #headEvents}, {@link
+   * #modifierEvents} and {@link #gapEvents} counts tables.
+   */
   protected void clearEventCounters() {
     priorEvents.clear();
     headEvents.clear();
@@ -1251,6 +1518,16 @@ public class Trainer implements Serializable {
     gapEvents.clear();
   }
 
+  /**
+   * Derives all counts for creating a {@link ModelCollection} object.
+   *
+   * @param derivedCountThreshold the count threshold below which to throw away
+   *                              derived events
+   * @param canonical             a reflexive map of canonical versions of
+   *                              derived {@link Event} and {@link Transition}
+   *                              objects, shared among all {@link Model}
+   *                              instances of this trainer
+   */
   protected void deriveCounts(double derivedCountThreshold,
                               FlexibleMap canonical) {
     System.err.print("Deriving events for prior probability computations...");
@@ -1271,6 +1548,18 @@ public class Trainer implements Serializable {
                             canonical);
   }
 
+  /**
+   * A helper method used by {@link #deriveCounts(double,FlexibleMap)} to derive
+   * counts for all {@link Model} instances contained within a {@link
+   * ModelCollection}.
+   *
+   * @param derivedCountThreshold the count threshold below which to throw away
+   *                              derived events
+   * @param canonical             a reflexive map of canonical versions of
+   *                              derived {@link Event} and {@link Transition}
+   *                              objects, shared among all {@link Model}
+   *                              instances
+   */
   protected void deriveModelCounts(double derivedCountThreshold,
                                    FlexibleMap canonical) {
     double th = derivedCountThreshold;
@@ -1286,6 +1575,13 @@ public class Trainer implements Serializable {
     modWordModel.deriveCounts(modifierEvents, nonStop, th, canonical);
   }
 
+  /**
+   * Precomputes all probabilities and smoothing parameters for all {@link
+   * Model} instances that are part of the {@link ModelCollection} of this
+   * trainer.
+   *
+   * @see Model#precomputeProbs()
+   */
   protected void precomputeProbs() {
     lexPriorModel.precomputeProbs();
     nonterminalPriorModel.precomputeProbs();
@@ -1299,6 +1595,15 @@ public class Trainer implements Serializable {
     modWordModel.precomputeProbs();
   }
 
+  /**
+   * Sets all the data members of the {@link #modelCollection} member of this
+   * trainer with the internal resources constructed by this trainer (such as
+   * all the {@link Model} instances).
+   *
+   * @param canonical a reflexive map of canonical versions of derived {@link
+   *                  Event} and {@link Transition} objects, shared among all
+   *                  {@link Model} instances
+   */
   protected void modelCollectionSet(FlexibleMap canonical) {
     modelCollection.set(lexPriorModel,
                         nonterminalPriorModel,
@@ -1368,14 +1673,14 @@ public class Trainer implements Serializable {
       leftContext.canonicalize(canonicalMap);
       Subcat canonicalLeftSubcat =
 	headEvent.leftSubcat().getCanonical(false, canonicalMap);
-      addToValueSet(leftSubcatMap, leftContext, canonicalLeftSubcat);
+      Util.addToValueSet(leftSubcatMap, leftContext, canonicalLeftSubcat);
 
       Event rightContext =
 	rightMS.getHistory(headEvent, rightMSLastLevel).copy();
       rightContext.canonicalize(canonicalMap);
       Subcat canonicalRightSubcat =
 	headEvent.rightSubcat().getCanonical(false, canonicalMap);
-      addToValueSet(rightSubcatMap, rightContext, canonicalRightSubcat);
+      Util.addToValueSet(rightSubcatMap, rightContext, canonicalRightSubcat);
     }
 
     if (Settings.getBoolean(Settings.outputSubcatMaps))
@@ -1387,7 +1692,6 @@ public class Trainer implements Serializable {
   /**
    * Called by {@link #deriveCounts()}.
    *
-   * @param headMS the head-generation model structure
    * @param canonicalMap the map of canonicalized objects
    */
   private void deriveHeadToParentMap(FlexibleMap canonicalMap) {
@@ -1399,7 +1703,7 @@ public class Trainer implements Serializable {
       HeadEvent headEvent = (HeadEvent)events.next();
       if (!filter.pass(headEvent))
 	continue;
-      addToValueSet(headToParentMap, headEvent.head(), headEvent.parent());
+      Util.addToValueSet(headToParentMap, headEvent.head(), headEvent.parent());
     }
     if (Settings.getBoolean(Settings.outputHeadToParentMap))
       outputHeadToParentMap();
@@ -1436,7 +1740,7 @@ public class Trainer implements Serializable {
       context.canonicalize(canonicalMap);
       Event future = modMS.getFuture(modEvent, modMSLastLevel).copy();
       future.canonicalize(canonicalMap);
-      addToValueSet(modNonterminalMap, context, future);
+      Util.addToValueSet(modNonterminalMap, context, future);
 
       Symbol arglessParent =
 	Language.training().removeArgAugmentation(modEvent.parent());
@@ -1451,13 +1755,22 @@ public class Trainer implements Serializable {
       lookupPair.set(1, modEvent.modHeadWord().tag());
       modPair = getCanonicalList(canonicalMap, lookupPair);
 
-      addToValueSet(simpleModNonterminalMap, parentHeadSideTriple, modPair);
+      Util.addToValueSet(simpleModNonterminalMap,
+			 parentHeadSideTriple, modPair);
     }
 
     if (Settings.getBoolean(Settings.outputModNonterminalMap))
       outputModNonterminalMap();
   }
 
+  /**
+   * Returns a canonical version of the specified list from the specified
+   * reflexive map.
+   * @param map a reflexive map of {@link SexpList} objects
+   * @param list the list to canonicalize
+   * @return a canonical version of the specified list from the specified
+   * reflexive map
+   */
   public final static SexpList getCanonicalList(Map map,
                                                 SexpList list) {
     SexpList canonicalList = (SexpList)map.get(list);
@@ -1604,26 +1917,6 @@ public class Trainer implements Serializable {
 
   // some utility methods for adding to maps
 
-  /**
-   * Adds <code>value</code> to the set that is the vale of <code>key</code>
-   * in <code>map</code>; creates this set if a mapping doesn't already
-   * exist for <code>key</code>.
-   *
-   * @param map the map to be updated
-   * @param key the key in <code>map</code> whose value set is to be updated
-   * @param value the value to be added to <code>key</code>'s value set
-   */
-  public final static void addToValueSet(Map map,
-					 Object key,
-					 Object value) {
-    Set valueSet = (Set)map.get(key);
-    if (valueSet == null) {
-      valueSet = new HashSet();
-      map.put(key, valueSet);
-    }
-    valueSet.add(value);
-  }
-
 
   /**
    * Adds <code>value</code> to the set of values to which
@@ -1748,6 +2041,20 @@ public class Trainer implements Serializable {
     readStats(getStandardSexpStream(file));
   }
 
+  /**
+   * Returns a new {@link SexpTokenizer} wrapped around the specified file
+   * using the encoding specified by {@link Language#encoding()} and
+   * a buffer size equal to {@link Constants#defaultFileBufsize}.
+   * @param file the file around which to construct a {@link SexpTokenizer}
+   * @return a new {@link SexpTokenizer} wrapped around the specified file
+   * using the encoding specified by {@link Language#encoding()} and
+   * a buffer size equal to {@link Constants#defaultFileBufsize}
+   * @throws FileNotFoundException if the specified file cnanot be found
+   * @throws UnsupportedEncodingException if the encoding specified by
+   * {@link Language#encoding()} is unsupported
+   * @throws IOException if there is a problem opening a stream for the
+   * specified file
+   */
   public static SexpTokenizer getStandardSexpStream(File file)
     throws FileNotFoundException, UnsupportedEncodingException, IOException {
     return new SexpTokenizer(file, Language.encoding(),
@@ -1773,6 +2080,28 @@ public class Trainer implements Serializable {
 		       "; event=" + event);
   }
 
+  /**
+   * Returns an iterator over {@link TrainerEvent} objects that were written
+   * out in S-expression form.
+   * @param tokenizer the S-expression reader from which to read
+   * {@link TrainerEvent} objects that were serialized as S-expression
+   * strings
+   * @param type the type of {@link TrainerEvent} objects to retrive; the value
+   * of this argument may be one of
+   * <ul>
+   * <li>{@link #nonterminalEventSym}
+   * <li>{@link #headEventSym}
+   * <li>{@link #modEventSym}
+   * <li>{@link #gapEventSym}
+   * <li>{@link #posMapSym}
+   * <li>{@link #vocabSym}
+   * <li>{@link #wordFeatureSym}
+   * <li>{@link #prunedPretermSym}
+   * <li>{@link #prunedPuncSym}
+   * </ul>
+   * @return an iterator over {@link TrainerEvent} objects that were written
+   * out in S-expression form
+   */
   public static Iterator getEventIterator(final SexpTokenizer tokenizer,
                                           final Symbol type) {
     return new Iterator() {
@@ -1993,6 +2322,24 @@ public class Trainer implements Serializable {
   public void doneCollectingObservations() {
   }
 
+  /**
+   * Writes the internal {@link ModelCollection} object to the specified output
+   * file, writing a header containing the names of the training input file and
+   * training output file.
+   *
+   * @param objectOutputFilename   the output file to which to write the
+   *                               internal {@link ModelCollection} object
+   *                               constructed by this trainer
+   * @param trainingInputFilename  the name of the input file of training parse
+   *                               trees from which events and counts were
+   *                               collected
+   * @param trainingOutputFilename the name of the training output file of
+   *                               top-level (maximal context) events
+   * @throws FileNotFoundException if the specified output filename cannot be
+   *                               created
+   * @throws IOException           if there is a problem writing to the stream
+   *                               of the specified output file
+   */
   public void writeModelCollection(String objectOutputFilename,
 				   String trainingInputFilename,
 				   String trainingOutputFilename)
@@ -2007,6 +2354,22 @@ public class Trainer implements Serializable {
 			 trainingInputFilename, trainingOutputFilename);
   }
 
+  /**
+   * Writes the internal {@link ModelCollection} object to the specified output
+   * stream, writing a header containing the names of the training input file
+   * and training output file.
+   *
+   * @param oos                    the output stream to which to write the
+   *                               internal {@link ModelCollection} object
+   *                               constructed by this trainer
+   * @param trainingInputFilename  the name of the input file of training parse
+   *                               trees from which events and counts were
+   *                               collected
+   * @param trainingOutputFilename the name of the training output file of
+   *                               top-level (maximal context) events
+   * @throws IOException if there is a problem writing to the stream of the
+   *                     specified output file
+   */
   public void writeModelCollection(ObjectOutputStream oos,
 				   String trainingInputFilename,
 				   String trainingOutputFilename)
@@ -2018,11 +2381,47 @@ public class Trainer implements Serializable {
     oos.close();
   }
 
+  /**
+   * Sets the internal {@link #modelCollection} data member of this class to the
+   * object of that type loaded from the specified file.
+   *
+   * @param objectInputFilename the object from which to load a {@link
+   *                            ModelCollection}
+   * @throws ClassNotFoundException if the concrete type of {@link
+   *                                ModelCollection} read from the specified
+   *                                file cannot be found
+   * @throws IOException            if there is a problem reading from the
+   *                                stream of the specified file
+   * @throws OptionalDataException  if there is a problem reading primitive data
+   *                                associated with the {@link ModelCollection}
+   *                                object read from the specified file
+   */
   public void setModelCollection(String objectInputFilename)
     throws ClassNotFoundException, IOException, OptionalDataException {
     modelCollection = loadModelCollection(objectInputFilename);
   }
 
+  /**
+   * Loads the {@link ModelCollection} from the specified file.
+   *
+   * @param objectInputFilename the name of the Java serialized object file from
+   *                            which to load a {@link ModelCollection}
+   *                            instance; the file must contain a series of
+   *                            header objects as produced by {@link
+   *                            #writeModelCollection(String,String,String)}
+   * @return the {@link ModelCollection} object contained in the specified file
+   *
+   * @throws ClassNotFoundException if the concrete type of the {@link
+   *                                ModelCollection} or any of the header
+   *                                objects in the specified file cannot be
+   *                                found
+   * @throws IOException            if there is a problem reading from the
+   *                                specified file
+   * @throws OptionalDataException  if there is a problem reading primitive data
+   *                                associated with an object from the object
+   *                                input stream created from the specified
+   *                                file
+   */
   public static ModelCollection loadModelCollection(String objectInputFilename)
     throws ClassNotFoundException, IOException, OptionalDataException {
     InputStream is = new FileInputStream(objectInputFilename);
@@ -2036,18 +2435,70 @@ public class Trainer implements Serializable {
     return loadModelCollection(ois);
   }
 
+  /**
+   * Sets the internal {@link #modelCollection} member of this class to the
+   * instance loaded from the specified input stream.
+   *
+   * @param ois an object input stream containing a series of header objects and
+   *            ultimately a {@link ModelCollection} instance
+   * @throws ClassNotFoundException if the concrete type of the {@link
+   *                                ModelCollection} or any of the header
+   *                                objects in the specified input stream cannot
+   *                                be found
+   * @throws IOException            if there is a problem reading from the
+   *                                specified input stream
+   * @throws OptionalDataException  if there is a problem reading primitive data
+   *                                associated with an object from the specified
+   *                                object input stream
+   */
   public void setModelCollection(ObjectInputStream ois)
     throws ClassNotFoundException, IOException, OptionalDataException {
     modelCollection = loadModelCollection(ois);
   }
 
+  /**
+   * Loads the {@link ModelCollection} from the specified file.
+   *
+   * @param ois the object input stream from which to load a {@link
+   *            ModelCollection} instance; the stream must contain a series of
+   *            header objects, as produced by
+   *            {@link #writeModelCollection(String,String,String)}
+   * @return the {@link ModelCollection} object contained in the specified file
+   *
+   * @throws ClassNotFoundException if the concrete type of the {@link
+   *                                ModelCollection} or any of the header
+   *                                objects in the specified file cannot be
+   *                                found
+   * @throws IOException            if there is a problem reading from the
+   *                                specified file
+   * @throws OptionalDataException  if there is a problem reading primitive data
+   *                                associated with an object from the object
+   *                                input stream created from the specified
+   *                                file
+   */
   public static ModelCollection loadModelCollection(ObjectInputStream ois)
     throws ClassNotFoundException, IOException, OptionalDataException {
     scanModelCollectionObjectFile(ois, System.err);
     return (ModelCollection)ois.readObject();
   }
 
-
+  /**
+   * Scans the object file and prints out the information contained in its
+   * header objects.  The specified object file must contain serialized objects
+   * of the type and in the order produced by {@link #writeModelCollection(String,String,String)}.
+   *
+   * @param scanObjectFilename the object whose header is to be scanned
+   * @param os                 the output stream to which to print information
+   * @throws ClassNotFoundException if any of the concrete types of the header
+   *                                objects in the specified file cannot be
+   *                                found
+   * @throws IOException            if there is a problem reading from the
+   *                                stream created from the specified file
+   * @throws OptionalDataException  if there is a problem of extra primtive data
+   *                                when deserializing an object from the object
+   *                                input stream created from the specified
+   *                                file
+   */
   public static void scanModelCollectionObjectFile(String scanObjectFilename,
 						   OutputStream os)
     throws ClassNotFoundException, IOException, OptionalDataException {
@@ -2062,6 +2513,22 @@ public class Trainer implements Serializable {
     scanModelCollectionObjectFile(ois, os);
   }
 
+  /**
+   * Scans the object file and prints out the information contained in its
+   * header objects.  The specified object file must contain serialized objects
+   * of the type and in the order produced by {@link #writeModelCollection(String,String,String)}.
+   *
+   * @param ois the object input stram whose header objects are to be scanned
+   * @param os  the output stream to which to print information
+   * @throws ClassNotFoundException if any of the concrete types of the header
+   *                                objects in the specified stream cannot be
+   *                                found
+   * @throws IOException            if there is a problem reading from the
+   *                                specified stream
+   * @throws OptionalDataException  if there is a problem of extra primtive data
+   *                                when deserializing an object from the
+   *                                specified object input stream
+   */
   public static void scanModelCollectionObjectFile(ObjectInputStream ois,
 						   OutputStream os)
     throws ClassNotFoundException, IOException, OptionalDataException {
@@ -2096,7 +2563,9 @@ public class Trainer implements Serializable {
   // main method stuff
 
   /**
-   * The usage for the main method of this class.
+   * The usage for the main method of this class. Please run
+   * <code>java danbikel.parser.Trainer -help</code> to display the complete
+   * usage of this class.
    */
   protected final static String[] usageMsg = {
     "usage: [-help] [-sf <settings file> | --settings <settings file>]",
@@ -2141,6 +2610,23 @@ public class Trainer implements Serializable {
     System.exit(1);
   }
 
+  /**
+   * Incrementally updates derived model counts by reading chunks of {@link
+   * TrainerEvent} objects from the specified input file.  The number of {@link
+   * TrainerEvent} objects read at a time (the chunk size) is determined by the
+   * value of the {@link Settings#maxEventChunkSize}.
+   *
+   * @param trainer       the {@link Trainer} instance for which incremental
+   *                      training is to be performed
+   * @param inputFilename the file containing observations to be read by the
+   *                      {@link #readStats(SexpTokenizer,int)} method
+   * @throws FileNotFoundException        if the specified file cannot be found
+   * @throws UnsupportedEncodingException if the encoding used to read
+   *                                      characters from the specified file is
+   *                                      not supported
+   * @throws IOException                  if there is a problem reading from the
+   *                                      specified file
+   */
   protected static void incrementallyTrain(Trainer trainer,
                                            String inputFilename)
     throws FileNotFoundException, UnsupportedEncodingException, IOException {
@@ -2158,6 +2644,8 @@ public class Trainer implements Serializable {
 
   /**
    * Takes arguments according to the usage as specified in {@link #usageMsg}.
+   * Please run <code>java danbikel.parser.Trainer -help</code> to display the
+   * complete usage of this class.
    */
   public static void main(String[] args) {
     boolean stripOuterParens = false, auto = true;

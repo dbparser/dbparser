@@ -31,6 +31,19 @@ public class PartialLexTreeConstraint extends UnlexTreeConstraint {
     this(null, tree, new IntCounter(0), Language.headFinder());
   }
 
+  /**
+   * A helper constructor used by {@link #PartialLexTreeConstraint(Sexp)}
+   * to construct an entire tree of constraints.
+   * @param parent the parent of this constraint being constructed, or
+   * <code>null</code> if this constraint is the root of a tree of
+   * constraints
+   * @param tree the root of the subtree for which to construct a
+   * constraint
+   * @param currWordIdx the current 0-based word index of the left-most
+   * word of the specified subtree (<code>tree</code>)
+   * @param headFinder the head finder to be used for lexicalizing the
+   * specified tree (typically {@link danbikel.parser.Language#headFinder()})
+   */
   protected PartialLexTreeConstraint(PartialLexTreeConstraint parent,
 				     Sexp tree, IntCounter currWordIdx,
 				     HeadFinder headFinder) {
@@ -112,6 +125,12 @@ public class PartialLexTreeConstraint extends UnlexTreeConstraint {
     return retVal;
   }
 
+  /**
+   * Returns a human-readable string representation of this constraint
+   * for debugging.
+   * @return a human-readable string representation of this constraint
+   * for debugging
+   */
   public String toString() {
     return "headWord.word=" + headWord.word() + ", headWord.tag=" +
 	   headWord.tag() + ", label=" + label +

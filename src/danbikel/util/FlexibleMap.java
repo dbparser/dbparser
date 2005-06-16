@@ -33,7 +33,7 @@ public interface FlexibleMap extends java.util.Map {
 
   /**
    * Returns the value for the specified key.  If the specified hash code
-   * is not the value of <code>key.hashCode()</code>, the behavior of this
+   * is not the value of <code>key.hashCode()</code>, the behavior of thiscollins
    * method is not defined.
    *
    * @param key the key whose value is to be looked up

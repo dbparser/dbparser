@@ -4,8 +4,8 @@ import danbikel.lisp.*;
 import java.io.Serializable;
 
 /**
- * An extremely simple interface to allow iteration over various kinds of
- * events used by the class {@link Trainer}.
+ * An interface to allow iteration over various kinds of events used by the
+ * class {@link Trainer}.
  */
 public interface TrainerEvent extends Serializable {
   /**

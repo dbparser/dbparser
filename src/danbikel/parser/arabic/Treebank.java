@@ -9,29 +9,20 @@ import danbikel.lisp.*;
 import danbikel.parser.Language;
 import danbikel.parser.Nonterminal;
 
-/*
- * Provides data and methods speciifc to the structures found in the English
- * Treebank (the
- * <a target="_blank"
- * href="http://www.cis.upenn.edu/~treebank/">Penn Treebank</a>) or any other
- * treebank that conforms to the Treebank II annotation guidelines for
- * <a target="_blank" href="ftp://ftp.cis.upenn.edu/pub/treebank/doc/tagguide.ps.gz">part-of-speech tagging</a>
- * and
- * <a target="_blank"
- * href="ftp://ftp.cis.upenn.edu/pub/treebank/doc/manual/">bracketing</a>.
- */
 
 /**
- * Provides data and methods speciifc to the structures found in the English
- * Treebank (the Penn Treebank) or any other treebank that conforms to the
- * Treebank II annotation guidelines for part-of-speech tagging and bracketing.
+ * Provides data and methods specific to the structures found in the Arabic
+ * Treebank (the <a target="_blank" href="http://www.ircs.upenn.edu/arabic/">Penn
+ * Arabic Treebank</a>) or any other treebank that conforms to the <a
+ * target="_blank" href="http://www.ircs.upenn.edu/arabic/guidelines.html">Penn
+ * Arabic Treebank annotation guidelines</a>
  */
 public class Treebank extends danbikel.parser.lang.AbstractTreebank {
 
   // the characters that are delimiters of augmented nonterminal labels
   private final static String augmentationDelimStr = "-+";
 
-  // basic nodes in the English Treebank that will be transformed in a
+  // basic nodes in the Arabic Treebank that will be transformed in a
   // preprocessing phase
   static final Symbol NP = Symbol.add("NP");
   static final Symbol S = Symbol.add("S");
@@ -81,7 +72,7 @@ public class Treebank extends danbikel.parser.lang.AbstractTreebank {
   }
 
   /**
-   * Constructs an English <code>Treebank</code> object.
+   * Constructs an Arabic <code>Treebank</code> object.
    */
   public Treebank() {
     super();
@@ -104,7 +95,7 @@ public class Treebank extends danbikel.parser.lang.AbstractTreebank {
 
   /**
    * Returns <code>true</code> is the specified nonterminal label represents a
-   * sentence in the Penn Treebank, that is, if the canonical version of
+   * sentence in the Penn Arabic Treebank, that is, if the canonical version of
    * <code>label</code> is equal to <code>&quot;S&quot;</code>.
    * @see Training#relabelSubjectlessSentences(Sexp)
    */
@@ -124,7 +115,7 @@ public class Treebank extends danbikel.parser.lang.AbstractTreebank {
   /**
    * Returns <code>true</code> if the specified S-expression represents a
    * preterminal whose terminal element is the null element
-   * (<code>&quot;-NONE-&quot;</code>) for the Penn Treebank.
+   * (<code>&quot;-NONE-&quot;</code>) for the Penn Arabic Treebank.
    * @see Training#relabelSubjectlessSentences(Sexp)
    */
   public boolean isNullElementPreterminal(Sexp tree) {
@@ -159,7 +150,7 @@ public class Treebank extends danbikel.parser.lang.AbstractTreebank {
 
   /**
    * Returns <code>true</code> if the canonical version of the specified label
-   * is an NP for for English Treebank.
+   * is an NP for the Arabic Treebank.
    *
    * @see Training#addBaseNPs(Sexp)
    */
@@ -177,7 +168,7 @@ public class Treebank extends danbikel.parser.lang.AbstractTreebank {
 
   /**
    * Returns <code>true</code> if the canonical version of the specified label
-   * is a WHNP in the English Treebank.
+   * is a WHNP in the Arabic Treebank.
    *
    * @see Training#addGapInformation(Sexp)
    */
@@ -229,15 +220,16 @@ public class Treebank extends danbikel.parser.lang.AbstractTreebank {
 
   /**
    * Returns a canonical mapping for the specified nonterminal label; if
-   * <code>label</code> already is in canonical form, it is returned.
-   * The canonical mapping refers to transformations performed on nonterminals
-   * during the training process.  Before obtaining a label's canonical form,
-   * it is also stripped of all Treebank augmentations, meaning that only
-   * the characters before the first occurrence of '-', '=' or '|' are kept.
+   * <code>label</code> already is in canonical form, it is returned. The
+   * canonical mapping refers to transformations performed on nonterminals
+   * during the training process.  Before obtaining a label's canonical form, it
+   * is also stripped of all Treebank augmentations, meaning that only the
+   * characters before the first occurrence of <tt>'-'</tt> or <tt>'+'</tt> are
+   * kept.
    *
    * @return a <code>Symbol</code> with the same print name as
-   * <code>label</code>, except that all training transformations and Treebank
-   * augmentations have been undone and stripped
+   *         <code>label</code>, except that all training transformations and
+   *         Treebank augmentations have been undone and stripped
    */
   public Symbol getCanonical(Symbol label) {
     for (int i = 0; i < nonterminalExceptionSet.length; i++)
@@ -271,7 +263,7 @@ public class Treebank extends danbikel.parser.lang.AbstractTreebank {
 
   /**
    * Returns a string of the three characters that serve as augmentation
-   * delimiters in the Penn Treebank: <code>&quot;-=|&quot;</code>.
+   * delimiters in the Penn Arabic Treebank: <code>&quot;-+&quot;</code>.
    */
   public String augmentationDelimiters() { return augmentationDelimStr; }
 }

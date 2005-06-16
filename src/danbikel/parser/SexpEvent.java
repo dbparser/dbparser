@@ -28,6 +28,9 @@ public class SexpEvent extends AbstractEvent
   public final static Symbol sexpLabel = Symbol.add(sexpLabelStr);
 
   // data member
+  /**
+   * The event stored by this instance.
+   */
   protected Sexp event;
 
   /**
@@ -252,6 +255,12 @@ public class SexpEvent extends AbstractEvent
   /** Returns the <code>Sexp</code> contained in this event. */
   public Sexp toSexp() { return event; }
 
+  /**
+   * Adds the specified object, which must be a {@link Sexp} instance,
+   * to this event.
+   * @param obj a {@link Sexp} instance to add to this event
+   * @return this {@link SexpEvent} object
+   */
   public MutableEvent add(Object obj) {
     Sexp newComponent = (Sexp)obj;
     if (event == null)
@@ -266,6 +275,14 @@ public class SexpEvent extends AbstractEvent
     return this;
   }
 
+  /**
+   * Identical to <code>add(obj)</code>.
+   * @param type an ignored parameter
+   * @param obj an event to add to this complex event object
+   * @return this {@link SexpEvent} object
+   *
+   * @see #add(Object)
+   */
   public MutableEvent add(int type, Object obj) {
     return add(obj);
   }
@@ -333,6 +350,9 @@ public class SexpEvent extends AbstractEvent
    */
   public void ensureCapacity(int type, int size) { ensureCapacity(size); }
 
+  /**
+   * Clears the data stored in this complex event object.
+   */
   public void clear() {
     if (event.isSymbol())
       event = null;
@@ -340,10 +360,28 @@ public class SexpEvent extends AbstractEvent
       event.list().clear();
   }
 
+  /**
+   * Writes a representation of this object to the specified object output
+   * stream.
+   * @param out the stream to which to write a representation of this object
+   * @throws IOException if there is a problem writing to the specified
+   * output stream
+   */
   public void writeExternal(ObjectOutput out) throws IOException {
     out.writeObject(event);
   }
 
+  /**
+   * Reconstructs the {@link SexpEvent} object that was serialized using
+   * {@link #writeExternal(ObjectOutput)}.
+   *
+   * @param in the input stream from which to reconstruct a {@link SexpEvent}
+   * object
+   * @throws IOException if there is a problem reading from the specified
+   * input stream
+   * @throws ClassNotFoundException if the concrete type of the serialized
+   * object read from the specified input stream cannot be found 
+   */
   public void readExternal(ObjectInput in)
     throws IOException, ClassNotFoundException {
     event = (Sexp)in.readObject();

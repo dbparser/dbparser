@@ -8,6 +8,13 @@ import danbikel.parser.Language;
 import danbikel.parser.Settings;
 import danbikel.parser.Constants;
 
+/**
+ * Reads a series of heuristics to determine the distinguished head child of a
+ * context-free production (a parent and its ordered list of children in
+ * a syntax tree).  Because a default head-finding rule is always supplied
+ * even if one is not specified, it is guaranteed that every tree in which
+ * head-finding is performed will have a unique head-lexicalization.
+ */
 public class HeadFinder extends danbikel.parser.lang.AbstractHeadFinder {
   Treebank treebank = Language.treebank();
 

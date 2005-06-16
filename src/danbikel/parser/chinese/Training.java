@@ -11,13 +11,11 @@ import danbikel.parser.Nonterminal;
 import danbikel.lisp.*;
 
 /**
- * Provides methods for language-specific processing of training parse trees.
- * Even though this subclass of {@link danbikel.parser.Training} is
- * in the default English language package, its primary purpose is simply
- * to fill in the {@link #argContexts}, {@link #semTagArgStopSet} and
- * {@link #nodesToPrune} data members using a metadata resource.  If this
- * capability is desired in another language package, this class may be
- * subclassed.
+ * Provides methods for language-specific processing of Chinese training parse
+ * trees.  This class uses all the defaults provided by the superclass
+ * {@link danbikel.parser.lang.AbstractTraining}, exccept that it overrides
+ * {@link
+ * danbikel.parser.lang.AbstractTraining#relabelSubjectlessSentences(Sexp)}.
  */
 public class Training extends danbikel.parser.lang.AbstractTraining {
   // constants
@@ -55,12 +53,12 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
 
   /**
    * We override {@link
-   * danbikel.parser.Training#relabelSubjectlessSentences(Sexp)} so
+   * danbikel.parser.lang.AbstractTraining#relabelSubjectlessSentences(Sexp)} so
    * that we can make the definition of a subjectless sentence
    * slightly more restrictive: a subjectless sentence not only must
    * have a null-element child that is marked with the subject
    * augmentation, but also its head must be a <tt>VP</tt> (this is
-   * Mike Collins' definition of a subjectless sentence).
+   * Mike Collins&rsquo; definition of a subjectless sentence).
    */
   public Sexp relabelSubjectlessSentences(Sexp tree) {
     if (treebank.isPreterminal(tree))
@@ -115,6 +113,18 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
     return tree;
   }
 
+  /**
+   * A method to un-do the transformation provided by {@link
+   * danbikel.parser.lang.AbstractTraining#repairBaseNPs(Sexp)} (for inclusion
+   * in an overridden definition of
+   * {@link danbikel.parser.lang.AbstractTraining#postProcess(Sexp)},
+   * but currently unused by this class).
+   *
+   * @param tree the tree whose sentences that are right siblings of base NP
+   *             nodes are to be re-inserted as rightmost children of their
+   *             respective base NP nodes
+   * @return the specified tree, having been modified in-place
+   */
   protected Sexp unrepairBaseNPs(Sexp tree) {
     if (treebank.isPreterminal(tree))
       return tree;
@@ -141,11 +151,6 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
 	unrepairBaseNPs(treeList.get(i));
     }
     return tree;
-  }
-
-  public void postProcess(Sexp tree) {
-    //unrepairBaseNPs(tree);
-    super.postProcess(tree);
   }
 
 

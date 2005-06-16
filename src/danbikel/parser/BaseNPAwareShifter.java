@@ -12,6 +12,9 @@ import danbikel.lisp.*;
  * @see Treebank#isPunctuation(Symbol)
  */
 public class BaseNPAwareShifter implements Shift {
+  /**
+   * Constructs an instance of this base NP&ndash;aware shifter.
+   */
   public BaseNPAwareShifter() {}
 
 

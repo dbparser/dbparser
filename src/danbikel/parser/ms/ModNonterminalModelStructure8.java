@@ -45,7 +45,7 @@ public class ModNonterminalModelStructure8 extends ProbabilityStructure {
     Symbol verbInterveningSym =
       Constants.booleanToSym(modEvent.verbIntervening());
     Symbol mappedPrevModSym =
-      Collins.mapPrevMod(modEvent.previousMods().symbolAt(0));
+      NTMapper.map(modEvent.previousMods().symbolAt(0));
     Symbol parent = modEvent.parent();
 
     switch (backOffLevel) {

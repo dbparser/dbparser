@@ -109,11 +109,59 @@ public class FileBackedTrainerEventMap
   private int size = -1;
   private LinkedList cache = new LinkedList();
 
+  // constructors
+
+  /**
+   * Constructs a new file-backed {@link TrainerEvent} map for events of the
+   * specified type and using the specified file.
+   *
+   * @param type     the type of {@link TrainerEvent} objects in the specified
+   *                 file over which to iterate; this argument must be one of
+   *                 the following values:
+   *                 <ul>
+   *                 <li>{@link Trainer#nonterminalEventSym}
+   *                 <li>{@link Trainer#headEventSym}
+   *                 <li>{@link Trainer#modEventSym}
+   *                 <li>{@link Trainer#gapEventSym}
+   *                 <li>{@link Trainer#posMapSym}
+   *                 <li>{@link Trainer#vocabSym}
+   *                 <li>{@link Trainer#wordFeatureSym}
+   *                 <li>{@link Trainer#prunedPretermSym}
+   *                 <li>{@link Trainer#prunedPuncSym}
+   *                 </ul>
+   * @param filename the file containing S-expressions representing {@link
+   *                 TrainerEvent} objects, where the S-expressions are of the
+   *                 form output by {@link Trainer#writeStats}
+   * @throws FileNotFoundException if the specified file does not exist
+   */
   public FileBackedTrainerEventMap(Symbol type, String filename)
     throws FileNotFoundException {
     this(type, new File(filename));
   }
 
+  /**
+   * Constructs a new file-backed {@link TrainerEvent} map for events of the
+   * specified type and using the specified file.
+   *
+   * @param type     the type of {@link TrainerEvent} objects in the specified
+   *                 file over which to iterate; this argument must be one of
+   *                 the following values:
+   *                 <ul>
+   *                 <li>{@link Trainer#nonterminalEventSym}
+   *                 <li>{@link Trainer#headEventSym}
+   *                 <li>{@link Trainer#modEventSym}
+   *                 <li>{@link Trainer#gapEventSym}
+   *                 <li>{@link Trainer#posMapSym}
+   *                 <li>{@link Trainer#vocabSym}
+   *                 <li>{@link Trainer#wordFeatureSym}
+   *                 <li>{@link Trainer#prunedPretermSym}
+   *                 <li>{@link Trainer#prunedPuncSym}
+   *                 </ul>
+   * @param file     the file containing S-expressions representing {@link
+   *                 TrainerEvent} objects, where the S-expressions are of the
+   *                 form output by {@link Trainer#writeStats}
+   * @throws FileNotFoundException if the specified file does not exist
+   */
   public FileBackedTrainerEventMap(Symbol type, File file)
     throws FileNotFoundException {
     if (!file.exists()) {
@@ -129,14 +177,30 @@ public class FileBackedTrainerEventMap
     return getClass().getName() + " implements unmodifiable map";
   }
 
+  /**
+   * Throws an {@link UnsupportedOperationException}, as this is an
+   * unmodifiable map.
+   * @param other ignored
+   */
   public void addAll(CountsTable other) {
     throw new UnsupportedOperationException(unmodifiableMapMsg());
   }
 
+  /**
+   * Throws an {@link UnsupportedOperationException}, as this is an
+   * unmodifiable map.
+   * @param other ignored
+   */
   public void putAll(CountsTable other) {
     throw new UnsupportedOperationException(unmodifiableMapMsg());
   }
 
+  /**
+   * Throws an {@link UnsupportedOperationException}, as this is an
+   * unmodifiable map.
+   *
+   * @param key ignored
+   */
   public void add(Object key) {
     throw new UnsupportedOperationException(unmodifiableMapMsg());
   }
@@ -151,16 +215,30 @@ public class FileBackedTrainerEventMap
     return (entry == null ? 0.0 : entry.getDoubleValue());
   }
 
+  /**
+   * Throws an {@link UnsupportedOperationException}, as this is an
+   * unmodifiable map.
+   *
+   * @param threshold ignored
+   */
   public void removeItemsBelow(double threshold) {
     throw new UnsupportedOperationException(unmodifiableMapMsg());
   }
 
+  /**
+   * Throws an {@link UnsupportedOperationException}, because isn't it silly
+   * to try to copy an already file-backed map to a file?
+   */
   public void output(String filename, java.io.Writer writer) {
     throw new UnsupportedOperationException(getClass().getName() +
                                             "silly to copy a map that is " +
                                             "already file-backed");
   }
 
+  /**
+   * Returns an entry set view of the map entries.
+   * @return an entry set view of the map entries.
+   */
   public Set entrySet() {
     return new java.util.AbstractSet() {
       public int size() {
@@ -186,9 +264,23 @@ public class FileBackedTrainerEventMap
       }
     };
   }
+
+  /**
+   * Throws an {@link UnsupportedOperationException} because this is an
+   * unmodifiable map.
+   * @param bucketIndex ignored
+   */
   public void removeRandom(int bucketIndex) {
     throw new UnsupportedOperationException(unmodifiableMapMsg());
   }
+
+  /**
+   * Uses an <i>&Omicron;</i>(<i>n</i>) algorithm to retrieve the map entry for
+   * the specified key.
+   *
+   * @param key the key for which to retrieve a map entry
+   * @return a map entry for the specified key
+   */
   public MapToPrimitive.Entry getEntry(Object key) {
     Iterator it = entrySet().iterator();
     while (it.hasNext()) {
@@ -199,12 +291,34 @@ public class FileBackedTrainerEventMap
     return null;
   }
 
+  /**
+   * Simply invokes <code>getEntry(key)</code>, returning the map entry for the
+   * specified key.
+   *
+   * @param key      the key for which to get a map entry
+   * @param hashCode ignored
+   * @return the map entry for the specified key.
+   *
+   * @see #getEntry(Object)
+   */
   public MapToPrimitive.Entry getEntry(Object key, int hashCode) {
     return getEntry(key);
   }
+
+  /**
+   * Throws an {@link UnsupportedOperationException} because this is an
+   * unmodifiable map.
+   * @param key ignored
+   */
   public MapToPrimitive.Entry getEntryMRU(Object key) {
     throw new UnsupportedOperationException();
   }
+
+  /**
+   * Throws an {@link UnsupportedOperationException} because this is an
+   * unmodifiable map.
+   * @param key ignored
+   */
   public MapToPrimitive.Entry getEntryMRU(Object key, int hashCode) {
     throw new UnsupportedOperationException();
   }

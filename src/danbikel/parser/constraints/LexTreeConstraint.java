@@ -83,18 +83,18 @@ public class LexTreeConstraint extends UnlexTreeConstraint {
 
   /**
    * Returns <code>true</code> if this constraint {@linkplain
-   * #isLocallySatisfiedBy is locally satisfied by} the specified item and
-   * if this constraint's {@linkplain #spanMatches span matches} that of
-   * the specified item.  This overridden definition is in stark contrast
-   * to that of {@link UnlexTreeConstraint}, where preterminals are
-   * <i>always</i> satisfied by preterminal constraints, meaning that
-   * parts of speech are not constrained.
+   * #isLocallySatisfiedBy is locally satisfied by} the specified item and if
+   * this constraint's {@linkplain #spanMatches span matches} that of the
+   * specified item.  This overridden definition is in stark contrast to that of
+   * {@link UnlexTreeConstraint}, where preterminals are <i>always</i> satisfied
+   * by preterminal constraints, meaning that parts of speech are not
+   * constrained.
    *
    * @param item the item to be tested
    * @return <code>true</code> if this constraint {@linkplain
-   * #isLocallySatisfiedBy is locally satisfied by} the specified item and if
-   * this constraint's {@linkplain #spanMatches span matches} that of the
-   * specified item.
+   *         #isLocallySatisfiedBy is locally satisfied by} the specified item
+   *         and if this constraint's {@linkplain #spanMatches span matches}
+   *         that of the specified item.
    */
   protected boolean isSatisfiedByPreterminal(CKYItem item) {
     if (isLocallySatisfiedBy(item) && spanMatches(item)) {
@@ -106,6 +106,23 @@ public class LexTreeConstraint extends UnlexTreeConstraint {
   }
 
 
+  /**
+   * Returns whether the specified item satisfies the local information of this
+   * constraint node, regardless of this node's place in a tree structure of
+   * constraints.  When bottom-up parsing and building a parse theory from some
+   * child item <code>c</code>, this method may be used to determine if some
+   * proposed parent item <code>p</code> locally satisfies the information
+   * contained in <code>c.getConstraint().getParent()</code>.  That is, if
+   * <pre>c.getConstraint().getParent().isLocallySatisfiedBy(p)</pre>
+   * returns <code>true</code>, then theories building on the proposed parent
+   * item <code>p</code> should be pursued.  Local constraint information may
+   * include, for example, a nonterminal label or span information.
+   *
+   * @param item the chart item to be tested against this constraint node
+   * that is part of a tree of constraint nodes
+   * @return whether the specified item satisfies the local information of this
+   *         constraint node
+   */
   public boolean isLocallySatisfiedBy(Item item) {
     return item.label() == label && ((CKYItem)item).headWord().equals(headWord);
   }
@@ -123,6 +140,11 @@ public class LexTreeConstraint extends UnlexTreeConstraint {
     return retVal;
   }
 
+  /**
+   * A debugging method that returns a string representation of the information
+   * of this constraint.
+   * @return a string representation of the information of this constraint.
+   */
   public String toString() {
     return "headWord=" + headWord + ", label=" + label +
 	   ", span=(" + start + "," + end + "), parentLabel=" +

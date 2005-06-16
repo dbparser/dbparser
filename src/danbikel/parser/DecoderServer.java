@@ -15,13 +15,17 @@ public class DecoderServer
   extends AbstractServer implements DecoderServerRemote {
 
   // data members
+  /** The model collection used by this decoder server. */
   protected ModelCollection modelCollection;
+  /** The value of {@link Training#topSym()}, cached here for convenience. */
   protected Symbol topSym = Language.training.topSym();
+  /** The value of {@link Training#stopSym()}, cached here for convenience. */
   protected Word stopWord = Language.training.stopWord();
+  /** The integer value of {@link Settings#unknownWordThreshold}. */
   protected int unknownWordThreshold =
     Integer.parseInt(Settings.get(Settings.unknownWordThreshold));
-  protected boolean downcaseWords =
-    Boolean.valueOf(Settings.get(Settings.downcaseWords)).booleanValue();
+  /** The boolean value of {@link Settings#downcaseWords}. */
+  protected boolean downcaseWords = Settings.getBoolean(Settings.downcaseWords);
 
 
   /**
@@ -121,6 +125,10 @@ public class DecoderServer
     modelCollection = Trainer.loadModelCollection(mcFilename);
   }
 
+  /**
+   * A flow-through method for {@link ModelCollection#getModelCacheStats()}.
+   * @return the value of {@link ModelCollection#getModelCacheStats()}
+   */
   public String getModelCacheStats() {
     return modelCollection.getModelCacheStats();
   }

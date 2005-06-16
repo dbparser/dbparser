@@ -3,33 +3,34 @@ package danbikel.parser;
 import danbikel.util.*;
 
 /**
- * Provides a mechanism for grouping related <code>Model</code> objects
- * in order to estimate the probability of some joint event.
- * A probability estimate delivered by this class is the product of
- * all the individually-smoothed probability estimates delivered by this class
- * and all its contained <code>Model</code> objects.  Crucially, this means
- * that this class and all contained <code>Model</code> objects must be
- * <i>coherent</i>, in the sense that all internal estimates of the elements
- * of a joint event will be derived from the same <code>TrainerEvent</code>
- * object.  Typically, this class will provide the means to estimate a joint
- * event via the chain rule, where it is desirable that all the separate
- * estimates comprising the product be independently smoothed.
- * <p>
+ * Provides a mechanism for grouping related <code>Model</code> objects in order
+ * to estimate the probability of some joint event. A probability estimate
+ * delivered by this class is the product of all the individually-smoothed
+ * probability estimates delivered by this class and all its contained
+ * <code>Model</code> objects.  Crucially, this means that this class and all
+ * contained <code>Model</code> objects must be <i>coherent</i>, in the sense
+ * that all internal estimates of the elements of a joint event will be derived
+ * from the same <code>TrainerEvent</code> object.  Typically, this class will
+ * provide the means to estimate a joint event via the chain rule, where it is
+ * desirable that all the separate estimates comprising the product be
+ * independently smoothed.
+ * <p/>
  * Note that a joint event may be estimated via a standard <code>Model</code>
  * instance, by simply having the {@link ProbabilityStructure#getFuture} method
- * return an event that is a collection of elements.  The crucial feature
- * enabled by this class is to have the probability estimates for each element
- * of a joint event to be smoothed individually.
- * <p>
- * <b>Implementation note</b>: An instance of this class (itself an instance
- * of <code>Model</code>) will contain an internal collection of other
+ * return an event that is a collection of elements (for example, a nonterminal
+ * symbol and a part-of-speech tag symbol).  The crucial feature enabled by this
+ * class is to have the probability estimates for each element of a joint event
+ * to be smoothed individually.
+ * <p/>
+ * <b>Implementation note</b>: An instance of this class (itself an instance of
+ * <code>Model</code>) will contain an internal collection of other
  * <code>Model</code> objects whose probability structures are determined via
  * the {@link ProbabilityStructure#jointModel()} method.  The internal
- * <code>Model</code> objects used by this class can be accessed via
- * the {@link #getModel(int)} method.  Note that any of these internal
- * <code>Model</code> instances may actually also be <code>JointModel</code>
- * instances (although for efficiency reasons, such a structure should
- * be avoided in general, if possible).
+ * <code>Model</code> objects used by this class can be accessed via the {@link
+ * #getModel(int)} method.  Note that any of these internal <code>Model</code>
+ * instances may actually also be <code>JointModel</code> instances (although
+ * for efficiency reasons, such a structure should be avoided in general, if
+ * possible).
  *
  * @see ProbabilityStructure#jointModel()
  */
@@ -63,6 +64,14 @@ public class JointModel extends Model {
     }
   }
 
+  /**
+   * Sets the {@link #canonicalEvents} member of this object to be the
+   * specified {@link FlexibleMap}, as well as setting the same member
+   * of all internal {@link Model} objects.
+   *
+   * @param canonical the reflexive map of canonical {@link Event}
+   * objects
+   */ 
   public void setCanonicalEvents(FlexibleMap canonical) {
     super.setCanonicalEvents(canonical);
     for (int i = 0; i < numOtherModels; i++) {
@@ -152,6 +161,18 @@ public class JointModel extends Model {
     return logProb;
   }
 
+  /**
+   * Estimates the log-probability of the specified event under this {@link
+   * Model} without adding the log-probabilities of the internal {@link Model}
+   * objects.
+   *
+   * @param id    the id of the caller requesting the log-probability
+   * @param event the event containing the history context and future from which
+   *              to estimate a conditional log-probability
+   * @return the log-probability of the specified event under this {@link Model}
+   *         without adding the log-probabilities of the internal {@link Model}
+   *         objects
+   */
   public double estimateNonJointLogProb(int id, TrainerEvent event) {
     double logProb = super.estimateLogProb(id, event);
     if (logProb <= Constants.logOfZero)
@@ -187,6 +208,18 @@ public class JointModel extends Model {
     return prob;
   }
 
+  /**
+   * Estimates the probability of the specified event under this {@link Model}
+   * without multiplying the probabilities of the internal {@link Model}
+   * objects.
+   *
+   * @param id    the id of the caller requesting the probability
+   * @param event the event containing the history context and future from which
+   *              to estimate a conditional probability
+   * @return the probability of the specified event under this {@link Model}
+   *         without multiplying the probabilities of the internal {@link Model}
+   *         objects
+   */
   public double estimateNonJointProb(int id, TrainerEvent event) {
     double prob = super.estimateProb(id, event);
     if (prob <= Constants.probImpossible)

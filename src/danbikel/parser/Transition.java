@@ -47,6 +47,14 @@ public class Transition implements Serializable {
     return code;
   }
 
+  /**
+   * Returns the hash code for this object using the specified hash code
+   * for the history event.  If this method is called with an argument
+   * different from <code>history().hashCode()</code>, its behavior is
+   * undefined.
+   * @param historyHashCode the value of <code>history().hashCode()</code>
+   * @return the hash code for this object
+   */
   public int hashCode(int historyHashCode) {
     return (historyHashCode << 2) ^ future.hashCode();
   }
@@ -76,6 +84,21 @@ public class Transition implements Serializable {
     return new Transition(future.copy(), history.copy());
   }
 
+  /**
+   * Returns a copy of this object with canonical versions of the history and
+   * future events.
+   *
+   * @param canonicalFutures   a reflexive map by which to find a canonical
+   *                           version of the future in this {@link Transition};
+   *                           if one is not found, then this object's {@link
+   *                           #future} is added to the map
+   * @param canonicalHistories a reflexivve map by which to find a canonical
+   *                           version of the history in this {@link
+   *                           Transition}; if one is not found, then this
+   *                           object's {@link #history} is added to the map
+   * @return a copy of this object with canonical versions of the history and
+   *         future events.
+   */
   public Transition copyCanonical(Map canonicalFutures,
                                   Map canonicalHistories) {
     Event canonicalHistory = (Event)canonicalHistories.get(history);

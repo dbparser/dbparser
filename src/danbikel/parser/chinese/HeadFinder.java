@@ -8,6 +8,10 @@ import danbikel.parser.Language;
 import danbikel.parser.Settings;
 import danbikel.parser.Constants;
 
+/**
+ * A class for determining the head node on the right-hand sides of Chinese
+ * parse tree productions.
+ */
 public class HeadFinder extends danbikel.parser.lang.AbstractHeadFinder {
   Treebank treebank = Language.treebank();
 

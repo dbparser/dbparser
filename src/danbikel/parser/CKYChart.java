@@ -47,14 +47,42 @@ public class CKYChart extends Chart {
     super(size);
   }
 
+  /**
+   * Constructs a new chart with a default initial chart size, and with
+   * the specified cell limit and prune factor.
+   *
+   * @param cellLimit the limit to the number of items per cell
+   * @param pruneFact that log of the prune factor
+   *
+   * @see #cellLimit
+   * @see #pruneFact
+   */
   public CKYChart(int cellLimit, double pruneFact) {
     super(cellLimit, pruneFact);
   }
 
+  /**
+   * Constructs a new chart with the specified initial chart size, cell limit
+   * and prune factor.
+   *
+   * @param size the initial size of this chart
+   * @param cellLimit the limit to the number of items per cell
+   * @param pruneFact that log of the prune factor
+   *
+   * @see #cellLimit
+   * @see #pruneFact
+   */
   public CKYChart(int size, int cellLimit, double pruneFact) {
     super(size, cellLimit, pruneFact);
   }
 
+  /**
+   * Used by the decoder when it abandons a parse forest for a given sentence
+   * and is about to try again with a larger beam (beam-widening).
+   *
+   * @see Settings#decoderMaxPruneFactor
+   * @see Settings#decoderPruneFactorIncrement
+   */
   public void clearNonPreterminals() {
     for (int i = 0; i < size; i++) {
       for (int j = i; j < size; j++) {
@@ -120,6 +148,10 @@ public class CKYChart extends Chart {
     itemPool = new ObjectPool(chartItemClass, 50000);
   }
 
+  /**
+   * Returns a new chart item from the internal pool of reusable items.
+   * @return a new chart item from the internal pool of reusable items.
+   */
   public CKYItem getNewItem() {
     // return new CKYItem();
     /*

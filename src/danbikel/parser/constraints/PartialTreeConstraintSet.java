@@ -10,7 +10,8 @@ import java.util.*;
  * parse tree, for use when the bottom-up parsing algorithm needs to generate
  * only the analyses that are consistent with a particular unlexicalized tree.
  * Accordingly, the individual <tt>Constraint</tt> objects in this set form
- * an isomorphic tree structure.
+ * a tree structure isomorphic to the (possibly partial) syntactic tree
+ * with which they are constructed.
  */
 public class PartialTreeConstraintSet
   extends AbstractCollection implements ConstraintSet {
@@ -36,9 +37,19 @@ public class PartialTreeConstraintSet
    */
   protected ArrayList leaves = new ArrayList();
 
+  /**
+   * Returns an empty set of constraints.
+   */
   public PartialTreeConstraintSet() {
   }
 
+  /**
+   * Returns a set of partial tree constraints whose tree structure is
+   * isomorphic to the specified (possibly partial) syntactic tree.
+   *
+   * @param tree a possibly partial syntatic tree whose node labels and spans
+   *             are to be represented in any derivation pursued by the decoder
+   */
   public PartialTreeConstraintSet(Sexp tree) {
     buildConstraintSet(tree);
   }
@@ -57,6 +68,11 @@ public class PartialTreeConstraintSet
     leaves.trimToSize();
   }
 
+  /**
+   * Collects the constraints in the specified tree of constraint objects.
+   *
+   * @param tree the tree of constraint objects to be collected
+   */
   protected void collectNodes(PartialTreeConstraint tree) {
     size++;
     list.add(tree);
@@ -100,7 +116,9 @@ public class PartialTreeConstraintSet
    */
   public boolean findNoViolations() { return false; }
 
+  /** Returns the root of this tree of constraints. */
   public Constraint root() { return root; }
+  /** Returns a list of the leaves in this tree of constraints. */
   public List leaves() { return leaves; }
 
   /**
@@ -136,13 +154,22 @@ public class PartialTreeConstraintSet
 	    headChildConstraintParent : null);
   }
 
+  /**
+   * Returns a human-readable string representation of this tree of constraints.
+   * @return a human-readable string representation of this tree of constraints
+   */
   public String toString() {
     return root.toSexp().toString();
   }
 
   // methods to comply with Collection interface
+  /** Returns the number of constraints in this set. */
   public int size() { return size; }
 
+  /**
+   * Returns an iterator over the constraints in this set.
+   * @return an iterator over the constraints in this set
+   */
   public Iterator iterator() {
     return list.iterator();
   }

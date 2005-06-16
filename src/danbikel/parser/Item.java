@@ -29,6 +29,11 @@ public abstract class Item implements Serializable, Comparable {
     logProb = Constants.logOfZero;
   }
 
+  /**
+   * Constructs a chart item with the specified log-probability score.
+   * @param logProb the log probability of this chart item, also known as its
+   * <i>score</i>
+   */
   protected Item(double logProb) {
     this.logProb = logProb;
   }
@@ -92,6 +97,22 @@ public abstract class Item implements Serializable, Comparable {
    */
   public Item clear() { return this; }
 
+  /**
+   * Compares this item's log-probability score with
+   * that of the specified object, which must also be an instance of {@link
+   * Item}.  Returns -1, 0 or 1, depending on whether this item's score is less
+   * than, equal to or greater than, respectively, the specified item's score.
+   * By implementing the {@link Comparable} interface, instances of {@link Item}
+   * may be used in collections and with algorithms in the Java Collections
+   * Framework that perform sorting.
+   *
+   * @param o the {@link Item} instance whose score is to be compared with the
+   *          score of this item
+   * @return -1, 0 or 1, depending on whether this item's score is less than,
+   *         equal to or greater than, respectively, the specified item's score
+   *
+   * @see #logProb()
+   */
   public int compareTo(Object o) {
     Item otherItem = (Item)o;
     return (logProb < otherItem.logProb ? -1 :

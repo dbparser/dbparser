@@ -40,6 +40,7 @@ public class SexpSubcatEvent extends SexpEvent {
   public final static Symbol sexpSubcatLabel = Symbol.add(sexpSubcatLabelStr);
 
   // data member
+  /** The subcat data member. */
   protected Subcat subcat;
 
   /**
@@ -182,6 +183,20 @@ public class SexpSubcatEvent extends SexpEvent {
     return this;
   }
 
+  /**
+   * Adds the specified type of object to this event.  If the specified object
+   * type is <code>typeIndex(Subcat.class)</code>, then the specified object
+   * must be an instance of {@link Subcat} and is added as this event's subcat.
+   * If the specified object type is <code>typeIndex(Sexp.class)</code>, then
+   * the object must be of type {@link Sexp} and is added to this event's list
+   * of {@link Sexp} elements.
+   *
+   * @param type the type of object to be added to this event
+   * @param obj  the object to be added to this event
+   * @return this {@link SexpSubcatEvent} object
+   *
+   * @see #typeIndex(Class) 
+   */
   public MutableEvent add(int type, Object obj) {
     switch (type) {
     case sexpTypeIdx:

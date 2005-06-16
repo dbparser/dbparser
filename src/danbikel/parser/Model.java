@@ -7,25 +7,23 @@ import java.util.*;
 import java.text.*;
 
 /**
- * This class computes the probability of generating an output element
- * of this parser, where an output element might be, for example, a word,
- * a part of speech tag, a nonterminal label or a subcat frame.  It derives
- * counts from top-level <code>TrainerEvent</code> objects, storing these
- * derived counts in its internal data structures.  The derived counts are
- * necessary for the smoothing of the top-level probabilities used by the
- * parser, and the particular structure of those levels of smoothing (or,
- * less accurately, back-off) are specified by the
- * <code>ProbabilityStructure</code> argument to the
- * {@link #Model(ProbabilityStructure) constructor} and to the
- * {@link #estimateLogProb(int,TrainerEvent)}
- * method.
- * <p>
- * <b>N.B.</b>: While the name of this class is "Model", more strictly
- * speaking it computes the probabilities for an entire class of
- * parameters used by the overall parsing model.  As such--using a looser
- * definition of the term "model"--this class can be considered to represent
- * a "submodel", in that it contains a model of the generation of a particular
- * type of output element of this parser.
+ * This class computes the probability of generating an output element of this
+ * parser, where an output element might be, for example, a word, a part of
+ * speech tag, a nonterminal label or a subcat frame.  It derives counts from
+ * top-level <code>TrainerEvent</code> objects, storing these derived counts in
+ * its internal data structures.  The derived counts are necessary for the
+ * smoothing of the top-level probabilities used by the parser, and the
+ * particular structure of those levels of smoothing (or, less accurately,
+ * back-off) are specified by the <code>ProbabilityStructure</code> argument to
+ * the {@link #Model(ProbabilityStructure) constructor} and to the {@link
+ * #estimateLogProb(int,TrainerEvent)} method.
+ * <p/>
+ * <b>N.B.</b>: While the name of this class is &ldquo;Model&rdquo;, more
+ * strictly speaking it computes the probabilities for an entire class of
+ * parameters used by the overall parsing model.  As such&mdash;using a looser
+ * definition of the term &ldquo;model&rdquo;&mdash;this class can be considered
+ * to represent a &ldquo;submodel&rdquo;, in that it contains a model of the
+ * generation of a particular type of output element of this parser.
  *
  * @see ProbabilityStructure
  */
@@ -69,6 +67,12 @@ public class Model implements Serializable {
     Settings.getBoolean(Settings.precomputeProbs);
   private final static boolean deficientEstimation =
     Settings.getBoolean(Settings.collinsDeficientEstimation);
+  /**
+   * A constant that indicates whether this {@link Model} should perform
+   * probability caching.  This constant is usually <code>true</code>,
+   * but may redefined as <code>false</code> for debugging purposes
+   * (recompilation is necessary after redefining this constant).
+   */
   protected final static boolean useCache = true;
   private final static int minCacheSize = 1000;
   private final static boolean doGCBetweenCanonicalizations = false;
@@ -105,7 +109,15 @@ public class Model implements Serializable {
   protected final static double pruningThreshold =
     Settings.getDouble(Settings.modelPruningThreshold);
 
+  /**
+   * Indicates whether the method {@link #pruneHistoriesAndTransitions()} will
+   * output pruned events to a special pruned event log file.
+   */
   protected final static boolean printPrunedEvents = true;
+  /**
+   * Indicates whether the method {@link #pruneHistoriesAndTransitions()} will
+   * output events that were not pruned to a special pruned event log file.
+   */
   protected final static boolean printUnprunedEvents = true;
 
   private final static int structureMapArrSize = 1000;
@@ -126,25 +138,108 @@ public class Model implements Serializable {
   private Map structureMap = new danbikel.util.HashMap();
   private IntCounter idInt = new IntCounter();
   // some handles on info available from structure object
+  /**
+   * A cached copy of the name of the concrete type of the {@link
+   * ProbabilityStructure} instance used by this model.
+   */
   protected String structureClassName;
+  /**
+   * The value of {@link #structureClassName} but without the package
+   * qualification.
+   */
   protected String shortStructureClassName;
+  /**
+   * A cached copy of the number of back-off levels in the {@link
+   * ProbabilityStructure} used by this model.
+   *
+   * @see ProbabilityStructure#numLevels()
+   */
   protected int numLevels;
+  /**
+   * A cached copy of the smoothing factors of the {@link ProbabilityStructure}
+   * used by this model.  This array is of size {@link #numLevels}.
+   *
+   * @see ProbabilityStructure#lambdaFudge(int)
+   */
   protected double[] lambdaFudge;
+  /**
+   * A cached copy of the smoothing terms of the {@link ProbabilityStructure}
+   * used by this model.  This array is of size {@link #numLevels}.
+   *
+   * @see ProbabilityStructure#lambdaFudgeTerm(int)
+   */
   protected double[] lambdaFudgeTerm;
+  /**
+   * A cached copy of the smoothing penalty factors contained in the
+   * {@link ProbabilityStructure} used by this model.  This array is
+   * of size equal to {@link #numLevels}.
+   *
+   * @see ProbabilityStructure#lambdaPenalty
+   */
   protected double[] lambdaPenalty;
+  /**
+   * The values of {@link #lambdaPenalty} but modified such that<br>
+   * <code>logOneMinusLambdaPenalty[i] = Math.log(1 - lambdaPenalty[i])</code>
+   * <br>for all <code>i: 0 &le; i &lt; lambdaPenalty.size</code>.
+   */
   protected double[] logOneMinusLambdaPenalty;
-  // the actual counts
+  /**
+   * The derived event counts used to estimate probabilities of this model.
+   */
   protected CountsTrio[] counts;
   private int numCanonicalizableEvents = 0;
   /** Indicates whether to report to stderr what this class is doing. */
   protected boolean verbose = true;
 
   // for the storage of precomputed probabilities and lambdas
+  /**
+   * Precomputed probabilities for each back-off level of this model.  The keys
+   * of each of the {@link HashMapDouble} maps in this array are {@link
+   * Transition} objects.
+   */
   protected HashMapDouble[] precomputedProbs;
+  /**
+   * Precomputed lambdas for each back-off level of this model.  The keys of
+   * each of the {@link HashMapDouble} maps in this array are {@link Event}
+   * instances.
+   * <p/>
+   * For the modified Witten-Bell smoothing method used by this class, the
+   * values of the maps of this array are actually the log of one minus the
+   * lambda of a particular event at a particular back-off level, for ease of
+   * computing a smoothed estimate.  That is, if <code>event</code> is some
+   * history context whose associated smoothing value is
+   * &lambda;<sub><i>i</i></sub>, then
+   * <code>precomputedLambdas[i].get(event)</code> will be equal to
+   * ln(1&nbsp;&minus;&nbsp;&lambda;<sub><i>i</i></sub>), where ln is the
+   * natural log function that is implemented by <code>Math.log</code>.
+   */
   protected HashMapDouble[] precomputedLambdas;
+  /**
+   * Records the number of &ldquo;hits&rdquo; to the caches of precomputed
+   * probability estimates at the various back-off levels, to determine the
+   * amount each back-off level is used while decoding.
+   */
   protected transient int[] precomputedProbHits;
+  /**
+   * Records the number of times
+   * {@link #estimateLogProbUsingPrecomputed(Transition,int)} is invoked.
+   */
   protected transient int precomputedProbCalls;
+  /**
+   * Records the number of &ldquo;hits&rdquo; to the caches of precomputed
+   * probability estimates at the various back-off levels when the caller
+   * requests a probability for a context that has a base NP (<tt>NPB</tt>) as the
+   * parent nonterminal.  This allows a comparison between <tt>NPB</tt>
+   * hits versus overall hits.
+   */
   protected transient int[] precomputedNPBProbHits;
+  /**
+   * Records the number of times
+   * {@link #estimateLogProbUsingPrecomputed(Transition,int)} is invoked
+   * requesting a probability for an event whose history context has
+   * a base NP (<tt>NPB</tt>) the parent nonterminal.  This allows a comparison
+   * between <tt>NPB</tt> method invocations and overall method invocations.
+   */
   protected transient int precomputedNPBProbCalls;
   /**
    * A set of {@link #numLevels}<code>&nbsp;-&nbsp;1</code> maps, where map
@@ -169,17 +264,57 @@ public class Model implements Serializable {
 
   // for temporary storage of histories (so we don't have to copy histories
   // created by deriveHistories() to create transition objects)
+  /**
+   * A currently-unused cache of probabilities of {@link TrainerEvent}
+   * objects.
+   */
   protected transient ProbabilityCache topLevelCache;
+  /**
+   * A cache of probability estimates at the various back-off levels of this
+   * model, used when {@link #precomputeProbs} is <code>false</code>.
+   */
   protected transient ProbabilityCache[] cache;
+  /**
+   * Records the number of cache hits for each back-off level of this mdoel.
+   */
   protected transient int[] cacheHits;
+  /**
+   * Records the number of cache accesses for each back-off level of this model.
+   */
   protected transient int[] cacheAccesses;
 
+  /**
+   * A reflexive map of canonical {@link Event} objects to save memory
+   * in the various tables of this model that store such {@link Event}
+   * objects.
+   */
   protected transient FlexibleMap canonicalEvents;
 
+  /**
+   * The value of the smoothing parameters file for this model, as given
+   * by {@link ProbabilityStructure#smoothingParametersFile()}.
+   *
+   * @see #useSmoothingParams
+   * @see #dontAddNewParams
+   * @see ProbabilityStructure#smoothingParametersFile()
+   */
   protected transient String smoothingParamsFile;
+  /**
+   * The boolean value of the {@link Settings#saveSmoothingParams} setting.
+   */
   protected transient boolean saveSmoothingParams;
+  /**
+   * The boolean value of the {@link Settings#dontAddNewParams} setting.
+   */
   protected transient boolean dontAddNewParams;
+  /**
+   * The boolean value of the {@link Settings#useSmoothingParams} setting.
+   */
   protected transient boolean useSmoothingParams;
+  /**
+   * The smoothing parameters for the history contexts ({@link Event} instances)
+   * at the back-off levels of this model.
+   */
   protected transient CountsTable[] smoothingParams;
 
   /**
@@ -341,6 +476,14 @@ public class Model implements Serializable {
     }
   }
 
+  /**
+   * Sets the {@link #canonicalEvents} member of this object.
+   *
+   * @param canonical the reflexive map of canonical {@link Event}
+   * objects
+   *
+   * @see ModelCollection#internalReadObject(java.io.ObjectInputStream)
+   */
   public void setCanonicalEvents(FlexibleMap canonical) {
     canonicalEvents = canonical;
   }
@@ -447,6 +590,23 @@ public class Model implements Serializable {
    */
   }
 
+  /**
+   * A method invoked after probabilities have been precomputed by {@link
+   * #precomputeProbs()} to clean up (that is, remove) objects from the various
+   * counts tables that are no longer needed, as determined by {@link
+   * ProbabilityStructure#removeHistory(int,Event)} and {@link
+   * ProbabilityStructure#removeTransition(int,Transition)}.
+   * <p/>
+   * If {@link #precomputeProbs} is <code>true</code>, then this method will
+   * remove entries from the maps of the {@link #precomputedProbs} array.  If
+   * {@link #precomputeProbs} is <code>false</code> or if {@link
+   * #deleteCountsWhenPrecomputingProbs} is <code>false</code>, then this method
+   * will remove entries from the maps in the {@link #counts} array.
+   * <p/>
+   *
+   * @see ProbabilityStructure#removeHistory(int,Event)
+   * @see ProbabilityStructure#removeTransition(int,Transition)
+   */
   protected void cleanup() {
     int numHistoriesRemoved = 0;
     int numTransitionsRemoved = 0;
@@ -533,7 +693,16 @@ public class Model implements Serializable {
   }
 
   /**
+   * Estimates the log-probability of a conditional event.  The history
+   * (conditioning context) and future of this conditional event are contained
+   * in the specified maximal-context event.
    *
+   * @param id    the id of the caller (typically a
+   *              {@link danbikel.switchboard.Switchboard} client ID)
+   * @param event the maximal-context event containing both the history
+   *              (conditioning context) and future of the conditional event
+   *              whose probability is to be estimated
+   * @return an estimate of the log-probaiblity of a conditional event
    */
   public double estimateLogProb(int id, TrainerEvent event) {
     ProbabilityStructure clientStructure = getClientProbStructure(id);
@@ -542,6 +711,18 @@ public class Model implements Serializable {
 	    Math.log(estimateProb(clientStructure, event)));
   }
 
+  /**
+   * Estimates the probability of a conditional event.  The history
+   * (conditioning context) and future of this conditional event are contained
+   * in the specified maximal-context event.
+   *
+   * @param id    the id of the caller (typically a
+   *              {@link danbikel.switchboard.Switchboard} client ID)
+   * @param event the maximal-context event containing both the history
+   *              (conditioning context) and future of the conditional event
+   *              whose probability is to be estimated
+   * @return an estimate of the probaiblity of a conditional event
+   */
   public double estimateProb(int id, TrainerEvent event) {
     if (precomputeProbs)
       throw
@@ -575,7 +756,10 @@ public class Model implements Serializable {
   }
 
   /**
-   * Estimates the log prob using precomputed probabilities and lambdas.
+   * Estimates the log prob using precomputed probabilities and smoothing values
+   * (lambdas).  This method is invoked by the public method {@link
+   * #estimateLogProb(int,TrainerEvent)} if {@link #precomputeProbs} is
+   * <code>true</code>.
    */
   protected double estimateLogProbUsingPrecomputed(ProbabilityStructure
 						     structure,
@@ -652,16 +836,18 @@ public class Model implements Serializable {
   }
 
   /**
-   * Returns the smoothed probability estimate of a transition contained
-   * in the specified <code>TrainerEvent</code> object.
+   * Returns the smoothed probability estimate of a transition contained in the
+   * specified <code>TrainerEvent</code> object.
    *
-   * @param probStructure a <code>ProbabilityStructure</code> object that
-   * is either {@link #structure} or a copy of it, used for temporary
-   * storage during the computation performed by this method
-   * @param event the <code>TrainerEvent</code> containing a transition
-   * from a history to a future whose smoothed probability is to be computed
-   * @return the smoothed probability estimate of a transition contained
-   * in the specified <code>TrainerEvent</code> object
+   * @param probStructure a <code>ProbabilityStructure</code> object that is
+   *                      either {@link #structure} or a copy of it, used for
+   *                      temporary storage during the computation performed by
+   *                      this method
+   * @param event         the <code>TrainerEvent</code> containing a transition
+   *                      from a history to a future whose smoothed probability
+   *                      is to be computed
+   * @return the smoothed probability estimate of a transition contained in the
+   *         specified <code>TrainerEvent</code> object
    */
   protected double estimateProb(ProbabilityStructure probStructure,
 				TrainerEvent event) {
@@ -973,6 +1159,22 @@ public class Model implements Serializable {
     }
   }
 
+  /**
+   * Inserts the {@link Transition} objects representing conditional events for
+   * all back-off levels of this model into the specified array, with
+   * <code>trans[0] = zeroLevelTrans</code>.  Higher-numbered back-off level
+   * events (i.e., events with increasingly coarser history contexts) are gotten
+   * from the specified zeroeth-level {@link Transition} by use of the
+   * {@link #backOffMap}.
+   *
+   * @param zeroLevelTrans the {@link Transition} object representing
+   * a conditional event with a maximal-context history
+   * @param trans the array in which to insert {@link Transition} objects
+   * for all levels of back-off of this model
+   * @return the specified {@link Transition} array, having been modified
+   * to include {@link Transition} objects for all levels of back-off
+   * of this model
+   */
   protected Transition[] getTransitions(Transition zeroLevelTrans,
 					Transition[] trans) {
     trans[0] = zeroLevelTrans;
@@ -1130,6 +1332,23 @@ public class Model implements Serializable {
   }
   */
 
+  /**
+   * Analyzes the distributions of this model in order to prune history and
+   * transition (i.e., conditional) events from the various counts tables.  The
+   * analysis is designed so that the histories and transitions that are pruned
+   * are likely to have a minimal if any impact on overall parsing performance.
+   * <p/>
+   * As a side effect, the events that are pruned or not pruned are output to a
+   * file named <code>{@link #structureClassName} +
+   * &quot;.prune-log&quot;</code>, if {@link #printPrunedEvents} or
+   * {@link #printUnprunedEvents}, respectively, are <code>true</code>.  This
+   * allows further analysis of the model.
+   * <p/>
+   *
+   * @see AnalyzeDisns
+   * @see #printPrunedEvents
+   * @see #printUnprunedEvents
+   */
   protected void pruneHistoriesAndTransitions() {
     if (!doPruning || numLevels < 2)
       return;
@@ -1269,6 +1488,11 @@ public class Model implements Serializable {
 
   }
 
+  /**
+   * Sets up the smoothing parameter arrays and maps.
+   *
+   * @see #smoothingParams
+   */
   protected void initializeSmoothingParams() {
     smoothingParams = new CountsTableImpl[numLevels];
     for (int i = 0; i < numLevels; i++)
@@ -1617,10 +1841,29 @@ public class Model implements Serializable {
 
   // I/O methods for smoothing parameters file
 
+  /**
+   * Reads all necessary smoothing parameters from {@link #smoothingParamsFile}
+   * instead of deriving values for smoothing parameters.  Verbose output is
+   * produced.
+   *
+   * @see #useSmoothingParams
+   * @see #dontAddNewParams
+   * @see #readSmoothingParams(boolean)
+   */
   protected void readSmoothingParams() {
     readSmoothingParams(true);
   }
 
+  /**
+   * Reads all necessary smoothing parameters from {@link #smoothingParamsFile}
+   * instead of deriving values for smoothing parameters.  Verbose output is
+   * produced if the specified argument is <code>true</code>.
+   *
+   * @param verboseOutput indicates whether or not this method should output
+   *                      verbose messages to <code>System.err</code>.
+   * @see #useSmoothingParams
+   * @see #dontAddNewParams
+   */
   protected void readSmoothingParams(boolean verboseOutput) {
     if (smoothingParams != null)
       return;
@@ -1647,10 +1890,22 @@ public class Model implements Serializable {
     }
   }
 
+  /**
+   * Writes the smoothing parameters of this model to the file named by
+   * {@link #smoothingParamsFile}.  Verbose output to <code>System.err</code>
+   * is produced.
+   */
   protected void writeSmoothingParams() {
     writeSmoothingParams(true);
   }
 
+  /**
+   * Writes the smoothing parameters of this model to the file named by {@link
+   * #smoothingParamsFile}.
+   *
+   * @param verboseOutput indicates whether to output verbose messages to
+   *                      <code>System.err</code>
+   */
   protected void writeSmoothingParams(boolean verboseOutput) {
     try {
       if (verboseOutput)
@@ -1883,6 +2138,15 @@ public class Model implements Serializable {
     s.defaultWriteObject();
   }
 
+  /**
+   * Returns a human-readable string containing all the precomputed or
+   * non-precomputed probability cache statistics for the life of this {@link
+   * Model} object.
+   *
+   * @return a human-readable string containing all the precomputed or
+   *         non-precomputed probability cache statistics for the life of this
+   *         {@link Model} object.
+   */
   public String getCacheStats() {
     StringBuffer sb = new StringBuffer(300);
     if (precomputeProbs) {

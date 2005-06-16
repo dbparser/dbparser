@@ -11,7 +11,7 @@ import java.io.*;
  * Provides static settings for this package, primarily via an internal
  * {@link Properties} object.  All recognized properties of this package and
  * the supplied language packages are provided as publicly-accessible constants.
- * <p>
+ * <p/>
  * A settings file for a particular language must provide the property
  * <code>headTablePrefix + language</code>.<br> A settings file for a
  * particular language should normally also provide the property
@@ -19,13 +19,13 @@ import java.io.*;
  * encoding as determined by the locale of the Java VM.  Settings files
  * for a particular language and/or Treebank may contain any other settings
  * required by a language package.
- * <p>
+ * <p/>
  * Variable expansion is performed on property values as in Java security
  * policy files, with the additional provision that properties defined earlier
  * in a settings file can be used as variable names in subsequent lines of the
  * settings file.  See {@link Text#expandVars(Properties,StringBuffer)} for
  * what variables are allowed in the definitions of property values.
- * <p>
+ * <p/>
  * Upon intialization, this class attempts to read default parser settings from
  * the file <tt>settings</tt> inside the default settings directory,
  * <tt>$HOME/.db-parser</tt>, where <tt>$HOME</tt> is ther user's home
@@ -33,26 +33,9 @@ import java.io.*;
  * the default settings directory or the default settings file is missing,
  * this class will use fallback default settings from a resource that is
  * bundled with this package.
- * <p>
- * To obtain a default settings file as a template for modification, put the
- * following code in a file called <tt>GetSettings.java</tt> and then run
- * <tt>java&nbsp;GetDefaultSettings</tt> from the command line or your
- * Java development environment:
- * <pre>
- * import danbikel.parser.Settings;
- * import java.io.*;
- * public class GetDefaultSettings {
- *   public static void main(String[] args) {
- *     try {
- *       InputStream is = Settings.getDefaultsResource();
- *       BufferedReader reader = new BufferedReader(new InputStreamReader(is));
- *       for (String line = null; (line = reader.readLine()) != null; )
- *	   System.out.println(line);
- *     }
- *     catch (IOException ioe) { System.err.println(ioe); }
- *   }
- * }
- * </pre>
+ * <p/>
+ * To obtain a default settings file as a template for modification, run
+ * the {@link #main} method of this class.
  *
  * @see #headTablePrefix
  * @see #fileEncodingPrefix
@@ -284,6 +267,8 @@ public class Settings implements Serializable {
    * <p>
    * The value of this constant is
    * <code>"parser.parser.decoderServerClass"</code>.
+   *
+   * @see Parser#getNewDecoderServer(String)
    */
   public final static String decoderServerClass =
     "parser.parser.decoderServerClass";
@@ -347,9 +332,19 @@ public class Settings implements Serializable {
   public final static String saveSmoothingParams =
     "parser.model.saveSmoothingParameters";
 
+  /**
+   * Indicates whether instances of {@link Model}, when smoothing parameters
+   * from a previous training run, should not add new parameters when deriving
+   * counts.
+   */
   public final static String dontAddNewParams =
     "parser.model.dontAddNewParameters";
 
+  /**
+   * Indicates whether instances of {@link Model} should use smoothing
+   * parameters saved to a file from a previous training run, instead of
+   * deriving smoothing parameters.
+   */
   public final static String useSmoothingParams =
     "parser.model.useSmoothingParameters";
 
@@ -377,6 +372,14 @@ public class Settings implements Serializable {
   public final static String modelPruningThreshold =
     "parser.model.pruningThreshold";
 
+  /**
+   * The property to specify the concrete type of the {@link NonterminalMapper}
+   * instance used by {@link NTMapper} to map nonterminals that are
+   * previously-generated modifiers of some head child nonterminal.
+   */
+  public final static String prevModMapperClass =
+    "parser.model.prevModMapperClass";
+  
   /**
    * The property to specify whether or not the <code>ModelCollection</code>
    * class should write out the large hash map containing canonical versions of
@@ -489,7 +492,8 @@ public class Settings implements Serializable {
    * The value of this constant is
    * <code>"parser.training.collinsRepairBaseNPs"</code>.
    *
-   * @see Training#repairBaseNPs(danbikel.lisp.Sexp) */
+   * @see Training#repairBaseNPs(danbikel.lisp.Sexp)
+   */
   public static final String collinsRepairBaseNPs =
     "parser.training.collinsRepairBaseNPs";
 
@@ -631,6 +635,8 @@ public class Settings implements Serializable {
    * <li> {@link #rightSubcatModelStructureNumber}
    * <li> {@link #modNonterminalModelStructureNumber}
    * <li> {@link #modWordModelStructureNumber}
+   * <li> {@link #lexPriorModelStructureNumber}
+   * <li> {@link #nonterminalPriorModelStructureNumber}
    * </ul>
    * If the user wishes to use model structure classes outside
    * this package, the following properties may be used to specify
@@ -646,6 +652,8 @@ public class Settings implements Serializable {
    * <li> {@link #rightSubcatModelStructureClass}
    * <li> {@link #modNonterminalModelStructureClass}
    * <li> {@link #modWordModelStructureClass}
+   * <li> {@link #lexPriorModelStructureClass}
+   * <li> {@link #nonterminalPriorModelStructureClass}
    * </ul>
    * <p>
    * The value of this constant is
@@ -654,9 +662,43 @@ public class Settings implements Serializable {
   public final static String globalModelStructureNumber =
     "parser.trainer.globalModelStructureNumber";
 
+  /**
+   * The properth to specify the model structure to use when creating
+   * the <code>ProbabilityStructure</code> object for the
+   * lexical prior submodel.  This number will be appended to the
+   * canonical lexical prior model structure classname prefix,
+   * <code>"danbikel.parser.LexPriorModelStructure"</code>, to form a
+   * classname, such as
+   * <code>"danbikel.parser.LexPriorModelStructure1"</code>. This
+   * constant overrides the setting of the
+   * <code>globalModelStructureNumber</code> property.
+   * <p/>
+   * The value of this constant is
+   * <code>"parser.trainer.lexPriorModelStructureNumber"</code>.
+   *
+   * @see #globalModelStructureNumber
+   * @see #lexPriorModelStructureClass
+   */
   public final static String lexPriorModelStructureNumber =
     "parser.trainer.lexPriorModelStructureNumber";
 
+  /**
+   * The properth to specify the model structure to use when creating
+   * the <code>ProbabilityStructure</code> object for the
+   * nonterminal prior submodel.  This number will be appended to the
+   * canonical nonterminal prior model structure classname prefix,
+   * <code>"danbikel.parser.LexPriorModelStructure"</code>, to form a
+   * classname, such as
+   * <code>"danbikel.parser.NonterminalPriorModelStructure1"</code>. This
+   * constant overrides the setting of the
+   * <code>globalModelStructureNumber</code> property.
+   * <p/>
+   * The value of this constant is
+   * <code>"parser.trainer.nonterminalPriorModelStructureNumber"</code>.
+   *
+   * @see #globalModelStructureNumber
+   * @see #nonterminalPriorModelStructureClass
+   */
   public final static String nonterminalPriorModelStructureNumber =
     "parser.trainer.nonterminalPriorModelStructureNumber";
 
@@ -736,7 +778,8 @@ public class Settings implements Serializable {
    * <code>"parser.trainer.gapModelStructureNumber"</code>.
    *
    * @see #globalModelStructureNumber
-   * @see #gapModelStructureClass */
+   * @see #gapModelStructureClass
+   */
   public final static String gapModelStructureNumber =
     "parser.trainer.gapModelStructureNumber";
   /**
@@ -754,7 +797,8 @@ public class Settings implements Serializable {
    * <code>"parser.trainer.leftSubcatModelStructureNumber"</code>.
    *
    * @see #globalModelStructureNumber
-   * @see #leftSubcatModelStructureClass */
+   * @see #leftSubcatModelStructureClass
+   */
   public final static String leftSubcatModelStructureNumber =
     "parser.trainer.leftSubcatModelStructureNumber";
   /**
@@ -772,7 +816,8 @@ public class Settings implements Serializable {
    * <code>"parser.trainer.rightSubcatModelStructureNumber"</code>.
    *
    * @see #globalModelStructureNumber
-   * @see #rightSubcatModelStructureClass */
+   * @see #rightSubcatModelStructureClass
+   */
   public final static String rightSubcatModelStructureNumber =
     "parser.trainer.rightSubcatModelStructureNumber";
   /**
@@ -791,7 +836,8 @@ public class Settings implements Serializable {
    * <code>"parser.trainer.modNonterminalModelStructureNumber"</code>.
    *
    * @see #globalModelStructureNumber
-   * @see #modNonterminalModelStructureClass */
+   * @see #modNonterminalModelStructureClass
+   */
   public final static String modNonterminalModelStructureNumber =
     "parser.trainer.modNonterminalModelStructureNumber";
   /**
@@ -809,14 +855,34 @@ public class Settings implements Serializable {
    * <code>"parser.trainer.modWordModelStructureNumber"</code>.
    *
    * @see #globalModelStructureNumber
-   * @see #modWordModelStructureClass */
+   * @see #modWordModelStructureClass
+   */
   public final static String modWordModelStructureNumber =
     "parser.trainer.modWordModelStructureNumber";
 
-
+  /**
+   * The property to specify the fully-qualified name of a class that
+   * extends <code>ProbabilityStructure</code>, to be instantiated by
+   * {@link Trainer} for the lexical prior submodel.  Specifying this
+   * property overrides the {@link #globalModelStructureNumber}
+   * and {@link #lexPriorModelStructureNumber} properties.
+   * <p/>
+   * The value of this constant is
+   * <code>"parser.trainer.lexPriorModelStructureClass"</code>.
+   */
   public final static String lexPriorModelStructureClass =
     "parser.trainer.lexPriorModelStructureClass";
 
+  /**
+   * The property to specify the fully-qualified name of a class that
+   * extends <code>ProbabilityStructure</code>, to be instantiated by
+   * {@link Trainer} for the nonterminal prior submodel.  Specifying this
+   * property overrides the {@link #globalModelStructureNumber}
+   * and {@link #nonterminalPriorModelStructureNumber} properties.
+   * <p/>
+   * The value of this constant is
+   * <code>"parser.trainer.nonterminalPriorModelStructureClass"</code>.
+   */
   public final static String nonterminalPriorModelStructureClass =
     "parser.trainer.nonterminalPriorModelStructureClass";
 
@@ -967,7 +1033,6 @@ public class Settings implements Serializable {
    * <p>
    * The value of this constant is
    * <code>"parser.trainer.outputSubcatMaps"</code>.
-
    */
   public final static String outputSubcatMaps =
     "parser.trainer.outputSubcatMaps";
@@ -1376,7 +1441,7 @@ public class Settings implements Serializable {
    * @see SwitchboardRemote#serverDeathKillClients
    */
   public final static String serverDeathKillClients =
-  SwitchboardRemote.serverDeathKillClients;
+    SwitchboardRemote.serverDeathKillClients;
 
   /**
    * The property to specify how long (in milliseconds) sockets stay alive
@@ -1637,29 +1702,77 @@ public class Settings implements Serializable {
    * this class
    * @param header the header text to put at the beginning of the
    * properties file
+   * @throws IOException if there is an exception writing to the specified
+   * stream
    */
   public static void store(OutputStream os, String header) throws IOException {
     settings.store(os, regularSettingsFileHeaderPrefix + header);
   }
 
+  /**
+   * Stores the properties of this class to the specified output stream.
+   * @param os the output stream to which to write the properties contained
+   * in this class
+   * @throws IOException if there is an exception writing to the specified
+   * stream
+   */
   public static void store(ObjectOutputStream os) throws IOException {
     os.writeObject(settings);
   }
 
+  /**
+   * Stores a sorted list of the settings and values of this class to
+   * the specified output stream
+   * @param os the output stream to which to write a sorted list of the
+   * settings and values contained in this class
+   * @throws IOException if there is a problem writing to the specified
+   * output stream
+   */
   public static void storeSorted(OutputStream os) throws IOException {
     storeSorted(settings, os);
   }
 
+  /**
+   * Stores a sorted list of the specified property-value pairs to the
+   * specified output stream
+   * @param props a container of property-value pairs
+   * @param os an output stream to which to write a sorted list of the
+   * property-value pairs contained in the specified {@link Properties}
+   * object
+   * @throws IOException if there is a problem writing to the
+   * specified output stream
+   */
   public static void storeSorted(Properties props, OutputStream os)
     throws IOException {
     storeSorted(props, os, defaultSettingsFileHeader);
   }
 
+  /**
+   * Stores a sorted list of the property-value pairs contained in this class
+   * to the specified output stream using the specified header.
+   * @param os the output stream to which to store a sorted list of the
+   * property-value pairs contained in this class
+   * @param header the header to write to the specified output stream
+   * before writing the sorted list of property-value pairs
+   * @throws IOException if there is a problem writing to the specified
+   * output stream
+   */
   public static void storeSorted(OutputStream os, String header)
     throws IOException {
     storeSorted(settings, os, header);
   }
 
+  /**
+   * Stores a sorted list of the specified container of property-value pairs
+   * to the specified output stream using the specified header.
+   * @param props a container of property-value pairs
+   * @param os the output stream to which to store a sorted list of the
+   * specified property-value pairs
+   * @param header the header to write to the specified output stream
+   * before writing the sorted list of property-value pairs
+   * @throws IOException if there is a problem writing to the specified
+   * output stream
+   */
   public static void storeSorted(Properties props,
 				 OutputStream os, String header)
     throws IOException {
@@ -1800,5 +1913,50 @@ public class Settings implements Serializable {
     }
     else
       return null;
+  }
+
+  /**
+   * Returns the integer value of specified property, or the specified default
+   * value if the specified property does not exist.
+   *
+   * @param property     the property or setting whose value is to be retrieved
+   * @param defaultValue the fallback default value for the specified property
+   * @return the integer value of specified property, or the specified default
+   *         value if the specified property does not exist.
+   */
+  public static int getIntProperty(String property, int defaultValue) {
+    String propStr = get(property);
+    return (propStr == null) ? defaultValue : getInteger(propStr);
+  }
+
+  /**
+   * Returns the boolean value of specified property, or the specified default
+   * value if the specified property does not exist.
+   *
+   * @param property     the property or setting whose value is to be retrieved
+   * @param defaultValue the fallback default value for the specified property
+   * @return the boolean value of specified property, or the specified default
+   *         value if the specified property does not exist.
+   */
+  public static boolean getBooleanProperty(String property,
+					   boolean defaultValue) {
+    String propStr = get(property);
+    return (propStr == null) ? defaultValue : getBoolean(property);
+  }
+
+  /**
+   * Prints the default settings contained in the resource supplied with this
+   * parsing software.
+   *
+   * @param args ignored
+   */
+  public static void main(String [] args) {
+    try {
+      InputStream is = Settings.getDefaultsResource();
+      BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+      for (String line = null; (line = reader.readLine()) != null; )
+	System.out.println(line);
+    }
+    catch (IOException ioe) { System.err.println(ioe); }
   }
 }

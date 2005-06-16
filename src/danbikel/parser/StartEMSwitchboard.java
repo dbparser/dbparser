@@ -8,6 +8,8 @@ import java.rmi.server.*;
 
 public class StartEMSwitchboard {
 
+  private StartEMSwitchboard() {}
+
   // constants
   private static final String outFilenameSuffix = ".parsed";
 

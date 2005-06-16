@@ -4,12 +4,26 @@ import danbikel.lisp.*;
 import danbikel.parser.*;
 import java.util.*;
 
+/**
+ * Constructs a set of {@link PartialLexTreeConstraint}s for a given
+ * tree.
+ */
 public class PartialLexTreeConstraintSet extends UnlexTreeConstraintSet {
 
+  /**
+   * Constructs an empty constraint set.
+   */
   public PartialLexTreeConstraintSet() {
     super();
   }
 
+  /**
+   * Constructs a set of {@link PartialLexTreeConstraint} objects forming a tree
+   * structure from the specified syntactic tree.  The specified tree is
+   * lexicalized using a head finder.
+   * @param tree the syntactic tree from which to construct a tree of
+   * constraints
+   */
   public PartialLexTreeConstraintSet(Sexp tree) {
     super(tree);
   }

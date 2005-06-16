@@ -23,7 +23,7 @@ public interface MutableEvent extends Event {
    * are primitive type values, then these values should be wrapped
    * in their corresponding wrapper classes.  For example, if an
    * implementation of this interface accepts <code>int</code> values,
-   * they should be passed as an <code>Integer</code> objects to this method.
+   * they should be passed as <code>Integer</code> objects to this method.
    * At present, an <code>Event</code> implementation cannot be
    * designed accept both a primitive type and its associated wrapper
    * class' type (this is, of course, not a serious limitation).

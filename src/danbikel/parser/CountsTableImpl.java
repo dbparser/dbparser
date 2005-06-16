@@ -6,8 +6,8 @@ import java.io.*;
 import java.util.*;
 
 /**
- * Provides a mapping between objects and integer counts that may be
- * incremented or decremented.
+ * Provides a mapping between objects and floating-point (<tt>double</tt>)
+ * counts that may be incremented or decremented.
  */
 public class CountsTableImpl
   extends danbikel.util.HashMapDouble implements CountsTable {
@@ -30,14 +30,14 @@ public class CountsTableImpl
   }
   /**
    * Constructs an empty <code>CountsTable</code> with the specified initial
-   * number of hash buckets and the specified load factor.  If the load
-   * factor, which is average number of items per bucket, is exceeded
-   * at runtime, the number of buckets is roughly doubled and the entire
-   * map is re-hashed, as implemented by the parent class, {@link HashMap}.
+   * number of hash buckets and the specified load factor.  If the load factor,
+   * which is average number of items per bucket, is exceeded at runtime, the
+   * number of buckets is roughly doubled and the entire map is re-hashed, as
+   * implemented by the parent class, {@link danbikel.util.HashMap}.
    *
-   * @param initialCapacity the number of hash buckets that this object
-   * will initially have
-   * @param loadFactor the load factor of this <code>HashMap</code> object
+   * @param initialCapacity the number of hash buckets that this object will
+   *                        initially have
+   * @param loadFactor      the load factor of this <code>HashMap</code> object
    */
   public CountsTableImpl(int initialCapacity, float loadFactor) {
     super(initialCapacity, loadFactor);

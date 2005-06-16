@@ -18,10 +18,19 @@ public class SubcatList extends SexpList implements Subcat, Externalizable {
   // efficient
 
 
+  /**
+   * Construct a new empty subcat list.
+   */
   public SubcatList() {
     super();
   }
 
+  /**
+   * Constructs a new subcat list from the requirements in the specified
+   * {@link SexpList}.
+   * @param list the list of requirements from which to construct this
+   * subcat list
+   */
   public SubcatList(SexpList list) {
     super(list);
     reverse();

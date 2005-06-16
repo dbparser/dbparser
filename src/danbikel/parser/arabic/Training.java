@@ -32,7 +32,10 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
   private final static Symbol semTagArgStopListSym =
     Symbol.add("sem-tag-arg-stop-list");
   private final static Symbol nodesToPruneSym = Symbol.add("prune-nodes");
-  private final static Symbol tagMapSym = Symbol.add("tag-map");
+  /**
+   * The symbol associated with tag map metadata.
+   */
+  protected final static Symbol tagMapSym = Symbol.add("tag-map");
   private final static Symbol VP = Symbol.get("VP");
   private final static Symbol X = Symbol.get("X");
   private final static Symbol punc = Symbol.get("PUNC");
@@ -53,10 +56,20 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
   private final static boolean removePronoun    = true;
   private final static boolean removeMood       = true;
 
+  /**
+   * An array of noun markers in Arabic Treebank part-of-speech tags.
+   */
   protected final static String[] nounSuffixMarkers = {"+NSUFF"};
-
+  /**
+   * An array of determiner markers in Arabic Treebank part-of-speech tags.
+   */
   protected final static String[] detPrefixMarkers = {"DET+"};
 
+  /**
+   * An array of person/number markers (indicating information such as
+   * &ldquo;first person singular&rdquo;) in Arabic Treebank part-of-speech
+   * tags.
+   */
   protected final static String[] personMarkers = {
     "_1P", "_1S",
     "_2FS", "_2FP", "_2MS", "_2MP",
@@ -65,26 +78,40 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
     ":2FS", ":2FP", ":2MS", ":2MP",
     ":3D", ":3FS", ":3FP", ":3MS", ":3MP"
   };
+  /**
+   * An array of number markers in Arabic Treebank part-of-speech tags
+   * (Arabic has forms for singular, plural and dual).
+   */
   protected final static String[] numberMarkers = {"_SG", "_PL", "_DUAL","_DU"};
+  /** An array of gender markers in Arabic Treebank part-of-speech tags. */
   protected final static String[] genderMarkers = {"_MASC", "_FEM"};
+  /** An array of case markers in Arabic Treebank part-of-speech tags. */
   protected final static String[] caseMarkers = {"_NOM", "_ACCGEN", "_ACC"};
+  /**
+   * An array of definite/indefinite markers in Arabic Treebank part-of-speech
+   * tags.
+   */
   protected final static String[] definiteMarkers = {"_INDEF", "_DEF"};
+  /** An array of pronoun markers in Arabic Treebank part-of-speech tags. */
   protected final static String[] pronounMarkers = {"_POSS", "_INDEF"};
+  /** An array of verb mood markers in Arabic Treebank part-of-speech tags. */
   protected final static String[] moodMarkers = {"_MOOD:I", "_MOOD:SJ"};
 
   // the following two arrays must be coordinated for the contains() method
   // to work properly
-  protected final static boolean[] remove = {
-    removeNounSuffix,
-    removeDetPrefix,
-    removePerson,
-    removeNumber,
-    removeGender,
-    removeCase,
-    removeDefinite,
-    removePronoun,
-    removeMood
-  };
+  /**
+   * An array of the various markers arrays.
+   *
+   * @see #nounSuffixMarkers
+   * @see #detPrefixMarkers
+   * @see #personMarkers
+   * @see #numberMarkers
+   * @see #genderMarkers
+   * @see #caseMarkers
+   * @see #definiteMarkers
+   * @see #pronounMarkers
+   * @see #moodMarkers
+   */
   protected final static String[][] markers = {
     nounSuffixMarkers,
     detPrefixMarkers,
@@ -95,6 +122,22 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
     definiteMarkers,
     pronounMarkers,
     moodMarkers
+  };
+  /**
+   * Indicates which of the various types of markers should be removed
+   * from Arabic Treebank part-of-speech tags during preprocessing
+   * (currently unused).  This array must be coordinated with {@link #markers}.
+   */
+  protected final static boolean[] remove = {
+    removeNounSuffix,
+    removeDetPrefix,
+    removePerson,
+    removeNumber,
+    removeGender,
+    removeCase,
+    removeDefinite,
+    removePronoun,
+    removeMood
   };
 
   /**
@@ -157,6 +200,16 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
     readMetadata(metadataTok);
   }
 
+  /**
+   * Reads the tag map metadata if the specified data type is equal to
+   * {@link #tagMapSym}.
+   *
+   * @param dataType the data type of the specified metadata resource; if
+   * the specified symbol is equal to {@link #tagMapSym} then this method
+   * will read and store the associated tag map metadata
+   * @param metadataLen the length of the metadata list
+   * @param metadata the metadata resource
+   */
   protected void readMetadataHook(Symbol dataType,
 				  int metadataLen, SexpList metadata) {
     if (dataType == tagMapSym) {
@@ -169,14 +222,103 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
 
   // re-defining the accessor methods for the changed start, stop and top
   // data members (and their associated Word objects)
+  /**
+   * Returns the symbol to indicate hidden nonterminals that precede the first
+   * in a sequence of modifier nonterminals. This method overrides the default
+   * implementation so as to return a symbol that does not contain a plus sign
+   * (<tt>+</tt>), which is a nonterminal augmentation delimiter in the Arabic
+   * Treebank.
+   *
+   * @return the symbol to indicate hidden nonterminals that precede the first
+   *         in a sequence of modifier nonterminals.
+   */
   public Symbol startSym() { return startSym; }
+  /**
+   * Returns the <code>Word</code> object that represents the hidden "head word"
+   * of the start symbol.  This method overrides the default implementation so
+   * as to return a {@link Word} containing symbols that do not contain a plus
+   * sign (<tt>+</tt>), which is a nonterminal augmentation delimiter in the
+   * Arabic Treebank.
+   *
+   * @see #startSym
+   * @see danbikel.parser.Trainer
+   */
   public Word startWord() { return startWord; }
+  /**
+   * Returns the symbol to indicate a hidden nonterminal that follows the last
+   * in a sequence of modifier nonterminals. This method overrides the default
+   * implementation so as to return a symbol that does not contain a plus sign
+   * (<tt>+</tt>), which is a nonterminal augmentation delimiter in the Arabic
+   * Treebank.
+   * <p/>
+   * This symbol may also be used as a special value that is guaranteed not
+   * to conflict with any nonterminal in a given language's treebank.
+   * <p/>
+   *
+   * @see danbikel.parser.Trainer
+   */
   public Symbol stopSym() { return stopSym; }
+  /**
+   * Returns the <code>Word</code> object that represents the hidden "head word"
+   * of the stop symbol.  This method overrides the default implementation so as
+   * to return a {@link Word} containing symbols that do not contain a plus
+   * sign (<tt>+</tt>), which is a nonterminal augmentation delimiter in the
+   * Arabic Treebank.
+   *
+   * @see #stopSym
+   * @see danbikel.parser.Trainer
+   */
   public Word stopWord() { return stopWord; }
+  /**
+   * Returns the symbol to indicate the hidden root of all parse trees. This
+   * method overrides the default implementation so as to return a symbol that
+   * does not contain a plus sign (<tt>+</tt>), which is a nonterminal
+   * augmentation delimiter in the Arabic Treebank.
+   *
+   * @see danbikel.parser.Trainer
+   */
   public Symbol topSym() { return topSym; }
+  /**
+   * Returns the <code>Word</code> object that represents the hidden "head word"
+   * of the hidden root of all parse trees.  This method overrides the default
+   * implementation so as to return a {@link Word} containing symbols that do
+   * not contain a plus sign (<tt>+</tt>), which is a nonterminal augmentation
+   * delimiter in the Arabic Treebank.
+   */
   public Word topWord() { return topWord; }
 
 
+  /**
+   * The method to call before counting events in a training parse tree.
+   * This overridden implementation executes the following methods of this class
+   * in order:
+   * <ol>
+   * <li> {@link #transformTags(Sexp)}
+   * <li> {@link #prune(Sexp)}
+   * <li> {@link #addBaseNPs(Sexp)}
+   * <li> {@link #removeNullElements(Sexp)}
+   * <li> {@link #raisePunctuation(Sexp)}
+   * <li> {@link #identifyArguments(Sexp)}
+   * <li> {@link #stripAugmentations(Sexp)}
+   * </ol>
+   * While every attempt has been made to make the implementations of
+   * these preprocessing methods independent of one another, the order above is
+   * not entirely arbitrary.  In particular:
+   * <ul>
+   * <li>{@link #raisePunctuation(Sexp)} should be run after
+   * {@link #removeNullElements(Sexp)} because a null element that is a
+   * leftmost or rightmost child can block detection of a punctuation element
+   * that needs to be raised after removal of the null element (if a punctuation
+   * element is the next-to-leftmost or next-to-rightmost child of an interior
+   * node)
+   * <li>{@link #stripAugmentations(Sexp)} should be run after all methods
+   * that may depend upon the presence of nonterminal augmentations, such as
+   * {@link #identifyArguments(Sexp)}
+   * </ul>
+   *
+   * @param tree the parse tree to pre-process
+   * @return <code>tree</code> having been pre-processed
+   */
   public Sexp preProcess(Sexp tree) {
     transformTags(tree);
     prune(tree);
@@ -191,6 +333,29 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
     return tree;
   }
 
+  /**
+   * Preprocesses the specified test sentence and its coordinated list of
+   * part-of-speech tags, leaving the original sentence untouched but providing
+   * a modified version of the coordinated list of tags, where each tag has been
+   * mapped using the value of the original word and the original tag using
+   * {@link TagMap#transformTag(Word)}.
+   *
+   * @param sentence      the list of words, where a known word is a symbol and
+   *                      an unknown word is represented by a 3-element list
+   *                      (see {@link danbikel.parser.DecoderServerRemote#convertUnknownWords})
+   * @param originalWords the list of unprocessed words (all symbols)
+   * @param tags          the list of tag lists, where the list at index
+   *                      <i>i</i> is the list of possible parts of speech for
+   *                      the word at that index
+   * @return a two-element list, containing two lists, the first of which is (in
+   *         this case) an unprocessed version of <code>sentence</code> and the
+   *         second of which is a processed version of <code>tags</code>; if
+   *         <code>tags</code> is <code>null</code>, then the returned list will
+   *         contain only one element (since <code>SexpList</code> objects are
+   *         not designed to handle null elements)
+   *
+   * @see TagMap#transformTag(Word)
+   */
   public SexpList preProcessTest(SexpList sentence,
 				 SexpList originalWords, SexpList tags) {
     if (tags == null)
@@ -218,6 +383,18 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
     return processed;
   }
 
+  /**
+   * If the specified tree has a root label with a print name equal to
+   * <tt>&quot;X&quot;</tt>, then this method returns <code>false</code>;
+   * otherwise, this method returns the value of the default implementation in
+   * the superclass with the specified tree
+   * (<code>super.isValidTree(tree)</code>).
+   *
+   * @param tree the tree to test for validitiy
+   * @return <code>false</code> if the specified tree's root label is equal to
+   *         <code>Symbol.add(&quot;X&quot;)</code>, or <code>super.isValidTree(tree)</code>
+   *         otherwise
+   */
   public boolean isValidTree(Sexp tree) {
     // we invalidate top-level "X" sentences, which are not annotated for
     // syntax because they are headers/headlines
@@ -247,6 +424,17 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
     return -1;
   }
 
+  /**
+   * @param word the word whose part-of-speech tag is to be transformed
+   * @return a transformed version of the part-of-speech tag contained in the
+   *         specified {@link Word} object
+   *         <p/>
+   *         {@link TagMap#transformTag(Word)}
+   *
+   * @deprecated This method is the old mechanism by which to transform the
+   *             part-of-speech tag associated with an Arabic word; it has been
+   *             superseded by the method {@link TagMap#transformTag(Word)}.
+   */
   protected Symbol transformTagOld(Word word) {
     // if the tag is a non-alphabetic punctuation and the word itself is
     // either a period or a comma, then the tag should be identical to the word
@@ -294,6 +482,14 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
     }
   }
 
+  /**
+   * Does an in-place transformation of the part-of-speech tags in the specified
+   * tree.
+   *
+   * @param tree the tree whose part-of-speech tags are to be mapped
+   * @return the specified tree having been modified to contain transformed
+   *         part-of-speech tags
+   */
   protected Sexp transformTags(Sexp tree) {
     if (Language.treebank().isPreterminal(tree) &&
 	!Language.treebank().isNullElementPreterminal(tree)) {
@@ -319,7 +515,7 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
    * <tt>NPB</tt>.
    *
    * @param tree the tree to be tested
-   * @return <code>false</code>, regardless of the value of the specified tree`
+   * @return <code>false</code>, regardless of the value of the specified tree
    */
   protected boolean hasPossessiveChild(Sexp tree) {
     return false;
@@ -344,11 +540,6 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
       for (int i = 1; i < treeListLen; i++)
 	canonicalizeNonterminals(treeList.get(i));
     }
-  }
-
-  public void postProcess(Sexp tree) {
-    //unrepairBaseNPs(tree);
-    super.postProcess(tree);
   }
 
   private final static String[] usageMsg = {

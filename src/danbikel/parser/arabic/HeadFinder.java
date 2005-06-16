@@ -8,11 +8,16 @@ import danbikel.parser.Language;
 import danbikel.parser.Settings;
 import danbikel.parser.Constants;
 
+/**
+ * A class to find heads for context-free productions in Arabic syntax trees.
+ *
+ * @see #findHead(Sexp,Symbol,SexpList)
+ */
 public class HeadFinder extends danbikel.parser.lang.AbstractHeadFinder {
   Treebank treebank = Language.treebank();
 
   /**
-   * Constructs an English head-finding object, getting the name of the head
+   * Constructs an Arabic head-finding object, getting the name of the head
    * table from the value of
    * <code>Settings.get(Settings.headTablePrefix&nbsp;+&nbsp;Language.getLanguage())</code>.
    * The named head table is searched for in the locations that are searched
@@ -28,7 +33,7 @@ public class HeadFinder extends danbikel.parser.lang.AbstractHeadFinder {
   }
 
   /**
-   * Constructs an English head-finding object with the specified head table.
+   * Constructs an Arabic head-finding object with the specified head table.
    */
   public HeadFinder(Sexp headTableSexp) {
     super(headTableSexp);

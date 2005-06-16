@@ -177,6 +177,18 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
     return tree;
   }
 
+  /**
+   * Attempts to un-do the transformation performed by {@link
+   * #repairBaseNPs(Sexp)}, in which sentential nodes that occur to the right of
+   * the head child of a base NP are moved to become immediate right siblings of
+   * the base NP; accordingly, this method moves all such sentential nodes that
+   * occur immediately to the right of a base NP to be the rightmost child under
+   * that base NP.
+   *
+   * @param tree the tree for which NPs that were transformed by {@link
+   *             #repairBaseNPs(Sexp)} are to be de-transformed
+   * @return the specified tree, with certain NPs de-transformed
+   */
   protected Sexp unrepairBaseNPs(Sexp tree) {
     if (tree.isSymbol())
       return tree;

@@ -5,8 +5,8 @@ import java.io.*;
 import java.lang.reflect.*;
 
 /**
- * Abstract class to represent the probability structure--the entire
- * set of of back-off levels, including the top level--for the
+ * Abstract class to represent the probability structure&mdash;the entire
+ * set of of back-off levels, including the top level&mdash;for the
  * estimation of a particular parameter class in the overall parsing
  * model (using "class" in the statistical, non-Java sense of the
  * word).  Providing this abstract structure is intended to facilitate
@@ -16,14 +16,14 @@ import java.lang.reflect.*;
  * back-off scheme, but any class that implements the {@link Event}
  * interface may be used to record events in a concrete subclass of
  * this class.
- * <p>
+ * <p/>
  * <b>Design note</b>: The probability estimates of a {@link Model} object
  * using a {@link ProbabilityStructure} will be somewhat unpredictable if
  * the history contexts at the back-off levels do not represent supersets
  * of one another.  That is, the history context at back-off level
  * <i>i</i>&nbsp;+&nbsp;1 <b><i>must</i></b> be a superset of the context
  * at back-off level <i>i</i>.
- * <p>
+ * <p/>
  * <b>Concurrency note</b>: A separate <code>ProbabiityStructure</code> object
  * needs to be constructed for each thread that needs to use its facilities,
  * to avoid concurrent access and modification of its data members (which
@@ -35,11 +35,33 @@ import java.lang.reflect.*;
  * @see Trainer
  */
 public abstract class ProbabilityStructure implements Serializable {
+  /**
+   * The size of the cache that model's of this probability structure should
+   * use for events containing maximal context.
+   *
+   * @see #cacheSize(int)
+   */
   protected transient int topLevelCacheSize;
+  /**
+   * Indicates whether certain events/distributions of low or no utility should
+   * be pruned from the model using this probability structure. This variable
+   * will be set to the boolean value of the setting <code>getClass().getName()
+   * + ".doPruning"</code>. For example, if there is a concrete subclass of this
+   * class named <code>com.pkg.Foo</code>, and if it is desirable to have
+   * pruning performed for models using the <code>com.pkg.Foo</code> probability
+   * structure, then the settings file should include the line
+   * <tt>com.pkg.Foo.doPruning=true</tt>.
+   */
   protected transient boolean doPruning;
 
+  /** The value off the {@link Settings#defaultModelClass} setting. */
   protected final static String defaultModelClassName =
     Settings.get(Settings.defaultModelClass);
+  /**
+   * The constructor of the class specified by the
+   * {@link Settings#defaultModelClass} setting, taking a single
+   * {@link ProbabilityStructure} as its only argument.
+   */
   protected static Constructor defaultModelConstructor = null;
   static {
     try {
@@ -150,9 +172,6 @@ public abstract class ProbabilityStructure implements Serializable {
    */
   public double[] lambdas;
 
-  public int[] historyHashCodes;
-  public int[] transitionHashCodes;
-
   /**
    * A temporary value used in the computation of top-level probabilities,
    * used in the computation of lambdas.
@@ -203,8 +222,6 @@ public abstract class ProbabilityStructure implements Serializable {
 
     estimates = new double[numLevels()];
     lambdas = new double[numLevels()];
-    historyHashCodes = new int[numLevels()];
-    transitionHashCodes = new int[numLevels()];
 
     topLevelCacheSize = getTopLevelCacheSize();
     doPruning = Settings.getBoolean(getClass().getName() + ".doPruning");
@@ -232,6 +249,15 @@ public abstract class ProbabilityStructure implements Serializable {
 	    0 : Integer.parseInt(topLevelCacheSizeStr));
   }
 
+  /**
+   * Returns whether models using this probability structure should prune
+   * parameters.
+   *
+   * @return whether models using this probability structure should prune
+   *         parameters.
+   *
+   * @see #doPruning
+   */
   public boolean doPruning() { return doPruning; }
 
   /**
@@ -333,7 +359,7 @@ public abstract class ProbabilityStructure implements Serializable {
    * Indicates whether this probability structure's associated {@link Model}
    * object should use the smoothing parameters contained in the file
    * {@link #smoothingParametersFile()} when deriving counts and precomputing
-   * probabilities.  Note that when this method returns <code>true</code, no
+   * probabilities.  Note that when this method returns <code>true</code>, no
    * new parameters will be added to the model when deriving counts, thus
    * making the return value of {@link #dontAddNewParameters()} irrelevant.
    * <p>
@@ -394,7 +420,7 @@ public abstract class ProbabilityStructure implements Serializable {
         System.err.println(iae);
       }
       catch (InvocationTargetException ite) {
-        System.err.println(ite);
+        ite.printStackTrace();
       }
     }
     return newModel;
@@ -450,10 +476,13 @@ public abstract class ProbabilityStructure implements Serializable {
    * Returns the smoothing value to be used with back-off levels whose
    * histories never occurred in training, meaning that 1 minus this
    * value will be the total probability mass for the smoothed estimate
-   * at the specified back-off level.  From another perspective, this
+   * at the specified back-off level (resulting in a degenerate model
+   * unless this value is zero).  From another perspective, this
    * method returns the confidence that the raw maximum-likelihood
    * estimate for this back-off level should be zero given that
    * this history was never seen during training.
+   * <p/>
+   * By default this method returns <tt>0.0</tt> for all back-off levels.
    */
   public double lambdaPenalty(int backOffLevel) { return 0.0; }
 
@@ -522,7 +551,7 @@ public abstract class ProbabilityStructure implements Serializable {
    * @see #removeHistory(int,Event)
    * @see #removeFuture(int,Event)
    * @see #removeTransition(int,Transition)
-   * @see Model#deriveCounts(CountsTable,Filter,double,FlexibleMap)
+   * @see Model#deriveCounts(CountsTable,danbikel.util.Filter,double,danbikel.util.FlexibleMap)
    * @see Model#cleanup()
    */
   public boolean doCleanup() {
@@ -531,7 +560,7 @@ public abstract class ProbabilityStructure implements Serializable {
 
   /**
    * Indicates that {@link Model#cleanup()}, which is invoked at the end
-   * of {@link Model#deriveCounts(CountsTable,Filter,double,FlexibleMap)
+   * of {@link Model#deriveCounts(CountsTable,danbikel.util.Filter,double,danbikel.util.FlexibleMap)
    * Model.deriveCounts},
    * can safely remove the specified event from the <code>Model</code>
    * object's internal counts tables, as the event is not applicable
@@ -539,7 +568,7 @@ public abstract class ProbabilityStructure implements Serializable {
    * <p>
    * The default implementation simply returns <code>false</code>.
    *
-   * @see Model#deriveCounts(CountsTable,Filter,double,FlexibleMap)
+   * @see Model#deriveCounts(CountsTable,danbikel.util.Filter,double,danbikel.util.FlexibleMap)
    * @see Model#cleanup()
    */
   public boolean removeHistory(int backOffLevel, Event history) {
@@ -547,14 +576,14 @@ public abstract class ProbabilityStructure implements Serializable {
   }
   /**
    * Indicates that {@link Model#cleanup()}, which is invoked at the end
-   * of {@link Model#deriveCounts(CountsTable,Filter,double,FlexibleMap)},
+   * of {@link Model#deriveCounts(CountsTable,danbikel.util.Filter,double,danbikel.util.FlexibleMap)},
    * can safely remove the specified event from the <code>Model</code>
    * object's internal counts tables, as the event is not applicable
    * to any of the probabilities for which the model will produce an estimate.
    * <p>
    * The default implementation simply returns <code>false</code>.
    *
-   * @see Model#deriveCounts(CountsTable,Filter,double,FlexibleMap)
+   * @see Model#deriveCounts(CountsTable,danbikel.util.Filter,double,danbikel.util.FlexibleMap)
    * @see Model#cleanup()
    */
   public boolean removeFuture(int backOffLevel, Event future) {
@@ -566,7 +595,7 @@ public abstract class ProbabilityStructure implements Serializable {
    * #removeHistory(int,Event)} or {@link #removeFuture(int,Event)}
    * returns <code>true</code>, respectively.
    *
-   * @see Model#deriveCounts(CountsTable,Filter,double,FlexibleMap)
+   * @see Model#deriveCounts(CountsTable,danbikel.util.Filter,double,danbikel.util.FlexibleMap)
    * @see Model#cleanup()
    */
   public boolean removeTransition(int backOffLevel, Transition transition) {
@@ -588,7 +617,16 @@ public abstract class ProbabilityStructure implements Serializable {
     return size;
   }
 
+  /**
+   * Returns the value of the {@link #additionalData} member.
+   * @return the value of the {@link #additionalData} member.
+   */
   public Object getAdditionalData() { return additionalData; }
+  /**
+   * Sets the value of the {@link #additionalData} member.
+   * @param data an additional data object associated with this probability
+   * structure
+   */
   public void setAdditionalData(Object data) { additionalData = data; }
 
   /**

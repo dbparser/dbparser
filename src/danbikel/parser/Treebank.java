@@ -45,15 +45,21 @@ public interface Treebank {
   public Sexp constructPreterminal(Word word);
 
   /**
-   * Returns a canonical mapping for the specified nonterminal label; if
+   * Returns a canonical version of the specified nonterminal label; if
    * <code>label</code> already is in canonical form, it is returned.
-   * This method is intended to be used by implementations of
-   * {@link HeadFinder#findHead(Sexp)}.
-   *
-   * @see HeadFinder#findHead(Sexp)
+   * @param label the label to be canonicalized
    */
   public Symbol getCanonical(Symbol label);
 
+  /**
+   * Returns a canonical version of the specified nonterminal label; if
+   * <code>label</code> already is in canonical form, it is returned.
+   *
+   * @param label the label to be canonicalized
+   * @param stripAugmentations indicates whether to strip any augmentations
+   * from the specified label before attempting to get its canonical form
+   * @return the canonical version of the specified label
+   */
   public Symbol getCanonical(Symbol label, boolean stripAugmentations);
 
   /**
@@ -255,9 +261,16 @@ public interface Treebank {
   public boolean isRightParen(Symbol word);
 
   /**
-   * Returns a string whose characters are the set of delimiters for
-   * complex nonterminal labels.
+   * Returns a string whose characters are the set of delimiters for complex
+   * nonterminal labels.
+   * <p/>
+   * <b>Implementation note</b>: The return value of this method should be used
+   * only to implement the other methods of interface.  Construction of and
+   * predicates over complex nonterminals should be handled by the other methods
+   * specified in this interface that either take a {@link Nonterminal} as an
+   * argument or return a {@link Nonterminal}.
    *
+   * @see #isAugDelim(Sexp)
    * @see #stripAugmentation(Symbol)
    * @see #defaultParseNonterminal(Symbol,Nonterminal)
    */
@@ -414,24 +427,53 @@ public interface Treebank {
   /**
    * Removes the specified augmentation from the augmentation list of the
    * specified <code>Nonterminal</code> object, and the previous augmentation
-   * delimiter.  If the specified augmentation is <i>not</i> preceded by
-   * an augmentation delimiter, meaning it is the base label itself, then it
-   * is not removed.
+   * delimiter.  If the specified augmentation is <i>not</i> preceded by an
+   * augmentation delimiter, meaning it is the base label itself, then it is not
+   * removed.
    *
-   * @param nonterminal the nonterminal from which to remove an augmentation
-   * @param augmentation the augmentation to remove from
-   * <code>nonterminal</code>
-   * @return <code>true</code> if <code>augmentation</code> and
-   * a preceding augmentation delimiter was removed from
-   * <code>nonterminal</code>'s augmentation list, or <code>false</code>
-   * otherwise
+   * @param nonterminal  the nonterminal from which to remove an augmentation
+   * @param augmentation the augmentation to remove from <code>nonterminal</code>
+   * @return <code>true</code> if <code>augmentation</code> and a preceding
+   *         augmentation delimiter was removed from <code>nonterminal</code>'s
+   *         augmentation list, or <code>false</code> otherwise
    */
   public boolean removeAugmentation(Nonterminal nonterminal,
 				    Symbol augmentation);
 
+  /**
+   * Removes the specified nonterminal augmentation from the specified
+   * S-expression, using the specified {@link Nonterminal} object for temporary
+   * storage.  If the specified S-expression is a list, then each element will
+   * be destructively replaced with the return value of this method; otherwise,
+   * if the specified S-epxression is a symbol, its augmentation is removed and
+   * the new symbol is returned.
+   * <p/>
+   * <b>N.B.</b>: While the description of the behavior of this method on lists
+   * is recursive, a concrete implementation need not use a recursive
+   * algorithm.
+   *
+   * @param sexp         the S-expression containing symbols whose augmentations
+   *                     are to be removed
+   * @param nonterminal  an object used for temporary storage during the
+   *                     invocation of this method
+   * @param augmentation the augmentation to be removed from all symbols in the
+   *                     specified S-expression
+   * @return the specified S-expression, but with all symbols changed so that
+   *         none has the specified augmentation
+   */
   public Sexp removeAugmentation(Sexp sexp,
 				 Nonterminal nonterminal,
 				 Symbol augmentation);
 
+  /**
+   * Returns whether the specified S-expression is a symbol that is an
+   * augmentation delimiter for a complex nonterminal label.
+   *
+   * @param sexp the S-expression to be tested
+   * @return whether the specified S-expression is a symbol that is an
+   * augmentation delimiter.
+   *
+   * @see #augmentationDelimiters()
+   */
   public boolean isAugDelim(Sexp sexp);
 }

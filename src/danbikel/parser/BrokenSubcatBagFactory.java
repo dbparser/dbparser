@@ -3,9 +3,9 @@ package danbikel.parser;
 import danbikel.lisp.*;
 
 /**
- * A factory for creating <code>SubcatBag</code> objects.
+ * A factory for creating <code>BrokenSubcatBag</code> objects.
  *
- * @see SubcatBag
+ * @see BrokenSubcatBag
  * @see Subcats
  * @see Settings#subcatFactoryClass
  */

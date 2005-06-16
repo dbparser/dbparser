@@ -64,6 +64,12 @@ public class WordFeatures extends danbikel.parser.lang.AbstractWordFeatures {
   }
 
   /**
+   * Constructs a new instance of this class for deterministically mapping
+   * English words to word-feature vectors.
+   */
+  public WordFeatures() {}
+
+  /**
    * Returns the features of a word.
    *
    * @param word the word.

@@ -20,10 +20,13 @@ public class CKYItem extends Item implements SexpConvertible {
    * setting.
    */
   protected final static boolean outputLexLabels =
-  Boolean.valueOf(Settings.get(Settings.decoderOutputHeadLexicalizedLabels)).booleanValue();
+    Settings.getBoolean(Settings.decoderOutputHeadLexicalizedLabels);
 
+  /**
+   * The value of the {@link Settings#baseNPsCannotContainVerbs} setting.
+   */
   protected final static boolean baseNPsCannotContainVerbs =
-  Boolean.valueOf(Settings.get(Settings.baseNPsCannotContainVerbs)).booleanValue();
+    Settings.getBoolean(Settings.baseNPsCannotContainVerbs);
 
   /**
    * The value of {@link Training#topSym}, cached for efficiency and
@@ -37,8 +40,25 @@ public class CKYItem extends Item implements SexpConvertible {
    */
   protected final static Word stopWord = Language.training().stopWord();
 
+  /**
+   * One of three possible cached values of this item's &ldquo;contains
+   * verb&rdquo; status, indicating that the method {@link #containsVerb()}
+   * has not yet been invoked on this item.
+   */
   protected final static byte containsVerbUndefined = 0;
+  /**
+   * One of three possible cached values of this item's &ldquo;contains
+   * verb&rdquo; status, indicating that the method {@link #containsVerb()}
+   * has been invoked on this item and its value is <tt>true</tt> (i.e.,
+   * this item has a derivation dominating a verb).
+   */
   protected final static byte containsVerbTrue = 1;
+  /**
+   * One of three possible cached values of this item's &ldquo;contains
+   * verb&rdquo; status, indicating that the method {@link #containsVerb()}
+   * has been invoked on this item and its value is <tt>false</tt> (i.e.,
+   * this item does not have a derivation dominating a verb).
+   */
   protected final static byte containsVerbFalse = -1;
 
   /**
@@ -54,6 +74,12 @@ public class CKYItem extends Item implements SexpConvertible {
   protected final static int numPrevWords =
     Integer.parseInt(Settings.get(Settings.numPrevWords));
 
+  /**
+   * A base NP&ndash;aware version of {@link CKYItem} that overrides {@link
+   * #equals} and {@link #hashCode()} to take into account the lack of
+   * dependence on the distance metric when the root label of an item's
+   * set of derivations is <tt>NPB</tt>.
+   */
   public static class BaseNPAware extends CKYItem {
     public BaseNPAware() {
       super();
@@ -66,6 +92,19 @@ public class CKYItem extends Item implements SexpConvertible {
 	      headChild.headChild.label : headChild.label);
     }
 
+    /**
+     * Returns whether the specified object is equal (or &ldquo;chart item
+     * equivalent&rdquo;) to this item.  Unlike this method in the superclass,
+     * there are special cases when
+     * <ul>
+     * <li>this item is does not have <tt>+TOP+</tt> as its root label and
+     * <li>this item represents a base NP.
+     * </ul>
+     *
+     * @param obj the object to be compared with this object
+     * @return whether the specified object is equal (or &ldquo;chart item
+     *         equivalent&rdquo;) to this item
+     */
     public boolean equals(Object obj) {
       if (this == obj)
 	return true;
@@ -103,6 +142,10 @@ public class CKYItem extends Item implements SexpConvertible {
       }
     }
 
+    /**
+     * Returns a hash code for this item.
+     * @return a hash code for this item
+     */
     public int hashCode() {
       // all three types of chart items (stopped, baseNP and others)
       // depend on label and head word
@@ -145,7 +188,7 @@ public class CKYItem extends Item implements SexpConvertible {
 
   /**
    * Overrides <code>equals</code> and <code>hashCode</code> methods
-   * to take the first previous modifier into account only insofar as
+   * to take the last previous modifier into account only insofar as
    * its equality to the initial {@link Training#startSym} modifier.
    */
   public static class PrevModIsStart extends CKYItem {
@@ -189,9 +232,23 @@ public class CKYItem extends Item implements SexpConvertible {
       }
     }
 
+    /**
+     * Returns whether the previous modifier on the left side is the {@linkplain
+     * Training#startSym() start symbol}.
+     *
+     * @return whether the previous modifier on the left side is the {@linkplain
+     *         Training#startSym() start symbol}.
+     */
     protected boolean leftPrevModIsStart() {
       return leftPrevMods.get(0) == startSym;
     }
+    /**
+     * Returns whether the previous modifier on the right side is the {@linkplain
+     * Training#startSym() start symbol}.
+     *
+     * @return whether the previous modifier on the right side is the {@linkplain
+     *         Training#startSym() start symbol}.
+     */
     protected boolean rightPrevModIsStart() {
       return rightPrevMods.get(0) == startSym;
     }
@@ -228,10 +285,17 @@ public class CKYItem extends Item implements SexpConvertible {
       return code ^ booleanCode;
     }
   };
+
   /**
-   * Overrides <code>equals</code> and <code>hashCode</code> methods
-   * to take the first previous modifier into account only insofar as
-   * its equality to the initial {@link Training#startSym} modifier.
+   * Overrides <code>equals</code> and <code>hashCode</code> methods to compare
+   * the last previous modifier on each side of each chart item's head child
+   * with respect to their respective equivalence classes, as determined by the
+   * mapping provided by {@link NTMapper#map(Symbol)}.
+   *
+   * @see #mappedPrevModsEqual(CKYItem)
+   * @see NonterminalMapper
+   * @see NTMapper
+   * @see Settings#prevModMapperClass
    */
   public static class MappedPrevModBaseNPAware extends CKYItem {
     public MappedPrevModBaseNPAware() {
@@ -252,7 +316,20 @@ public class CKYItem extends Item implements SexpConvertible {
      * also an instance of a <code>CKYItem</code> and all elements of
      * this <code>CKYItem</code> are equal to those of the specified
      * <code>CKYItem</code>, except their left and right children lists
-     * and their log probability values.
+     * and their log probability values.  Unlike this method in the superclass,
+     * there are special cases when
+     * <ul>
+     * <li>this item is does not have <tt>+TOP+</tt> as its root label and
+     * <li>this item represents a base NP.
+     * </ul>
+     * Furthermore, only the most recent previous modifiers are compared,
+     * and they are mapped to equivalence classes before being compared.
+     * Mapping and comparison are performed by the
+     * {@link #mappedPrevModsEqual(CKYItem)} method.
+     *
+     * @param obj the object to compare to this object
+     * @return whether this object is equal or equivalent to the specified
+     * object
      */
     public boolean equals(Object obj) {
       if (this == obj)
@@ -290,13 +367,30 @@ public class CKYItem extends Item implements SexpConvertible {
       }
     }
 
+    /**
+     * Returns true if the most recvent previous modifiers on both the left and
+     * right sides of the head child are equivalent to the respective left and
+     * right previous modifiers of the specified chart item. Two previous
+     * modifiers are considered equivalent if their equivalence classes are
+     * equal.  Mapping of a modifier to an equivlanece class is performed by the
+     * {@link NTMapper#map(Symbol)} method.
+     *
+     * @param other the other chart item whose most recent previous modifiers
+     *              are to be compared to those of this item
+     * @return whether the most recent previous modifiers of this item are
+     *         equivalent to those of the specified item
+     *
+     * @see NonterminalMapper
+     * @see NTMapper
+     * @see Settings#prevModMapperClass
+     */
     protected boolean mappedPrevModsEqual(CKYItem other) {
       return
-	((Collins.mapPrevMod(this.leftPrevMods.symbolAt(0)) ==
-	  Collins.mapPrevMod(other.leftPrevMods.symbolAt(0))) &&
+	((NTMapper.map(this.leftPrevMods.symbolAt(0)) ==
+	  NTMapper.map(other.leftPrevMods.symbolAt(0))) &&
 
-	 (Collins.mapPrevMod(this.rightPrevMods.symbolAt(0)) ==
-	  Collins.mapPrevMod(other.rightPrevMods.symbolAt(0))));
+	 (NTMapper.map(this.rightPrevMods.symbolAt(0)) ==
+	  NTMapper.map(other.rightPrevMods.symbolAt(0))));
     }
 
     /**
@@ -333,8 +427,8 @@ public class CKYItem extends Item implements SexpConvertible {
       Symbol headLabel = headLabel();
       if (headLabel != null)
 	code = (code << 2) ^ headLabel.hashCode();
-      Symbol mappedLeftPrevMod = Collins.mapPrevMod(leftPrevMods.symbolAt(0));
-      Symbol mappedRightPrevMod = Collins.mapPrevMod(rightPrevMods.symbolAt(0));
+      Symbol mappedLeftPrevMod = NTMapper.map(leftPrevMods.symbolAt(0));
+      Symbol mappedRightPrevMod = NTMapper.map(rightPrevMods.symbolAt(0));
       code = (code << 2) ^ mappedLeftPrevMod.hashCode();
       code = (code << 2) ^ mappedRightPrevMod.hashCode();
       int booleanCode = 0;
@@ -345,11 +439,26 @@ public class CKYItem extends Item implements SexpConvertible {
     }
   };
 
+  /**
+   * A hack to approximate <i>k</i>-best parsing by effectively turning
+   * off dynamic programming (usability depends on reducing the beam size
+   * from its normal value).  Two <code>KBestHack</code> chart items
+   * are only equal if they are object-equal.
+   */
   public static class KBestHack extends MappedPrevModBaseNPAware {
     public KBestHack() {
       super();
     }
+    /**
+     * Returns the value of <code>System.identityHashCode(this)</code>.
+     * @return the value of <code>System.identityHashCode(this)</code>.
+     */
     public int hashCode() { return System.identityHashCode(this); }
+    /**
+     * Returns whether this object is object-equal to the specified object.
+     * @param obj the object to be compared to this object
+     * @return whether this object is object-equal to the specified object.
+     */
     public boolean equals(Object obj) { return this == obj; }
   };
 
@@ -441,6 +550,11 @@ public class CKYItem extends Item implements SexpConvertible {
    */
   protected boolean garbage = false;
 
+  /**
+   * The cached value of the result of the {@link #containsVerb()} method
+   * invoked on this chart item, initially set to {@link
+   * #containsVerbUndefined}.
+   */
   protected byte containsVerb = containsVerbUndefined;
 
   // constructors
@@ -451,36 +565,36 @@ public class CKYItem extends Item implements SexpConvertible {
   /**
    * Constructs a CKY chart item with the specified data.
    *
-   * @param label the nonterminal label at the root of the implicit subtree
-   * represented by this chart item
-   * @param headWord the head word of the lexicalized nonterminal at the root
-   * of this chart item's subtree
-   * @param leftSubcat the subcat frame to the left of the head child of
-   * the implicit subtree of this chart item
-   * @param rightSubcat the subcat frame to the left of the head child of
-   * the implicit subtree of this chart item
-   * @param headChild the chart item that represents the subtree of the
-   * head child of this chart item's subtree
-   * @param leftChildren the list of chart items that represent the
-   * left-modifier subtrees of this chart item's subtree
-   * @param rightChildren the list of chart items that represent the
-   * right-modifier subtrees of this chart item's subtree
-   * @param leftPrevMods the list of previously-generated modifiers
-   * on the left of the head child of the parent of this chart item's subtree
-   * @param rightPrevMods the list of previously-generated modifiers
-   * on the right of the head child of the parent of this chart item's subtree
-   * @param start the start index of the span of words covered by this
-   * chart item
-   * @param end the end index of the span of words covered by this
-   * chart item
-   * @param leftVerb a boolean indicating whether this chart item's head child
-   * has a left-modifying subtree that contains a verb
-   * @param rightVerb a boolean indicating whether this chart item's head child
-   * has a right-modifying subtree that contains a verb
-   * @param stop a boolean indicating whether stop probabilities have been
-   * computed for this chart item
-   * @param logProb the score for this chart item (inside probability *
-   * outside probability)
+   * @param label         the unlexicalized root label of this chart item
+   * @param headWord      the head word of this chart item
+   * @param leftSubcat    the subcat on the left side of this item's head child
+   * @param rightSubcat   the subcat on the right side of this item's head
+   *                      child
+   * @param headChild     the head child item of this chart item
+   * @param leftChildren  the modifiers on the left side of this item's head
+   *                      child
+   * @param rightChildren the modifiers on the right side of this item's head
+   *                      child
+   * @param leftPrevMods  a list of the previous modifiers on the left side of
+   *                      this item's head child
+   * @param rightPrevMods a list of the previous modifiers on the right side of
+   *                      this item's head child
+   * @param start         the index of the first word spanned by this item
+   * @param end           the index of the last word spanned by this item
+   * @param leftVerb      whether a verb has been generated anywhere in the
+   *                      surface string of the modifiers on the left side of
+   *                      this item's head child
+   * @param rightVerb     whether a verb has been generated anywhere in the
+   *                      surface string of the modifiers on the right side of
+   *                      this item's head child
+   * @param stop          whether this item has received its stop probabilities
+   * @param logTreeProb   the log of the probability of generating all of this
+   *                      item's child items (head child and left and right
+   *                      modifier children)
+   * @param logPrior      the log of the marginal probability of this item's
+   *                      lexicalized root label
+   * @param logProb       the log of the probability of this chart item (its
+   *                      <i>score</i>)
    */
   public CKYItem(Symbol label,
 		 Word headWord,
@@ -518,6 +632,41 @@ public class CKYItem extends Item implements SexpConvertible {
     this.stop = stop;
   }
 
+
+  /**
+   * Sets all of the data members of this chart item.
+   *
+   * @param label         the unlexicalized root label of this chart item
+   * @param headWord      the head word of this chart item
+   * @param leftSubcat    the subcat on the left side of this item's head child
+   * @param rightSubcat   the subcat on the right side of this item's head
+   *                      child
+   * @param headChild     the head child item of this chart item
+   * @param leftChildren  the modifiers on the left side of this item's head
+   *                      child
+   * @param rightChildren the modifiers on the right side of this item's head
+   *                      child
+   * @param leftPrevMods  a list of the previous modifiers on the left side of
+   *                      this item's head child
+   * @param rightPrevMods a list of the previous modifiers on the right side of
+   *                      this item's head child
+   * @param start         the index of the first word spanned by this item
+   * @param end           the index of the last word spanned by this item
+   * @param leftVerb      whether a verb has been generated anywhere in the
+   *                      surface string of the modifiers on the left side of
+   *                      this item's head child
+   * @param rightVerb     whether a verb has been generated anywhere in the
+   *                      surface string of the modifiers on the right side of
+   *                      this item's head child
+   * @param stop          whether this item has received its stop probabilities
+   * @param logTreeProb   the log of the probability of generating all of this
+   *                      item's child items (head child and left and right
+   *                      modifier children)
+   * @param logPrior      the log of the marginal probability of this item's
+   *                      lexicalized root label
+   * @param logProb       the log of the probability of this chart item (its
+   *                      <i>score</i>)
+   */
   public void set(Symbol label,
 		  Word headWord,
 		  Subcat leftSubcat,
@@ -565,66 +714,194 @@ public class CKYItem extends Item implements SexpConvertible {
   /** Returns the symbol that is the label of this chart item. */
   public Object label() { return label; }
 
+  /** Returns the head word of this chart item. */
   public Word headWord() { return headWord; }
 
+  /** Returns the left subcat of this chart item. */
   public Subcat leftSubcat() { return leftSubcat; }
 
+  /** Returns the right subcat of this chart item. */
   public Subcat rightSubcat() { return rightSubcat; }
 
+  /** Returns the head child item of this item. */
   public CKYItem headChild() { return headChild; }
 
+  /**
+   * Returns the left modifier item list of this item, or <code>null</code> if
+   * there are no left modifier items.
+   */
   public SLNode leftChildren() { return leftChildren; }
 
+  /** Returns the number of children in the left modifier item list. */
   public int numLeftChildren() {
     return leftChildren == null ? 0 : leftChildren.size();
   }
 
+  /**
+   * Returns the right modifier item list of this item, or <code>null</code> if
+   * there are no right modifier items.
+   */
   public SLNode rightChildren() { return rightChildren; }
 
+  /** Returns the number of children in the right modifier item list. */
   public int numRightChildren() {
     return rightChildren == null ? 0 : rightChildren.size();
   }
 
+  /**
+   * Returns a list of previously-generated unlexicalized modifiers on the left
+   * side of the head child in this item's set of derivations.  The list will
+   * be of length equal to the value of {@link Settings#numPrevMods}.
+   *
+   * @see Settings#numPrevMods
+   */
   public SexpList leftPrevMods() { return leftPrevMods; }
 
+  /**
+   * Returns a list of previously-generated unlexicalized modifiers on the right
+   * side of the head child in this item's set of derivations.  The list will
+   * be of length equal to the value of {@link Settings#numPrevMods}.
+   *
+   * @see Settings#numPrevMods
+   */
   public SexpList rightPrevMods() { return rightPrevMods; }
 
+  /**
+   * Returns the start word index of the span of this chart item.  Note that the
+   * number of words spanned by this item is
+   * <code>(end()&nbsp;-&nbsp;start())&nbsp;+&nbsp;1</code>.
+   *
+   * @return the start word index of the span of this chart item.
+   */
   public int start() { return start; }
 
+  /**
+   * Returns the end word index of the span of this chart item.  Note that the
+   * number of words spanned by this item is
+   * <code>(end()&nbsp;-&nbsp;start())&nbsp;+&nbsp;1</code>.
+   *
+   * @return the end word index of the span of this chart item.
+   */
   public int end() { return end; }
 
+  /**
+   * Returns whether a verb has been generated anywhere in the surface strings
+   * of the left modifiers of the head child.
+   * @return whether a verb has been generated anywhere in the surface strings
+   * of the left modifiers of the head child.
+   */
   public boolean leftVerb() { return leftVerb; }
 
+  /**
+   * Returns whether a verb has been generated anywhere in the surface strings
+   * of the right modifiers of the head child.
+   * @return whether a verb has been generated anywhere in the surface strings
+   * of the right modifiers of the head child.
+   */
   public boolean rightVerb() { return rightVerb; }
 
+  /**
+   * Returns whether this item has received its stop probabilities.
+   * @return whether this item has received its stop probabilities.
+   *
+   * @see Training#stopSym()
+   */
   public boolean stop() { return stop; }
 
+  /**
+   * Returns the log probability, or <i>score</i>, of this chart item.  This is
+   * equal to <code>logTreeProb() + logPrior()</code>.
+   * @return the log probability, or score, of this chart item.
+   *
+   * @see #logTreeProb()
+   * @see #logPrior()
+   */
   public double logProb() { return logProb; }
 
+  /**
+   * Returns the probability of generating all the children of this chart
+   * item (head child and left and right modifier children).
+   * @return the probability of generating all the children of this chart
+   * item (head child and left and right modifier children).
+   *
+   * @see #logProb()
+   * @see #logPrior()
+   */
   public double logTreeProb() { return logTreeProb; }
 
+  /**
+   * Returns the marginal probability of generating the lexicalized root
+   * label of this item's set of derivations (strictly speaking, this is not
+   * a &ldquo;prior&rdquo; as the name of this method would suggest).
+   * @return the marginal probability of generating the lexicalized root
+   * label of this item's set of derivations
+   *
+   * @see #logProb()
+   * @see #logTreeProb()
+   */
   public double logPrior() { return logPrior; }
 
+  /**
+   * Returns the root nonterminal label of the derivation of this item's
+   * head child.
+   * @return the root nonterminal label of the derivation of this item's
+   * head child.
+   */
   public Symbol headLabel() {
     if (isPreterminal())
       return null;
     return headChild.label;
   }
 
+  /**
+   * Returns whether this item has been eliminated from the chart because
+   * another, equivalent item was added (meaning that this item could not be
+   * immediately reclaimed, since the caller of <code>Chart.add</code> may have
+   * a handle onto this item).
+   */
   public boolean garbage() { return garbage; }
 
+  /** The total number of possible parses represented by this chart item. */
   public int numParses() { return numParses; }
 
   // side-sensitive accessors
+  /**
+   * Returns the subcat on the specified side of this item's head child.
+   * @param side the side whose subcat is to be gotten
+   * @return the subcat on the specified side of this item's head child.
+   */
   public Subcat subcat(boolean side) {
     return side == Constants.LEFT ? leftSubcat : rightSubcat;
   }
+  /**
+   * Returns the modifier (children) list of the specified side of this item's
+   * head child, or <code>null</code> if the specified side has no modifiers.
+   *
+   * @param side the side whose children list is to be gotten
+   * @return the modifier (children) list of the specified side of this item's
+   * head child, or <code>null</code> if the specified side has no modifiers.
+   */
   public SLNode children(boolean side) {
     return side == Constants.LEFT ? leftChildren : rightChildren;
   }
+  /**
+   * Returns the previous modifiers on the specified side of this item's
+   * head child.
+   * @param side the side whose previous modifier list is to be gotten
+   * @return the previous modifiers on the specified side of this item's
+   * head child.
+   */
   public SexpList prevMods(boolean side) {
     return side == Constants.LEFT ? leftPrevMods : rightPrevMods;
   }
+  /**
+   * Returns whether a verb has been generated anywhere in the surface string on
+   * the specified side of this item's head child.
+   *
+   * @param side the side of this item's head child to be tested
+   * @return whether a verb has been generated anywhere in the surface string on
+   *         the specified side of this item's head child.
+   */
   public boolean verb(boolean side) {
     return side == Constants.LEFT ? leftVerb : rightVerb;
   }
@@ -635,6 +912,16 @@ public class CKYItem extends Item implements SexpConvertible {
   }
   */
 
+  /**
+   * Returns whether a verb has been generated anywhere in the surface string in
+   * the set of derivations of this chart item.
+   * <p/>
+   * <b>Implementation note</b>: The return value of this method is cached
+   * locally in this chart item.
+   *
+   * @return whether a verb has been generated anywhere in the surface string in
+   *         the set of derivations of this chart item.
+   */
   public boolean containsVerb() {
     if (containsVerb == containsVerbUndefined)
       containsVerb =
@@ -642,6 +929,16 @@ public class CKYItem extends Item implements SexpConvertible {
     return containsVerb == containsVerbTrue;
   }
 
+  /**
+   * A helper method for {@link #containsVerb()} that returns whether a verb has
+   * been generated anywhere in the surface string of the derivations of this
+   * chart item.
+   *
+   * @return whether a verb has been generated anywhere in the surface string of
+   *         the derivations of this chart item.
+   *
+   * @see Settings#baseNPsCannotContainVerbs
+   */
   protected boolean containsVerbRecursive() {
     if (baseNPsCannotContainVerbs && Language.treebank.isBaseNP(this.label))
       return false;
@@ -656,6 +953,13 @@ public class CKYItem extends Item implements SexpConvertible {
       return Language.treebank.isVerbTag(headWord.tag());
   }
 
+  /**
+   * Returns the value of {@link #start()} if the specified side is
+   * {@link Constants#LEFT} or the value of {@link #end()} otherwise.
+   * @param side the side of the span whose index is to be gotten
+   * @return the value of {@link #start()} if the specified side is
+   * {@link Constants#LEFT} or the value of {@link #end()} otherwise.
+   */
   public int edgeIndex(boolean side) {
     return side == Constants.LEFT ? start : end;
   }
@@ -674,23 +978,66 @@ public class CKYItem extends Item implements SexpConvertible {
     this.label = (Symbol)label;
   }
 
+  /**
+   * Sets the left subcat of this chart item to the specified value.
+   * @param leftSubcat the left subcat to be set for this chart item
+   */
   public void setLeftSubcat(Subcat leftSubcat) {
     this.leftSubcat = leftSubcat;
   }
 
+  /**
+   * Sets the right subcat of this chart item to the specified value.
+   * @param rightSubcat the right subcat to be set for this chart item
+   */
   public void setRightSubcat(Subcat rightSubcat) {
     this.rightSubcat = rightSubcat;
   }
 
+  /**
+   * Sets the log of the probability of generating all of this item's children
+   * to the specified value.
+   *
+   * @param logTreeProb the log of the probability of generating all of this
+   *                    item's children the log of the probability of generating
+   *                    all of this item's children
+   * @see #logTreeProb()
+   */
   public void setLogTreeProb(double logTreeProb) {
     this.logTreeProb = logTreeProb;
   }
 
+  /**
+   * Sets the log of the probability of this chart item (its <i>score</i>) to
+   * the specified value.
+   *
+   * @param logProb the log of the probability of this chart item (its
+   *                <i>score</i>)
+   *
+   * @see #logProb()
+   */
   public void setLogProb(double logProb) { this.logProb = logProb; }
 
+  /**
+   * Sets the log of the marginal probability of the lexicalized root
+   * nonterminal label of this chart item to the specified value.
+   *
+   * @param logPrior the log of the marginal probability of the lexicalized root
+   *                 nonterminal label of this chart item
+   *
+   * @see #logPrior()
+   */
   public void setLogPrior(double logPrior) { this.logPrior = logPrior; }
 
   // side-sensitive mutators
+  /**
+   * Sets the subcat on the specified side of this chart item's head child.
+   * @param side the side of this chart item's head child on which
+   * to set the subcat, either {@link Constants#LEFT} or
+   * {@link Constants#RIGHT}
+   * @param subcat the subcat to set on the specified side of this item's
+   * head child
+   */
   public void setSubcat(boolean side, Subcat subcat) {
     if (side == Constants.LEFT)
       this.leftSubcat = subcat;
@@ -698,6 +1045,14 @@ public class CKYItem extends Item implements SexpConvertible {
       this.rightSubcat = subcat;
   }
 
+  /**
+   * Sets the modifier (children) list on the specified side of this chart
+   * item.
+   * @param side the side of this item's head child on which to set
+   * the modifier list, either {@link Constants#LEFT} or
+   * {@link Constants#RIGHT}
+   * @param children the modifier list to set for this item
+   */
   public void setChildren(boolean side, SLNode children) {
     if (side == Constants.LEFT)
       this.leftChildren = children;
@@ -705,6 +1060,15 @@ public class CKYItem extends Item implements SexpConvertible {
       this.rightChildren = children;
   }
 
+  /**
+   * Sets the previous modifier list on the specified side of this chart
+   * item's head child.
+   * @param side the side of this chart item's head child on which to set
+   * the previous modifier list, either {@link Constants#LEFT} or
+   * {@link Constants#RIGHT}
+   * @param prevMods the list of previous modifiers to set on the specified
+   * side of this chart item's head child
+   */
   public void setPrevMods(boolean side, SexpList prevMods) {
     if (side == Constants.LEFT)
       this.leftPrevMods = prevMods;
@@ -712,6 +1076,17 @@ public class CKYItem extends Item implements SexpConvertible {
       this.rightPrevMods = prevMods;
   }
 
+  /**
+   * Sets the index of the leftmost or rightmost word spanned by this chart
+   * item.
+   *
+   * @param side  the side of the span whose index is to be set, either {@link
+   *              Constants#LEFT} or {@link Constants#RIGHT}
+   * @param index the index to be set on the specified side
+   *
+   * @see #start()
+   * @see #end()
+   */
   public void setEdgeIndex(boolean side, int index) {
     if (side == Constants.LEFT)
       this.start = index;
@@ -719,6 +1094,15 @@ public class CKYItem extends Item implements SexpConvertible {
       this.end = index;
   }
 
+  /**
+   * Sets whether a verb has been generated anywhere in the surface string on
+   * the specified side of this item's head child.
+   *
+   * @param side the side on whose verb-generated value is to be set, either
+   *             {@link Constants#LEFT} or {@link Constants#RIGHT}
+   * @param verb whether a verb has been generated anywhere in the surface
+   *             string on the specified side of this item's head child
+   */
   public void setVerb(boolean side, boolean verb) {
     if (side == Constants.LEFT)
       this.leftVerb = verb;
@@ -727,6 +1111,31 @@ public class CKYItem extends Item implements SexpConvertible {
     containsVerb = containsVerbUndefined;
   }
 
+  /**
+   * Sets all the side-specific information for one side of this chart item.
+   * This method is a synonym for executing the following code:
+   * <pre>
+   * setSubcat(side, subcat);
+   * setChildren(side, children);
+   * setPrevMods(side, prevMods);
+   * setEdgeIndex(side, edgeIndex);
+   * setVerb(side, verb);
+   * </pre>
+   *
+   * @param side      the side of this item's head child on which to set
+   *                  informatioon for this chart item, either {@link
+   *                  Constants#LEFT} or {@link Constants#RIGHT}
+   * @param subcat    the subcat to be set on the specified side of this item's
+   *                  head child
+   * @param children  the children list to be set on the specified side of this
+   *                  item's head child
+   * @param prevMods  the previous modifier list to be set on the specified side
+   *                  of this item's head child
+   * @param edgeIndex the edge index of the span of this item for either the
+   *                  leftmost or rightmost side
+   * @param verb      whether a verb has been generated anywhere in the surface
+   *                  string on the specified side of this item's head child
+   */
   public void setSideInfo(boolean side,
 			  Subcat subcat,
 			  SLNode children,
@@ -740,6 +1149,12 @@ public class CKYItem extends Item implements SexpConvertible {
     setVerb(side, verb);
   }
 
+  /**
+   * Sets whether this item has been eliminated from the chart because another,
+   * equivalent item was added (meaning that this item could not be immediately
+   * reclaimed, since the caller of <code>Chart.add</code> may have a handle
+   * onto this item).
+   */
   public void setGarbage(boolean garbage) {
     this.garbage = garbage;
   }
@@ -757,6 +1172,16 @@ public class CKYItem extends Item implements SexpConvertible {
     numParses *= ((CKYItem)antecedent).numParses;
   }
 
+  /**
+   * Indicates that the specified item is equivalent to this item, allowing a
+   * subclass to do arbitrary computation when the decoder produces such an item
+   * (this method is guaranteed to be called by the decoder when that happens).
+   * The default implementation here simply adds the number of parses contained
+   * in the specified item to the number of parses contained in the derivation
+   * set of this item.
+   *
+   * @param equivalentItem the item that is equivalent to this item
+   */
   public void hasEquivalentItem(Item equivalentItem) {
     numParses += ((CKYItem)equivalentItem).numParses;
   }
@@ -799,6 +1224,20 @@ public class CKYItem extends Item implements SexpConvertible {
     }
   }
 
+  /**
+   * Returns whether the previous word lists of this chart item are equal
+   * to those of the specified item.  This method is a synonym for
+   * <pre>
+   * return prevWordsEqual(Constants.LEFT, other) &&
+   *        prevWordsEqual(Constants.RIGHT, other);
+   * </pre>
+   * @param other the chart item whose previous word lists are to be compared
+   * to this item's
+   * @return whether the previous word lists of this chart item are equal
+   * to those of the specified item.
+   *
+   * @see #prevWordsEqual(boolean, CKYItem)
+   */
   protected boolean prevWordsEqual(CKYItem other) {
     return prevWordsEqual(Constants.LEFT, other) &&
 	   prevWordsEqual(Constants.RIGHT, other);
@@ -981,6 +1420,12 @@ public class CKYItem extends Item implements SexpConvertible {
       return label;
   }
 
+  /**
+   * Returns a string containing all the information contained locally
+   * in this chart item (for debugging purposes).
+   * @return a string containing all the information contained locally
+   * in this chart item (for debugging purposes).
+   */
   public String toString() {
     return toSexp().toString() + "\t\t; head=" + headWord +
       "; lc=" + leftSubcat.toSexp() + "; rc=" + rightSubcat.toSexp() +
@@ -995,10 +1440,32 @@ public class CKYItem extends Item implements SexpConvertible {
       " (@" + System.identityHashCode(this) + ")";
   }
 
+  /**
+   * Returns the string <tt>&quot;t&quot;</tt> if the specified boolean is
+   * <code>true</code> and the string <tt>&quot;f&quot;</tt> if the specified
+   * boolean is <code>false</code>.
+   *
+   * @param bool the boolean to be converted to a short string
+   * @return the string <tt>&quot;t&quot;</tt> if the specified boolean is
+   *         <code>true</code> and the string <tt>&quot;f&quot;</tt> if the
+   *         specified boolean is <code>false</code>.
+   */
   protected final static String shortBool(boolean bool) {
     return bool ? "t" : "f";
   }
 
+  /**
+   * Returns the string <tt>&quot;undef&quot;</tt> if the cached value of this
+   * item's &ldquo;contains verb&rdquo; status is {@link
+   * #containsVerbUndefined}; otherwise, returns the string that would
+   * result in executing <code>shortBool(containsVerb())</code>.
+   *
+   * @param containsVerbValue
+   * @return the string <tt>&quot;undef&quot;</tt> if the cached value of this
+   *         item's &ldquo;contains verb&rdquo; status is {@link
+   *         #containsVerbUndefined}; otherwise, returns the value of
+   *         <code>shortBool(containsVerb())</code>.
+   */
   protected final static String shortContainsVerb(byte containsVerbValue) {
     return (containsVerbValue == containsVerbUndefined ? "undef" :
 	    (containsVerbValue == containsVerbTrue ? "t" : "f"));
@@ -1038,6 +1505,10 @@ public class CKYItem extends Item implements SexpConvertible {
     return this;
   }
 
+  /**
+   * Sets the number of parses represented by this chart item to 1.
+   * @return this chart item
+   */
   public Item clear() { numParses = 1; return this; }
 
   /*

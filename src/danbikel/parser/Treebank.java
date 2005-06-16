@@ -286,6 +286,37 @@ public interface Treebank {
   public char canonicalAugDelimiter();
 
   /**
+   * Returns a left-bracket character that is not an existing metacharacter
+   * in the current treebank, for use when the
+   * {@link Settings#decoderOutputHeadLexicalizedLabels} is <tt>true</tt>.
+   * For most treebanks, <tt>'['</tt> is a good default.
+   *
+   * @return a left-bracket character that is not an existing metacharacter
+   * in the current treebank
+   */
+  public char nonTreebankLeftBracket();
+
+  /**
+   * Returns a right-bracket character that is not an existing metacharacter in
+   * the current treebank, for use when constructing lexicalized nonterminals
+   * when the {@link Settings#decoderOutputHeadLexicalizedLabels} is
+   * <tt>true</tt>. For most treebanks, <tt>']'</tt> is a good default.
+   *
+   * @return a right-bracket character that is not an existing metacharacter in
+   *         the current treebank
+   */
+  public char nonTreebankRightBracket();
+
+  /**
+   * Returns a delimiter not already in use by the current treebank, for use
+   * when constructing lexicalized nonterminals when the {@link
+   * Settings#decoderOutputHeadLexicalizedLabels} is <tt>true</tt>.
+   *
+   * @return a delimiter not already in use by the current treebank
+   */
+  public char nonTreebankDelimiter();
+
+  /**
    * Returns the <code>Symbol</code> created by stripping off all
    * augmentations, that is all characters after and including the first
    * character that appears in the string returned by

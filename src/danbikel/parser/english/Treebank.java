@@ -34,6 +34,10 @@ public class Treebank extends danbikel.parser.lang.AbstractTreebank {
 
   private final static boolean outputLexLabels =
     Settings.getBoolean(Settings.decoderOutputHeadLexicalizedLabels);
+  private final static char nonTreebankLeftBracket =
+    Language.treebank().nonTreebankLeftBracket();
+  private final static char nonTreebankRightBracket =
+    Language.treebank().nonTreebankRightBracket();
 
   // basic nodes in the English Treebank that will be transformed in a
   // preprocessing phase
@@ -257,8 +261,8 @@ public class Treebank extends danbikel.parser.lang.AbstractTreebank {
    */
   public final Symbol getCanonical(Symbol label) {
     if (outputLexLabels) {
-      int lbracketIdx = label.toString().indexOf('[');
-      int rbracketIdx = label.toString().indexOf(']');
+      int lbracketIdx = label.toString().indexOf(nonTreebankLeftBracket);
+      int rbracketIdx = label.toString().indexOf(nonTreebankRightBracket);
       if (lbracketIdx != -1 && rbracketIdx != -1) {
 	String labelStr = label.toString();
 	Symbol unlexLabel = Symbol.get(labelStr.substring(0, lbracketIdx) +

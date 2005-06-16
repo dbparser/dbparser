@@ -364,6 +364,35 @@ public abstract class AbstractTreebank implements Treebank, Serializable {
   }
 
   /**
+   * Returns a left-bracket character that is not an existing metacharacter
+   * in the current treebank, for use when the
+   * {@link Settings#decoderOutputHeadLexicalizedLabels} is <tt>true</tt>.
+   * The default implementation here returns <tt>'['</tt>.
+   *
+   * @return a left-bracket character that is not an existing metacharacter
+   * in the current treebank
+   */
+  public char nonTreebankLeftBracket() {
+    return '[';
+  }
+
+  /**
+   * Returns a right-bracket character that is not an existing metacharacter in
+   * the current treebank, for use when constructing lexicalized nonterminals
+   * when the {@link Settings#decoderOutputHeadLexicalizedLabels} is
+   * <tt>true</tt>. The default implementation here returns <tt>']'</tt>.
+   *
+   * @return a right-bracket character that is not an existing metacharacter in
+   *         the current treebank
+   */
+  public char nonTreebankRightBracket() {
+    return ']';
+  }
+  public char nonTreebankDelimiter() {
+    return '/';
+  }
+
+  /**
    * Returns the <code>Symbol</code> created by stripping off all
    * augmentations, that is all characters after and including the first
    * character that appears in the string returned by

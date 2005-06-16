@@ -23,6 +23,24 @@ public class CKYItem extends Item implements SexpConvertible {
     Settings.getBoolean(Settings.decoderOutputHeadLexicalizedLabels);
 
   /**
+   * The value of {@link Treebank#nonTreebankLeftBracket()}.
+   */
+  protected final static char nonTreebankLeftBracket =
+    Language.treebank().nonTreebankLeftBracket();
+
+  /**
+   * The value of {@link Treebank#nonTreebankRightBracket()}.
+   */
+  protected final static char nonTreebankRightBracket =
+    Language.treebank().nonTreebankRightBracket();
+
+  /**
+   * The value of {@link Treebank#nonTreebankDelimiter()}.
+   */
+  protected final static char nonTreebankDelimiter =
+    Language.treebank().nonTreebankDelimiter();
+  
+  /**
    * The value of the {@link Settings#baseNPsCannotContainVerbs} setting.
    */
   protected final static boolean baseNPsCannotContainVerbs =
@@ -1409,10 +1427,13 @@ public class CKYItem extends Item implements SexpConvertible {
   protected Symbol getLabel(Symbol label, boolean isHeadChild) {
     if (outputLexLabels) {
       Nonterminal nt = Language.treebank.parseNonterminal(label);
+      char lbracket = nonTreebankLeftBracket;
+      char rbracket = nonTreebankRightBracket;
+      char sep = nonTreebankDelimiter;
       String newLabel =
-	nt.base +
-	"[" + Boolean.toString(isHeadChild) +
-	"/" + headWord.word() + "/" + headWord.tag() + "]";
+	nt.base.toString() +
+	lbracket + Boolean.toString(isHeadChild) +
+	sep + headWord.word() + sep + headWord.tag() + rbracket;
       nt.base =	Symbol.add(newLabel);
       return nt.toSymbol();
     }

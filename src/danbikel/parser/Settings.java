@@ -1303,6 +1303,28 @@ public class Settings implements Serializable {
    * used internally by the decoder.  Even though this setting is grouped
    * with the other decoder settings, it technically affects the implementation
    * of {@link CKYItem#toSexp()}.
+   * <p/>
+   * The form of a lexicalized label will be
+   * <pre>NT[isHead/word/tag]</pre>
+   * where
+   * <ul>
+   * <li><tt>NT</tt> is the original, unlexicalized nonterminal
+   * <li><tt>isHead</tt> is the string <tt>true</tt> or <tt>false</tt>,
+   * indicating whether this node is the head child of its parent
+   * <li><tt>word</tt> is the head word
+   * <li><tt>tag</tt> is the part-of-speech tag of the head word
+   * </ul>
+   * The bracket and delimiter characters <tt>'['</tt>, <tt>']'</tt> and
+   * <tt>'/'</tt> are determined by the
+   * {@link Treebank#nonTreebankLeftBracket()},
+   * {@link Treebank#nonTreebankRightBracket()} and
+   * {@link Treebank#nonTreebankDelimiter()} methods, respectively.
+   * <p/>
+   * The words that were pruned before parsing and re-inserted after parsing
+   * (when the {@link #restorePrunedWords} setting is <tt>true</tt>) will
+   * not be output with lexical information, since the parser never
+   * stochastically assigned head words to these nodes (but one could trivially
+   * map these preterminals to their lexicalized versions).
    *
    * @see CKYItem#toSexp()
    */

@@ -8,6 +8,7 @@ import java.util.StringTokenizer;
 import danbikel.lisp.*;
 import danbikel.parser.Language;
 import danbikel.parser.Nonterminal;
+import danbikel.parser.Settings;
 
 /*
  * Provides data and methods speciifc to the structures found in the English
@@ -30,6 +31,9 @@ public class Treebank extends danbikel.parser.lang.AbstractTreebank {
 
   // the characters that are delimiters of augmented nonterminal labels
   private final static String augmentationDelimStr = "-=|";
+
+  private final static boolean outputLexLabels =
+    Settings.getBoolean(Settings.decoderOutputHeadLexicalizedLabels);
 
   // basic nodes in the English Treebank that will be transformed in a
   // preprocessing phase
@@ -252,9 +256,20 @@ public class Treebank extends danbikel.parser.lang.AbstractTreebank {
    * augmentations have been undone and stripped
    */
   public final Symbol getCanonical(Symbol label) {
-    for (int i = 0; i < nonterminalExceptionSet.length; i++)
-      if (label == nonterminalExceptionSet[i])
-	return label;
+    if (outputLexLabels) {
+      int rbracketIdx = label.toString().indexOf('[');
+      if (rbracketIdx != -1) {
+	Symbol base = Symbol.get(label.toString().substring(0, rbracketIdx));
+	for (int i = 0; i < nonterminalExceptionSet.length; i++)
+	  if (base == nonterminalExceptionSet[i])
+	    return label;
+      }
+    }
+    else {
+      for (int i = 0; i < nonterminalExceptionSet.length; i++)
+	if (label == nonterminalExceptionSet[i])
+	  return label;
+    }
     Symbol strippedLabel = stripAugmentation(label);
     Symbol mapEntry = (Symbol)canonicalLabelMap.get(strippedLabel);
     return ((mapEntry == null) ? strippedLabel : mapEntry);

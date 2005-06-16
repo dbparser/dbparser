@@ -36,8 +36,7 @@ public abstract class AbstractTraining implements Training, Serializable {
    * flag should be true when emulating the behavior of Mike Collins' parser.
    */
   protected static final boolean relabelHeadChildrenAsArgs =
-  Boolean.valueOf(Settings.get(Settings.collinsRelabelHeadChildrenAsArgs)).
-  booleanValue();
+    Settings.getBoolean(Settings.collinsRelabelHeadChildrenAsArgs);
 
   private static final String className = Training.class.getName();
 

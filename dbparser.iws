@@ -112,29 +112,74 @@
     <option name="HIDE_WARNINGS" value="false" />
   </component>
   <component name="FileEditorManager" split-orientation="vertical" split-proportion="0.5">
-    <first-group selected-file="file://$PROJECT_DIR$/src/danbikel/parser/english/Treebank.java">
-      <entry file="file://$PROJECT_DIR$/src/danbikel/parser/arabic/Treebank.java" pinned="false">
+    <first-group selected-file="file://$PROJECT_DIR$/src/danbikel/parser/chinese/WordFeatures.java">
+      <entry file="file://$PROJECT_DIR$/src/danbikel/parser/Decoder.java" pinned="false">
         <provider selected="true" editor-type-id="text-editor">
-          <state line="243" column="0" selection-start="8484" selection-end="8484" vertical-scroll-proportion="0.40416047">
+          <state line="631" column="24" selection-start="26266" selection-end="26266" vertical-scroll-proportion="0.19017763">
             <folding />
           </state>
         </provider>
       </entry>
-      <entry file="file://$PROJECT_DIR$/src/danbikel/parser/chinese/Treebank.java" pinned="false">
+      <entry file="file://$PROJECT_DIR$/src/danbikel/parser/HeadTreeNode.java" pinned="false">
         <provider selected="true" editor-type-id="text-editor">
-          <state line="252" column="0" selection-start="8608" selection-end="8608" vertical-scroll-proportion="0.33283803">
-            <folding>
-              <element signature="imports" expanded="true" />
-            </folding>
+          <state line="26" column="60" selection-start="1009" selection-end="1009" vertical-scroll-proportion="0.2215256">
+            <folding />
           </state>
         </provider>
       </entry>
-      <entry file="file://$PROJECT_DIR$/src/danbikel/parser/english/Treebank.java" pinned="false">
+      <entry file="file://$PROJECT_DIR$/src/danbikel/parser/ModelCollection.java" pinned="false">
         <provider selected="true" editor-type-id="text-editor">
-          <state line="263" column="0" selection-start="9104" selection-end="9104" vertical-scroll-proportion="0.40416047">
-            <folding>
-              <element signature="imports" expanded="true" />
-            </folding>
+          <state line="477" column="30" selection-start="17768" selection-end="17768" vertical-scroll-proportion="0.20585161">
+            <folding />
+          </state>
+        </provider>
+      </entry>
+      <entry file="file://$PROJECT_DIR$/src/danbikel/parser/Parser.java" pinned="false">
+        <provider selected="true" editor-type-id="text-editor">
+          <state line="75" column="34" selection-start="2745" selection-end="2745" vertical-scroll-proportion="0.20585161">
+            <folding />
+          </state>
+        </provider>
+      </entry>
+      <entry file="file://$PROJECT_DIR$/src/danbikel/parser/Trainer.java" pinned="false">
+        <provider selected="true" editor-type-id="text-editor">
+          <state line="582" column="0" selection-start="23155" selection-end="23155" vertical-scroll-proportion="0.22884013">
+            <folding />
+          </state>
+        </provider>
+      </entry>
+      <entry file="file://$PROJECT_DIR$/src/danbikel/parser/chinese/WordFeatures.java" pinned="false">
+        <provider selected="true" editor-type-id="text-editor">
+          <state line="41" column="4" selection-start="1492" selection-end="1492" vertical-scroll-proportion="0.21316615">
+            <folding />
+          </state>
+        </provider>
+      </entry>
+      <entry file="file://$PROJECT_DIR$/src/danbikel/parser/english/WordFeatures.java" pinned="false">
+        <provider selected="true" editor-type-id="text-editor">
+          <state line="41" column="4" selection-start="1492" selection-end="1492" vertical-scroll-proportion="0.21316615">
+            <folding />
+          </state>
+        </provider>
+      </entry>
+      <entry file="file://$PROJECT_DIR$/src/danbikel/parser/lang/AbstractTraining.java" pinned="false">
+        <provider selected="true" editor-type-id="text-editor">
+          <state line="38" column="0" selection-start="1449" selection-end="1449" vertical-scroll-proportion="0.19749217">
+            <folding />
+          </state>
+        </provider>
+      </entry>
+      <entry file="file://$PROJECT_DIR$/src/danbikel/parser/util/DebugChart.java" pinned="false">
+        <provider selected="true" editor-type-id="text-editor">
+          <state line="54" column="12" selection-start="2280" selection-end="2280" vertical-scroll-proportion="0.21316615">
+            <folding />
+          </state>
+        </provider>
+      </entry>
+      <entry file="file://$PROJECT_DIR$/src/danbikel/switchboard/Switchboard.java" pinned="false">
+        <provider selected="true" editor-type-id="text-editor">
+          <state line="629" column="27" selection-start="19926" selection-end="19926" vertical-scroll-proportion="0.35423198">
+            <folding />
           </state>
         </provider>
       </entry>
@@ -154,15 +199,15 @@
   <component name="J2EEProjectPane" />
   <component name="NamedScopeManager" />
   <component name="PackagesPane">
-    <expanded_node url="danbikel.parser.english" module="dbparser" type="package" />
     <expanded_node url="danbikel.parser.arabic" module="dbparser" type="package" />
-    <expanded_node url="" module="dbparser" type="module" />
+    <expanded_node url="danbikel.parser.english" module="dbparser" type="package" />
     <expanded_node url="danbikel.parser.chinese" module="dbparser" type="package" />
+    <expanded_node url="" module="dbparser" type="module" />
   </component>
   <component name="ProjectPane">
+    <expanded_node url="file://$PROJECT_DIR$/settings" module="dbparser" type="directory" />
     <expanded_node url="file://$PROJECT_DIR$" module="dbparser" type="directory" />
     <expanded_node url="" module="dbparser" type="module" />
-    <expanded_node url="file://$PROJECT_DIR$/settings" module="dbparser" type="directory" />
   </component>
   <component name="ProjectView">
     <navigator currentView="PackagesPane" splitterProportion="0.5">
@@ -184,11 +229,11 @@
     <property name="cvs_file_history_flatWidth2" value="164" />
     <property name="cvs_file_history_flatOrder4" value="4" />
     <property name="cvs_file_history_flatOrder1" value="1" />
-    <property name="vcs_file_view_flatWidth2" value="83" />
     <property name="cvs_file_history_flatWidth1" value="164" />
+    <property name="vcs_file_view_flatWidth2" value="83" />
     <property name="vcs_file_view_flatWidth5" value="83" />
-    <property name="vcs_file_view_flatOrder3" value="3" />
     <property name="cvs_file_history_flatOrder2" value="2" />
+    <property name="vcs_file_view_flatOrder3" value="3" />
     <property name="MemberChooser.showClasses" value="true" />
     <property name="cvs_file_history_flatWidth4" value="163" />
     <property name="vcs_file_view_treeWidth0" value="292" />
@@ -236,6 +281,37 @@
   </component>
   <component name="RunManager">
     <activeType name="Application" />
+    <configuration selected="false" default="true" type="Applet" factoryName="Applet">
+      <module name="" />
+      <option name="MAIN_CLASS_NAME" />
+      <option name="HTML_FILE_NAME" />
+      <option name="HTML_USED" value="false" />
+      <option name="WIDTH" value="400" />
+      <option name="HEIGHT" value="300" />
+      <option name="POLICY_FILE" value="$APPLICATION_HOME_DIR$/bin/appletviewer.policy" />
+      <option name="VM_PARAMETERS" />
+    </configuration>
+    <configuration selected="false" default="true" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" />
+      <option name="VM_PARAMETERS" />
+      <option name="PROGRAM_PARAMETERS" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <module name="" />
+    </configuration>
+    <configuration selected="false" default="true" type="JUnit" factoryName="JUnit">
+      <module name="" />
+      <option name="PACKAGE_NAME" />
+      <option name="MAIN_CLASS_NAME" />
+      <option name="METHOD_NAME" />
+      <option name="TEST_OBJECT" value="class" />
+      <option name="VM_PARAMETERS" />
+      <option name="PARAMETERS" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="ADDITIONAL_CLASS_PATH" />
+      <option name="TEST_SEARCH_SCOPE">
+        <value defaultName="wholeProject" />
+      </option>
+    </configuration>
     <configuration selected="false" default="true" type="Remote" factoryName="Remote">
       <option name="USE_SOCKET_TRANSPORT" value="true" />
       <option name="SERVER_MODE" value="false" />
@@ -256,37 +332,6 @@
       <option name="PASSWORD" value="weblogic" />
       <option name="SERVER_NAME" value="myserver" />
       <option name="DOMAIN_NAME" value="mydomain" />
-    </configuration>
-    <configuration selected="false" default="true" type="Applet" factoryName="Applet">
-      <module name="" />
-      <option name="MAIN_CLASS_NAME" />
-      <option name="HTML_FILE_NAME" />
-      <option name="HTML_USED" value="false" />
-      <option name="WIDTH" value="400" />
-      <option name="HEIGHT" value="300" />
-      <option name="POLICY_FILE" value="$APPLICATION_HOME_DIR$/bin/appletviewer.policy" />
-      <option name="VM_PARAMETERS" />
-    </configuration>
-    <configuration selected="false" default="true" type="JUnit" factoryName="JUnit">
-      <module name="" />
-      <option name="PACKAGE_NAME" />
-      <option name="MAIN_CLASS_NAME" />
-      <option name="METHOD_NAME" />
-      <option name="TEST_OBJECT" value="class" />
-      <option name="VM_PARAMETERS" />
-      <option name="PARAMETERS" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="ADDITIONAL_CLASS_PATH" />
-      <option name="TEST_SEARCH_SCOPE">
-        <value defaultName="wholeProject" />
-      </option>
-    </configuration>
-    <configuration selected="false" default="true" type="Application" factoryName="Application">
-      <option name="MAIN_CLASS_NAME" />
-      <option name="VM_PARAMETERS" />
-      <option name="PROGRAM_PARAMETERS" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <module name="" />
     </configuration>
   </component>
   <component name="SelectInManager" />
@@ -353,15 +398,15 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="0" y="22" width="1242" height="827" extended-state="0" />
+    <frame x="118" y="0" width="1481" height="1145" extended-state="0" />
     <editor active="true" />
     <layout>
-      <window_info id="CVS" active="false" anchor="bottom" auto_hide="false" internal_type="docked" type="docked" visible="false" weight="0.46438357" order="8" />
+      <window_info id="CVS" active="false" anchor="bottom" auto_hide="false" internal_type="docked" type="docked" visible="false" weight="0.46477494" order="8" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="docked" type="docked" visible="false" weight="0.33013698" order="7" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="docked" type="docked" visible="true" weight="0.21943049" order="0" x="450" y="80" width="432" height="698" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="docked" type="docked" visible="false" weight="0.33013698" order="1" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="docked" type="docked" visible="true" weight="0.2157414" order="0" x="450" y="80" width="432" height="698" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="docked" type="docked" visible="false" weight="0.3297456" order="1" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="docked" type="docked" visible="false" weight="0.24958123" order="1" />
-      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="docked" type="docked" visible="false" weight="0.33013698" order="8" />
+      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="docked" type="docked" visible="false" weight="0.3297456" order="8" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="docked" type="docked" visible="false" weight="0.4" order="6" />
       <window_info id="Dependency Viewer" active="false" anchor="bottom" auto_hide="false" internal_type="docked" type="docked" visible="false" weight="0.33" order="8" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="docked" type="docked" visible="false" weight="0.24958123" order="1" />
@@ -484,114 +529,110 @@
     </buildFile>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/src/danbikel/parser/BrokenSubcatBag.java">
+    <entry file="file://$PROJECT_DIR$/src/danbikel/parser/english/Treebank.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="42" column="13" selection-start="2145" selection-end="2145" vertical-scroll-proportion="0.33283803">
+        <state line="253" column="52" selection-start="8664" selection-end="8664" vertical-scroll-proportion="0.2675026">
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/danbikel/parser/english/BrokenTraining.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="16" column="18" selection-start="545" selection-end="545" vertical-scroll-proportion="0.12539186">
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/danbikel/parser/ms/BrokenRightSubcatModelStructure.java">
+    <entry file="file://$PROJECT_DIR$/src/danbikel/parser/english/Training.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="6" column="12" selection-start="96" selection-end="96" vertical-scroll-proportion="0.089153044">
+        <state line="17" column="47" selection-start="642" selection-end="642" vertical-scroll-proportion="0.14106584">
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/danbikel/parser/PriorEvent.java">
+    <entry file="file://$PROJECT_DIR$/src/danbikel/parser/CKYChart.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="43" column="16" selection-start="1483" selection-end="1483" vertical-scroll-proportion="0.33283803">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/danbikel/parser/ms/BrokenLexPriorModelStructure.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/danbikel/parser/ms/BrokenLeftSubcatModelStructure.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="6" column="11" selection-start="95" selection-end="95" vertical-scroll-proportion="0.089153044">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/danbikel/parser/ms/SubcatModelStructure1.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="9" column="43" selection-start="248" selection-end="248" vertical-scroll-proportion="0.14264487">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/danbikel/parser/ms/BrokenModWordModelStructure.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="35" column="8" selection-start="1615" selection-end="1615" vertical-scroll-proportion="0.6032689">
+        <state line="13" column="51" selection-start="322" selection-end="322" vertical-scroll-proportion="0.24469821">
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/danbikel/parser/Decoder.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="868" column="5" selection-start="34360" selection-end="34360" vertical-scroll-proportion="0.33283803">
+        <state line="631" column="24" selection-start="26266" selection-end="26266" vertical-scroll-proportion="0.19017763">
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/danbikel/parser/lang/AbstractTreebank.java">
+    <entry file="file://$PROJECT_DIR$/src/danbikel/parser/HeadTreeNode.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="382" column="73" selection-start="14528" selection-end="14528" vertical-scroll-proportion="0.8751857">
-          <folding>
-            <element signature="imports" expanded="true" />
-          </folding>
+        <state line="26" column="60" selection-start="1009" selection-end="1009" vertical-scroll-proportion="0.2215256">
+          <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/danbikel/parser/Treebank.java">
+    <entry file="file://$PROJECT_DIR$/src/danbikel/parser/Parser.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="307" column="0" selection-start="11120" selection-end="11120" vertical-scroll-proportion="0.5289747">
+        <state line="75" column="34" selection-start="2745" selection-end="2745" vertical-scroll-proportion="0.20585161">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/danbikel/parser/ModelCollection.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="477" column="30" selection-start="17768" selection-end="17768" vertical-scroll-proportion="0.20585161">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/danbikel/parser/Trainer.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="582" column="0" selection-start="23155" selection-end="23155" vertical-scroll-proportion="0.22884013">
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/danbikel/parser/Settings.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="1311" column="46" selection-start="53302" selection-end="53302" vertical-scroll-proportion="0.38632986">
+        <state line="1661" column="41" selection-start="68356" selection-end="68356" vertical-scroll-proportion="0.34584013">
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/danbikel/parser/CKYItem.java">
+    <entry file="file://$PROJECT_DIR$/src/danbikel/parser/chinese/WordFeatures.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="41" column="0" selection-start="1141" selection-end="1141" vertical-scroll-proportion="0.6419019">
+        <state line="41" column="4" selection-start="1492" selection-end="1492" vertical-scroll-proportion="0.21316615">
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/danbikel/parser/english/Treebank.java">
+    <entry file="file://$PROJECT_DIR$/src/danbikel/parser/english/WordFeatures.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="263" column="0" selection-start="9104" selection-end="9104" vertical-scroll-proportion="0.40416047">
-          <folding>
-            <element signature="imports" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/danbikel/parser/arabic/Treebank.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="243" column="0" selection-start="8484" selection-end="8484" vertical-scroll-proportion="0.40416047">
+        <state line="41" column="4" selection-start="1492" selection-end="1492" vertical-scroll-proportion="0.21316615">
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/danbikel/parser/chinese/Treebank.java">
+    <entry file="file://$PROJECT_DIR$/src/danbikel/parser/lang/AbstractTraining.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="252" column="0" selection-start="8608" selection-end="8608" vertical-scroll-proportion="0.33283803">
-          <folding>
-            <element signature="imports" expanded="true" />
-          </folding>
+        <state line="38" column="0" selection-start="1449" selection-end="1449" vertical-scroll-proportion="0.19749217">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/danbikel/parser/util/DebugChart.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="54" column="12" selection-start="2280" selection-end="2280" vertical-scroll-proportion="0.21316615">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/danbikel/switchboard/Switchboard.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="629" column="27" selection-start="19926" selection-end="19926" vertical-scroll-proportion="0.35423198">
+          <folding />
         </state>
       </provider>
     </entry>

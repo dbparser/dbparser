@@ -39,7 +39,7 @@ public class WordFeatures extends danbikel.parser.lang.AbstractWordFeatures {
     "parser.wordfeatures.english.useUnderscores";
 
   private static boolean useUnderscores =
-  Boolean.valueOf(Settings.get(useUnderscoresProperty)).booleanValue();
+    Settings.getBoolean(useUnderscoresProperty);
 
   private final static Symbol defaultFeatureVector = Symbol.add("C0H0I0D0N0");
 

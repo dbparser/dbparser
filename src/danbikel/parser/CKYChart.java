@@ -12,7 +12,7 @@ import java.util.*;
 public class CKYChart extends Chart {
   // constants
   private final static boolean collinsNPPruneHack =
-    Boolean.valueOf(Settings.get(Settings.collinsNPPruneHack)).booleanValue();
+    Settings.getBoolean(Settings.collinsNPPruneHack);
   private final static double log10 = Math.log(10);
   private final static double log100 = 2 * Math.log(10);
 

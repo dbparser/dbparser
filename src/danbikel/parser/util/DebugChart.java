@@ -49,8 +49,7 @@ public class DebugChart {
       SexpList sentence = (SexpList)ois.readObject();
       SexpList origWords = (SexpList)ois.readObject();
       Sexp newGoldTree = Language.training().preProcess(goldTree);
-      String downcaseWordsStr = Settings.get(Settings.downcaseWords);
-      boolean downcaseWords = Boolean.valueOf(downcaseWordsStr).booleanValue();
+      boolean downcaseWords = Settings.getBoolean(Settings.downcaseWords);
       if (downcaseWords)
 	downcaseWords(newGoldTree);
       replaceWords(downcaseWords, newGoldTree, sentence);

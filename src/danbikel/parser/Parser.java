@@ -73,8 +73,7 @@ public class Parser
   // protected constants
   /** Cached value of {@link Settings#keepAllWords}, for efficiency and
       convenience. */
-  protected boolean keepAllWords =
-    Boolean.valueOf(Settings.get(Settings.keepAllWords)).booleanValue();
+  protected boolean keepAllWords = Settings.getBoolean(Settings.keepAllWords);
 
   // public constants
   /**

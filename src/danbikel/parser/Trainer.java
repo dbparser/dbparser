@@ -60,17 +60,14 @@ public class Trainer implements Serializable {
   /** This should only be true if training on the 39832 sentences of
       the WSJ Penn Treebank, Sections 02-21 (and if emulation of Mike
       Collins' trainer is desired). */
-  private final static boolean useCollinsSkipArr;
-  static {
-    String collinsSkipStr = Settings.get(Settings.collinsSkipWSJSentences);
-    useCollinsSkipArr = Boolean.valueOf(collinsSkipStr).booleanValue();
-  }
+  private final static boolean useCollinsSkipArr =
+    Settings.getBoolean(Settings.collinsSkipWSJSentences);
 
   private final static boolean shareCounts =
-    Boolean.valueOf(Settings.get(Settings.trainerShareCounts)).booleanValue();
+    Settings.getBoolean(Settings.trainerShareCounts);
 
   private static final boolean addGapInfo =
-    Boolean.valueOf(Settings.get(Settings.addGapInfo)).booleanValue();
+    Settings.getBoolean(Settings.addGapInfo);
 
   /** The sentence numbers of sentences that Mike Collins' trainer skips,
       due to a strange historical reason of a pre-processing Perl script
@@ -581,12 +578,9 @@ public class Trainer implements Serializable {
     numPrevWords =
       Integer.parseInt(Settings.get(Settings.numPrevWords));
 
-    String keepAllWordsStr = Settings.get(Settings.keepAllWords);
-    keepAllWords = Boolean.valueOf(keepAllWordsStr).booleanValue();
-    String keepLowFreqTagsStr = Settings.get(Settings.keepLowFreqTags);
-    keepLowFreqTags = Boolean.valueOf(keepLowFreqTagsStr).booleanValue();
-    String downcaseWordsStr = Settings.get(Settings.downcaseWords);
-    downcaseWords = Boolean.valueOf(downcaseWordsStr).booleanValue();
+    keepAllWords = Settings.getBoolean(Settings.keepAllWords);
+    keepLowFreqTags = Settings.getBoolean(Settings.keepLowFreqTags);
+    downcaseWords = Settings.getBoolean(Settings.downcaseWords);
 
     modelCollection = newModelCollection();
   }

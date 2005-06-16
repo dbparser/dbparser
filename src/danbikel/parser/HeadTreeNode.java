@@ -24,7 +24,7 @@ public class HeadTreeNode implements Serializable, SexpConvertible {
   private final static String className = HeadTreeNode.class.getName();
 
   private final static boolean baseNPsCannotContainVerbs =
-  Boolean.valueOf(Settings.get(Settings.baseNPsCannotContainVerbs)).booleanValue();
+    Settings.getBoolean(Settings.baseNPsCannotContainVerbs);
 
   // data members
 

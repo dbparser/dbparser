@@ -475,15 +475,12 @@ public class ModelCollection implements Serializable {
       System.err.print("Writing out canonicalEvents...");
       tempTimer.reset();
     }
-    boolean precomputeProbs =
-      Boolean.valueOf(Settings.get(Settings.precomputeProbs)).booleanValue();
+    boolean precomputeProbs = Settings.getBoolean(Settings.precomputeProbs);
     if (precomputeProbs)
       canonicalEvents = null;
     else {
-      String writeCanonicalEventsStr =
-	Settings.get(Settings.writeCanonicalEvents);
       boolean writeCanonicalEvents =
-	Boolean.valueOf(writeCanonicalEventsStr).booleanValue();
+	Settings.getBoolean(Settings.writeCanonicalEvents);
       if (!writeCanonicalEvents) {
 	if (verbose)
 	  System.err.print("emptying...");

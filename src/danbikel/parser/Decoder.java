@@ -62,7 +62,7 @@ public class Decoder implements Serializable {
   private final static String debugOutputChartProperty =
     "parser.debug.outputChart";
   private final static boolean debugOutputChart =
-    Boolean.valueOf(Settings.get(debugOutputChartProperty)).booleanValue();
+    Settings.getBoolean(debugOutputChartProperty);
   private final static String debugChartFilenamePrefix = "chart";
   private final static boolean debugCommaConstraint = false;
   private final static boolean debugDontPostProcess = false;
@@ -491,8 +491,7 @@ decod   * @see DecoderServerRemote#prunedPreterms()
 
   /** Cached value of {@link Settings#keepAllWords}, for efficiency and
       convenience. */
-  protected boolean keepAllWords =
-    Boolean.valueOf(Settings.get(Settings.keepAllWords)).booleanValue();
+  protected boolean keepAllWords = Settings.getBoolean(Settings.keepAllWords);
 
   /**
    * Caches the ConstraintSet, if any, for the current sentence.
@@ -541,9 +540,8 @@ decod   * @see DecoderServerRemote#prunedPreterms()
   public Decoder(int id, DecoderServerRemote server) {
     this.id = id;
     this.server = server;
-    String localCacheStr =
-      Settings.get(Settings.decoderUseLocalProbabilityCache);
-    boolean localCache = Boolean.valueOf(localCacheStr).booleanValue();
+    boolean localCache =
+      Settings.getBoolean(Settings.decoderUseLocalProbabilityCache);
     if (localCache) {
       wrapCachingServer();
     }
@@ -616,12 +614,10 @@ decod   * @see DecoderServerRemote#prunedPreterms()
 
     modNonterminalPSLastLevel = modNonterminalPS.numLevels() - 1;
 
-    String useCellLimitStr = Settings.get(Settings.decoderUseCellLimit);
-    boolean useCellLimit = Boolean.valueOf(useCellLimitStr).booleanValue();
+    boolean useCellLimit = Settings.getBoolean(Settings.decoderUseCellLimit);
     if (useCellLimit)
       cellLimit = Integer.parseInt(Settings.get(Settings.decoderCellLimit));
-    String usePruneFactStr = Settings.get(Settings.decoderUsePruneFactor);
-    boolean usePruneFact = Boolean.valueOf(usePruneFactStr).booleanValue();
+    boolean usePruneFact = Settings.getBoolean(Settings.decoderUsePruneFactor);
     if (usePruneFact) {
       pruneFact = Math.log(10) *
 		  Double.parseDouble(Settings.get(Settings.decoderPruneFactor));
@@ -633,9 +629,7 @@ decod   * @see DecoderServerRemote#prunedPreterms()
       pruneFactIncrement = Math.log(10) *
                            Double.parseDouble(pruneFactIncrementStr);
     }
-    String useCommaConstraintStr =
-      Settings.get(Settings.decoderUseCommaConstraint);
-    useCommaConstraint = Boolean.valueOf(useCommaConstraintStr).booleanValue();
+    useCommaConstraint =Settings.getBoolean(Settings.decoderUseCommaConstraint);
 
     chart = new CKYChart(cellLimit, pruneFact);
 

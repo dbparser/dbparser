@@ -250,19 +250,24 @@ public class Treebank extends danbikel.parser.lang.AbstractTreebank {
    */
   public final Symbol getCanonical(Symbol label) {
     if (outputLexLabels) {
-      int rbracketIdx = label.toString().indexOf('[');
-      if (rbracketIdx != -1) {
-	Symbol base = Symbol.get(label.toString().substring(0, rbracketIdx));
-	for (int i = 0; i < nonterminalExceptionSet.length; i++)
-	  if (base == nonterminalExceptionSet[i])
-	    return label;
+      int lbracketIdx = label.toString().indexOf('[');
+      int rbracketIdx = label.toString().indexOf(']');
+      if (lbracketIdx != -1 && rbracketIdx != -1) {
+	String labelStr = label.toString();
+	Symbol unlexLabel = Symbol.get(labelStr.substring(0, lbracketIdx) +
+				       labelStr.substring(rbracketIdx + 1));
+	String canonStr = defaultGetCanonical(unlexLabel).toString();
+	return Symbol.get(canonStr +
+			  labelStr.substring(lbracketIdx, rbracketIdx + 1));
       }
     }
-    else {
-      for (int i = 0; i < nonterminalExceptionSet.length; i++)
-	if (label == nonterminalExceptionSet[i])
-	  return label;
-    }
+    return defaultGetCanonical(label);
+  }
+
+  private Symbol defaultGetCanonical(Symbol label) {
+    for (int i = 0; i < nonterminalExceptionSet.length; i++)
+      if (label == nonterminalExceptionSet[i])
+	return label;
     Symbol strippedLabel = stripAugmentation(label);
     Symbol mapEntry = (Symbol)canonicalLabelMap.get(strippedLabel);
     return ((mapEntry == null) ? strippedLabel : mapEntry);

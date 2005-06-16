@@ -3,19 +3,78 @@ package danbikel.parser.ms;
 import danbikel.parser.*;
 import danbikel.lisp.*;
 
+/**
+ * Provides the complete back-off structure for the submodel that generates
+ * the head words of modifying nonterminals.  This class is just like
+ * {@link ModWordModelStructure2} but is &ldquo;broken&rdquo; in the
+ * sense that it includes side information when generating histories
+ * for the last back-off level, as indicated by Collins&rsquo; thesis,
+ * but as was not implemented by Collins in his actual thesis parser,
+ * which collapsed <i>all</i> words when computing
+ * <i>p</i>(<i>w</i>&nbsp;|&nbsp;<i>t</i>).
+ * <p/>
+ * The specific back-off structure provided by this class is as follows.
+ * If the parent <i>P</i> is <i>not</i> a base NP (<tt>NPB</tt>), then
+ * the back-off structure provided by this class is
+ * <ul>
+ * <li><i>p</i>(<i>w<sub>i</sub></i> |
+ *     <i>&gamma;</i>(<i>M</i>(<i>t</i>)<i><sub>i</sub></i>),
+ *     <i>P</i>, <i>&gamma;</i>(<i>H</i>), <i>w<sub>h</sub></i>,
+ *     <i>t<sub>h</sub></i>, <tt>vi</tt>,
+ *     <i>&delta;</i>(<i>M<sub>i-1</sub></i>), <i>subcat<sub>side</sub></i>,
+ *     <i>side</i>)
+ * <li><i>p</i>(<i>w<sub>i</sub></i> |
+ *     <i>&gamma;</i>(<i>M</i>(<i>t</i>)<i><sub>i</sub></i>),
+ *     <i>P</i>, <i>&gamma;</i>(<i>H</i>), <i>t<sub>h</sub></i>, <tt>vi</tt>,
+ *     <i>&delta;</i>(<i>M<sub>i-1</sub></i>), <i>subcat<sub>side</sub></i>,
+ *     <i>side</i>)
+ * <li><i>p</i>(<i>w<sub>i</sub></i> | <i>t<sub>i</sub></i>, <i>side</i>)
+ * </ul>
+ * If the parent <i>P</i> <i>is</i> a base NP (<tt>NPB</tt>), then
+ * the back-off structure provided by this class is
+ * <ul>
+ * </ul>
+ */
 public class BrokenModWordModelStructure extends ProbabilityStructure {
   // data members
   private Symbol startSym = Language.training().startSym();
   private Word startWord = Language.training().startWord();
   private Symbol topSym = Language.training().topSym();
 
+  /** Constructs a new instance. */
   public BrokenModWordModelStructure() {
     super();
   }
 
+  /** Returns 10. */
   public int maxEventComponents() { return 10; }
+  /** Returns 3. */
   public int numLevels() { return 3; }
 
+  /**
+   * Returns the history event corresponding to the conditioning contexts
+   * in the following zero-indexed list.
+   * <ul>
+   * <li><i>p</i>(<i>w<sub>i</sub></i> |
+   *     <i>&gamma;</i>(<i>M</i>(<i>t</i>)<i><sub>i</sub></i>),
+   *     <i>P</i>, <i>&gamma;</i>(<i>H</i>), <i>w<sub>h</sub></i>,
+   *     <i>t<sub>h</sub></i>, <tt>vi</tt>,
+   *     <i>&delta;</i>(<i>M<sub>i-1</sub></i>), <i>subcat<sub>side</sub></i>,
+   *     <i>side</i>)
+   * <li><i>p</i>(<i>w<sub>i</sub></i> |
+   *     <i>&gamma;</i>(<i>M</i>(<i>t</i>)<i><sub>i</sub></i>),
+   *     <i>P</i>, <i>&gamma;</i>(<i>H</i>), <i>t<sub>h</sub></i>, <tt>vi</tt>,
+   *     <i>&delta;</i>(<i>M<sub>i-1</sub></i>), <i>subcat<sub>side</sub></i>,
+   *     <i>side</i>)
+   * <li><i>p</i>(<i>w<sub>i</sub></i> | <i>t<sub>i</sub></i>, <i>side</i>)
+   * </ul>
+   * @param trainerEvent the maximal-context event from which to derive
+   * the history contexts used by the probability structure provided by
+   * this class
+   * @param backOffLevel the back-off level for which to return a history
+   * context
+   * @return the history context for the specified back-off level
+   */
   public Event getHistory(TrainerEvent trainerEvent, int backOffLevel) {
     ModifierEvent modEvent = (ModifierEvent)trainerEvent;
 

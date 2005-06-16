@@ -565,6 +565,17 @@ public abstract class AbstractTraining implements Training, Serializable {
     return isValidTree(tree) ? null : "invalid tree";
   }
 
+  /**
+   * Transforms nonterminals marked with a subject augmentation so that their
+   * unaugmented base label is the concatenation of the original base label
+   * plus the subject augmentation.  For example, transforms <tt>NP-SBJ-1</tt>
+   * to <tt>NP-SBJ</tt>.
+   *
+   * @param tree the tree in which to transform subject nonterminals
+   * @return the specified tree but with subject nonterminals transformed
+   * to remove separators between their base labels and their subject
+   * augmentations
+   */
   public Sexp transformSubjectNTs(Sexp tree) {
     if (treebank.isPreterminal(tree))
       return tree;
@@ -852,6 +863,15 @@ public abstract class AbstractTraining implements Training, Serializable {
     return tree;
   }
 
+  /**
+   * Relabels as arguments all immediately-dominated children in the specified
+   * subtree accoding to the specified argument-finding patterns.
+   *
+   * @param treeList          the subtree in which to relabel arguments
+   * @param headIdx           the index of the child of the specified subtree
+   *                          that is the head
+   * @param candidatePatterns the set of argument-finding rules
+   */
   protected void relabelArgChildren(SexpList treeList,
 				    int headIdx,
 				    SexpList candidatePatterns) {
@@ -982,6 +1002,22 @@ public abstract class AbstractTraining implements Training, Serializable {
   public boolean isArgument(Symbol label) {
     return isArgument(label, nonterminal);
   }
+
+  /**
+   * Returns <code>true</code> if the specified nonterminal label has an
+   * argument augmentation.  This method is a synonym for
+   * <tt>isArgument(label, nonterminal, true)</tt>.
+   * <br>
+   * <b>Implementation note</b>: This method is <i>not</i> thread-safe;
+   * for a thread-safe method, please use {@link #isArgumentFast(Symbol)}.
+   * @param label the label to be tested
+   * @param nonterminal the {@link Nonterminal} instance to be used for
+   * storing the parsed version of the specified nonterminal label
+   * @return whether the specified nonterminal label has an argument
+   * augmentation
+   *
+   * @see #isArgument(Symbol,Nonterminal,boolean)
+   */
   protected boolean isArgument(Symbol label, Nonterminal nonterminal) {
     return isArgument(label, nonterminal, true);
   }
@@ -1370,6 +1406,14 @@ public abstract class AbstractTraining implements Training, Serializable {
     return tree;
   }
 
+  /**
+   * Returns whether the specified subtree consists solely of unary productions
+   * going to a null element terminal.
+   *
+   * @param tree the subtree to test
+   * @return whether the specified subtree consists solely of unary productions
+   *         going to a null element terminal.
+   */
   protected final boolean unaryProductionsToNull(Sexp tree) {
     if (treebank.isNullElementPreterminal(tree))
       return true;
@@ -1417,11 +1461,32 @@ public abstract class AbstractTraining implements Training, Serializable {
     return tree;
   }
 
+  /**
+   * Parses the specified nonterminal label and removes all augmentations.
+   *
+   * @param label the label from which to strip all augmentations
+   * @return the specified label having been stripped of augmentations
+   */
   protected Symbol stripAugmentations(Symbol label) {
     stripAugmentations(label, nonterminal, true);
     return nonterminal.toSymbol();
   }
 
+  /**
+   * Fills in the specified {@link Nonterminal} object with the specified
+   * nonterminal label but without any augmentations.
+   *
+   * @param label the label from which to strip augmentations
+   * @param nonterminal the {@link Nonterminal} object to use for
+   * storage when optionally parsing the specified label and removing
+   * all augmentations
+   * @param parseLabel indicates whether to call
+   * {@link Treebank#parseNonterminal(Symbol)}; if <tt>false</tt>, this
+   * method assumes that the specified {@link Nonterminal} object
+   * already contains the results of parsing the specified nonterminal
+   * label (if this is not the case, then the behavior of this method
+   * is undefined)
+   */
   protected void stripAugmentations(Symbol label, Nonterminal nonterminal,
                                     boolean parseLabel) {
     if (parseLabel)

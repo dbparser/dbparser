@@ -4,18 +4,45 @@ import danbikel.parser.*;
 import danbikel.lisp.*;
 
 /**
- * Representation of the complete back-off structure of the subcat-generation
- * model for either side of the head child.
+ * Provides the complete back-off structure of the subcat-generation model
+ * for either side of the head child.
+ * <p/>
+ * The specific back-off structure provided by this class is:
+ * <ul>
+ * <li><i>p( &hellip; | H, P, w<sub>h</sub>, t<sub>h</sub>)</i>
+ * <li><i>p( &hellip; | H, P, t)</i>
+ * <li><i>p( &hellip; | H, P)</i>
+ * </ul>
  */
 abstract public class SubcatModelStructure1 extends ProbabilityStructure {
   protected SubcatModelStructure1() { super(); }
 
+  /** Returns 4. */
   public int maxEventComponents() { return 4; }
+  /** Returns 3. */
   public int numLevels() { return 3; }
 
+  /** Returns <tt>0.0</tt> regardlesss of back-off level. */
   public double lambdaFudge(int backOffLevel) { return 0.0; }
+  /** Returns <tt>5.0</tt> regardlesss of back-off level. */
   public double lambdaFudgeTerm(int backOffLevel) { return 5.0; }
 
+  /**
+   * Returns a history for the specified back-off level, according to
+   * the following zero-indexed list of history events.
+   * <ul>
+   * <li><i>p( &hellip; | H, P, w<sub>h</sub>, t<sub>h</sub>)</i>
+   * <li><i>p( &hellip; | H, P, t)</i>
+   * <li><i>p( &hellip; | H, P)</i>
+   * </ul>
+   *
+   * @param trainerEvent the maximal-context event from which to derive
+   * the history events used by the various subcat models that are subclasses
+   * of this class
+   * @param backOffLevel the back-off level for which to get a history
+   * @return a history to condition on when generating a either a left or right
+   *         subcat
+   */
   public Event getHistory(TrainerEvent trainerEvent, int backOffLevel) {
     HeadEvent headEvent = (HeadEvent)trainerEvent;
 

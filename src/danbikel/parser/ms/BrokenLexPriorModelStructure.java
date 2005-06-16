@@ -3,12 +3,32 @@ package danbikel.parser.ms;
 import danbikel.parser.*;
 import danbikel.lisp.*;
 
+/**
+ * Provides the complete back-off structure for the submodel that generates the
+ * marginal probabilities of lexical items and their parts of speech (loosely
+ * but inaccurately called &ldquo;lexical priors&rdquo;).  This model is
+ * &ldquo;broken&rdquo; in that it is just like {@link LexPriorModelStructure1}
+ * but does not override the {@link #lambdaFudge(int)} and {@link
+ * #lambdaFudgeTerm(int)} methods as would be required to replicate the model
+ * Collins implemented for his thesis.
+ */
 public class BrokenLexPriorModelStructure extends ProbabilityStructure {
+  /**
+   * Constructs a new instance.
+   */
   public BrokenLexPriorModelStructure() {
     super();
   }
 
+  /** Returns 2. */
   public int maxEventComponents() { return 2; }
+  /**
+   * As this model simulates unconditional probabilities using
+   * relative-frequency estimation, it has only one back-off level that returns
+   * a dummy object.
+   *
+   * @return the integer 1
+   */
   public int numLevels() { return 1; }
 
   /*
@@ -16,6 +36,18 @@ public class BrokenLexPriorModelStructure extends ProbabilityStructure {
   public double lambdaFudgeTerm(int backOffLevel) { return 1.0; }
   */
 
+  /**
+   * As this model simulates unconditional probabilities using
+   * relative-frequency estimation, this method returns a history
+   * whose sole component is a dummy object that is the same regardless
+   * of the &ldquo;future&rdquo; being estimated.
+   * @param trainerEvent the maximal context event that is ignored
+   * by this method
+   * @param backOffLevel the back-off level that is ignored by this method
+   * @return a history whose sole component is a dummy object
+   *
+   * @see danbikel.parser.PriorEvent#history()
+   */
   public Event getHistory(TrainerEvent trainerEvent, int backOffLevel) {
     PriorEvent priorEvent = (PriorEvent)trainerEvent;
     MutableEvent history = histories[backOffLevel];
@@ -23,6 +55,17 @@ public class BrokenLexPriorModelStructure extends ProbabilityStructure {
     history.add(priorEvent.history());
     return history;
   }
+
+  /**
+   * Returns an event whose two components are the word and part-of-speech
+   * for which a marginal probability is being computed.
+   * @param trainerEvent the maximal-context event from which to construct
+   * the event containing the word/part-of-speech pair whose marginal is
+   * being estimated
+   * @param backOffLevel back-off level (ignored)
+   * @return an event whose two components are the word and part-of-speech
+   * for which a marginal probability is being computed
+   */
   public Event getFuture(TrainerEvent trainerEvent, int backOffLevel) {
     MutableEvent future = futures[backOffLevel];
     future.clear();
@@ -35,6 +78,10 @@ public class BrokenLexPriorModelStructure extends ProbabilityStructure {
     return future;
   }
 
+  /**
+   * Returns a copy of this instance.
+   * @return a copy of this instance
+   */
   public ProbabilityStructure copy() {
     return new BrokenLexPriorModelStructure();
   }

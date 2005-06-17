@@ -33,6 +33,29 @@ import danbikel.lisp.*;
  * If the parent <i>P</i> <i>is</i> a base NP (<tt>NPB</tt>), then
  * the back-off structure provided by this class is
  * <ul>
+ * <li><i>p</i>(<i>w<sub>i</sub></i> |
+ *     <i>&gamma;</i>(<i>M</i>(<i>t</i>)<i><sub>i</sub></i>), <i>P</i>,
+ *     <i>&delta;</i>(<i>M(w,t)<sub>i-1</sub></i>), <i>subcat<sub>side</sub></i>,
+ *     <i>side</i>)
+ * <li><i>p</i>(<i>w<sub>i</sub></i> |
+ *     <i>&gamma;</i>(<i>M</i>(<i>t</i>)<i><sub>i</sub></i>), <i>P</i>,
+ *     <i>&delta;</i>(<i>M(t)<sub>i-1</sub></i>), <i>subcat<sub>side</sub></i>,
+ *     <i>side</i>)
+ * <li><i>p</i>(<i>w<sub>i</sub></i> | <i>t<sub>i</sub></i>, <i>side</i>)
+ * </ul>
+ * <p/>
+ * Please consult one of the following two references for an explanation of
+ * the notation used above.
+ * <ul>
+ * <li>Daniel M. Bikel. 2004.
+ * <a href="http://www.cis.upenn.edu/~dbikel/papers/collins-intricacies.pdf">
+ * Intricacies of Collins&rsquo; Parsing Model</a>.
+ * <i><a href="http://mitpress.mit.edu/catalog/item/default.asp?ttype=4&tid=10">
+ * Computational Linguistics</i></a>, <b>30</b>(4). pp. 479-511.
+ * <li>Daniel Martin Bikel. 2004.
+ * <a href="http://www.cis.upenn.edu/~dbikel/papers/thesis.pdf">On the
+ * Parameter Space of Generative Lexicalized Statistical Parsing Models</a>.
+ * Ph.D. thesis, University of Pennsylvania.
  * </ul>
  */
 public class BrokenModWordModelStructure extends ProbabilityStructure {
@@ -52,8 +75,9 @@ public class BrokenModWordModelStructure extends ProbabilityStructure {
   public int numLevels() { return 3; }
 
   /**
-   * Returns the history event corresponding to the conditioning contexts
-   * in the following zero-indexed list.
+   * Returns the history event corresponding to the specified back-off level.
+   * If the parent <i>P</i> is <i>not</i> a base NP (<tt>NPB</tt>), then
+   * the back-off structure provided by this class is
    * <ul>
    * <li><i>p</i>(<i>w<sub>i</sub></i> |
    *     <i>&gamma;</i>(<i>M</i>(<i>t</i>)<i><sub>i</sub></i>),
@@ -68,6 +92,20 @@ public class BrokenModWordModelStructure extends ProbabilityStructure {
    *     <i>side</i>)
    * <li><i>p</i>(<i>w<sub>i</sub></i> | <i>t<sub>i</sub></i>, <i>side</i>)
    * </ul>
+   * If the parent <i>P</i> <i>is</i> a base NP (<tt>NPB</tt>), then
+   * the back-off structure provided by this class is
+   * <ul>
+   * <li><i>p</i>(<i>w<sub>i</sub></i> |
+   *     <i>&gamma;</i>(<i>M</i>(<i>t</i>)<i><sub>i</sub></i>), <i>P</i>,
+   *     <i>&delta;</i>(<i>M(w,t)<sub>i-1</sub></i>), <i>subcat<sub>side</sub></i>,
+   *     <i>side</i>)
+   * <li><i>p</i>(<i>w<sub>i</sub></i> |
+   *     <i>&gamma;</i>(<i>M</i>(<i>t</i>)<i><sub>i</sub></i>), <i>P</i>,
+   *     <i>&delta;</i>(<i>M(t)<sub>i-1</sub></i>), <i>subcat<sub>side</sub></i>,
+   *     <i>side</i>)
+   * <li><i>p</i>(<i>w<sub>i</sub></i> | <i>t<sub>i</sub></i>, <i>side</i>)
+   * </ul>
+   *
    * @param trainerEvent the maximal-context event from which to derive
    * the history contexts used by the probability structure provided by
    * this class
@@ -181,6 +219,16 @@ public class BrokenModWordModelStructure extends ProbabilityStructure {
     return hist;
   }
 
+  /**
+   * Returns an event whose sole component is the word being generated as the
+   * head of some modifier nonterminal.
+   *
+   * @param trainerEvent the maximal-context event for which to get a future
+   * @param backOffLevel the level of back-off for which a probability is being
+   *                     computed
+   * @return an event whose sole component is the word being generated as the
+   *         head of some modifier nonterminal
+   */
   public Event getFuture(TrainerEvent trainerEvent, int backOffLevel) {
     MutableEvent future = futures[backOffLevel];
     future.clear();
@@ -194,13 +242,17 @@ public class BrokenModWordModelStructure extends ProbabilityStructure {
   public boolean doCleanup() { return true; }
 
   /**
-   * In order to gather statistics for words that appear as the head of
-   * the entire sentence when estimating p(w | t), the trainer "fakes" a
-   * modifier event, as though the root node of the observed tree was seen
-   * to modify the magical +TOP+ node.  For back-off levels 0 and 1, we
-   * will never use the derived counts whose history contexts contain +TOP+.
-   * This method allows for the removal of these "unnecessary" counts,
-   * which will never be used when decoding.
+   * In order to gather statistics for words that appear as the head of the
+   * entire sentence when estimating p(w | t), the trainer "fakes" a modifier
+   * event, as though the root node of the observed tree was seen to modify the
+   * magical +TOP+ node.  For back-off levels 0 and 1, we will never use the
+   * derived counts whose history contexts contain +TOP+. This method allows for
+   * the removal of these "unnecessary" counts, which will never be used when
+   * decoding.
+   *
+   * @param backOffLevel the back-off level of the history context being tested
+   *                     for removal
+   * @param history      the history context being tested for removal
    */
   public boolean removeHistory(int backOffLevel, Event history) {
     // this method assumes the parent component of histories for

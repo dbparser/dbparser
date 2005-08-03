@@ -100,6 +100,11 @@ public abstract class Chart implements Serializable {
    */
   protected double pruneFact = 0.0;
   /**
+   * Indicates whether to use a more relaxed form of pruning (wider beam
+   * in certain instances, to be determined by the concrete subclass).
+   */
+  protected boolean relax = false;
+  /**
    * The total number of items added to this chart for a particular sentence
    * (between calls to {@link #clear()}).
    */
@@ -244,6 +249,21 @@ public abstract class Chart implements Serializable {
       }
     }
   }
+
+  /**
+   * Tells this chart to use a more relaxed form of pruning (for example, a
+   * wider beam in certain circumstances).  The exact nature of the relaxed
+   * pruning is implementation-dependent.
+   */
+  protected void relax() { relax = true; }
+
+  /**
+   * Tells this chart <i>not</i> to use a more relaxed form of pruning
+   * (the default behavior).
+   *
+   * @see #relax()
+   */
+  protected void dontRelax() { relax = false; }
 
   /**
    * Returns whether the specified chart item is outside the beam given the

@@ -132,6 +132,10 @@ public class CKYChart extends Chart {
         return item.logProb() < topProb - variablePruneFn(span);
     }
     */
+    else if (relax && currItem.stop()) {
+      // much wider beam for stopped items
+      return item.logProb() < topProb - pruneFact - 100;
+    }
     else
       return item.logProb() < topProb - pruneFact;
   }

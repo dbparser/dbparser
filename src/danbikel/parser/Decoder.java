@@ -282,6 +282,23 @@ decod   * @see DecoderServerRemote#prunedPreterms()
    * @see Settings#decoderPruneFactorIncrement
    */
   protected double pruneFactIncrement;
+  /**
+   * The value of {@link Settings#decoderRelaxConstraintsAfterBeamWidening},
+   * cached here for readability and convenience.
+   */
+  protected boolean relaxConstraints =
+    Settings.getBoolean(Settings.decoderRelaxConstraintsAfterBeamWidening);
+  /**
+   * The boolean to indicate whether to allow probability estimates equal to
+   * {@link Constants#logOfZero} and to allow other hard constraints (that
+   * amount to implicit log of zero probability estimates). If <tt>false</tt>,
+   * all estimates equal to {@link Constants#logOfZero} are modified to be
+   * {@link Constants#logProbSmall} and all other hard constraints <b>except the
+   * comma-pruning constraint</b> are relaxed. This data member is <tt>true</tt>
+   * by default, but is temporarily set to <tt>false</tt> by the decoder when no
+   * parse is produced after all beam widening.
+   */
+  protected boolean hardConstraints = true;
   /** The original sentence, before preprocessing. */
   protected SexpList originalSentence = new SexpList();
   /** The original tag list, before preprocessing. */
@@ -1117,6 +1134,7 @@ decod   * @see DecoderServerRemote#prunedPreterms()
 			   boolean wordIsUnknown, Symbol origWord,
 			   ConstraintSet constraints) throws RemoteException {
     int i = wordIdx;
+    int numAddedAtWordIdx = 0;
     int numTags = tagSet.length();
     for (int tagIdx = 0; tagIdx < numTags; tagIdx++) {
       Symbol tag = tagSet.symbolAt(tagIdx);
@@ -1135,12 +1153,19 @@ decod   * @see DecoderServerRemote#prunedPreterms()
       double logPrior = server.logPrior(id, priorEvent);
 
       if (substituteWordsForClosedClassTags &&
-	  numTags == 1 && wordIsUnknown && logPrior == logOfZero) {
+	  numTags == 1 && wordIsUnknown && logPrior <= logOfZero) {
 	Symbol exampleWord = getExampleWordForTag(tag);
 	headWord = getCanonicalWord(lookupWord.set(exampleWord, tag, features));
 	priorEvent.set(headWord, tag);
 	logPrior = server.logPrior(id, priorEvent);
       }
+      // if relaxConstraints is true and
+      // if this is our last chance to add a tag for the current word and we
+      // haven't added any chart items yet and the logPrior is logOfZero,
+      // add a chart item with logProb == logPrior == logProbSmall
+      else if (relaxConstraints && logPrior <= logOfZero &&
+	       tagIdx == numTags - 1 && numAddedAtWordIdx == 0)
+	logPrior = Constants.logProbSmall;
 
       double logProb = logPrior; // technically, logPrior + logProbCertain
       item.set(tag, headWord,
@@ -1165,7 +1190,9 @@ decod   * @see DecoderServerRemote#prunedPreterms()
 	  continue;
 	}
       }
-      chart.add(i, i, item);
+      boolean added = chart.add(i, i, item);
+      if (added)
+	numAddedAtWordIdx++;
     } // end for each tag
   }
 
@@ -1395,10 +1422,35 @@ decod   * @see DecoderServerRemote#prunedPreterms()
     // in loop
     double pruneFactLimit = maxPruneFact + pruneFactIncrement / 2;
 
+    hardConstraints = true;
+    chart.dontRelax();
+
     // BEGIN BEAM-WIDENING CODE
     for (int iteration = 1;
-         topRankedItem == null && currPruneFact <= pruneFactLimit;
+         topRankedItem == null;
 	 currPruneFact += pruneFactIncrement, iteration++) {
+      boolean triedWidestBeam = currPruneFact > pruneFactLimit;
+      if (triedWidestBeam) {
+	if (!relaxConstraints || !hardConstraints) {
+	  // if we're not supposed to ever relax constraints, or we've already
+	  // tried parsing with relaxed constraints, and it *still*
+	  // didn't work, so reset hardConstraints data member and give up
+	  hardConstraints = true;
+	  chart.dontRelax();
+	  break;
+	}
+	else {
+	  // temporarily relax constraints and try parsing one last time
+	  // at widest beam setting
+	  currPruneFact -= pruneFactIncrement;
+	  hardConstraints = false;
+	  chart.relax();
+	  if (debugBeamWidening)
+	    System.err.println(className + ": couldn't parse with widest " +
+			       "beam, so trying one last time with " +
+			       "relaxed constraints");
+	}
+      }
       if (debugBeamWidening)
         System.err.println(className + ": trying with prune factor of " +
                            (currPruneFact / Math.log(10)));
@@ -1596,6 +1648,12 @@ decod   * @see DecoderServerRemote#prunedPreterms()
 	headEvent.set(item.headWord(), topSym, (Symbol)item.label(),
 		      emptySubcat, emptySubcat);
 	double topLogProb = server.logProbTop(id, headEvent);
+	if (topLogProb <= logOfZero) {
+	  if (hardConstraints)
+	    continue;
+	  else
+	    topLogProb = Constants.logProbSmall;
+	}
 	double logProb = item.logTreeProb() + topLogProb;
 
 	if (debugTop)
@@ -1604,21 +1662,41 @@ decod   * @see DecoderServerRemote#prunedPreterms()
 			     "; item.logTreeProb()=" + item.logTreeProb() +
 			     "; logProb=" + logProb);
 
-	if (topLogProb <= logOfZero)
-	  continue;
+	if (findAtLeastOneSatisfyingConstraint) {
+	  if (debugConstraints)
+	    System.err.println(className +
+			       ": sentence-spanning item has constraint " +
+			       item.getConstraint());
+	}
+	if (isomorphicTreeConstraints) {
+	  Constraint parent = item.getConstraint().getParent();
+	  if (debugConstraints)
+	    System.err.println(className + ": parent constraint is " + parent);
+	  if (!(parent == null || parent == constraints.root()))
+	    continue;
+	}
+
 	CKYItem newItem = chart.getNewItem();
 	newItem.set(topSym, item.headWord(),
 		    emptySubcat, emptySubcat, item,
 		    null, null, startList, startList, 0, end,
 		    false, false, true, logProb, Constants.logProbCertain,
 		    logProb);
+
         newItem.hasAntecedent(item);
 	topProbItemsToAdd.add(newItem);
       }
     }
     Iterator toAdd = topProbItemsToAdd.iterator();
-    while (toAdd.hasNext())
-      chart.add(0, end, (CKYItem)toAdd.next());
+    while (toAdd.hasNext()) {
+      CKYItem item = (CKYItem)toAdd.next();
+      boolean added = chart.add(0, end, item);
+      if (debugTop) {
+	if (!added) {
+	  System.err.println(className + ": couldn't add item " + item);
+	}
+      }
+    }
   }
 
   /**
@@ -1842,10 +1920,15 @@ decod   * @see DecoderServerRemote#prunedPreterms()
     boolean debugFlag = false;
     if (debugJoin) {
       Symbol modificandLabel = (Symbol)modificand.label();
-      boolean modificandLabelP = modificandLabel == NPA;
-      boolean modLabelP = modLabel == CC;
-      debugFlag = (side == Constants.LEFT &&
-		   modificand.start() == 27 && modificand.end() == 27);
+      boolean modificandLabelP = modificandLabel == S;
+      boolean modLabelP = modLabel == NPA;
+      debugFlag = ((side == Constants.LEFT &&
+		    modificandLabelP && modLabelP &&
+		    modificand.start() == 1 && modificand.end() == 2)
+		  ||
+		  (side == Constants.RIGHT &&
+		   modificandLabelP &&
+		   modificand.start() == 0 && modificand.end() == 2));
       /*
       if (debugFlag)
 	Debug.level = 21;
@@ -1853,7 +1936,8 @@ decod   * @see DecoderServerRemote#prunedPreterms()
     }
 
     if (!futurePossible(modEvent, side, debugFlag))
-      return;
+      if (hardConstraints)
+	return;
 
     if (debugJoin) {
     }
@@ -1864,13 +1948,18 @@ decod   * @see DecoderServerRemote#prunedPreterms()
     double logModProb = server.logProbMod(id, modEvent);
 
     if (logModProb <= logOfZero) {
-      if (debugFlag) {
-	System.err.println(className +
-			   ".join: couldn't join because logProbMod=logOfZero");
+      if (hardConstraints) {
+	if (debugFlag) {
+	  System.err.println(className +
+			     ".join: couldn't join because logProbMod=logOfZero");
+	}
+	Debug.level = 0;
+	return;
       }
-      Debug.level = 0;
-      return;
+      else
+	logModProb = Constants.logProbSmall;
     }
+
     double logTreeProb =
       modificand.logTreeProb() + modifier.logTreeProb() + logModProb;
 
@@ -2216,8 +2305,12 @@ decod   * @see DecoderServerRemote#prunedPreterms()
 	      (numRightSubcats == 1 ? logProbCertain :
 	       server.logProbRightSubcat(id, headEvent));
 	    double logProbHead = server.logProbHead(id, headEvent);
-	    if (logProbHead <= logOfZero)
-	      continue;
+	    if (logProbHead <= logOfZero) {
+	      if (hardConstraints)
+		continue;
+	      else
+	        logProbHead = Constants.logProbSmall;
+	    }
 	    double logTreeProb =
 	      item.logTreeProb() +
 	      logProbHead + logProbLeftSubcat + logProbRightSubcat;
@@ -2225,8 +2318,12 @@ decod   * @see DecoderServerRemote#prunedPreterms()
 	    priorEvent.setLabel(parent);
 	    double logPrior = server.logPrior(id, priorEvent);
 
-	    if (logPrior <= logOfZero)
-	      continue;
+	    if (logPrior <= logOfZero) {
+	      if (hardConstraints)
+		continue;
+	      else
+		logPrior = Constants.logProbSmall;
+	    }
 
 	    double logProb = logTreeProb + logPrior;
 
@@ -2243,8 +2340,12 @@ decod   * @see DecoderServerRemote#prunedPreterms()
 	      }
 	    }
 
-	    if (logProb <= logOfZero)
-	      continue;
+	    if (logProb <= logOfZero) {
+	      if (hardConstraints)
+		continue;
+	      else
+		logProb = Constants.logProbSmall;
+	    }
 
 	    newItem.setLogTreeProb(logTreeProb);
 	    newItem.setLogPrior(logPrior);
@@ -2347,7 +2448,7 @@ decod   * @see DecoderServerRemote#prunedPreterms()
 		 item.rightSubcat(), item.rightVerb(), Constants.RIGHT);
 
     if (debugStops) {
-      if (item.start() == 13 && item.end() == 20 && item.label() == SA) {
+      if (item.start() == 0 && item.end() == 3 && item.label() == S) {
 	System.err.println(className + ".addStopProbs: trying to add stop " +
 			   "probs to item " + item);
       }
@@ -2363,11 +2464,19 @@ decod   * @see DecoderServerRemote#prunedPreterms()
     }
 
     double leftLogProb = server.logProbMod(id, leftMod);
-    if (leftLogProb <= logOfZero)
-      return itemsAdded;
+    if (leftLogProb <= logOfZero) {
+      if (hardConstraints)
+	return itemsAdded;
+      else
+	leftLogProb = Constants.logProbSmall;
+    }
     double rightLogProb = server.logProbMod(id, rightMod);
-    if (rightLogProb <= logOfZero)
-      return itemsAdded;
+    if (rightLogProb <= logOfZero) {
+      if (hardConstraints)
+	return itemsAdded;
+      else
+	rightLogProb = Constants.logProbSmall;
+    }
     double logTreeProb =
       item.logTreeProb() + leftLogProb + rightLogProb;
 
@@ -2375,14 +2484,18 @@ decod   * @see DecoderServerRemote#prunedPreterms()
     double logProb = logTreeProb + logPrior;
 
     if (debugStops) {
-      if (item.start() == 13 && item.end() == 20 && item.label() == SA) {
+      if (item.start() == 0 && item.end() == 3 && item.label() == S) {
 	System.err.println(className + ".addStopProbs: adding stops to item " +
 			   item);
       }
     }
 
-    if (logProb <= logOfZero)
-      return itemsAdded;
+    if (logProb <= logOfZero) {
+      if (hardConstraints)
+	return itemsAdded;
+      else
+	logProb = Constants.logProbSmall;
+    }
 
     CKYItem newItem = chart.getNewItem();
     newItem.set((Symbol)item.label(), item.headWord(),
@@ -2404,8 +2517,14 @@ decod   * @see DecoderServerRemote#prunedPreterms()
     boolean added = chart.add(item.start(), item.end(), newItem);
     if (added)
       itemsAdded.add(newItem);
-    else
+    else {
+      if (debugStops) {
+	if (item.start() == 0 && item.end() == 3 && item.label() == S) {
+	  System.err.println(className + ".addStopProbs: couldn't add item");
+	}
+      }
       chart.reclaimItem(newItem);
+    }
 
     return itemsAdded;
   }

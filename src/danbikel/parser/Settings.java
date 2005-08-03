@@ -1220,6 +1220,23 @@ public class Settings implements Serializable {
     "parser.decoder.pruneFactorIncrement";
 
   /**
+   * The property to specify whether the decoder should relax all hard
+   * constraints (except the comma pruning rule, which is controlled by the
+   * {@link #decoderUseCommaConstraint} setting) after performing all beam
+   * widening.  Setting this property to <tt>true</tt> provides a means to
+   * making the parser more robust, as it <i>should</i> allow the decoder to
+   * always find at least <i>some</i> parse for any sentence.
+   * <p/>
+   * For the purposes of this setting, a <i>hard constraint</i> is any implicit
+   * or explicit zero probability estimate that would cause the decoder to
+   * abandon an hypothesis (derivation).  Note that setting this property to
+   * <tt>true</tt> has no effect on the constraint-satisfaction system provided
+   * by {@link #constraintSetFactoryClass}.
+   */
+  public final static String decoderRelaxConstraintsAfterBeamWidening =
+    "parser.decoder.relaxConstraintsAfterBeamWidening";
+  
+  /**
    * The property to specify whether the decoder should impose a limit on the
    * number of chart items per cell in the chart.  The value of this property
    * should be (the string representation of) a boolean (conversion is

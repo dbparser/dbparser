@@ -62,7 +62,7 @@ public class PartialTreeConstraintSet
    * @param tree the tree from which to build this constraint set
    */
   protected void buildConstraintSet(Sexp tree) {
-    root = new PartialTreeConstraint(tree);
+    root = new PartialTreeConstraint.Root(new PartialTreeConstraint(tree));
     collectNodes(root);
     list.trimToSize();
     leaves.trimToSize();

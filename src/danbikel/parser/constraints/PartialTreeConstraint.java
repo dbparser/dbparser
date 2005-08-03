@@ -13,6 +13,33 @@ import java.util.*;
  */
 public class PartialTreeConstraint implements Constraint, SexpConvertible {
   /**
+   * Inner class to provide hidden "root" constraint that is always
+   * partially satisfied, but never <i>fully satisfied</i> (much like some
+   * people I know).
+   *
+   * @see #satisfied
+   * @see #fullySatisfied
+   */
+  static class Root extends PartialTreeConstraint {
+    public Root(PartialTreeConstraint observedRoot) {
+      label = Symbol.get("*ROOT*");
+      children = new ArrayList(1);
+      children.add(observedRoot);
+      this.start = observedRoot.start();
+      this.end = observedRoot.end();
+      satisfied = true;
+      fullySatisfied = false;
+      // modify observedRoot's parent!!!
+      observedRoot.parent = this;
+    }
+    public boolean isLeaf() { return false; }
+    public boolean isViolatedByChild(Item childItem) { return false; }
+    public boolean isViolatedBy(Item item) { return false; }
+    public boolean isSatisfiedBy(Item item) { return true; }
+    public boolean isLocallySatisfiedBy(Item item) { return true; }
+  }
+
+  /**
    * The parent constraint of this constraint.
    */
   protected PartialTreeConstraint parent;
@@ -130,7 +157,17 @@ public class PartialTreeConstraint implements Constraint, SexpConvertible {
    * by having a span beyond the boundaries of this constraint's span.
    */
   public boolean isViolatedByChild(Item childItem) {
-    return !spanOK(childItem);
+    //return !spanOK(childItem);
+    if (!spanOK(childItem))
+      return true;
+    // if the child item's constraint has a span equal to the child item's span
+    // then the child item's constraint must be fully satisfied
+    PartialTreeConstraint ptc =
+      (PartialTreeConstraint)childItem.getConstraint();
+    if (ptc.spanMatches(childItem))
+      return !ptc.fullySatisfied;
+    else
+      return false;
   }
 
   /**
@@ -195,10 +232,11 @@ public class PartialTreeConstraint implements Constraint, SexpConvertible {
 
   /**
    * Returns <code>true</code> if this constraint is satisfied by its local
-   * information.  Internally, a constraint is said to be <i>fully satisfied</i>
-   * if the specified item has a matching span <i>and</i> a matching label,
-   * as determined by the {@link #spanMatches(Item)} and
-   * {@link #labelMatches(Item)} methods, respectively.
+   * information.  Internally, this constraint is said to be <i>fully
+   * satisfied</i> if all its child constraints are fully satisfied, and if the
+   * specified item has a matching span <i>and</i> a matching label, as
+   * determined by the {@link #spanMatches(Item)} and {@link
+   * #labelMatches(Item)} methods, respectively.
    *
    * @param item the item to test for satisfaction by this constraint
    * @return whether this constraint is satisfied the specified item
@@ -223,9 +261,20 @@ public class PartialTreeConstraint implements Constraint, SexpConvertible {
 
     satisfied = true;
 
-    if (spanMatches(item) && labelMatches(item))
+    if (spanMatches(item) && labelMatches(item) &&
+	allChildConstraintsAreFullySatisfied())
       fullySatisfied = true;
 
+    return true;
+  }
+
+  private boolean allChildConstraintsAreFullySatisfied() {
+    Iterator it = children.iterator();
+    while (it.hasNext()) {
+      PartialTreeConstraint child = (PartialTreeConstraint)it.next();
+      if (!child.fullySatisfied)
+	return false;
+    }
     return true;
   }
 
@@ -317,6 +366,7 @@ public class PartialTreeConstraint implements Constraint, SexpConvertible {
   public String toString() {
     return "label=" + label + ", span=(" + start + "," + end +
 	   "), parentLabel=" +
-	   (parent == null ? "null" : parent.label.toString());
+	   (parent == null ? "null" : parent.label.toString()) +
+	   ", sat=" + satisfied + ", fullySat=" + fullySatisfied;
   }
 }

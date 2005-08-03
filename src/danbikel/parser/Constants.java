@@ -51,6 +51,12 @@ public class Constants {
   public static final double logOfZero = Double.NEGATIVE_INFINITY;
 
   /**
+   * The constant to represent the logarithm of 10E-19, which is a very
+   * small probability.
+   */
+  public static final double logProbSmall = -19 * Math.log(10);
+
+  /**
    * A constant to represent the logarithm of a probability of 1.0
    * (equal to 0.0).
    */

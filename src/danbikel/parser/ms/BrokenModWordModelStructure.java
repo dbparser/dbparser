@@ -239,15 +239,24 @@ public class BrokenModWordModelStructure extends ProbabilityStructure {
     return future;
   }
 
+  /**
+   * Returns <tt>true</tt>, indicating that the {@link Model} that owns an
+   * instance of this class ought to call its {@link Model#cleanup()} method at
+   * the end of execution of its {@link Model#deriveCounts deriveCounts}
+   * method.
+   *
+   * @return <tt>true</tt>
+   */
   public boolean doCleanup() { return true; }
 
   /**
    * In order to gather statistics for words that appear as the head of the
-   * entire sentence when estimating p(w | t), the trainer "fakes" a modifier
-   * event, as though the root node of the observed tree was seen to modify the
-   * magical +TOP+ node.  For back-off levels 0 and 1, we will never use the
-   * derived counts whose history contexts contain +TOP+. This method allows for
-   * the removal of these "unnecessary" counts, which will never be used when
+   * entire sentence when estimating <i>p&Hat;</i>(<i>w</i>&nbsp;|&nbsp;<i>t</i>),
+   * the trainer &ldquo;fakes&rdquo; a modifier event, as though the root node
+   * of the observed tree was seen to modify the magical <tt>+TOP+</tt> node.
+   * For back-off levels 0 and 1, we will never use the derived counts whose
+   * history contexts contain <tt>+TOP+</tt>. This method allows for the removal
+   * of these &ldquo;unnecessary&rdquo; counts, which will never be used when
    * decoding.
    *
    * @param backOffLevel the back-off level of the history context being tested
@@ -269,6 +278,7 @@ public class BrokenModWordModelStructure extends ProbabilityStructure {
     return false;
   }
 
+  /** Returns a copy of this object. */
   public ProbabilityStructure copy() {
     ProbabilityStructure psCopy = new BrokenModWordModelStructure();
     psCopy.setAdditionalData(this.additionalData);

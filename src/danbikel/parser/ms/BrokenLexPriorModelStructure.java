@@ -78,10 +78,7 @@ public class BrokenLexPriorModelStructure extends ProbabilityStructure {
     return future;
   }
 
-  /**
-   * Returns a copy of this instance.
-   * @return a copy of this instance
-   */
+  /** Returns a copy of this instance. */
   public ProbabilityStructure copy() {
     return new BrokenLexPriorModelStructure();
   }

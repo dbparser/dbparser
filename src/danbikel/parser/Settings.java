@@ -1964,8 +1964,8 @@ public class Settings implements Serializable {
    *         value if the specified property does not exist.
    */
   public static int getIntProperty(String property, int defaultValue) {
-    String propStr = get(property);
-    return (propStr == null) ? defaultValue : getInteger(propStr);
+    String valueStr = get(property);
+    return (valueStr == null) ? defaultValue : getInteger(property);
   }
 
   /**

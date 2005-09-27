@@ -1415,6 +1415,7 @@ decod   * @see DecoderServerRemote#prunedPreterms()
 
     CKYItem topRankedItem = null;
     double prevTopLogProb = Constants.logOfZero;
+    CKYItem topRankedSentenceSpanItem = null; // for debugging ONLY
     int numSortedItems = 0;
     CKYItem[] sortedItems = null;
 
@@ -1480,11 +1481,14 @@ decod   * @see DecoderServerRemote#prunedPreterms()
         System.err.println(te.getMessage());
       }
     }
+    topRankedSentenceSpanItem = (CKYItem)chart.getTopItem(0, sentLen - 1);
     prevTopLogProb = chart.getTopLogProb(0, sentLen - 1);
-    if (debugTop)
+    if (debugTop) {
       System.err.println(className + ": highest probability item for " +
                          "sentence-length span (0," + (sentLen - 1) + "): " +
                          prevTopLogProb);
+      System.err.println("\t" + topRankedSentenceSpanItem);
+    }
     chart.resetTopLogProb(0, sentLen - 1);
     addTopUnaries(sentLen - 1);
 
@@ -2448,7 +2452,7 @@ decod   * @see DecoderServerRemote#prunedPreterms()
 		 item.rightSubcat(), item.rightVerb(), Constants.RIGHT);
 
     if (debugStops) {
-      if (item.start() == 0 && item.end() == 3 && item.label() == S) {
+      if (item.start() == 0 && item.end() == 17 && item.label() == NPA) {
 	System.err.println(className + ".addStopProbs: trying to add stop " +
 			   "probs to item " + item);
       }
@@ -2484,9 +2488,11 @@ decod   * @see DecoderServerRemote#prunedPreterms()
     double logProb = logTreeProb + logPrior;
 
     if (debugStops) {
-      if (item.start() == 0 && item.end() == 3 && item.label() == S) {
+      if (item.start() == 0 && item.end() == 17 && item.label() == NPA) {
 	System.err.println(className + ".addStopProbs: adding stops to item " +
 			   item);
+	System.err.println("\trightLogProb=" + rightLogProb +
+			   "; leftLogProb=" + leftLogProb);
       }
     }
 
@@ -2519,7 +2525,7 @@ decod   * @see DecoderServerRemote#prunedPreterms()
       itemsAdded.add(newItem);
     else {
       if (debugStops) {
-	if (item.start() == 0 && item.end() == 3 && item.label() == S) {
+	if (item.start() == 0 && item.end() == 17 && item.label() == NPA) {
 	  System.err.println(className + ".addStopProbs: couldn't add item");
 	}
       }

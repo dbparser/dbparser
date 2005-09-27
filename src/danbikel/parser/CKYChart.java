@@ -134,7 +134,8 @@ public class CKYChart extends Chart {
     */
     else if (relax && currItem.stop()) {
       // much wider beam for stopped items
-      return item.logProb() < topProb - pruneFact - 100;
+      //return item.logProb() < topProb - pruneFact - 200;
+      return false;
     }
     else
       return item.logProb() < topProb - pruneFact;

@@ -29,11 +29,34 @@ public class SexpTokenizer extends WordTokenizer {
    *
    * @param inStream the input stream for this tokenizer
    * @param comments indicates whether to recognizes comment lines
+   * 
+   * @see #commentChar(int)
    */
   public SexpTokenizer(Reader inStream, boolean comments) {
     super(inStream);
     ordinaryChar('(');
     ordinaryChar(')');
+    if (comments)
+      commentChar(';');
+  }
+
+  /**
+   * Constructs a <code>SexpTokenizer</code> with the specified stream,
+   * comment-recognition option and set of ordinary characters, which are
+   * actually those characters to be treated as metacharacters (i.e., not
+   * part of tokens, but delimiters of tokens).
+   *
+   * @param inStream the input stream for this tokenizer
+   * @param comments indicates whether to recognizes comment lines
+   * @param ordinary an array of all characters to be treated as metacharacters
+   *
+   * @see #ordinaryChar(char)
+   * @see #commentChar(int)
+   */
+  public SexpTokenizer(Reader inStream, boolean comments, char[] ordinary) {
+    super(inStream);
+    for (int i = 0; i < ordinary.length; ++i)
+      ordinaryChar(ordinary[i]);
     if (comments)
       commentChar(';');
   }

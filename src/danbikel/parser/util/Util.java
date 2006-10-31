@@ -3,6 +3,10 @@ package danbikel.parser.util;
 import danbikel.lisp.*;
 import danbikel.parser.*;
 import java.util.*;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
+import java.io.Reader;
+import java.io.IOException;
 
 /**
  * Contains basic utility functions for <code>Sexp</code> objects that
@@ -10,6 +14,9 @@ import java.util.*;
  * @author Dan Bikel
  */
 public class Util {
+  // constants
+  private static final Pattern underline = Pattern.compile("(.*)_(.*)");
+  private static final char[] ibmOrdinaryChars = {'[', ']'};
 
   private Util() {}
 
@@ -98,7 +105,7 @@ public class Util {
    * nonterminals present in the specified tree
    */
   public static CountsTable collectNonterminals(CountsTable counts, Sexp tree,
-					boolean includeTags) {
+						boolean includeTags) {
     return collectNonterminals(counts, tree, includeTags, false);
   }
 
@@ -116,8 +123,8 @@ public class Util {
   }
 
   private static CountsTable collectNonterminals(CountsTable counts, Sexp tree,
-                                                 boolean includeTags,
-                                                 boolean onlyTags) {
+						 boolean includeTags,
+						 boolean onlyTags) {
     if (Language.treebank().isPreterminal(tree)) {
       if (includeTags) {
 	Word word = Language.treebank().makeWord(tree);
@@ -197,5 +204,65 @@ public class Util {
       map.put(key, valueSet);
     }
     valueSet.add(value);
+  }
+
+  /**
+   * Returns a new {@link SexpTokenizer} instance where the &ldquo;ordinary
+   * characters&rsquo; (metacharacters) are '[' and ']'.
+   *
+   * @param inStream the character stream from which to read IBM-format
+   *                 S-expressions/trees
+   * @param comments whether semicolon-delimited line comments are allowed
+   * @return a new {@link SexpTokenizer} instance capable of reading IBM-format
+   *         S-expressions/trees
+   */
+  public static SexpTokenizer ibmTokenizer(Reader inStream, boolean comments) {
+    return new SexpTokenizer(inStream, comments, ibmOrdinaryChars);
+  }
+
+  /**
+   * Returns the S-expression for the IBM-format parse tree in the stream to be
+   * tokenized by the specified {@link SexpTokenizer} instance. It is exptected
+   * that the {@link SexpTokenizer} instnace was constructed using the {@link
+   * #ibmTokenizer(java.io.Reader, boolean)} static factory method, or
+   * equivalently uses '[' and ']' as metacharacters.
+   *
+   * @param tok the S-expression tokenizer where '[' and ']' are metacharacters
+   * @return the S-expression for the IBM-format tree contained in the stream
+   *         wrapped by the specified tokenizer
+   *
+   * @throws IOException if there is a problem reading from the underlying
+   *                     character stream wrapped by the specified tokenizer
+   */
+  public static Sexp readIbmTree(SexpTokenizer tok) throws IOException {
+    return ibmToPenn(Sexp.read(tok, '[', ']'));
+  }
+
+  /**
+   * A utility method that converts the specified IBM-format tree to a
+   * Penn Treebank&ndash;format tree.
+   * @param sexp the IBM-format tree to convert
+   * @return a &ldquo;standard&rdquo; Penn Treebank&ndash;format tree
+   */
+  public static Sexp ibmToPenn(Sexp sexp) {
+    if (sexp.isSymbol()) {
+      String str = sexp.toString();
+      Matcher m = underline.matcher(str);
+      if (m.matches()) {
+	SexpList list = new SexpList(2);
+	list.add(Symbol.get(m.group(1)));
+	list.add(Symbol.get(m.group(2)));
+	return list;
+      }
+    }
+    else {
+      SexpList treeList = sexp.list();
+      treeList.remove(treeList.length() - 1);
+      int treeLen = treeList.length();
+      for (int i = 0; i < treeLen; ++i) {
+	treeList.set(i, ibmToPenn(treeList.get(i)));
+      }
+    }
+    return sexp;
   }
 }

@@ -154,6 +154,38 @@ abstract public class Sexp implements Externalizable {
     return null;
   }
 
+  public static Sexp read(SexpTokenizer tok, char open, char close)
+    throws IOException {
+    while (tok.nextToken() != StreamTokenizer.TT_EOF) {
+      int ttype = tok.ttype;
+      if (ttype == StreamTokenizer.TT_WORD) {
+	return Symbol.add(tok.sval);
+      }
+      else if (ttype == open) {
+	SexpList list = new SexpList();
+	while (tok.nextToken() != close) {
+	  if (tok.ttype == StreamTokenizer.TT_EOF)
+	    throw new IOException(className + ": error: "+
+				  "unexpected end of stream (line " +
+				  tok.lineno() + ")\n\tpartial list: " + list);
+	  tok.pushBack();
+	  Sexp listElement = Sexp.read(tok, open, close);
+	  list.add(listElement);
+	}
+	return list;
+      }
+      else if (ttype == close) {
+	throw new IOException(className + ": error: mismatched parentheses");
+      }
+      else {
+	throw new IOException(className + ": error: " +
+			      "unexpected character: " + tok.ttype);
+      }
+    }
+    // if the tokenizer has no more tokens, return null
+    return null;
+  }
+
   /**
    * Returns the S-expression contained in the specified string.  If the string
    * contains no tokens, this method returns <code>null</code>.
@@ -199,6 +231,9 @@ abstract public class Sexp implements Externalizable {
       Sexp s1 = Sexp.read("(foo bar)");
       Sexp s2 = Sexp.read("(bar soap)");
       //s1.add(Symbol.add("baz"));
+      StringReader sr = new StringReader("[NP the_DT man_NN NP]");
+      SexpTokenizer tok = new SexpTokenizer(sr, true, new char[]{'[', ']'});
+      Sexp s3 = Sexp.read(tok, '[', ']');
     }
     catch (IOException ioe) {
       System.err.println(ioe);

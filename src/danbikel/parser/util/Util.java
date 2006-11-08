@@ -235,7 +235,8 @@ public class Util {
    *                     character stream wrapped by the specified tokenizer
    */
   public static Sexp readIbmTree(SexpTokenizer tok) throws IOException {
-    return ibmToPenn(Sexp.read(tok, '[', ']'));
+    Sexp raw = Sexp.read(tok, '[', ']');
+    return raw == null ? null : ibmToPenn(raw);
   }
 
   /**
@@ -245,6 +246,7 @@ public class Util {
    * @return a &ldquo;standard&rdquo; Penn Treebank&ndash;format tree
    */
   public static Sexp ibmToPenn(Sexp sexp) {
+    System.err.println(sexp);
     if (sexp.isSymbol()) {
       String str = sexp.toString();
       Matcher m = underline.matcher(str);
@@ -257,6 +259,9 @@ public class Util {
     }
     else {
       SexpList treeList = sexp.list();
+      // in case extra info on final, redundant label, assign it to primary
+      // label slot
+      treeList.set(0, treeList.last());
       treeList.remove(treeList.length() - 1);
       int treeLen = treeList.length();
       for (int i = 0; i < treeLen; ++i) {

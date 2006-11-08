@@ -246,7 +246,6 @@ public class Util {
    * @return a &ldquo;standard&rdquo; Penn Treebank&ndash;format tree
    */
   public static Sexp ibmToPenn(Sexp sexp) {
-    System.err.println(sexp);
     if (sexp.isSymbol()) {
       String str = sexp.toString();
       Matcher m = underline.matcher(str);

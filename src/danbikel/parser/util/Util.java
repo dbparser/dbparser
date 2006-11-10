@@ -251,8 +251,8 @@ public class Util {
       Matcher m = underline.matcher(str);
       if (m.matches()) {
 	SexpList list = new SexpList(2);
-	list.add(Symbol.get(m.group(1)));
 	list.add(Symbol.get(m.group(2)));
+	list.add(Symbol.get(m.group(1)));
 	return list;
       }
     }

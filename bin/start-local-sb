@@ -16,8 +16,10 @@ set settingsProp = "-Dparser.settingsFile=$settingsFile"
 
 set mem = (-Xms100m -Xmx100m)
 
-set parent = `dirname $0`/..
-set classes = $parent/classes
+set dir = `dirname $0`
+set scriptDir = `cd $dir  ; echo $cwd`
+set parent = $scriptDir:h
+set classes = $parent/classes.ant
 
 set sbPolicy = "-Djava.security.policy=$parent/policy-files/all.policy"
 set sbCodebase = "-Djava.rmi.server.codebase=file://$classes/"
@@ -27,7 +29,7 @@ set disableHttp = "-Djava.rmi.server.disableHttp=true"
 echo log file is $logFile
 echo pid file is $pidFile
 
-java -server $mem $settingsProp $sbPolicy $sbCodebase $disableHttp \
-    $class $args >& $logFile &
+java -server -cp $classes $mem $settingsProp $sbPolicy $sbCodebase \
+    $disableHttp $class $args >& $logFile &
 
 echo $! > $pidFile

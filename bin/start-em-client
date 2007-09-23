@@ -6,7 +6,9 @@ set host = $3
 set logDir = $4
 set args = ($argv[5-$#argv])
 
-set parent = `dirname $0`/..
+set dir = `dirname $0`
+set scriptDir = `cd $dir  ; echo $cwd`
+set parent = $scriptDir:h
 set classes = $parent/classes
 
 set clientPolicy = "-Djava.security.policy=$parent/policy-files/client.policy"

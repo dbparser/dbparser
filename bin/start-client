@@ -9,7 +9,9 @@ set args = ($argv[6-$#argv])
 
 set settingsProp = "-Dparser.settingsFile=$settingsFile"
 
-set parent = `dirname $0`/..
+set dir = `dirname $0`
+set scriptDir = `cd $dir  ; echo $cwd`
+set parent = $scriptDir:h
 set classes = $parent/classes
 set jarFile = $parent/dbparser.jar
 set clientPolicy = "-Djava.security.policy=$parent/policy-files/client.policy"

@@ -17,8 +17,10 @@ set settingsProp = "-Dparser.settingsFile=$settingsFile"
 
 set mem = (-Xms800m -Xmx800m)
 
-set parent = `dirname $0`/..
-set classes = $parent/classes
+set dir = `dirname $0`
+set scriptDir = `cd $dir  ; echo $cwd`
+set parent = $scriptDir:h
+set classes = $parent/classes.ant
 
 set clientPolicy = "-Djava.security.policy=$parent/policy-files/all.policy"
 set clientCodebase = -Djava.rmi.server.codebase="file://$classes/ file://"

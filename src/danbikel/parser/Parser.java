@@ -932,7 +932,7 @@ public class Parser
       return false;
     }
 
-    if (!standAlone && inputFilename != null && numClients > 1) {
+    if (standAlone && inputFilename != null && numClients > 1) {
       System.err.println(
       "error: can't start more than one parsing client thread when internally"+
       "\n\tprocessing an input file; use switchboard's object server facility");

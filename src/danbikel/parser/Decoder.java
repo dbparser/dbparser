@@ -571,7 +571,8 @@ decod   * @see DecoderServerRemote#prunedPreterms()
 	for (int i = 0; i < posList.length(); i++)
 	  posSet.add(posList.get(i));
       }
-      CountsTable nonterminalTable = server.nonterminals();
+      CountsTable nonterminalTable = new CountsTableImpl();
+      nonterminalTable.addAll(server.nonterminals());
       // first, cache all nonterminals (and these are strictly nonterminals
       // and not parts of speech) into nonterminals array
       nonterminals = new Symbol[nonterminalTable.size()];
@@ -590,11 +591,11 @@ decod   * @see DecoderServerRemote#prunedPreterms()
 	BrokenSubcatBag.setUpFastUidMap(nonterminalTable);
       Language.training().setUpFastArgMap(nonterminalTable);
       if (useHeadToParentMap) {
-	this.headToParentMap = server.headToParentMap();
+	this.headToParentMap = new HashMap(server.headToParentMap());
 	convertHeadToParentMap();
       }
-      this.leftSubcatMap = server.leftSubcatMap();
-      this.rightSubcatMap = server.rightSubcatMap();
+      this.leftSubcatMap = new HashMap(server.leftSubcatMap());
+      this.rightSubcatMap = new HashMap(server.rightSubcatMap());
       convertSubcatMaps();
       this.leftSubcatPS = server.leftSubcatProbStructure().copy();
       this.rightSubcatPS = server.rightSubcatProbStructure().copy();

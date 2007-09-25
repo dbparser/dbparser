@@ -19,7 +19,6 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
-#include <malloc.h>
 
 #define OUTPUT_RECALL_ERRORS 0
 #define OUTPUT_SPURIOUS_BRACKETS 0
@@ -269,11 +268,6 @@ void Error();
 void Fatal();
 void Usage();
 
-int fprintf();
-int printf();
-int atoi();
-int fclose();
-int sscanf();
 
 /***********/
 /* program */

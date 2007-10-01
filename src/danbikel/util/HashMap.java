@@ -1,1117 +1,443 @@
-/*
- * This is a modified version of HashMap.java from Sun Microsystems.
- * Modified by Dan Bikel, 06/15/2001 (or 01/06/15, in Sun's notation).
- * We needed to be able to access the objects used as keys in a map,
- * which the default implementation does not allow for (in constant time,
- * anyway).  Also, we added diagnostic methods to determine the average
- * and maximum bucket sizes, which is useful (and we would argue, necessary)
- * when developing/debugging hash functions.
- *
- * Copyright and version information are as follows.
- * @(#)HashMap.java	1.38 00/02/02
- *
- * Copyright 1997-2000 Sun Microsystems, Inc. All Rights Reserved.
- *
- * This software is the proprietary information of Sun Microsystems, Inc.
- * Use is subject to license terms.
- *
- */
-
 package danbikel.util;
+
 import java.util.*;
+import java.math.BigInteger;
+import java.lang.reflect.Array;
 import java.io.*;
 
 /**
- * Hash table based implementation of the <tt>Map</tt> interface.  This
- * implementation provides all of the optional map operations, and permits
- * <tt>null</tt> values and the <tt>null</tt> key.  (The <tt>HashMap</tt>
- * class is roughly equivalent to <tt>Hashtable</tt>, except that it is
- * unsynchronized and permits nulls.)  This class makes no guarantees as to
- * the order of the map; in particular, it does not guarantee that the order
- * will remain constant over time.<p>
- *
- * This implementation provides constant-time performance for the basic
- * operations (<tt>get</tt> and <tt>put</tt>), assuming the hash function
- * disperses the elements properly among the buckets.  Iteration over
- * collection views requires time proportional to the "capacity" of the
- * <tt>HashMap</tt> instance (the number of buckets) plus its size (the number
- * of key-value mappings).  Thus, it's very important not to set the intial
- * capacity too high (or the load factor too low) if iteration performance is
- * important.<p>
- *
- * An instance of <tt>HashMap</tt> has two parameters that affect its
- * performance: <i>initial capacity</i> and <i>load factor</i>.  The
- * <i>capacity</i> is the number of buckets in the hash table, and the initial
- * capacity is simply the capacity at the time the hash table is created.  The
- * <i>load factor</i> is a measure of how full the hash table is allowed to
- * get before its capacity is automatically increased.  When the number of
- * entries in the hash table exceeds the product of the load factor and the
- * current capacity, the capacity is roughly doubled by calling the
- * <tt>rehash</tt> method.<p>
- *
- * As a general rule, the default load factor (.75) offers a good tradeoff
- * between time and space costs.  Higher values decrease the space overhead
- * but increase the lookup cost (reflected in most of the operations of the
- * <tt>HashMap</tt> class, including <tt>get</tt> and <tt>put</tt>).  The
- * expected number of entries in the map and its load factor should be taken
- * into account when setting its initial capacity, so as to minimize the
- * number of <tt>rehash</tt> operations.  If the initial capacity is greater
- * than the maximum number of entries divided by the load factor, no
- * <tt>rehash</tt> operations will ever occur.<p>
- *
- * If many mappings are to be stored in a <tt>HashMap</tt> instance, creating
- * it with a sufficiently large capacity will allow the mappings to be stored
- * more efficiently than letting it perform automatic rehashing as needed to
- * grow the table.<p>
- *
- * <b>Note that this implementation is not synchronized.</b> If multiple
- * threads access this map concurrently, and at least one of the threads
- * modifies the map structurally, it <i>must</i> be synchronized externally.
- * (A structural modification is any operation that adds or deletes one or
- * more mappings; merely changing the value associated with a key that an
- * instance already contains is not a structural modification.)  This is
- * typically accomplished by synchronizing on some object that naturally
- * encapsulates the map.  If no such object exists, the map should be
- * "wrapped" using the <tt>Collections.synchronizedMap</tt> method.  This is
- * best done at creation time, to prevent accidental unsynchronized access to
- * the map: <pre> Map m = Collections.synchronizedMap(new HashMap(...));
- * </pre><p>
- *
- * The iterators returned by all of this class's "collection view methods" are
- * <i>fail-fast</i>: if the map is structurally modified at any time after the
- * iterator is created, in any way except through the iterator's own
- * <tt>remove</tt> or <tt>add</tt> methods, the iterator will throw a
- * <tt>ConcurrentModificationException</tt>.  Thus, in the face of concurrent
- * modification, the iterator fails quickly and cleanly, rather than risking
- * arbitrary, non-deterministic behavior at an undetermined time in the
- * future.
- *
- * @author  Josh Bloch
- * @author  Arthur van Hoff
- * @author  Dan Bikel
- * @version 1.38, 02/02/00
- * @see     Object#hashCode()
- * @see     Collection
- * @see	    Map
- * @see	    Hashtable
- * @since 1.2
+ * Home-grown implementation of a hash map, in order to support the {@link
+ * FlexibleMap} interface.
  */
-
-public class HashMap extends AbstractMap
-  implements FlexibleMap, Cloneable, java.io.Serializable {
-  /**
-   * The hash table data.
-   */
-  private transient Entry table[];
-
-  /**
-   * The total number of mappings in the hash table.
-   */
-  private transient int count;
-
-  /**
-   * The table is rehashed when its size exceeds this threshold.  (The
-   * value of this field is (int)(capacity * loadFactor).)
-   *
-   * @serial
-   */
-  private int threshold;
-
-  /**
-   * The load factor for the hashtable.
-   *
-   * @serial
-   */
-  private float loadFactor;
-
-  /**
-   * The number of times this HashMap has been structurally modified
-   * Structural modifications are those that change the number of mappings in
-   * the HashMap or otherwise modify its internal structure (e.g.,
-   * rehash).  This field is used to make iterators on Collection-views of
-   * the HashMap fail-fast.  (See ConcurrentModificationException).
-   */
-  private transient int modCount = 0;
-
-  /**
-   * Constructs a new, empty map with the specified initial
-   * capacity and the specified load factor.
-   *
-   * @param      initialCapacity   the initial capacity of the HashMap.
-   * @param      loadFactor        the load factor of the HashMap
-   * @throws     IllegalArgumentException  if the initial capacity is less
-   *               than zero, or if the load factor is nonpositive.
-   */
-  public HashMap(int initialCapacity, float loadFactor) {
-    if (initialCapacity < 0)
-      throw new IllegalArgumentException("Illegal Initial Capacity: "+
-					 initialCapacity);
-    if (loadFactor <= 0 || Float.isNaN(loadFactor))
-      throw new IllegalArgumentException("Illegal Load factor: "+
-					 loadFactor);
-    if (initialCapacity==0)
-      initialCapacity = 1;
-    this.loadFactor = loadFactor;
-    table = new Entry[initialCapacity];
-    threshold = (int)(initialCapacity * loadFactor);
-  }
-
-  /**
-   * Constructs a new, empty map with the specified initial capacity
-   * and default load factor, which is <tt>0.75</tt>.
-   *
-   * @param   initialCapacity   the initial capacity of the HashMap.
-   * @throws    IllegalArgumentException if the initial capacity is less
-   *              than zero.
-   */
-  public HashMap(int initialCapacity) {
-    this(initialCapacity, 0.75f);
-  }
-
-  /**
-   * Constructs a new, empty map with a default capacity and load
-   * factor, which is <tt>0.75</tt>.
-   */
-  public HashMap() {
-    this(11, 0.75f);
-  }
-
-  /**
-   * Constructs a new map with the same mappings as the given map.  The
-   * map is created with a capacity of twice the number of mappings in
-   * the given map or 11 (whichever is greater), and a default load factor,
-   * which is <tt>0.75</tt>.
-   *
-   * @param t the map whose mappings are to be placed in this map.
-   */
-  public HashMap(Map t) {
-    this(Math.max(2*t.size(), 11), 0.75f);
-    putAll(t);
-  }
-
-  /**
-   * Returns the number of key-value mappings in this map.
-   *
-   * @return the number of key-value mappings in this map.
-   */
-  public int size() {
-    return count;
-  }
-
-  /**
-   * Returns <tt>true</tt> if this map contains no key-value mappings.
-   *
-   * @return <tt>true</tt> if this map contains no key-value mappings.
-   */
-  public boolean isEmpty() {
-    return count == 0;
-  }
-
-  /**
-   * Returns <tt>true</tt> if this map maps one or more keys to the
-   * specified value.
-   *
-   * @param value value whose presence in this map is to be tested.
-   * @return <tt>true</tt> if this map maps one or more keys to the
-   *         specified value.
-   */
-  public boolean containsValue(Object value) {
-    Entry tab[] = table;
-
-    if (value==null) {
-      for (int i = tab.length ; i-- > 0 ;)
-	for (Entry e = tab[i] ; e != null ; e = e.next)
-	  if (e.value==null)
-	    return true;
-    } else {
-      for (int i = tab.length ; i-- > 0 ;)
-	for (Entry e = tab[i] ; e != null ; e = e.next)
-	  if (value.equals(e.value))
-	    return true;
-    }
-
-    return false;
-  }
-
-  /**
-   * Returns <tt>true</tt> if this map contains a mapping for the specified
-   * key.
-   *
-   * @return <tt>true</tt> if this map contains a mapping for the specified
-   * key.
-   * @param key key whose presence in this Map is to be tested.
-   */
-  public boolean containsKey(Object key) {
-    Entry tab[] = table;
-    if (key != null) {
-      int hash = key.hashCode();
-      int index = (hash & 0x7FFFFFFF) % tab.length;
-      for (Entry e = tab[index]; e != null; e = e.next)
-	if (e.hash==hash && key.equals(e.key))
-	  return true;
-    } else {
-      for (Entry e = tab[0]; e != null; e = e.next)
-	if (e.key==null)
-	  return true;
-    }
-
-    return false;
-  }
-
-  /**
-   * Returns the value to which this map maps the specified key.  Returns
-   * <tt>null</tt> if the map contains no mapping for this key.  A return
-   * value of <tt>null</tt> does not <i>necessarily</i> indicate that the
-   * map contains no mapping for the key; it's also possible that the map
-   * explicitly maps the key to <tt>null</tt>.  The <tt>containsKey</tt>
-   * operation may be used to distinguish these two cases.
-   *
-   * @return the value to which this map maps the specified key.
-   * @param key key whose associated value is to be returned.
-   */
-  public Object get(Object key) {
-    Entry tab[] = table;
-
-    if (key != null) {
-      int hash = key.hashCode();
-      int index = (hash & 0x7FFFFFFF) % tab.length;
-      for (Entry e = tab[index]; e != null; e = e.next)
-	if ((e.hash == hash) && key.equals(e.key))
-	  return e.value;
-    } else {
-      for (Entry e = tab[0]; e != null; e = e.next)
-	if (e.key==null)
-	  return e.value;
-    }
-
-    return null;
-  }
-
-  public Object get(Object key, int hashCode) {
-    Entry tab[] = table;
-
-    int index = (hashCode & 0x7FFFFFFF) % tab.length;
-    for (Entry e = tab[index]; e != null; e = e.next)
-      if ((e.hash == hashCode) && key.equals(e.key))
-        return e.value;
-
-    return null;
-  }
-
-  /**
-   * Returns the value to which this map maps the specified key.  Returns
-   * <tt>null</tt> if the map contains no mapping for this key.  A return
-   * value of <tt>null</tt> does not <i>necessarily</i> indicate that the
-   * map contains no mapping for the key; it's also possible that the map
-   * explicitly maps the key to <tt>null</tt>.  The <tt>containsKey</tt>
-   * operation may be used to distinguish these two cases.
-   * As a side-effect, in the case where a mapping exists for the specified
-   * key, this method moves its entry to the head of the singly-linked bucket
-   * list, thereby making it the most-recently used entry in the bucket list.
-   *
-   * @return the value to which this map maps the specified key.
-   * @param key key whose associated value is to be returned.
-   *
-   * @see #putAndRemove(Object,Object)
-   */
-  protected Object getAndMakeMRU(Object key) {
-    Entry tab[] = table;
-
-    if (key != null) {
-      int hash = key.hashCode();
-      int index = (hash & 0x7FFFFFFF) % tab.length;
-      for (Entry e = tab[index], prev = null; e != null;
-           prev = e, e = e.next) {
-	if ((e.hash == hash) && key.equals(e.key)) {
-          if (prev != null) {
-            prev.next = e.next;
-            e.next = tab[index];
-            tab[index] = e;
-          }
-	  return e.value;
-	}
-      }
-    } else {
-      for (Entry e = tab[0], prev = null; e != null;
-           prev = e, e = e.next) {
-	if (e.key==null) {
-          if (prev != null) {
-            prev.next = e.next;
-            e.next = tab[0];
-            tab[0] = e;
-          }
-	  return e.value;
-	}
-      }
-    }
-
-    return null;
-  }
-
-  /**
-   * Gets the map entry for the specified key.
-   *
-   * @param key the key whose entry is to be looked up
-   * @return the map entry for the specified key, or <code>null</code>
-   * if the specified key is not in this map
-   */
-  public Map.Entry getEntry(Object key) {
-    Entry tab[] = table;
-
-    if (key != null) {
-      int hash = key.hashCode();
-      int index = (hash & 0x7FFFFFFF) % tab.length;
-      for (Entry e = tab[index]; e != null; e = e.next)
-	if ((e.hash == hash) && key.equals(e.key))
-	  return e;
-    } else {
-      for (Entry e = tab[0]; e != null; e = e.next)
-	if (e.key==null)
-	  return e;
-    }
-
-    return null;
-  }
-
-  /**
-   * Gets the equivalent key in map, if it exists.  This method is useful
-   * when keys are re-creatable, that is, when two distinct objects can
-   * be equal via their equals method, and when it is undesirable to have
-   * to make a copy of the lookup key when a copy exists in the map itself.
-   *
-   * @param key the key to look up in this map
-   * @return the equivalent key in the map, or <code>null</code> if no such
-   * key exists (or if the specified key was <code>null</code>)
-   */
-  public Object getKeyInMap(Object key) {
-    Entry tab[] = table;
-
-    if (key != null) {
-      int hash = key.hashCode();
-      int index = (hash & 0x7FFFFFFF) % tab.length;
-      for (Entry e = tab[index]; e != null; e = e.next)
-	if ((e.hash == hash) && key.equals(e.key))
-	  return e.key;
-    }
-    /*
-      else {
-      for (Entry e = tab[0]; e != null; e = e.next)
-      if (e.key==null)
-      return null;
-      }
-    */
-    return null;
-  }
-
-  /**
-  * Rehashes the contents of this map into a new <tt>HashMap</tt> instance
-  * with a larger capacity. This method is called automatically when the
-  * number of keys in this map exceeds its capacity and load factor.
-  */
-  private void rehash() {
-    int oldCapacity = table.length;
-    Entry oldMap[] = table;
-
-    int newCapacity = oldCapacity * 2 + 1;
-    Entry newMap[] = new Entry[newCapacity];
-
-    modCount++;
-    threshold = (int)(newCapacity * loadFactor);
-    table = newMap;
-
-    for (int i = oldCapacity ; i-- > 0 ;) {
-      for (Entry old = oldMap[i] ; old != null ; ) {
-	Entry e = old;
-	old = old.next;
-
-	int index = (e.hash & 0x7FFFFFFF) % newCapacity;
-	e.next = newMap[index];
-	newMap[index] = e;
-      }
-    }
-  }
-
-  /**
-   * Associates the specified value with the specified key in this map.
-   * If the map previously contained a mapping for this key, the old
-   * value is replaced.
-   *
-   * @param key key with which the specified value is to be associated.
-   * @param value value to be associated with the specified key.
-   * @return previous value associated with specified key, or <tt>null</tt>
-   *	       if there was no mapping for key.  A <tt>null</tt> return can
-   *	       also indicate that the HashMap previously associated
-   *	       <tt>null</tt> with the specified key.
-   */
-  public Object put(Object key, Object value) {
-    // Makes sure the key is not already in the HashMap.
-    Entry tab[] = table;
-    int hash = 0;
-    int index = 0;
-
-    if (key != null) {
-      hash = key.hashCode();
-      index = (hash & 0x7FFFFFFF) % tab.length;
-      for (Entry e = tab[index] ; e != null ; e = e.next) {
-	if ((e.hash == hash) && key.equals(e.key)) {
-	  Object old = e.value;
-	  e.value = value;
-	  return old;
-	}
-      }
-    } else {
-      for (Entry e = tab[0] ; e != null ; e = e.next) {
-	if (e.key == null) {
-	  Object old = e.value;
-	  e.value = value;
-	  return old;
-	}
-      }
-    }
-
-    modCount++;
-    if (count >= threshold) {
-      // Rehash the table if the threshold is exceeded
-      rehash();
-
-      tab = table;
-      index = (hash & 0x7FFFFFFF) % tab.length;
-    }
-
-    // Creates the new entry.
-    Entry e = new Entry(hash, key, value, tab[index]);
-    tab[index] = e;
-    count++;
-    return null;
-  }
-
-  /**
-   * Associates the specified value with the specified key in this map
-   * while removing an essentially random element from the map.
-   * If the map previously contained a mapping for this key, the old
-   * value is replaced.  Furthermore, if the bucket for this key contained
-   * at least one entry, the least-recently used entry (for the bucket) is
-   * removed, and this entry is made the most-recently added (the beginning
-   * of the singly-linked list of entries for the bucket).
-   *
-   * @param key key with which the specified value is to be associated.
-   * @param value value to be associated with the specified key.
-   * @return previous value associated with specified key, or <tt>null</tt>
-   *	       if there was no mapping for key.  A <tt>null</tt> return can
-   *	       also indicate that the HashMap previously associated
-   *	       <tt>null</tt> with the specified key.
-   */
-  protected Object putAndRemove(Object key, Object value) {
-    // Makes sure the key is not already in the HashMap.
-    Entry tab[] = table;
-    int hash = 0;
-    int index = 0;
-
-    if (key != null) {
-      hash = key.hashCode();
-      index = (hash & 0x7FFFFFFF) % tab.length;
-      // if an equivalent key exists, make its entry the head of
-      // the singly linked list before returning the previously-associated
-      // value (the LRU condition will thus be satisfied)
-      for (Entry e = tab[index], prev = null; e != null;
-           prev = e, e = e.next) {
-	if ((e.hash == hash) && key.equals(e.key)) {
-	  Object old = e.value;
-	  e.value = value;
-          // now make e the head of the list, if it isn't already
-          if (e != tab[index]) {
-            prev.next = e.next;
-            e.next = tab[index];
-            tab[index] = e;
-          }
-	  return old;
-	}
-      }
-    } else {
-      // if the null key exists, make its entry the head of
-      // the singly linked list before returning the previously-associated
-      // value (the LRU condition will thus be satisfied)
-      for (Entry e = tab[0], prev = null; e != null;
-           prev = e, e = e.next) {
-	if (e.key == null) {
-	  Object old = e.value;
-	  e.value = value;
-          // now make e the head of the list, if it isn't already
-          if (e != tab[0]) {
-            prev.next = e.next;
-            e.next = tab[0];
-            tab[0] = e;
-          }
-	  return old;
-	}
-      }
-    }
-
-    modCount++;
-
-    // don't rehash when removing almost as many as putting!!!
-    /*
-    if (count >= threshold) {
-      // Rehash the table if the threshold is exceeded
-      rehash();
-
-      tab = table;
-      index = (hash & 0x7FFFFFFF) % tab.length;
-    }
-    */
-
-    // first, remove last entry in singly-linked list, if possible
-    for (Entry e = tab[index], prev = null; e != null;
-         prev = e, e = e.next) {
-      if (e.next == null) {
-        if (prev == null)
-          tab[index] = null;
-        else
-          prev.next = null;
-        e.value = null;
-        count--;
-        break;
-      }
-    }
-    // Creates the new entry.
-    Entry e = new Entry(hash, key, value, tab[index]);
-    tab[index] = e;
-    count++;
-    return null;
-  }
-
-  /**
-   * Removes the mapping for this key from this map if present.
-   *
-   * @param key key whose mapping is to be removed from the map.
-   * @return previous value associated with specified key, or <tt>null</tt>
-   *	       if there was no mapping for key.  A <tt>null</tt> return can
-   *	       also indicate that the map previously associated <tt>null</tt>
-   *	       with the specified key.
-   */
-  public Object remove(Object key) {
-    Entry tab[] = table;
-
-    if (key != null) {
-      int hash = key.hashCode();
-      int index = (hash & 0x7FFFFFFF) % tab.length;
-
-      for (Entry e = tab[index], prev = null; e != null;
-	   prev = e, e = e.next) {
-	if ((e.hash == hash) && key.equals(e.key)) {
-	  modCount++;
-	  if (prev != null)
-	    prev.next = e.next;
-	  else
-	    tab[index] = e.next;
-
-	  count--;
-	  Object oldValue = e.value;
-	  e.value = null;
-	  return oldValue;
-	}
-      }
-    } else {
-      for (Entry e = tab[0], prev = null; e != null;
-	   prev = e, e = e.next) {
-	if (e.key == null) {
-	  modCount++;
-	  if (prev != null)
-	    prev.next = e.next;
-	  else
-	    tab[0] = e.next;
-
-	  count--;
-	  Object oldValue = e.value;
-	  e.value = null;
-	  return oldValue;
-	}
-      }
-    }
-
-    return null;
-  }
-
-  /**
-   * Removes a random element from this map, given a random index into
-   * the table of buckets.
-   */
-  protected Object removeRandom(int idx) {
-    if (count == 0)
-      return null;
-    Entry e = table[idx];
-
-    // find first non-empty bucket
-    while (e == null) {
-      idx++;
-      if (idx == table.length)
-        idx = 0;
-      e = table[idx];
-    }
-
-    // remove the first item in this bucket
-    table[idx] = e.next;
-    modCount++;
-    count--;
-    Object oldValue = e.value;
-    e.value = null;
-    return oldValue;
-  }
-
-  /**
-   * Copies all of the mappings from the specified map to this one.
-   *
-   * These mappings replace any mappings that this map had for any of the
-   * keys currently in the specified Map.
-   *
-   * @param t Mappings to be stored in this map.
-   */
-  public void putAll(Map t) {
-    Iterator i = t.entrySet().iterator();
-    while (i.hasNext()) {
-      Map.Entry e = (Map.Entry) i.next();
-      put(e.getKey(), e.getValue());
-    }
-  }
-
-  /**
-   * Removes all mappings from this map.
-   */
-  public void clear() {
-    Entry tab[] = table;
-    modCount++;
-    for (int index = tab.length; --index >= 0; )
-      tab[index] = null;
-    count = 0;
-  }
-
-  /**
-   * Returns a shallow copy of this <tt>HashMap</tt> instance: the keys and
-   * values themselves are not cloned.
-   *
-   * @return a shallow copy of this map.
-   */
-  public Object clone() {
-    try {
-      HashMap t = (HashMap)super.clone();
-      t.table = new Entry[table.length];
-      for (int i = table.length ; i-- > 0 ; ) {
-	t.table[i] = (table[i] != null)
-	  ? (Entry)table[i].clone() : null;
-      }
-      t.keySet = null;
-      t.entrySet = null;
-      t.values = null;
-      t.modCount = 0;
-      return t;
-    } catch (CloneNotSupportedException e) {
-      // this shouldn't happen, since we are Cloneable
-      throw new InternalError();
-    }
-  }
-
-  // Views
-
-  private transient Set keySet = null;
-  private transient Set entrySet = null;
-  private transient Collection values = null;
-
-  /**
-   * Returns a set view of the keys contained in this map.  The set is
-   * backed by the map, so changes to the map are reflected in the set, and
-   * vice-versa.  The set supports element removal, which removes the
-   * corresponding mapping from this map, via the <tt>Iterator.remove</tt>,
-   * <tt>Set.remove</tt>, <tt>removeAll</tt>, <tt>retainAll</tt>, and
-   * <tt>clear</tt> operations.  It does not support the <tt>add</tt> or
-   * <tt>addAll</tt> operations.
-   *
-   * @return a set view of the keys contained in this map.
-   */
-  public Set keySet() {
-    if (keySet == null) {
-      keySet = new AbstractSet() {
-	  public Iterator iterator() {
-	    return getHashIterator(KEYS);
-	  }
-	  public int size() {
-	    return count;
-	  }
-	  public boolean contains(Object o) {
-	    return containsKey(o);
-	  }
-	  public boolean remove(Object o) {
-	    int oldSize = count;
-	    HashMap.this.remove(o);
-	    return count != oldSize;
-	  }
-	  public void clear() {
-	    HashMap.this.clear();
-	  }
-	};
-    }
-    return keySet;
-  }
-
-  /**
-   * Returns a collection view of the values contained in this map.  The
-   * collection is backed by the map, so changes to the map are reflected in
-   * the collection, and vice-versa.  The collection supports element
-   * removal, which removes the corresponding mapping from this map, via the
-   * <tt>Iterator.remove</tt>, <tt>Collection.remove</tt>,
-   * <tt>removeAll</tt>, <tt>retainAll</tt>, and <tt>clear</tt> operations.
-   * It does not support the <tt>add</tt> or <tt>addAll</tt> operations.
-   *
-   * @return a collection view of the values contained in this map.
-   */
-  public Collection values() {
-    if (values==null) {
-      values = new AbstractCollection() {
-	  public Iterator iterator() {
-	    return getHashIterator(VALUES);
-	  }
-	  public int size() {
-	    return count;
-	  }
-	  public boolean contains(Object o) {
-	    return containsValue(o);
-	  }
-	  public void clear() {
-	    HashMap.this.clear();
-	  }
-	};
-    }
-    return values;
-  }
-
-  /**
-   * Returns a collection view of the mappings contained in this map.  Each
-   * element in the returned collection is a <tt>Map.Entry</tt>.  The
-   * collection is backed by the map, so changes to the map are reflected in
-   * the collection, and vice-versa.  The collection supports element
-   * removal, which removes the corresponding mapping from the map, via the
-   * <tt>Iterator.remove</tt>, <tt>Collection.remove</tt>,
-   * <tt>removeAll</tt>, <tt>retainAll</tt>, and <tt>clear</tt> operations.
-   * It does not support the <tt>add</tt> or <tt>addAll</tt> operations.
-   *
-   * @return a collection view of the mappings contained in this map.
-   * @see java.util.Map.Entry
-   */
-  public Set entrySet() {
-    if (entrySet==null) {
-      entrySet = new AbstractSet() {
-	  public Iterator iterator() {
-	    return getHashIterator(ENTRIES);
-	  }
-
-	  public boolean contains(Object o) {
-	    if (!(o instanceof Map.Entry))
-	      return false;
-	    Map.Entry entry = (Map.Entry)o;
-	    Object key = entry.getKey();
-	    Entry tab[] = table;
-	    int hash = (key==null ? 0 : key.hashCode());
-	    int index = (hash & 0x7FFFFFFF) % tab.length;
-
-	    for (Entry e = tab[index]; e != null; e = e.next)
-	      if (e.hash==hash && e.equals(entry))
-		return true;
-	    return false;
-	  }
-
-	  public boolean remove(Object o) {
-	    if (!(o instanceof Map.Entry))
-	      return false;
-	    Map.Entry entry = (Map.Entry)o;
-	    Object key = entry.getKey();
-	    Entry tab[] = table;
-	    int hash = (key==null ? 0 : key.hashCode());
-	    int index = (hash & 0x7FFFFFFF) % tab.length;
-
-	    for (Entry e = tab[index], prev = null; e != null;
-		 prev = e, e = e.next) {
-	      if (e.hash==hash && e.equals(entry)) {
-		modCount++;
-		if (prev != null)
-		  prev.next = e.next;
-		else
-		  tab[index] = e.next;
-
-		count--;
-		e.value = null;
-		return true;
-	      }
-	    }
-	    return false;
-	  }
-
-	  public int size() {
-	    return count;
-	  }
-
-	  public void clear() {
-	    HashMap.this.clear();
-	  }
-	};
-    }
-
-    return entrySet;
-  }
-
-  private Iterator getHashIterator(int type) {
-    if (count == 0) {
-      return emptyHashIterator;
-    } else {
-      return new HashIterator(type);
-    }
-  }
-
-  /**
-   * HashMap collision list entry.
-   */
-  private static class Entry implements Map.Entry {
-    int hash;
-    Object key;
-    Object value;
-    Entry next;
-
-    Entry(int hash, Object key, Object value, Entry next) {
-      this.hash = hash;
+public class HashMap<K,V> extends AbstractMap<K, V>
+  implements FlexibleMap<K, V>, Cloneable, Serializable {
+  // constants
+  private final static float defaultLoadFactor = 0.75f;
+  private final static int defaultInitialCapacity = 11;
+  private final static int hashCodeBitmask = 0x7fffffff;
+
+  // inner classes
+  class Entry<K,V> implements Map.Entry<K, V> {
+    private K key;
+    private V val;
+    private int keyHash;
+    private Entry<K,V> next;
+
+    public Entry(K key, V val, Entry<K,V> next) {
       this.key = key;
-      this.value = value;
+      this.keyHash = keyHash(key);
+      this.val = val;
       this.next = next;
     }
 
-    protected Object clone() {
-      return new Entry(hash, key, value,
-		       (next==null ? null : (Entry)next.clone()));
-    }
-
-    // Map.Entry Ops
-
-    public Object getKey() {
+    public K getKey() {
       return key;
     }
 
-    public Object getValue() {
-      return value;
+    int getKeyHash() {
+      return keyHash;
     }
 
-    public Object setValue(Object value) {
-      Object oldValue = this.value;
-      this.value = value;
-      return oldValue;
+    public V getValue() {
+      return val;
     }
 
-    public boolean equals(Object o) {
-      if (!(o instanceof Map.Entry))
-	return false;
-      Map.Entry e = (Map.Entry)o;
-
-      return (key==null ? e.getKey()==null : key.equals(e.getKey())) &&
-	(value==null ? e.getValue()==null : value.equals(e.getValue()));
-    }
-
-    public int hashCode() {
-      return hash ^ (value==null ? 0 : value.hashCode());
-    }
-
-    public String toString() {
-      return key+"="+value;
+    public V setValue(V value) {
+      V oldVal = val;
+      this.val = value;
+      return oldVal;
     }
   }
 
-  // Types of Iterators
-  private static final int KEYS = 0;
-  private static final int VALUES = 1;
-  private static final int ENTRIES = 2;
+  class EntryIterator<K,V> implements Iterator<Map.Entry<K, V>> {
+    // data members
+    Entry<K,V> current = null;
+    int currBucket = -1;
+    Entry<K,V> lastReturned = null;
+    int lastReturnedBucket = -1;
+    int expectedModCount = modCount;
 
-  private static EmptyHashIterator emptyHashIterator
-  = new EmptyHashIterator();
-
-  private static class EmptyHashIterator implements Iterator {
-
-    EmptyHashIterator() {
-
+    EntryIterator() {
+      advance();
     }
 
-    public boolean hasNext() {
-      return false;
-    }
-
-    public Object next() {
-      throw new NoSuchElementException();
-    }
-
-    public void remove() {
-      throw new IllegalStateException();
-    }
-
-  }
-
-  private class HashIterator implements Iterator {
-    Entry[] table = HashMap.this.table;
-    int index = table.length;
-    Entry entry = null;
-    Entry lastReturned = null;
-    int type;
-
-    /**
-     * The modCount value that the iterator believes that the backing
-     * List should have.  If this expectation is violated, the iterator
-     * has detected concurrent modification.
-     */
-    private int expectedModCount = modCount;
-
-    HashIterator(int type) {
-      this.type = type;
-    }
-
-    public boolean hasNext() {
-      Entry e = entry;
-      int i = index;
-      Entry t[] = table;
-      /* Use locals for faster loop iteration */
-      while (e == null && i > 0)
-	e = t[--i];
-      entry = e;
-      index = i;
-      return e != null;
-    }
-
-    public Object next() {
-      if (modCount != expectedModCount)
-	throw new ConcurrentModificationException();
-
-      Entry et = entry;
-      int i = index;
-      Entry t[] = table;
-
-      /* Use locals for faster loop iteration */
-      while (et == null && i > 0)
-	et = t[--i];
-
-      entry = et;
-      index = i;
-      if (et != null) {
-	Entry e = lastReturned = entry;
-	entry = e.next;
-	return type == KEYS ? e.key : (type == VALUES ? e.value : e);
+    void advance() {
+      if (size == 0 || currBucket == entries.length)
+	return;
+      // if we have a current entry and its next field is non-null, advance
+      if (current != null && current.next != null) {
+	current = current.next;
+	return;
       }
-      throw new NoSuchElementException();
-    }
-
-    public void remove() {
-      if (lastReturned == null)
-	throw new IllegalStateException();
-      if (modCount != expectedModCount)
-	throw new ConcurrentModificationException();
-
-      Entry[] tab = HashMap.this.table;
-      int index = (lastReturned.hash & 0x7FFFFFFF) % tab.length;
-
-      for (Entry e = tab[index], prev = null; e != null;
-	   prev = e, e = e.next) {
-	if (e == lastReturned) {
-	  modCount++;
-	  expectedModCount++;
-	  if (prev == null)
-	    tab[index] = e.next;
-	  else
-	    prev.next = e.next;
-	  count--;
-	  lastReturned = null;
+      // otherwise, go to next bucket and search until we find a non-empty one
+      for (currBucket = currBucket + 1;
+	   currBucket < entries.length; currBucket++) {
+	if (entries[currBucket] != null) {
+	  current = entries[currBucket];
 	  return;
 	}
       }
-      throw new ConcurrentModificationException();
+      current = null;
+    }
+
+    public boolean hasNext() {
+      if (modCount != expectedModCount) {
+	throw new ConcurrentModificationException();
+      }
+      return current != null;
+    }
+
+    public Map.Entry<K, V> next() {
+      if (modCount != expectedModCount)
+	throw new ConcurrentModificationException();
+      lastReturned = current;
+      lastReturnedBucket = currBucket;
+      advance();
+      return lastReturned;
+    }
+
+    public void remove() {
+      if (lastReturned == null) {
+	throw new IllegalStateException();
+      }
+      if (modCount != expectedModCount) {
+	throw new ConcurrentModificationException();
+      }
+      Entry<K,V> prev = entries[lastReturnedBucket];
+      if (prev == lastReturned) {
+	// if the last returned entry was the first element in its bucket
+	entries[lastReturnedBucket] = lastReturned.next;
+      }
+      else {
+	// otherwise, find previous element in singly-linked list
+	while (prev.next != lastReturned) {
+	  prev = prev.next;
+	}
+	prev.next = lastReturned.next;
+      }
+      size--;
+      modCount++;
+      expectedModCount++;
     }
   }
 
+  private class EntrySet<K,V> extends AbstractSet<Map.Entry<K, V>> {
+    public Iterator<Map.Entry<K, V>> iterator() {
+      return new EntryIterator<K,V>();
+    }
+
+    public int size() {
+      return size;
+    }
+  }
+
+  // data members
+  private transient int size = 0;
+  private float loadFactor;
   /**
-   * Save the state of the <tt>HashMap</tt> instance to a stream (i.e.,
-   * serialize it).
-   *
-   * @serialData The <i>capacity</i> of the HashMap (the length of the
-   *		   bucket array) is emitted (int), followed  by the
-   *		   <i>size</i> of the HashMap (the number of key-value
-   *		   mappings), followed by the key (Object) and value (Object)
-   *		   for each key-value mapping represented by the HashMap
-   * The key-value mappings are emitted in no particular order.
+   * The value of loadFactor * capacity.
    */
-  private void writeObject(java.io.ObjectOutputStream s)
-    throws IOException {
-    // Write out the threshold, loadfactor, and any hidden stuff
-    s.defaultWriteObject();
+  private float threshold;
+  private transient Entry[] entries;
+  private transient int modCount = 0;
 
-    // Write out number of buckets
-    s.writeInt(table.length);
+  // constructors
+  public HashMap() {
+    this(defaultInitialCapacity, defaultLoadFactor);
+  }
 
-    // Write out size (number of Mappings)
-    s.writeInt(count);
+  public HashMap(int initialCapacity) {
+    this(initialCapacity, defaultLoadFactor);
+  }
 
-    // Write out keys and values (alternating)
-    for (int index = table.length-1; index >= 0; index--) {
-      Entry entry = table[index];
+  public HashMap(int initialCapacity, float loadFactor) {
+    BigInteger capacity = new BigInteger(String.valueOf(initialCapacity));
+    if (!capacity.isProbablePrime(100))
+      capacity = capacity.nextProbablePrime();
+    entries = new Entry[capacity.intValue()];
+    this.loadFactor = loadFactor;
+    threshold = loadFactor * entries.length;
+  }
 
-      while (entry != null) {
-	s.writeObject(entry.key);
-	s.writeObject(entry.value);
-	entry = entry.next;
+  public HashMap(Map<? extends K, ? extends V> map) {
+    this(map.size());
+    this.putAll(map);
+  }
+
+  public V put(K key, V value) {
+    int keyHash = keyHash(key);
+    int bucketIdx = (keyHash & hashCodeBitmask) % entries.length;
+    for (Entry<K,V> entry = entries[bucketIdx];
+	 entry != null; entry = entry.next) {
+      if (keyHash == entry.keyHash && keysEqual(entry.key, key)) {
+	V oldVal = entry.val;
+	entry.val = value;
+	return oldVal;
       }
     }
+    // key wasn't already in map, so add as new first bucket entry
+    entries[bucketIdx] = new Entry<K,V>(key, value, entries[bucketIdx]);
+    modCount++;
+    size++;
+    if (size > threshold) {
+      rehash();
+    }
+    return null;
   }
 
-  private static final long serialVersionUID = 362498820763181265L;
+  public V remove(Object key) {
+    int keyHash = keyHash(key);
+    int bucketIdx = (keyHash & hashCodeBitmask) % entries.length;
+    for (Entry<K,V> entry = entries[bucketIdx], prev = null;
+	 entry != null; entry = entry.next) {
+      if (keyHash == entry.keyHash && keysEqual(entry.key, key)) {
+	V oldVal = entry.val;
+	if (prev == null) {
+	  // remove first item in bucket
+	  entries[bucketIdx] = entries[bucketIdx].next;
+	}
+	else {
+	  prev.next = entry.next;
+	}
+	modCount++;
+	size--;
+	return oldVal;
+      }
+      prev = entry;
+    }
+    return null;
+  }
+
+  private void rehash() {
+    int oldSize = entries.length;
+    Entry[] oldEntries = entries;
+
+    BigInteger bigIntNewSize = new BigInteger(String.valueOf(oldSize * 2));
+    bigIntNewSize = bigIntNewSize.nextProbablePrime();
+
+    int newSize = bigIntNewSize.intValue();
+    Entry[] newEntries = new Entry[newSize];
+
+    for (int i = 0; i < oldSize; i++) {
+      if (oldEntries[i] == null)
+	continue;
+      for (Entry<K,V> entry = oldEntries[i]; entry != null; entry = entry.next) {
+	int newBucket = (entry.keyHash & hashCodeBitmask) % newSize;
+	entry.next = newEntries[newBucket];
+	newEntries[newBucket] = entry;
+      }
+    }
+    modCount++;
+    entries = newEntries;
+    threshold = loadFactor * entries.length;
+  }
+
+  public boolean containsKey(Object key) {
+    int keyHash = keyHash(key);
+    int bucketIdx = (keyHash & hashCodeBitmask) % entries.length;
+    for (Entry<K,V> entry = entries[bucketIdx];
+	 entry != null; entry = entry.next) {
+      if (keyHash == entry.keyHash && keysEqual(key, entry.key))
+	return true;
+    }
+    return false;
+  }
+
+  public V get(Object key) {
+    return get(key, keyHash(key));
+  }
+
+  public V get(Object key, int hashCode) {
+    int bucketIdx = (hashCode & hashCodeBitmask) % entries.length;
+    for (Entry<K,V> entry = entries[bucketIdx];
+	 entry != null && hashCode != entry.keyHash; entry = entry.next) {
+      if (keysEqual(key, entry.key))
+	return entry.val;
+    }
+    return null;
+  }
+
+  public Map.Entry<K,V> getEntry(Object key) {
+    int keyHash = keyHash(key);
+    int bucketIdx = (keyHash & hashCodeBitmask) % entries.length;
+    for (Entry<K,V> entry = entries[bucketIdx];
+	 entry != null && keyHash != entry.keyHash; entry = entry.next) {
+      if (keysEqual(key, entry.key))
+	return entry;
+    }
+    return null;
+  }
+
+  private final static int keyHash(Object k) {
+    return k == null ? 0 : k.hashCode();
+  }
+
+  private final static boolean keysEqual(Object k1, Object k2) {
+    return k1 == null ? k2 == null : k1.equals(k2);
+  }
+
+  public void clear() {
+    entries = new Entry[entries.length];
+    size = 0;
+    modCount = 0;
+  }
+
+  public boolean isEmpty() {
+    return size == 0;
+  }
 
   /**
-   * Reconstitute the <tt>HashMap</tt> instance from a stream (i.e.,
-   * deserialize it).
+   * Gets the capacity of this map (optional operation).
+   *
+   * @return the capacity of this map (the number of buckets, in the case of a
+   *         hash map)
+   *
+   * @throws UnsupportedOperationException if this map is not a hash map
    */
-  private void readObject(java.io.ObjectInputStream s)
-    throws IOException, ClassNotFoundException {
-    // Read in the threshold, loadfactor, and any hidden stuff
-    s.defaultReadObject();
-
-    // Read in number of buckets and allocate the bucket array;
-    int numBuckets = s.readInt();
-    table = new Entry[numBuckets];
-
-    // Read in size (number of Mappings)
-    int size = s.readInt();
-
-    // Read the keys and values, and put the mappings in the HashMap
-    for (int i=0; i<size; i++) {
-      Object key = s.readObject();
-      Object value = s.readObject();
-      put(key, value);
-    }
-  }
-
   public int getCapacity() {
-    return table.length;
+    return entries.length;
   }
 
+  /**
+   * Gets the load factor of this map (optional operation).
+   *
+   * @return the load factor of this map
+   *
+   * @throws UnsupportedOperationException if this map is not a hash map
+   */
   public float getLoadFactor() {
     return loadFactor;
   }
 
-  public String getStats() {
-    int maxBucketSize = 0, numNonZeroBuckets = 0;
-    for (int index = table.length-1; index >= 0; index--) {
-      Entry entry = table[index];
-
-      int numItemsInBucket = 0;
-      for ( ; entry != null; entry = entry.next, numItemsInBucket++)
-        ;
-      if (numItemsInBucket > maxBucketSize)
-        maxBucketSize = numItemsInBucket;
-      if (numItemsInBucket > 0)
-        numNonZeroBuckets++;
+  public int getMaxBucketSize() {
+    int maxBucketSize = 0;
+    for (int i = 0; i < entries.length; i++) {
+      int bucketSize = 0;
+      for (Entry<K,V> entry = entries[i]; entry != null; entry = entry.next) {
+	bucketSize++;
+      }
+      if (bucketSize > maxBucketSize)
+	maxBucketSize = bucketSize;
     }
-    return "size: " + size() + "; load factor: " + getLoadFactor() +
-      ";\n\tNo. of buckets: " + getCapacity() +
-      " (max.: " + maxBucketSize +
-      "; avg.: " + (size() / (float)numNonZeroBuckets) +
-      "; non-zero: " + numNonZeroBuckets + ")";
+    return maxBucketSize;
+  }
+
+  public int getNumNonEmptyBuckets() {
+    int numNonEmptyBuckets = 0;
+    for (int i = 0; i < entries.length; i++) {
+      if (entries[i] != null) {
+	numNonEmptyBuckets++;
+      }
+    }
+    return numNonEmptyBuckets;
+  }
+
+  public double getAverageBucketSize(boolean onlyCountNonEmptyBuckets) {
+    double denom = onlyCountNonEmptyBuckets ?
+		   getNumNonEmptyBuckets() : getCapacity();
+    return denom == 0.0 ? 0.0 : size() / denom;
+  }
+
+  /**
+   * Returns a string that represents the useful statistics of this map
+   * (useful/necessary in the case of hash maps, where it is desirable to know
+   * the number of collisions and average and maximum buckets sizes). The format
+   * of the string is up to the implementor.
+   */
+  public String getStats() {
+    return "size=" + size() + "; capacity=" + getCapacity() +
+	   "; load factor=" + getLoadFactor() +
+	   "; non-empty buckets=" + getNumNonEmptyBuckets() +
+	   "; max. bucket size=" + getMaxBucketSize() +
+	   "; avg. bucket size=" + getAverageBucketSize(false) +
+	   "; avg. bucket size (non-empty buckets)=" +
+	   getAverageBucketSize(true);
+  }
+
+  public Set<Map.Entry<K, V>> entrySet() {
+    return new EntrySet<K,V>();
+  }
+
+  private void readObject(java.io.ObjectInputStream ois)
+    throws IOException, ClassNotFoundException {
+    ois.defaultReadObject();
+    entries = new Entry[ois.readInt()];
+    // set local var size; size data member will get set automatically
+    // via put method invocations, below
+    int size = ois.readInt();
+    for (int i = 0; i < size; i++) {
+      K k = (K)ois.readObject();
+      V v = (V)ois.readObject();
+      put(k, v);
+    }
+  }
+
+  private void writeObject(java.io.ObjectOutputStream oos)
+    throws IOException {
+    oos.defaultWriteObject();
+    oos.writeInt(entries.length);
+    oos.writeInt(size);
+    for (int i = 0; i < entries.length; i++) {
+      Entry entry = entries[i];
+      for (; entry != null; entry = entry.next) {
+	oos.writeObject(entry.key);
+	oos.writeObject(entry.val);
+      }
+    }
+  }
+
+  public static void main(String[] args) {
+    HashMap<String,Integer> map = new HashMap<String,Integer>();
+    for (int i = 0; i < 100; i++) {
+      map.put(String.valueOf(i), i);
+    }
+    System.out.println("map contains 99? " + map.containsKey("99"));
+    System.out.println("map contains 100? " + map.containsKey("100"));
+    System.out.println(map.getStats());
+    map.remove("47");
+    System.out.println(map.getStats());
+    System.out.println(map);
+    map.put("47", 48);
+    map.put(null, 60);
+    System.out.println("map contains null? " + map.containsKey(null));
+    System.out.println(map.getStats());
+    System.out.println(map);
+
+    HashMap<String,Integer> removalMap =
+      new HashMap<String, Integer>(map);
+
+    Iterator<Map.Entry<String,Integer>> it = removalMap.entrySet().iterator();
+    while (it.hasNext()) {
+      Map.Entry<String,Integer> entry = it.next();
+      it.remove();
+    }
+    System.out.println("removalMap stats: " + removalMap.getStats());
+    System.out.println("removalMap data:");
+    System.out.println(removalMap);
+
+    Map<Integer,Integer> intMap = new HashMap<Integer, Integer>();
+    intMap.put(-1, 100);
+
+    try {
+      System.out.println("writing map");
+      OutputStream fos = new FileOutputStream("foo");
+      ObjectOutputStream oos = new ObjectOutputStream(fos);
+      oos.writeObject(map);
+      fos.close();
+      System.out.println("reading map");
+      InputStream fis = new FileInputStream("foo");
+      ObjectInputStream ois = new ObjectInputStream(fis);
+      HashMap<String,Integer> readMap =
+	(HashMap<String,Integer>)ois.readObject();
+      System.out.println("read map stats: " + readMap.getStats());
+      System.out.println("read map data:");
+      System.out.println(readMap);
+    } catch (FileNotFoundException e) {
+      e.printStackTrace();
+    } catch (IOException e) {
+      e.printStackTrace();
+    } catch (ClassNotFoundException e) {
+      e.printStackTrace();
+    }
   }
 }

@@ -1,15 +1,12 @@
 package danbikel.parser;
 
-import danbikel.util.*;
-import danbikel.lisp.*;
 import java.io.*;
-import java.util.*;
 
 /**
  * Specifies a mapping between objects and floating-point (<code>double</code>)
  * counts that may be incremented or decremented.
  */
-public interface CountsTable extends danbikel.util.MapToPrimitive {
+public interface CountsTable<K> extends danbikel.util.MapToPrimitive<K> {
   /**
    * Adds all the counts from the specified table to this table, adding any
    * new keys in the specified map to this map, if necessary.
@@ -17,7 +14,7 @@ public interface CountsTable extends danbikel.util.MapToPrimitive {
    * @param other the other counts table whose counts are to be added
    * to this table
    */
-  public void addAll(CountsTable other);
+  public void addAll(CountsTable<K> other);
 
   /**
    * Puts the specified map of key objects to their counts into this
@@ -27,14 +24,14 @@ public interface CountsTable extends danbikel.util.MapToPrimitive {
    * @param other another counts table whose counts are to be put into
    * this table
    */
-  public void putAll(CountsTable other);
+  public void putAll(CountsTable<K> other);
 
   /**
    * Adds the specified key with a count of <code>1.0</code>.
    *
    * @param key the key to be added to this counts table
    */
-  public void add(Object key);
+  public void add(K key);
 
   /**
    * Returns the count of the specified key, or <code>0</code> if this
@@ -44,7 +41,7 @@ public interface CountsTable extends danbikel.util.MapToPrimitive {
    * @return the count of the specified key, or <code>0</code> if this
    * counts table does not contain a count for the specified key
    */
-  public double count(Object key);
+  public double count(K key);
 
   /**
    * Returns the count of the specified key with the specified hash code, or
@@ -57,7 +54,7 @@ public interface CountsTable extends danbikel.util.MapToPrimitive {
    * <code>0</code> if this counts table does not contain a count for the
    * specified key
    */
-  public double count(Object key, int hashCode);
+  public double count(K key, int hashCode);
 
   /**
    * Removes items in this table whose counts are less than the specified
@@ -71,6 +68,13 @@ public interface CountsTable extends danbikel.util.MapToPrimitive {
   /**
    * Outputs all the mappings of this map in as S-expressions of the form
    * <pre>(name key value)</pre>
+   * @param eventName the name of the events contained in this {@link CountsTable}
+   * to output as the first symbol in the three-element list
+   * @param writer the writer to which to output the elements of this
+   * counts table as three-element S-expression lists
+   *
+   * @throws IOException if there is a problem writing to the specified
+   * writer
    */
   public void output(String eventName, Writer writer) throws IOException;
 }

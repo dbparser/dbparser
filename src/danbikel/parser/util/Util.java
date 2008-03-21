@@ -262,9 +262,14 @@ public class Util {
       // label slot
       treeList.set(0, treeList.last());
       treeList.remove(treeList.length() - 1);
-      int treeLen = treeList.length();
-      for (int i = 0; i < treeLen; ++i) {
-	treeList.set(i, ibmToPenn(treeList.get(i)));
+      for (int i = 0; i < treeList.length(); ++i) {
+        /*
+        if (treeList.get(i) == null) {
+          System.err.println("problem printing " + i + "th tree from subtree " +
+                             Util.prettyPrint(sexp));
+        }
+        */
+        treeList.set(i, ibmToPenn(treeList.get(i)));
       }
     }
     return sexp;

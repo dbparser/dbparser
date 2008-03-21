@@ -23,6 +23,12 @@ public class CKYItem extends Item implements SexpConvertible {
     Settings.getBoolean(Settings.decoderOutputHeadLexicalizedLabels);
 
   /**
+   * The value of the {@link Settings#decoderOutputInsideProbs} setting.
+   */
+  protected final static boolean outputInsideProbs =
+    Settings.getBoolean(Settings.decoderOutputInsideProbs);
+
+  /**
    * The value of {@link Treebank#nonTreebankLeftBracket()}.
    */
   protected final static char nonTreebankLeftBracket =
@@ -1381,11 +1387,12 @@ public class CKYItem extends Item implements SexpConvertible {
    * chart item.
    *
    * @see #outputLexLabels
+   * @see #outputInsideProbs
    */
   protected Sexp toSexpInternal(boolean isHeadChild) {
     if (isPreterminal()) {
       Sexp preterm = Language.treebank.constructPreterminal(headWord);
-      if (outputLexLabels) {
+      if (outputLexLabels || outputInsideProbs) {
 	Symbol pretermLabel = preterm.list().symbolAt(0);
 	preterm.list().set(0, getLabel(pretermLabel, isHeadChild));
       }
@@ -1423,6 +1430,7 @@ public class CKYItem extends Item implements SexpConvertible {
    * this item
    *
    * @see #outputLexLabels
+   * @see #outputInsideProbs
    */
   protected Symbol getLabel(Symbol label, boolean isHeadChild) {
     if (outputLexLabels) {
@@ -1430,11 +1438,22 @@ public class CKYItem extends Item implements SexpConvertible {
       char lbracket = nonTreebankLeftBracket;
       char rbracket = nonTreebankRightBracket;
       char sep = nonTreebankDelimiter;
+      String insideProb =
+	outputInsideProbs ? sep + doubleNF.format(logTreeProb) : "";
       String newLabel =
 	nt.base.toString() +
 	lbracket + Boolean.toString(isHeadChild) +
-	sep + headWord.word() + sep + headWord.tag() + rbracket;
+	sep + headWord.word() + sep + headWord.tag() + insideProb + rbracket;
       nt.base =	Symbol.add(newLabel);
+      return nt.toSymbol();
+    }
+    else if (outputInsideProbs) {
+      Nonterminal nt = Language.treebank.parseNonterminal(label);
+      char lbracket = nonTreebankLeftBracket;
+      char rbracket = nonTreebankRightBracket;
+      String newLabel =
+	nt.base.toString() + lbracket + doubleNF.format(logTreeProb) + rbracket;
+      nt.base = Symbol.add(newLabel);
       return nt.toSymbol();
     }
     else

@@ -59,6 +59,18 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
     return tree;
   }
 
+  protected void stripAugmentations(Symbol label, Nonterminal nonterminal,
+                                    boolean parseLabel) {
+    if (parseLabel)
+      treebank.parseNonterminal(label, nonterminal);
+    SexpList augmentations = nonterminal.augmentations;
+    // if there's an index, make sure to strip delimeter that precedes it
+    if (nonterminal.index >= 0)
+      augmentations.remove(augmentations.size() - 1);
+    nonterminal.index = -1; // effectively strips off index
+  }
+
+
   public boolean removeWord(Symbol word, Symbol tag, int idx, SexpList sentence,
 			    SexpList tags, SexpList originalTags,
 			    Set prunedPretermsPosSet,
@@ -224,6 +236,14 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
     super.postProcess(tree);
   }
 
+  /**
+   * Overriden version from {@link danbikel.parser.lang.AbstractTraining} so as
+   * to prevent removal of nonterminal augmentations by {@link
+   * #postProcess(Sexp)}.
+   *
+   * @param tree the tree to leave untouched
+   */
+  protected void canonicalizeNonterminals(Sexp tree) {}
 
   /** Test driver for this class. */
   public static void main(String[] args) {

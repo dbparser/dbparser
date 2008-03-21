@@ -1363,11 +1363,9 @@ public class Settings implements Serializable {
    * <li><tt>prob</tt> is a <code>double</code> value, indicating the inside
    *                   probability of the subtree
    * </ul>
-   * The bracket and delimiter characters <tt>'['</tt>, <tt>']'</tt> and
-   * <tt>'/'</tt> are determined by the
-   * {@link Treebank#nonTreebankLeftBracket()},
-   * {@link Treebank#nonTreebankRightBracket()} and
-   * {@link Treebank#nonTreebankDelimiter()} methods, respectively.
+   * The bracket characters <tt>'['</tt> and <tt>']'</tt> are determined by the
+   * {@link Treebank#nonTreebankLeftBracket()} and
+   * {@link Treebank#nonTreebankRightBracket()} methods, respectively.
    * <p/>
    * This setting also &ldquo;plays nice&rdquo; with (<i>i.e.</i>, can be
    * simultaneously true with) the {@link #decoderOutputHeadLexicalizedLabels}

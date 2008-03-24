@@ -1341,7 +1341,7 @@ public class Settings implements Serializable {
    * the form of a lexicalized label will be
    * <pre>NT[isHead/word/tag/prob]</pre>
    * where <tt>prob</tt> is a floating-point value equal to the inside tree
-   * probability of the subtree headed by the node.
+   * probability of the subtree rooted at the node.
    * <p/>
    * The words that were pruned before parsing and re-inserted after parsing
    * (when the {@link #restorePrunedWords} setting is <tt>true</tt>) will

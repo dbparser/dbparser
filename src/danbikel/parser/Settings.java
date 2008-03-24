@@ -416,7 +416,7 @@ public class Settings implements Serializable {
   /**
    * The property to specify whether the method
    * {@link
-   * danbikel.parser.lang.AbstractHeadFinder#defaultFindHead(Symbol,SexpList)}
+   * danbikel.parser.lang.AbstractHeadFinder#defaultFindHead(danbikel.lisp.Symbol,danbikel.lisp.SexpList)}
    * issues a warning whenever it needs to use the default head-finding rule.
    * The value of this property should be (the string representation of) a
    * boolean (conversion is performed by the method
@@ -431,7 +431,7 @@ public class Settings implements Serializable {
   /**
    * The property to specify a probability that the method
    * {@link
-   * danbikel.parser.lang.AbstractHeadFinder#defaultFindHead(Symbol,SexpList)}
+   * danbikel.parser.lang.AbstractHeadFinder#defaultFindHead(danbikel.lisp.Symbol,danbikel.lisp.SexpList)}
    * should return a randomly-selected head-child index.  The value of
    * this property should be (the string representation of) a <tt>double</tt>
    * (conversion is performed by the method <code>Double.parseDouble</code>).
@@ -442,7 +442,7 @@ public class Settings implements Serializable {
    * phrases.  This is so that {@link Training#addBaseNPs(danbikel.lisp.Sexp)}
    * will always produce consistent results.  The issue is that adding base
    * <tt>NP</tt>s normally relies on head finding (see {@link
-   * danbikel.parser.lang.AbstractTraining#needToAddNormalNPLevel(Sexp,int,Sexp)}).
+   * danbikel.parser.lang.AbstractTraining#needToAddNormalNPLevel(danbikel.lisp.Sexp,int,danbikel.lisp.Sexp)}).
    * <p>
    * The value of this constant is
    * <code>&quot;parser.headfinder.randomProb&quot;</code>.
@@ -1336,6 +1336,12 @@ public class Settings implements Serializable {
    * {@link Treebank#nonTreebankLeftBracket()},
    * {@link Treebank#nonTreebankRightBracket()} and
    * {@link Treebank#nonTreebankDelimiter()} methods, respectively.
+   * <p/>
+   * If {@link #decoderOutputInsideProbs} is also <code>true</code>, then
+   * the form of a lexicalized label will be
+   * <pre>NT[isHead/word/tag/prob]</pre>
+   * where <tt>prob</tt> is a floating-point value equal to the inside tree
+   * probability of the subtree headed by the node.
    * <p/>
    * The words that were pruned before parsing and re-inserted after parsing
    * (when the {@link #restorePrunedWords} setting is <tt>true</tt>) will

@@ -320,12 +320,11 @@
         <fileset dir="${deploy.to}"/>
     </chmod>
     <exec dir="${deploy.to}/.." executable="tar">
-	  <arg value="cvf"/>
-	  <arg value="dbparser.tar"/>
+	  <arg value="zcvf"/>
+	  <arg value="${deploy.tgz}"/>
 	  <arg value="${deploy.to.tail}"/>
     </exec>
-    <gzip src="${deploy.to}/../dbparser.tar" zipfile="${deploy.tgz}"/>
-    <concat destfile="${deploy.install.script}">
+    <concat binary="yes" destfile="${deploy.install.script}">
       <filelist dir="."
 	        files="${deploy.install.header} ${deploy.tgz}"/>
     </concat>

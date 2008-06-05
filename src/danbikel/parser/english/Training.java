@@ -243,7 +243,7 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
    *
    * @param tree the tree to leave untouched
    */
-  protected void canonicalizeNonterminals(Sexp tree) {}
+  //protected void canonicalizeNonterminals(Sexp tree) {}
 
   /** Test driver for this class. */
   public static void main(String[] args) {

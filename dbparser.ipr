@@ -8,6 +8,7 @@
       <customJdkName value="" />
       <maximumHeapSize value="128" />
       <properties />
+      <executeOn event="beforeRun" target="build" runConfigurationType="Application" runConfigurationName="Unnamed" />
     </buildFile>
   </component>
   <component name="BuildJarProjectSettings">
@@ -305,7 +306,7 @@
       <module fileurl="file://$PROJECT_DIR$/dbparser.iml" filepath="$PROJECT_DIR$/dbparser.iml" />
     </modules>
   </component>
-  <component name="ProjectRootManager" version="2" assert-keyword="false" jdk-15="false" project-jdk-name="1.5" project-jdk-type="JavaSDK" />
+  <component name="ProjectRootManager" version="2" assert-keyword="true" jdk-15="true" project-jdk-name="1.6" project-jdk-type="JavaSDK" />
   <component name="ProjectRunConfigurationManager" />
   <component name="RmicSettings">
     <option name="IS_EANABLED" value="true" />

@@ -4,7 +4,7 @@ package danbikel.util;
  * Specifies useful/necessary diagnostic and lookup methods that the Map
  * and HashMap APIs lack.
  */
-public interface FlexibleMap extends java.util.Map {
+public interface FlexibleMap<K,V> extends java.util.Map<K,V> {
 
   /**
    * Gets the capacity of this map (optional operation).
@@ -39,5 +39,5 @@ public interface FlexibleMap extends java.util.Map {
    * @param key the key whose value is to be looked up
    * @param hashCode the value of <code>key.hashCode()</code>
    */
-  Object get(Object key, int hashCode);
+  V get(K key, int hashCode);
 }

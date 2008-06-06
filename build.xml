@@ -198,18 +198,19 @@
               value="${deploy}/install-header-template"/>
     <property name="deploy.install.header" value="${deploy}/install-header"/>
     <property name="deploy.to.tail" value="dbparser"/>
+    <property name="deploy.tgz.tail" value="dbparser.tgz"/>
   </target>
   <target depends="setup_deploy_properties_common"
           name="setup_deploy_properties_academic">
     <property name="deploy.to" value="${deploy}/academic/${deploy.to.tail}"/>
-    <property name="deploy.tgz" value="${deploy}/academic/dbparser.tgz"/>
+    <property name="deploy.tgz" value="${deploy}/academic/${deploy.tgz.tail}"/>
     <property name="deploy.install.script" value="${deploy.to}/../install.sh"/>
     <property name="deploy.license" value="${deploy}/LICENSE"/>
   </target>
   <target depends="setup_deploy_properties_common"
           name="setup_deploy_properties_commercial">
     <property name="deploy.to" value="${deploy}/commercial/${deploy.to.tail}"/>
-    <property name="deploy.tgz" value="${deploy}/commercial/dbparser.tgz"/>
+    <property name="deploy.tgz" value="${deploy}/commercial/${deploy.tgz.tail}"/>
     <property name="deploy.install.script"
               value="${deploy.to}/../install-commercial.sh"/>
     <property name="deploy.license" value="${deploy}/LICENSE.commercial"/>
@@ -321,7 +322,7 @@
     </chmod>
     <exec dir="${deploy.to}/.." executable="tar">
 	  <arg value="zcvf"/>
-	  <arg value="${deploy.tgz}"/>
+	  <arg value="${deploy.tgz.tail}"/>
 	  <arg value="${deploy.to.tail}"/>
     </exec>
     <concat binary="yes" destfile="${deploy.install.script}">

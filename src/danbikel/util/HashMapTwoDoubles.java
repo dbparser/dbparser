@@ -1,23 +1,3 @@
-/*
- * This is a modified version of HashMap.java from Sun Microsystems.  Modified
- * by Dan Bikel, 06/15/2001 (or 01/06/15, in Sun's notation).  We needed to be
- * able to access the objects used as keys in a map, which the default
- * implementation does not allow for (in constant time, anyway).  Also, we
- * added diagnostic methods to determine the average and maximum bucket sizes,
- * which is useful (and we would argue, necessary) when developing/debugging
- * hash functions.  Finally, we wanted to have a specific map of arbitrary
- * objects to two double's (not Double objects, but the basic type double).
- *
- *
- * Copyright and version information are as follows.
- * @(#)HashMap.java	1.38 00/02/02
- *
- * Copyright 1997-2000 Sun Microsystems, Inc. All Rights Reserved.
- *
- * This software is the proprietary information of Sun Microsystems, Inc.
- * Use is subject to license terms.
- * */
-
 package danbikel.util;
 import java.util.*;
 import java.io.*;

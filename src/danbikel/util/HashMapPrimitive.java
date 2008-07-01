@@ -205,7 +205,7 @@ import java.math.BigInteger;
     }
   }
 
-  abstract protected Entry<K> getNewEntry(int hash, K key, Entry<K> next);
+  abstract protected HashMapPrimitive.Entry<K> getNewEntry(int hash, K key, Entry<K> next);
 
   public Object remove(Object key) {
     int keyHash = keyHash(key);
@@ -242,10 +242,12 @@ import java.math.BigInteger;
     for (int i = 0; i < oldSize; i++) {
       if (oldEntries[i] == null)
 	continue;
-      for (Entry<K> entry = oldEntries[i]; entry != null; entry = entry.next) {
+      for (Entry<K> entry = oldEntries[i]; entry != null; ) {
 	int newBucket = (entry.keyHash & hashCodeBitmask) % newSize;
+	Entry<K> oldNext = entry.next;
 	entry.next = newEntries[newBucket];
 	newEntries[newBucket] = entry;
+	entry = oldNext;
       }
     }
     entries = newEntries;
@@ -277,6 +279,23 @@ import java.math.BigInteger;
    */
   public MapToPrimitive.Entry<K> getEntry(K key) {
     return getEntryInternal(key, keyHash(key));
+  }
+
+  protected MapToPrimitive.Entry<K> getOrCreateEntry(K key) {
+    int keyHash = keyHash(key);
+    Entry<K> entry = getEntryInternal(key, keyHash);
+    if (entry == null) {
+      int bucketIdx = (keyHash & hashCodeBitmask) % entries.length;
+      // add the new entry as the first entry in the bucket's singly-linked list
+      entry = getNewEntry(keyHash, key, entries[bucketIdx]);
+      entries[bucketIdx] = entry;
+      modCount++;
+      size++;
+      if (size > threshold) {
+	rehash();
+      }
+    }
+    return entry;
   }
 
   public MapToPrimitive.Entry<K> getEntry(K key, int hashCode) {
@@ -450,73 +469,73 @@ import java.math.BigInteger;
 
   // byte-specific methods
   public byte put(K key, int index, byte value) {
-    MapToPrimitive.Entry<K> entry = getEntry(key);
+    MapToPrimitive.Entry<K> entry = getOrCreateEntry(key);
     return entry.set(index, value);
   }
 
   public void add(K key, int index, byte addend) {
-    MapToPrimitive.Entry<K> entry = getEntry(key);
+    MapToPrimitive.Entry<K> entry = getOrCreateEntry(key);
     entry.add(index, addend);
   }
 
   // char-specific methods
   public char put(K key, int index, char value) {
-    MapToPrimitive.Entry<K> entry = getEntry(key);
+    MapToPrimitive.Entry<K> entry = getOrCreateEntry(key);
     return entry.set(index, value);
   }
 
   // short-specific methods
   public short put(K key, int index, short value) {
-    MapToPrimitive.Entry<K> entry = getEntry(key);
+    MapToPrimitive.Entry<K> entry = getOrCreateEntry(key);
     return entry.set(index, value);
   }
 
   public void add(K key, int index, short addend) {
-    MapToPrimitive.Entry<K> entry = getEntry(key);
+    MapToPrimitive.Entry<K> entry = getOrCreateEntry(key);
     entry.add(index, addend);
   }
 
   // int-specific methods
   public int put(K key, int index, int value) {
-    MapToPrimitive.Entry<K> entry = getEntry(key);
+    MapToPrimitive.Entry<K> entry = getOrCreateEntry(key);
     return entry.set(index, value);
   }
 
   public void add(K key, int index, int addend) {
-    MapToPrimitive.Entry<K> entry = getEntry(key);
+    MapToPrimitive.Entry<K> entry = getOrCreateEntry(key);
     entry.add(index, addend);
   }
 
   // long-specific methods
   public long put(K key, int index, long value) {
-    MapToPrimitive.Entry<K> entry = getEntry(key);
+    MapToPrimitive.Entry<K> entry = getOrCreateEntry(key);
     return entry.set(index, value);
   }
 
   public void add(K key, int index, long addend) {
-    MapToPrimitive.Entry<K> entry = getEntry(key);
+    MapToPrimitive.Entry<K> entry = getOrCreateEntry(key);
     entry.add(index, addend);
   }
 
   // float-specific methods
   public float put(K key, int index, float value) {
-    MapToPrimitive.Entry<K> entry = getEntry(key);
+    MapToPrimitive.Entry<K> entry = getOrCreateEntry(key);
     return entry.set(index, value);
   }
 
   public void add(K key, int index, float addend) {
-    MapToPrimitive.Entry<K> entry = getEntry(key);
+    MapToPrimitive.Entry<K> entry = getOrCreateEntry(key);
     entry.add(index, addend);
   }
 
   // double-specific methods
   public double put(K key, int index, double value) {
-    MapToPrimitive.Entry<K> entry = getEntry(key);
+    MapToPrimitive.Entry<K> entry = getOrCreateEntry(key);
     return entry.set(index, value);
   }
 
   public void add(K key, int index, double addend) {
-    MapToPrimitive.Entry<K> entry = getEntry(key);
+    MapToPrimitive.Entry<K> entry = getOrCreateEntry(key);
     entry.add(index, addend);
   }
 

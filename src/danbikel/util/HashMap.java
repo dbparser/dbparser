@@ -221,10 +221,12 @@ public class HashMap<K,V> extends AbstractMap<K, V>
     for (int i = 0; i < oldSize; i++) {
       if (oldEntries[i] == null)
 	continue;
-      for (Entry<K,V> entry = oldEntries[i]; entry != null; entry = entry.next) {
+      for (Entry<K,V> entry = oldEntries[i]; entry != null; ) {
 	int newBucket = (entry.keyHash & hashCodeBitmask) % newSize;
+	Entry<K,V> oldNext = entry.next;
 	entry.next = newEntries[newBucket];
 	newEntries[newBucket] = entry;
+	entry = oldNext;
       }
     }
     modCount++;

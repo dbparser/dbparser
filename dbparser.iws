@@ -31,11 +31,9 @@
   <component name="ChangeListManager">
     <list default="true" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dbparser.iws" afterPath="$PROJECT_DIR$/dbparser.iws" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dbparser.iml" afterPath="$PROJECT_DIR$/dbparser.iml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/danbikel/util/HashMapPrimitive.java" afterPath="$PROJECT_DIR$/src/danbikel/util/HashMapPrimitive.java" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dbparser.ipr" afterPath="$PROJECT_DIR$/dbparser.ipr" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/danbikel/util/HashMapInt.java" afterPath="$PROJECT_DIR$/src/danbikel/util/HashMapInt.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/danbikel/util/HashMapTwoInts.java" afterPath="$PROJECT_DIR$/src/danbikel/util/HashMapTwoInts.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/danbikel/util/HashMapTwoDoubles.java" afterPath="$PROJECT_DIR$/src/danbikel/util/HashMapTwoDoubles.java" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/danbikel/util/HashMap.java" afterPath="$PROJECT_DIR$/src/danbikel/util/HashMap.java" />
     </list>
   </component>
   <component name="ChangesViewManager" flattened_view="true" show_ignored="false" />
@@ -107,6 +105,34 @@
     <disable_hints />
   </component>
   <component name="DebuggerManager">
+    <line_breakpoints>
+      <breakpoint url="file://$PROJECT_DIR$/src/danbikel/parser/Trainer.java" line="1562" class="danbikel.parser.Trainer" package="danbikel.parser">
+        <option name="ENABLED" value="true" />
+        <option name="LOG_ENABLED" value="false" />
+        <option name="LOG_EXPRESSION_ENABLED" value="false" />
+        <option name="SUSPEND_POLICY" value="SuspendAll" />
+        <option name="COUNT_FILTER_ENABLED" value="false" />
+        <option name="COUNT_FILTER" value="0" />
+        <option name="CONDITION_ENABLED" value="false" />
+        <option name="CLASS_FILTERS_ENABLED" value="false" />
+        <option name="INSTANCE_FILTERS_ENABLED" value="false" />
+        <option name="CONDITION" value="" />
+        <option name="LOG_MESSAGE" value="" />
+      </breakpoint>
+      <breakpoint url="file://$PROJECT_DIR$/src/danbikel/parser/Model.java" line="567" class="danbikel.parser.Model" package="danbikel.parser">
+        <option name="ENABLED" value="true" />
+        <option name="LOG_ENABLED" value="false" />
+        <option name="LOG_EXPRESSION_ENABLED" value="false" />
+        <option name="SUSPEND_POLICY" value="SuspendAll" />
+        <option name="COUNT_FILTER_ENABLED" value="false" />
+        <option name="COUNT_FILTER" value="0" />
+        <option name="CONDITION_ENABLED" value="false" />
+        <option name="CLASS_FILTERS_ENABLED" value="false" />
+        <option name="INSTANCE_FILTERS_ENABLED" value="false" />
+        <option name="CONDITION" value="" />
+        <option name="LOG_MESSAGE" value="" />
+      </breakpoint>
+    </line_breakpoints>
     <breakpoint_any>
       <breakpoint>
         <option name="NOTIFY_CAUGHT" value="true" />
@@ -164,10 +190,37 @@
       <file leaf-file-name="HashMapPrimitive.java" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/danbikel/util/HashMapPrimitive.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="10" column="23" selection-start="167" selection-end="167" vertical-scroll-proportion="0.1497006">
+            <state line="249" column="24" selection-start="6956" selection-end="6956" vertical-scroll-proportion="0.250499">
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="Trainer.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/danbikel/parser/Trainer.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="1562" column="0" selection-start="59383" selection-end="59383" vertical-scroll-proportion="0.19061877">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="Model.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/danbikel/parser/Model.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="567" column="0" selection-start="23069" selection-end="23069" vertical-scroll-proportion="0.44510978">
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="ProbabilityCache.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/danbikel/parser/ProbabilityCache.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="260" column="5" selection-start="8601" selection-end="8601" vertical-scroll-proportion="0.3203593">
+              <folding />
             </state>
           </provider>
         </entry>
@@ -224,7 +277,7 @@
       <file leaf-file-name="HashMap.java" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/danbikel/util/HashMap.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="443" column="0" selection-start="12290" selection-end="12290" vertical-scroll-proportion="0.9101796">
+            <state line="218" column="31" selection-start="5566" selection-end="5566" vertical-scroll-proportion="0.20558882">
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
@@ -331,6 +384,7 @@
     <property name="cvs_file_history_treeOrder5" value="5" />
     <property name="cvs_file_history_treeOrder2" value="2" />
     <property name="cvs_file_history_treeOrder1" value="1" />
+    <property name="RunManagerConfig.showSettingsBeforeRunnig" value="true" />
     <property name="cvs_file_history_treeOrder4" value="4" />
     <property name="cvs_file_history_treeOrder3" value="3" />
     <property name="vcs_file_view_treeOrder2" value="2" />
@@ -383,10 +437,7 @@
     <property name="cvs_file_history_flatOrder1" value="1" />
     <property name="cvs_file_history_flatOrder6" value="6" />
   </component>
-  <component name="ReadonlyStatusHandler">
-    <option name="SHOW_DIALOG" value="true" />
-  </component>
-  <component name="RunManager">
+  <component name="RunManager" selected="Application.Training run">
     <configuration default="true" type="WebLogic Instance" factoryName="Local">
       <option name="WORKING_DIRECTORY" />
       <option name="HOST" value="localhost" />
@@ -454,7 +505,32 @@
       </option>
       <envs />
     </configuration>
-    <list size="0" />
+    <configuration default="false" name="Training run" type="Application" factoryName="Application" enabled="false" merge="false">
+      <option name="MAIN_CLASS_NAME" value="danbikel.parser.Trainer" />
+      <option name="VM_PARAMETERS" value="-server -Xms1600m -Xmx1600m -Dparser.settingsFile=settings/collins.properties" />
+      <option name="PROGRAM_PARAMETERS" value="-i ../data/wsj-02-21.mrg -o ../data/wsj-02-21.observed.gz -od ../data/wsj-02-21.obj.gz" />
+      <option name="WORKING_DIRECTORY" value="file://$PROJECT_DIR$" />
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
+      <option name="ALTERNATIVE_JRE_PATH" value="" />
+      <option name="ENABLE_SWING_INSPECTOR" value="false" />
+      <option name="ENV_VARIABLES" />
+      <option name="PASS_PARENT_ENVS" value="true" />
+      <module name="dbparser" />
+      <envs />
+      <RunnerSettings RunnerId="Debug">
+        <option name="DEBUG_PORT" value="36000" />
+        <option name="TRANSPORT" value="0" />
+        <option name="LOCAL" value="true" />
+      </RunnerSettings>
+      <ConfigurationWrapper RunnerId="Debug" />
+      <method>
+        <option name="Run Ant target" value="true" />
+        <option name="Make" value="false" />
+      </method>
+    </configuration>
+    <list size="1">
+      <item index="0" class="java.lang.String" itemvalue="Application.Training run" />
+    </list>
   </component>
   <component name="StarteamConfiguration">
     <option name="SERVER" value="" />
@@ -531,8 +607,8 @@
       <window_info id="Changes" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" order="8" />
       <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" order="3" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.24932832" order="1" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3297456" order="1" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" order="4" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32921028" order="1" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3996194" order="4" />
       <window_info id="IDEtalk Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" order="8" />
       <window_info id="IDEtalk" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" order="3" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" order="8" />
@@ -675,27 +751,6 @@
     <option name="myLastEditedConfigurable" />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/src/danbikel/parser/Trainer.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="582" column="0" selection-start="23155" selection-end="23155" vertical-scroll-proportion="0.22884013">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/danbikel/parser/Settings.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="1661" column="41" selection-start="68356" selection-end="68356" vertical-scroll-proportion="0.34584013">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/danbikel/parser/chinese/WordFeatures.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="41" column="4" selection-start="1492" selection-end="1492" vertical-scroll-proportion="0.21316615">
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/danbikel/parser/english/WordFeatures.java">
       <provider selected="true" editor-type-id="text-editor">
         <state line="41" column="4" selection-start="1492" selection-end="1492" vertical-scroll-proportion="0.21316615">
@@ -745,22 +800,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/danbikel/util/HashMapDouble.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="3" column="0" selection-start="61" selection-end="61" vertical-scroll-proportion="0.029940119">
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/danbikel/util/HashMapPrimitive.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="10" column="23" selection-start="167" selection-end="167" vertical-scroll-proportion="0.1497006">
-          <folding>
-            <element signature="imports" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/danbikel/util/HashMapTwoDoubles.java">
       <provider selected="true" editor-type-id="text-editor">
         <state line="0" column="0" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0">
@@ -786,9 +825,46 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/src/danbikel/parser/ProbabilityCache.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="260" column="5" selection-start="8601" selection-end="8601" vertical-scroll-proportion="0.3203593">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/danbikel/util/HashMapPrimitive.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="249" column="24" selection-start="6956" selection-end="6956" vertical-scroll-proportion="0.250499">
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/danbikel/parser/Trainer.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="1562" column="0" selection-start="59383" selection-end="59383" vertical-scroll-proportion="0.19061877">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/danbikel/parser/Model.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="567" column="0" selection-start="23069" selection-end="23069" vertical-scroll-proportion="0.44510978">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/danbikel/util/HashMapDouble.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="3" column="0" selection-start="61" selection-end="61" vertical-scroll-proportion="0.029940119">
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/src/danbikel/util/HashMap.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="443" column="0" selection-start="12290" selection-end="12290" vertical-scroll-proportion="0.9101796">
+        <state line="218" column="31" selection-start="5566" selection-end="5566" vertical-scroll-proportion="0.20558882">
           <folding>
             <element signature="imports" expanded="true" />
           </folding>

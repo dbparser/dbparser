@@ -364,10 +364,9 @@ public class HashMap<K,V> extends AbstractMap<K, V>
     throws IOException, ClassNotFoundException {
     ois.defaultReadObject();
     entries = new Entry[ois.readInt()];
-    // set local var size; size data member will get set automatically
-    // via put method invocations, below
-    int size = ois.readInt();
-    for (int i = 0; i < size; i++) {
+    int numEntriesToRead = ois.readInt();
+    size = 0; // this data member will get incremented by put method, below
+    for (int i = 0; i < numEntriesToRead; i++) {
       K k = (K)ois.readObject();
       V v = (V)ois.readObject();
       put(k, v);

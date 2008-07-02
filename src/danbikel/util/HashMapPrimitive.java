@@ -1,7 +1,6 @@
 package danbikel.util;
 
-import java.io.Externalizable;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 import java.math.BigInteger;
 
@@ -9,7 +8,8 @@ import java.math.BigInteger;
  *
  */
  abstract public class HashMapPrimitive<K>
-  extends AbstractMapToPrimitive<K> implements FlexibleMap<K,Object> {
+  extends AbstractMapToPrimitive<K>
+  implements FlexibleMap<K,Object>, Serializable {
   // constants
   protected final static float defaultLoadFactor = 0.75f;
   protected final static int defaultInitialCapacity = 11;
@@ -397,23 +397,6 @@ import java.math.BigInteger;
     throw new RuntimeException("removeLRU fatal error!");
   }
 
-  private void addEntry(Entry<K> entryToAdd) {
-    Entry<K> entry = getEntryInternal(entryToAdd.key, entryToAdd.keyHash);
-    if (entry != null) {
-      entry.copyValuesFrom(entryToAdd);
-    }
-    else {
-      int bucketIdx = (entryToAdd.keyHash & hashCodeBitmask) % entries.length;
-      entryToAdd.next = entries[bucketIdx];
-      entries[bucketIdx] = entryToAdd;
-      modCount++;
-      size++;
-      if (size > threshold) {
-	rehash();
-      }
-    }
-  }
-
   /**
    * Removes a random entry from the bucket at the specified index (optional
    * operation).
@@ -430,6 +413,50 @@ import java.math.BigInteger;
     // just remove first element in bucket, if it exists
     if (entry != null) {
       remove(entry.key);
+    }
+  }
+
+  private void writeObject(ObjectOutputStream s)
+    throws IOException {
+    s.defaultWriteObject();
+    s.writeInt(entries.length);
+    s.writeInt(size);
+    for (int i = entries.length - 1; i >= 0; i--) {
+      Entry entry = entries[i];
+      while (entry != null) {
+	s.writeObject(entry);
+	entry = entry.next;
+      }
+    }
+  }
+
+  private void readObject(ObjectInputStream s)
+  throws IOException, ClassNotFoundException {
+    s.defaultReadObject();
+    int numBuckets = s.readInt();
+    entries = new Entry[numBuckets];
+    size = 0;
+    int numEntriesToRead = s.readInt();
+    while (numEntriesToRead-- > 0) {
+      Object entry = s.readObject();
+      addEntry((Entry)entry);
+    }
+  }
+
+  private void addEntry(Entry<K> entryToAdd) {
+    Entry<K> entry = getEntryInternal(entryToAdd.key, entryToAdd.keyHash);
+    if (entry != null) {
+      entry.copyValuesFrom(entryToAdd);
+    }
+    else {
+      int bucketIdx = (entryToAdd.keyHash & hashCodeBitmask) % entries.length;
+      entryToAdd.next = entries[bucketIdx];
+      entries[bucketIdx] = entryToAdd;
+      modCount++;
+      size++;
+      if (size > threshold) {
+	rehash();
+      }
     }
   }
 

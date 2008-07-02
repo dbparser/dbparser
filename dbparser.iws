@@ -32,7 +32,6 @@
     <list default="true" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dbparser.iws" afterPath="$PROJECT_DIR$/dbparser.iws" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/danbikel/util/HashMapPrimitive.java" afterPath="$PROJECT_DIR$/src/danbikel/util/HashMapPrimitive.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/dbparser.ipr" afterPath="$PROJECT_DIR$/dbparser.ipr" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/danbikel/util/HashMap.java" afterPath="$PROJECT_DIR$/src/danbikel/util/HashMap.java" />
     </list>
   </component>
@@ -190,10 +189,19 @@
       <file leaf-file-name="HashMapPrimitive.java" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/danbikel/util/HashMapPrimitive.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="249" column="24" selection-start="6956" selection-end="6956" vertical-scroll-proportion="0.250499">
+            <state line="437" column="13" selection-start="12916" selection-end="12916" vertical-scroll-proportion="0.28842315">
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="FlexibleMap.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/danbikel/util/FlexibleMap.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state line="6" column="17" selection-start="148" selection-end="148" vertical-scroll-proportion="0.08982036">
+              <folding />
             </state>
           </provider>
         </entry>
@@ -265,19 +273,10 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="AbstractMapToPrimitive.java" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/danbikel/util/AbstractMapToPrimitive.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="0" column="11" selection-start="11" selection-end="11" vertical-scroll-proportion="0.0">
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
       <file leaf-file-name="HashMap.java" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/danbikel/util/HashMap.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="218" column="31" selection-start="5566" selection-end="5566" vertical-scroll-proportion="0.20558882">
+            <state line="373" column="3" selection-start="9981" selection-end="9981" vertical-scroll-proportion="0.5279441">
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
@@ -600,7 +599,7 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="1600" y="0" width="1920" height="1175" extended-state="0" />
+    <frame x="1600" y="0" width="1920" height="1175" extended-state="1" />
     <editor active="true" />
     <layout>
       <window_info id="UI Designer" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" order="3" />
@@ -649,7 +648,7 @@
     <option name="PERFORM_EDIT_IN_BACKGROUND" value="true" />
     <option name="PERFORM_ADD_REMOVE_IN_BACKGROUND" value="true" />
     <option name="FORCE_NON_EMPTY_COMMENT" value="false" />
-    <option name="LAST_COMMIT_MESSAGE" value="* Removed comments at the beginning of HashMapInt.java and HashMapTwoDoubles.java which no&#10;  longer reflected the state of the classes defined in those files.  The old comments indicated that these&#10;  classes were modified versions's of Sun's java.util.HashMap, but in this branch, I have written the classes&#10;  from scratch.&#10;&#10;* Modified IDEA files." />
+    <option name="LAST_COMMIT_MESSAGE" value="* Fixed bug in HashMap.rehash and HashMapPrimitive.rehash methods.  In both cases, there was an&#10;  infinite loop, which is generally not a good thing.&#10;&#10;* Changed return type of abstract protected method HashMapPrimitive.getNewEntry from&#10;  MapToPrimitive.Entry to HashMapPrimitive.Entry." />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="false" />
     <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="false" />
     <option name="REFORMAT_BEFORE_FILE_COMMIT" value="false" />
@@ -661,6 +660,7 @@
     <option name="SHOW_FILE_HISTORY_AS_TREE" value="false" />
     <option name="FILE_HISTORY_SPLITTER_PROPORTION" value="0.6" />
     <MESSAGE value="* Removed comments at the beginning of HashMapInt.java and HashMapTwoDoubles.java which no&#10;  longer reflected the state of the classes defined in those files.  The old comments indicated that these&#10;  classes were modified versions's of Sun's java.util.HashMap, but in this branch, I have written the classes&#10;  from scratch.&#10;&#10;* Modified IDEA files." />
+    <MESSAGE value="* Fixed bug in HashMap.rehash and HashMapPrimitive.rehash methods.  In both cases, there was an&#10;  infinite loop, which is generally not a good thing.&#10;&#10;* Changed return type of abstract protected method HashMapPrimitive.getNewEntry from&#10;  MapToPrimitive.Entry to HashMapPrimitive.Entry." />
   </component>
   <component name="VssConfiguration">
     <option name="CLIENT_PATH" value="" />
@@ -786,13 +786,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/danbikel/util/FlexibleMap.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="6" column="17" selection-start="148" selection-end="148" vertical-scroll-proportion="0.09009009">
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/danbikel/util/AbstractMapToPrimitive.java">
       <provider selected="true" editor-type-id="text-editor">
         <state line="0" column="11" selection-start="11" selection-end="11" vertical-scroll-proportion="0.0">
@@ -832,15 +825,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/danbikel/util/HashMapPrimitive.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="249" column="24" selection-start="6956" selection-end="6956" vertical-scroll-proportion="0.250499">
-          <folding>
-            <element signature="imports" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/danbikel/parser/Trainer.java">
       <provider selected="true" editor-type-id="text-editor">
         <state line="1562" column="0" selection-start="59383" selection-end="59383" vertical-scroll-proportion="0.19061877">
@@ -855,6 +839,22 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/src/danbikel/util/FlexibleMap.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="6" column="17" selection-start="148" selection-end="148" vertical-scroll-proportion="0.08982036">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/danbikel/util/HashMapPrimitive.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="437" column="13" selection-start="12916" selection-end="12916" vertical-scroll-proportion="0.28842315">
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/src/danbikel/util/HashMapDouble.java">
       <provider selected="true" editor-type-id="text-editor">
         <state line="3" column="0" selection-start="61" selection-end="61" vertical-scroll-proportion="0.029940119">
@@ -864,7 +864,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/danbikel/util/HashMap.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="218" column="31" selection-start="5566" selection-end="5566" vertical-scroll-proportion="0.20558882">
+        <state line="373" column="3" selection-start="9981" selection-end="9981" vertical-scroll-proportion="0.5279441">
           <folding>
             <element signature="imports" expanded="true" />
           </folding>

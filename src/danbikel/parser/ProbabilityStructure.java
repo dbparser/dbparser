@@ -544,7 +544,7 @@ public abstract class ProbabilityStructure implements Serializable {
   /**
    * Indicates whether the <code>Model</code> class needs to invoke
    * its cleanup method at the end of its {@link
-   * Model#deriveCounts(CountsTable,Filter,double,FlexibleMap)
+   * Model#deriveCounts(CountsTable, danbikel.util.Filter ,double, danbikel.util.FlexibleMap)
    * deriveCounts} method.  The default implementation here returns
    * <code>false</code>.
    *

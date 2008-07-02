@@ -75,6 +75,10 @@ public class HashMapDouble<K> extends HashMapPrimitive<K>
       doubleVal0 = value;
     }
 
+    public Object getValue() {
+      return doubleVal0;
+    }
+
     public int numDoubles() { return 1; }
     public double getDoubleValue(int index) {
       /*

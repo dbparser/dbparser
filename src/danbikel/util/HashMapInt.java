@@ -76,6 +76,10 @@ public class HashMapInt<K> extends HashMapPrimitive<K>
       intVal0 = value;
     }
 
+    public Object getValue() {
+      return intVal0;
+    }
+
     public int numInts() { return 1; }
     public int getIntValue(int index) {
       /*

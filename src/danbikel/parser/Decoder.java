@@ -65,7 +65,6 @@ public class Decoder implements Serializable {
     Settings.getBoolean(debugOutputChartProperty);
   private final static String debugChartFilenamePrefix = "chart";
   private final static boolean debugCommaConstraint = false;
-  private final static boolean debugDontPostProcess = false;
   private final static boolean debugRemoveWord = false;
   private final static boolean debugRestorePrunedWords = false;
   private final static boolean debugBeamWidening = true;
@@ -535,6 +534,17 @@ decod   * @see DecoderServerRemote#prunedPreterms()
    * @see #constraints
    */
   protected boolean isomorphicTreeConstraints = false;
+  /**
+   * Indicates whether to perform post-processing on a tree after
+   * parsing, that is, whether to invoke {@link Training#postProcess(Sexp)}
+   * on the tree.
+   *
+   * @see Settings#decoderDontPostProcess
+   * @see Settings#decoderOutputInsideProbs
+   */
+  protected boolean dontPostProcess =
+    Settings.getBoolean(Settings.decoderDontPostProcess) ||
+    Settings.getBoolean(Settings.decoderOutputInsideProbs);
 
   // data members used when debugSentenceSize is true
   private float avgSentLen = 0.0f;
@@ -879,7 +889,7 @@ decod   * @see DecoderServerRemote#prunedPreterms()
     restoreOriginalWords(tree, 0);
     if (restorePrunedWords)
       restorePrunedWords(tree);
-    if (debugDontPostProcess)
+    if (dontPostProcess)
       return;
     else
       Language.training.postProcess(tree);

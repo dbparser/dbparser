@@ -1376,12 +1376,34 @@ public class Settings implements Serializable {
    * This setting also &ldquo;plays nice&rdquo; with (<i>i.e.</i>, can be
    * simultaneously true with) the {@link #decoderOutputHeadLexicalizedLabels}
    * setting.
+   * <p/>
+   * This setting requires that post-processing <i>not</i> be performed, so
+   * when this setting is true, it will effectively be as though the user
+   * also specified <tt>false</tt> for the value of the
+   * {@link #decoderDontPostProcess} setting.
    *
    * @see CKYItem#toSexp()
    * @see #decoderOutputHeadLexicalizedLabels
+   * @see #decoderDontPostProcess
    */
   public final static String decoderOutputInsideProbs =
     "parser.decoder.outputInsideProbabilities";
+
+  /**
+   * The property to specify whether the decoder should perform post-processing
+   * on a tree after parsing, that is, whether to invoke
+   * {@link Training#postProcess(danbikel.lisp.Sexp)} on that parse tree.
+   * <p/>
+   * Note that this setting will effectively be <tt>true</tt> if
+   * {@link #decoderOutputInsideProbs} is <tt>true</tt>; that is, the actual
+   * value of this setting will be ignored if {@link #decoderOutputInsideProbs}
+   * is <tt>true</tt>, and will be treated as though the user specified
+   * <tt>true</tt> for this setting, as well.
+   *
+   * @see #decoderOutputInsideProbs
+   */
+  public final static String decoderDontPostProcess =
+    "parser.decoder.dontPostProcess";
 
   /**
    * The property to specify whether the decoder should wrap its

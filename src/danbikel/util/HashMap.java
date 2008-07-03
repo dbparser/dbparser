@@ -249,11 +249,11 @@ public class HashMap<K,V> extends AbstractMap<K, V>
     return get(key, keyHash(key));
   }
 
-  public V get(Object key, int hashCode) {
-    int bucketIdx = (hashCode & hashCodeBitmask) % entries.length;
+  public V get(Object key, int keyHash) {
+    int bucketIdx = (keyHash & hashCodeBitmask) % entries.length;
     for (Entry<K,V> entry = entries[bucketIdx];
-	 entry != null && hashCode != entry.keyHash; entry = entry.next) {
-      if (keysEqual(key, entry.key))
+	 entry != null; entry = entry.next) {
+      if (keyHash == entry.keyHash && keysEqual(key, entry.key))
 	return entry.val;
     }
     return null;
@@ -263,8 +263,8 @@ public class HashMap<K,V> extends AbstractMap<K, V>
     int keyHash = keyHash(key);
     int bucketIdx = (keyHash & hashCodeBitmask) % entries.length;
     for (Entry<K,V> entry = entries[bucketIdx];
-	 entry != null && keyHash != entry.keyHash; entry = entry.next) {
-      if (keysEqual(key, entry.key))
+	 entry != null; entry = entry.next) {
+      if (keyHash == entry.keyHash && keysEqual(key, entry.key))
 	return entry;
     }
     return null;

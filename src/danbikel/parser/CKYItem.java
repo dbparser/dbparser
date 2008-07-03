@@ -488,6 +488,7 @@ public class CKYItem extends Item implements SexpConvertible {
 
   // constants
   private final static int outputPrecision = 14;
+  private final static int shortOutputPrecision = 3;
 
   // static data members
   // number formatter for string (debugging) output
@@ -495,6 +496,11 @@ public class CKYItem extends Item implements SexpConvertible {
   static {
     doubleNF.setMinimumFractionDigits(outputPrecision);
     doubleNF.setMaximumFractionDigits(outputPrecision);
+  }
+  private static NumberFormat shortDoubleNF = NumberFormat.getInstance();
+  static {
+    shortDoubleNF.setMinimumFractionDigits(shortOutputPrecision);
+    shortDoubleNF.setMaximumFractionDigits(shortOutputPrecision);
   }
 
 
@@ -1439,7 +1445,7 @@ public class CKYItem extends Item implements SexpConvertible {
       char rbracket = nonTreebankRightBracket;
       char sep = nonTreebankDelimiter;
       String insideProb =
-	outputInsideProbs ? sep + doubleNF.format(logTreeProb) : "";
+	outputInsideProbs ? sep + shortDoubleNF.format(logTreeProb) : "";
       String newLabel =
 	nt.base.toString() +
 	lbracket + Boolean.toString(isHeadChild) +
@@ -1452,7 +1458,8 @@ public class CKYItem extends Item implements SexpConvertible {
       char lbracket = nonTreebankLeftBracket;
       char rbracket = nonTreebankRightBracket;
       String newLabel =
-	nt.base.toString() + lbracket + doubleNF.format(logTreeProb) + rbracket;
+	nt.base.toString() +
+	lbracket + shortDoubleNF.format(logTreeProb) + rbracket;
       nt.base = Symbol.add(newLabel);
       return nt.toSymbol();
     }

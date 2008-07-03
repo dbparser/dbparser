@@ -59,6 +59,7 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
     return tree;
   }
 
+  /*
   protected void stripAugmentations(Symbol label, Nonterminal nonterminal,
                                     boolean parseLabel) {
     if (parseLabel)
@@ -69,6 +70,7 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
       augmentations.remove(augmentations.size() - 1);
     nonterminal.index = -1; // effectively strips off index
   }
+  */
 
 
   public boolean removeWord(Symbol word, Symbol tag, int idx, SexpList sentence,

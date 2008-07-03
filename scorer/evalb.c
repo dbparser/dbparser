@@ -16,6 +16,7 @@
 /*                                         October.1997          */
 /*****************************************************************/
 
+#include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
@@ -283,7 +284,7 @@ char *argv[];
 {
     char *filename1, *filename2;
     FILE *fd1, *fd2;
-    unsigned char buff[5000];
+    char buff[5000];
 
     filename1=NULL;
     filename2=NULL;

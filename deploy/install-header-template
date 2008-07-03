@@ -19,15 +19,15 @@ done
 outname=dbparser.tgz
 trap 'rm -f $outname; exit 1' HUP INT QUIT TERM
 echo "Unpacking..."
-tail +@LINES@ $0 > $outname
-if [ -x /bin/gunzip -o -x /usr/bin/gunzip ]; then
+tail -n +@LINES@ $0 > $outname
+if [ -x /bin/tar -o -x /usr/bin/tar ]; then
     echo "Extracting..."
-    gunzip -c $outname | tar xvf -
+    tar zxvf $outname
     rm -f $outname #we dont need it anymore, so conserve disk space
     echo "Done."
 else
-    echo "Couldn't find gunzip; please execute"
-    echo "	gunzip -c $outname | tar xvf -"
+    echo "Couldn't find tar; please execute"
+    echo "	tar zxvf $outname"
     echo "to extract parsing software."
 fi
 exit 0

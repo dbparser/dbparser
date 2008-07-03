@@ -215,6 +215,41 @@ public class HeadTreeNode implements Serializable, SexpConvertible {
     }
   }
 
+  public Sexp toSexp(boolean addHeadWords) {
+    if (isPreterminal()) {
+      return Language.treebank.constructPreterminal(headWord());
+    }
+    else {
+      SexpList list = new SexpList(preMods.size() + postMods.size() + 2);
+      // first, add the label of this node
+      Symbol label = addHeadWords ? getHeadWordLabel() : label();
+      list.add(label);
+      // then, add premodifiers in reverse
+      ListIterator it = preMods.listIterator(preMods.size());
+      while (it.hasPrevious()) {
+	HeadTreeNode node = (HeadTreeNode)it.previous();
+	list.add(node.toSexp(addHeadWords));
+      }
+      // next, add head child subtree
+      list.add(headChild.toSexp(addHeadWords));
+      // finally, add postmodifiers in order
+      it = postMods.listIterator();
+      while (it.hasNext()) {
+	HeadTreeNode node = (HeadTreeNode)it.next();
+	list.add(node.toSexp(addHeadWords));
+      }
+      return list;
+    }
+  }
+
+  private Symbol getHeadWordLabel() {
+    Treebank treebank = Language.treebank();
+    return
+      Symbol.get(label().toString() + treebank.nonTreebankLeftBracket() +
+		 headWord().word() + treebank.nonTreebankDelimiter() +
+		 headWord().tag() + treebank.nonTreebankRightBracket());
+  }
+
   /**
    * Returns a string representation of the tree rooted at this node.
    * @return a string representation of the tree rooted at this node

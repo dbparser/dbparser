@@ -54,7 +54,7 @@ public class Settings implements Serializable {
   /** The official name of this program. */
   public final static String progName = "Parsing Engine";
   /** The official version of this program. */
-  public final static String version = "0.9.9c";
+  public final static String version = "0.9.9d";
   /**
    * The prefix that all properties for this parser should have
    * (to be used when finding system properties that are meant to be included
@@ -416,7 +416,7 @@ public class Settings implements Serializable {
   /**
    * The property to specify whether the method
    * {@link
-   * danbikel.parser.lang.AbstractHeadFinder#defaultFindHead(Symbol,SexpList)}
+   * danbikel.parser.lang.AbstractHeadFinder#defaultFindHead(danbikel.lisp.Symbol,danbikel.lisp.SexpList)}
    * issues a warning whenever it needs to use the default head-finding rule.
    * The value of this property should be (the string representation of) a
    * boolean (conversion is performed by the method
@@ -431,7 +431,7 @@ public class Settings implements Serializable {
   /**
    * The property to specify a probability that the method
    * {@link
-   * danbikel.parser.lang.AbstractHeadFinder#defaultFindHead(Symbol,SexpList)}
+   * danbikel.parser.lang.AbstractHeadFinder#defaultFindHead(danbikel.lisp.Symbol,danbikel.lisp.SexpList)}
    * should return a randomly-selected head-child index.  The value of
    * this property should be (the string representation of) a <tt>double</tt>
    * (conversion is performed by the method <code>Double.parseDouble</code>).
@@ -439,15 +439,15 @@ public class Settings implements Serializable {
    * <b>N.B.</b>: Head-finding for <tt>NP</tt>s that are not <tt>NPB</tt>s is
    * unaffected by this setting, meaning that heuristics are
    * <i><b>always</b></i> used to find heads within non-<tt>NPB</tt> noun
-   * phrases.  This is so that {@link Training#addBaseNPs(Sexp)} will always
-   * produce consistent results.  The issue is that adding base <tt>NP</tt>s
-   * normally relies on head finding (see {@link
-   * danbikel.parser.lang.AbstractTraining#needToAddNormalNPLevel(Sexp,int,Sexp)}).
+   * phrases.  This is so that {@link Training#addBaseNPs(danbikel.lisp.Sexp)}
+   * will always produce consistent results.  The issue is that adding base
+   * <tt>NP</tt>s normally relies on head finding (see {@link
+   * danbikel.parser.lang.AbstractTraining#needToAddNormalNPLevel(danbikel.lisp.Sexp,int,danbikel.lisp.Sexp)}).
    * <p>
    * The value of this constant is
    * <code>&quot;parser.headfinder.randomProb&quot;</code>.
    *
-   * @see danbikel.parser.lang.AbstractTraining#needToAddNormalNPLevel(Sexp,int,Sexp)
+   * @see danbikel.parser.lang.AbstractTraining#needToAddNormalNPLevel(danbikel.lisp.Sexp,int,danbikel.lisp.Sexp)
    */
   public final static String headFinderRandomProb =
     "parser.headfinder.randomProb";
@@ -1337,6 +1337,12 @@ public class Settings implements Serializable {
    * {@link Treebank#nonTreebankRightBracket()} and
    * {@link Treebank#nonTreebankDelimiter()} methods, respectively.
    * <p/>
+   * If {@link #decoderOutputInsideProbs} is also <code>true</code>, then
+   * the form of a lexicalized label will be
+   * <pre>NT[isHead/word/tag/prob]</pre>
+   * where <tt>prob</tt> is a floating-point value equal to the inside tree
+   * probability of the subtree rooted at the node.
+   * <p/>
    * The words that were pruned before parsing and re-inserted after parsing
    * (when the {@link #restorePrunedWords} setting is <tt>true</tt>) will
    * not be output with lexical information, since the parser never
@@ -1347,6 +1353,35 @@ public class Settings implements Serializable {
    */
   public final static String decoderOutputHeadLexicalizedLabels =
     "parser.decoder.outputHeadLexicalizedLabels";
+
+  /**
+   * The property to specify whether node labels in trees output by the
+   * decoder include the inside probability of their subtree, which is normally only
+   * used internally by the decoder.  Even though this setting is grouped
+   * with the other decoder settings, it technically affects the implementation
+   * of {@link CKYItem#toSexp()}.
+   * <p/>
+   * The form of a lexicalized label will be
+   * <pre>NT[prob]</pre>
+   * where
+   * <ul>
+   * <li><tt>NT</tt> is the original, unlexicalized nonterminal
+   * <li><tt>prob</tt> is a <code>double</code> value, indicating the inside
+   *                   probability of the subtree
+   * </ul>
+   * The bracket characters <tt>'['</tt> and <tt>']'</tt> are determined by the
+   * {@link Treebank#nonTreebankLeftBracket()} and
+   * {@link Treebank#nonTreebankRightBracket()} methods, respectively.
+   * <p/>
+   * This setting also &ldquo;plays nice&rdquo; with (<i>i.e.</i>, can be
+   * simultaneously true with) the {@link #decoderOutputHeadLexicalizedLabels}
+   * setting.
+   *
+   * @see CKYItem#toSexp()
+   * @see #decoderOutputHeadLexicalizedLabels
+   */
+  public final static String decoderOutputInsideProbs =
+    "parser.decoder.outputInsideProbabilities";
 
   /**
    * The property to specify whether the decoder should wrap its

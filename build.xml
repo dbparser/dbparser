@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project basedir="." default="rebuild" name="dbparser.jpx">
+<project basedir="." default="build" name="dbparser.jpx">
   <property name="dest" value="classes.ant"/>
   <property name="src" value="src"/>
   <property name="deploy" value="deploy"/>

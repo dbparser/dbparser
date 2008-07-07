@@ -7,6 +7,10 @@ import java.util.*;
 import java.rmi.*;
 import java.rmi.server.*;
 
+/**
+ * A class to kick-start a {@link Switchboard} instance for parsing in a
+ * distributed-computing environment.
+ */
 public class StartSwitchboard {
 
   private StartSwitchboard() {}

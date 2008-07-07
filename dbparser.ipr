@@ -8,6 +8,7 @@
       <customJdkName value="" />
       <maximumHeapSize value="128" />
       <properties />
+      <executeOn event="beforeRun" target="build" runConfigurationType="Application" runConfigurationName="Decoding run" />
       <executeOn event="beforeRun" target="build" runConfigurationType="Application" runConfigurationName="Decoding ruun" />
       <executeOn event="beforeRun" target="build" runConfigurationType="Application" runConfigurationName="Training run" />
       <executeOn event="beforeRun" target="build" runConfigurationType="Application" runConfigurationName="Unnamed" />
@@ -36,10 +37,13 @@
             <option name="LABEL_INDENT_ABSOLUTE" value="false" />
           </value>
         </option>
+        <option name="ELSE_ON_NEW_LINE" value="true" />
+        <option name="CATCH_ON_NEW_LINE" value="true" />
+        <option name="FINALLY_ON_NEW_LINE" value="true" />
+        <option name="INDENT_CASE_FROM_SWITCH" value="false" />
         <option name="ALIGN_MULTILINE_PARAMETERS_IN_CALLS" value="true" />
         <option name="ALIGN_MULTILINE_BINARY_OPERATION" value="true" />
         <option name="ALIGN_MULTILINE_ASSIGNMENT" value="true" />
-        <option name="ALIGN_MULTILINE_TERNARY_OPERATION" value="true" />
         <option name="ALIGN_MULTILINE_THROWS_LIST" value="true" />
         <option name="ALIGN_MULTILINE_EXTENDS_LIST" value="true" />
         <option name="ALIGN_MULTILINE_PARENTHESIZED_EXPRESSION" value="true" />
@@ -55,11 +59,12 @@
         <option name="EXTENDS_KEYWORD_WRAP" value="1" />
         <option name="THROWS_KEYWORD_WRAP" value="1" />
         <option name="BINARY_OPERATION_WRAP" value="1" />
-        <option name="TERNARY_OPERATION_WRAP" value="1" />
+        <option name="TERNARY_OPERATION_WRAP" value="5" />
         <option name="FOR_STATEMENT_WRAP" value="1" />
         <option name="ARRAY_INITIALIZER_WRAP" value="1" />
         <option name="ASSIGNMENT_WRAP" value="1" />
         <option name="WRAP_COMMENTS" value="true" />
+        <option name="IF_BRACE_FORCE" value="3" />
         <option name="JD_ADD_BLANK_AFTER_RETURN" value="true" />
         <ADDITIONAL_INDENT_OPTIONS fileType="js">
           <option name="INDENT_SIZE" value="4" />
@@ -300,7 +305,7 @@
       <module fileurl="file://$PROJECT_DIR$/dbparser.iml" filepath="$PROJECT_DIR$/dbparser.iml" />
     </modules>
   </component>
-  <component name="ProjectRootManager" version="2" assert-keyword="true" jdk-15="true" project-jdk-name="1.5" project-jdk-type="JavaSDK" />
+  <component name="ProjectRootManager" version="2" assert-keyword="true" jdk-15="true" project-jdk-name="1.6" project-jdk-type="JavaSDK" />
   <component name="ResourceManagerContainer">
     <option name="myResourceBundles">
       <value>

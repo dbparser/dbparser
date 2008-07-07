@@ -3,13 +3,21 @@ package danbikel.parser.util;
 import danbikel.lisp.*;
 import danbikel.util.*;
 import danbikel.parser.*;
+
 import java.io.*;
 import java.util.*;
 
+/**
+ * A class with a <tt>main</tt> method for reading trees and printing the
+ * complete set of nonterminals used in those trees.
+ *
+ * @see #main(String[])
+ */
 public class PrintNTs {
   private static final int bufSize = Constants.defaultFileBufsize;
 
-  private PrintNTs() {}
+  private PrintNTs() {
+  }
 
   private static String[] usageMsg = {
     "usage: [-v|-help|-usage] [-tags] [filename]",
@@ -30,9 +38,9 @@ public class PrintNTs {
    * collects all nonterminals and then prints them, one nonterminal per line,
    * to standard output.  By default, tags are not considered nonterminals.
    * <pre>usage: [- | <filename>] [-tags]</pre>
-   * where specifying <tt>-</tt> or using no arguments at all indicates to
-   * read from standard input, and where specifying -tags indicates to consider
-   * part of speech tags to be nonterminals.
+   * where specifying <tt>-</tt> or using no arguments at all indicates to read
+   * from standard input, and where specifying -tags indicates to consider part
+   * of speech tags to be nonterminals.
    */
   public static void main(String[] args) {
     InputStream inStream = System.in;
@@ -40,19 +48,22 @@ public class PrintNTs {
     String inFile = null;
     for (int i = 0; i < args.length; i++) {
       if (args[i].equals("-help") || args[i].equals("-usage") ||
-          args[i].equals("-v")) {
-        usage();
-        return;
+	  args[i].equals("-v")) {
+	usage();
+	return;
       }
-      else if (args[i].equals("-tags"))
-        includeTags = true;
-      else if (!args[i].equals("-"))
-        inFile = args[i];
+      else if (args[i].equals("-tags")) {
+	includeTags = true;
+      }
+      else if (!args[i].equals("-")) {
+	inFile = args[i];
+      }
     }
     if (inFile != null) {
       try {
 	inStream = new FileInputStream(inFile);
-      } catch (FileNotFoundException fnfe) {
+      }
+      catch (FileNotFoundException fnfe) {
 	System.err.println(fnfe);
 	System.exit(-1);
       }
@@ -60,16 +71,16 @@ public class PrintNTs {
     try {
       CountsTable ntCounts = new CountsTableImpl();
       SexpTokenizer tok =
-        new SexpTokenizer(inStream, Language.encoding(), bufSize);
+	new SexpTokenizer(inStream, Language.encoding(), bufSize);
       Sexp curr = null;
       int sentNum;
       for (sentNum = 0; (curr = Sexp.read(tok)) != null; sentNum++)
-        Util.collectNonterminals(ntCounts, curr, includeTags);
+	Util.collectNonterminals(ntCounts, curr, includeTags);
       System.err.println("number of sentences processed: " + sentNum);
       Iterator it = ntCounts.entrySet().iterator();
       while (it.hasNext()) {
-        MapToPrimitive.Entry entry = (MapToPrimitive.Entry)it.next();
-        System.out.println(entry.getKey() + "\t" + entry.getDoubleValue());
+	MapToPrimitive.Entry entry = (MapToPrimitive.Entry) it.next();
+	System.out.println(entry.getKey() + "\t" + entry.getDoubleValue());
       }
     }
     catch (Exception e) {

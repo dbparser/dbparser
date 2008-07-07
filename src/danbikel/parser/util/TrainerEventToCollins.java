@@ -2,8 +2,17 @@ package danbikel.parser.util;
 
 import danbikel.lisp.*;
 import danbikel.parser.*;
+
 import java.util.*;
 
+/**
+ * A class to convert {@link TrainerEvent} instances to {@link String} instances
+ * of the form produced by
+ * <a href="http://www.ai.mit.edu/people/mcollins/code.html">Mike
+ * Collins&rsquo;</a> parser.
+ *
+ * @see Settings#outputCollins
+ */
 public class TrainerEventToCollins {
   public static Symbol topSym = Language.training().topSym();
   public static Symbol startSym = Language.training().startSym();
@@ -18,27 +27,32 @@ public class TrainerEventToCollins {
 	       Language.training().defaultArgAugmentation());
 
 
-
   public static String subcatToCollins(Subcat subcat, boolean withGap) {
     int nps = 0, sbars = 0, ss = 0, vps = 0, miscs = 0;
     Iterator it = subcat.iterator();
     while (it.hasNext()) {
-      Symbol requirement = (Symbol)it.next();
-      if (requirement == npArg)
+      Symbol requirement = (Symbol) it.next();
+      if (requirement == npArg) {
 	nps++;
-      else if (requirement == sArg)
+      }
+      else if (requirement == sArg) {
 	ss++;
-      else if (requirement == sbarArg)
+      }
+      else if (requirement == sbarArg) {
 	sbars++;
-      else if (requirement == vpArg)
+      }
+      else if (requirement == vpArg) {
 	vps++;
-      else if (requirement == miscArg)
+      }
+      else if (requirement == miscArg) {
 	miscs++;
+      }
     }
     StringBuffer sb = new StringBuffer(withGap ? 6 : 5);
     sb.append(nps).append(ss).append(sbars).append(vps).append(miscs);
-    if (withGap)
+    if (withGap) {
       sb.append("0");
+    }
     return sb.toString();
   }
 
@@ -58,8 +72,9 @@ public class TrainerEventToCollins {
     //boolean nonBaseNPConjPConj = !parentIsBaseNP && modEvent.isConjPConj();
 
     if (modEvent.isConjPConj() ||
-	Language.treebank().isPunctuation(modEvent.modifier()))
+	Language.treebank().isPunctuation(modEvent.modifier())) {
       return null;
+    }
 
     StringBuffer sb = new StringBuffer(80);
     sb.append("2 ");
@@ -77,8 +92,9 @@ public class TrainerEventToCollins {
     boolean prevModIsStart = prevMod == startSym;
 
     Word headWord = modEvent.headWord();
-    if (parentIsBaseNP && !prevModIsStart)
+    if (parentIsBaseNP && !prevModIsStart) {
       headWord = modEvent.previousWords().getWord(0);
+    }
 
     sb.append(headWord.word()).append(" ");
     sb.append(headWord.tag()).append(" ");
@@ -87,8 +103,9 @@ public class TrainerEventToCollins {
     sb.append(modEvent.parent()).append(" ");
 
     Symbol head = modEvent.head();
-    if (parentIsBaseNP && !prevModIsStart)
+    if (parentIsBaseNP && !prevModIsStart) {
       head = modEvent.previousMods().symbolAt(0);
+    }
 
     sb.append(head).append(" ");
     sb.append(subcatToCollins(modEvent.subcat(), true)).append(" ");
@@ -107,8 +124,9 @@ public class TrainerEventToCollins {
     // note that conjunctions are only treated specially when they are NOT
     // dominated by NPB
     Word prevConj = modEvent.prevConj();
-    if (parentIsBaseNP || prevConj == null)
+    if (parentIsBaseNP || prevConj == null) {
       sb.append("0");
+    }
     else {
       sb.append("1 ");
       sb.append(prevConj.word()).append(" ").append(prevConj.tag());
@@ -117,8 +135,9 @@ public class TrainerEventToCollins {
     sb.append(" ");
 
     Word prevPunc = modEvent.prevPunc();
-    if (prevPunc == null)
+    if (prevPunc == null) {
       sb.append("0");
+    }
     else {
       sb.append("1 ");
       sb.append(prevPunc.word()).append(" ").append(prevPunc.tag());
@@ -134,7 +153,7 @@ public class TrainerEventToCollins {
     sb.append(headWord.word()).append(" ").append(headWord.tag()).append(" ");
     Symbol parent = headEvent.parent();
     sb.append(parent == topSym ? "TOP" :
-              headEvent.parent().toString()).append(" ");
+      headEvent.parent().toString()).append(" ");
     sb.append(headEvent.head()).append(" ");
     sb.append(subcatToCollins(headEvent.leftSubcat(), false)).append(" ");
     sb.append(subcatToCollins(headEvent.rightSubcat(), false));
@@ -145,13 +164,16 @@ public class TrainerEventToCollins {
     // top events are handled by manually adding TOP to each training sentence
     // so that we can correctly generate #STOP# events to either side of sole
     // "head child" of TOP (just like Mike's trainer does)
-    if (event.parent() == topSym)
+    if (event.parent() == topSym) {
       return null;
+    }
     String collinsStr = null;
-    if (event instanceof HeadEvent)
-      collinsStr = headEventToCollins((HeadEvent)event);
-    else if (event instanceof ModifierEvent)
-      collinsStr = modEventToCollins((ModifierEvent)event);
+    if (event instanceof HeadEvent) {
+      collinsStr = headEventToCollins((HeadEvent) event);
+    }
+    else if (event instanceof ModifierEvent) {
+      collinsStr = modEventToCollins((ModifierEvent) event);
+    }
     return collinsStr;
   }
 }

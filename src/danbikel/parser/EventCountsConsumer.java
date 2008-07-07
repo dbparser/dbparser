@@ -2,14 +2,25 @@ package danbikel.parser;
 
 import danbikel.util.*;
 import danbikel.switchboard.*;
+
 import java.io.*;
 import java.util.*;
 import java.util.zip.*;
 
+/**
+ * An implementation of the {@link Consumer} interface (part of the Switchboard
+ * framework) for counting events ({@link TrainerEvent} instances) produced as
+ * part of the E-step of the EM algorithm (Inside-Outside).  Each {@link
+ * NumberedObject} consumed by this consumer is expected to contain a {@link
+ * CountsTable} containing the expected counts of {@link TrainerEvent}
+ * instances.
+ */
 public class EventCountsConsumer implements Consumer, Runnable {
   // constants
   private final static String className = Consumer.class.getName();
-  /** The default writing interval for this consumer. */
+  /**
+   * The default writing interval for this consumer.
+   */
   public final static int defaultWriteInterval = 500;
   private final static double countThreshold =
     Double.parseDouble(Settings.get(Settings.countThreshold));
@@ -29,12 +40,11 @@ public class EventCountsConsumer implements Consumer, Runnable {
   private volatile boolean timeToDie;
 
   /**
-   * Constructs a new event counts consumer.  Writing out consumed event
-   * counts to the output file will occur asynchronously (that is, in
-   * parallel) with the consumption of new event counts.  Writing
-   * to the output file will occur periodicially, occurring sometime after
-   * aggregate event counts have been collected from at least
-   * {@link #getWriteInterval} sentences.
+   * Constructs a new event counts consumer.  Writing out consumed event counts
+   * to the output file will occur asynchronously (that is, in parallel) with
+   * the consumption of new event counts.  Writing to the output file will occur
+   * periodicially, occurring sometime after aggregate event counts have been
+   * collected from at least {@link #getWriteInterval} sentences.
    */
   public EventCountsConsumer() {
     this(true, false);
@@ -42,17 +52,18 @@ public class EventCountsConsumer implements Consumer, Runnable {
 
   /**
    * Constructs a new event counts consumer.  If the value of the
-   * <code>asynchronousWrite</code> parameter is <code>true</code>, then
-   * event counts will be aggregated in  an internal <code>CountsTable</code>,
-   * and after event counts have been aggregated from at least
-   * {@link #getWriteInterval} sentences, the events and their aggregate
-   * counts will be passed off to a separate thread for appending to the
-   * current output file.  This appending will happen in parallel with the
-   * consumption of new events in a freshly-cleared <code>CountsTable</code>.
+   * <code>asynchronousWrite</code> parameter is <code>true</code>, then event
+   * counts will be aggregated in  an internal <code>CountsTable</code>, and
+   * after event counts have been aggregated from at least {@link
+   * #getWriteInterval} sentences, the events and their aggregate counts will be
+   * passed off to a separate thread for appending to the current output file.
+   * This appending will happen in parallel with the consumption of new events
+   * in a freshly-cleared <code>CountsTable</code>.
    *
-   * @param asynchronousWrite indicates whether or not to append event counts
-   * to the output file asynchronously (that is, in parallel)
-   * with the consumption of new event counts
+   * @param asynchronousWrite indicates whether or not to append event counts to
+   *                          the output file asynchronously (that is, in
+   *                          parallel) with the consumption of new event
+   *                          counts
    */
   public EventCountsConsumer(boolean asynchronousWrite) {
     this(asynchronousWrite, false);
@@ -66,8 +77,8 @@ public class EventCountsConsumer implements Consumer, Runnable {
    * separate thread for appending to the current output file. This appending
    * will happen in parallel with the consumption of new events in a
    * freshly-cleared <code>CountsTable</code>. The interval between writing to
-   * the output file is determined by the value of {@link #getWriteInterval}.
-   * If <code>asynchronousWrite</code> is <code>true</code> and the
+   * the output file is determined by the value of {@link #getWriteInterval}. If
+   * <code>asynchronousWrite</code> is <code>true</code> and the
    * <code>strictWriteInterval</code> parameter is <code>true</code>, then it is
    * guaranteed that the internal counts table will contain aggregate counts
    * from exactly {@link #getWriteInterval} sentences before being handed off to
@@ -106,9 +117,16 @@ public class EventCountsConsumer implements Consumer, Runnable {
     }
   }
 
-  /** Gets the write interval for this consumer. */
-  public int getWriteInterval() { return writeInterval; }
-  /** Sets the write interval for this consumer. */
+  /**
+   * Gets the write interval for this consumer.
+   */
+  public int getWriteInterval() {
+    return writeInterval;
+  }
+
+  /**
+   * Sets the write interval for this consumer.
+   */
   public void setWriteInterval(int writeInterval) {
     this.writeInterval = writeInterval;
   }
@@ -121,6 +139,7 @@ public class EventCountsConsumer implements Consumer, Runnable {
   public void useCountThreshold() {
     useCountThreshold = true;
   }
+
   /**
    * Indicates not to use the count threshold specified by {@link
    * Settings#countThreshold}.
@@ -133,13 +152,18 @@ public class EventCountsConsumer implements Consumer, Runnable {
     if (asynchronousWrite) {
       synchronized (this) {
 	if (dumper != null) {
-	  timeToDie = true; // should have been set to true in processingComplete
+	  timeToDie =
+	    true; // should have been set to true in processingComplete
 	  notifyAll();
 	}
       }
       if (dumper != null) {
-	try { dumper.join(); }
-	catch (InterruptedException ie) { System.err.println(ie); }
+	try {
+	  dumper.join();
+	}
+	catch (InterruptedException ie) {
+	  System.err.println(ie);
+	}
       }
       timeToDie = false;
       events.clear();
@@ -192,7 +216,7 @@ public class EventCountsConsumer implements Consumer, Runnable {
       consumeForDumper(obj);
     else {
       try {
-	CountsTable currCounts = (CountsTable)obj.get();
+	CountsTable currCounts = (CountsTable) obj.get();
 	if (useCountThreshold)
 	  currCounts.removeItemsBelow(countThreshold);
 	EventCountsWriter.outputEvents(currCounts, out);
@@ -220,14 +244,15 @@ public class EventCountsConsumer implements Consumer, Runnable {
 	while (timeToWrite())
 	  wait();
       }
-      catch (InterruptedException ie) {}
+      catch (InterruptedException ie) {
+      }
     }
 
-    CountsTable currEvents = (CountsTable)obj.get();
+    CountsTable currEvents = (CountsTable) obj.get();
     Iterator it = currEvents.entrySet().iterator();
     while (it.hasNext()) {
-      MapToPrimitive.Entry entry = (MapToPrimitive.Entry)it.next();
-      TrainerEvent event = (TrainerEvent)entry.getKey();
+      MapToPrimitive.Entry entry = (MapToPrimitive.Entry) it.next();
+      TrainerEvent event = (TrainerEvent) entry.getKey();
       double count = entry.getDoubleValue();
       if (!useCountThreshold || count >= countThreshold)
 	events.add(event, count);
@@ -241,11 +266,11 @@ public class EventCountsConsumer implements Consumer, Runnable {
    * Indicates that there are no more sentences whose event counts are to be
    * consumed.  If this consumer was constructed to have asynchronous writing,
    * then any remaining aggregate counts in the internal
-   * <code>CountsTable</code> will be appended to the output file before
-   * this method exits.
+   * <code>CountsTable</code> will be appended to the output file before this
+   * method exits.
    *
-   * @param inputFilename the input file for which event counts have been
-   * consumed
+   * @param inputFilename  the input file for which event counts have been
+   *                       consumed
    * @param outputFilename the output file for consumed event counts
    */
   synchronized public void processingComplete(String inputFilename,

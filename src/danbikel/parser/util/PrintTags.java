@@ -6,6 +6,12 @@ import danbikel.parser.*;
 import java.io.*;
 import java.util.*;
 
+/**
+ * A class with a <tt>main</tt> method for reading trees and printing the
+ * complete set of part-of-speech tags (preterminals) used in those trees.
+ *
+ * @see #main(String[])
+ */
 public class PrintTags {
   private static final int bufSize = Constants.defaultFileBufsize;
 

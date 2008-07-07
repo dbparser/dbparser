@@ -10,7 +10,7 @@ import danbikel.parser.Language;
 import danbikel.parser.Nonterminal;
 import danbikel.parser.Settings;
 
-/*
+/**
  * Provides data and methods specific to the structures found in the
  * <a target="_blank"
  * href="http://www.cis.upenn.edu/~chinese/">Chinese Treebank</a> or any other

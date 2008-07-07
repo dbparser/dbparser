@@ -4,7 +4,10 @@ import danbikel.util.proxy.Reconnect;
 import java.lang.reflect.Proxy;
 import java.rmi.RemoteException;
 
-
+/**
+ * An RMI invocation handler that gets a new server for switchboard clients
+ * in the event of a method invocation failure.
+ */
 public class Failover extends Reconnect {
   // constants
   private final static boolean debug = true;

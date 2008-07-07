@@ -14,6 +14,8 @@ import java.math.BigInteger;
   protected final static float defaultLoadFactor = 0.75f;
   protected final static int defaultInitialCapacity = 11;
   protected final static int hashCodeBitmask = 0x7fffffff;
+  protected final static BigInteger maxCapacity =
+    new BigInteger(String.valueOf(Integer.MAX_VALUE));
 
   // inner classes
   abstract public static class Entry<K> extends AbstractMapToPrimitive.Entry<K>
@@ -176,8 +178,11 @@ import java.math.BigInteger;
 
   public HashMapPrimitive(int initialCapacity, float loadFactor) {
     BigInteger capacity = new BigInteger(String.valueOf(initialCapacity));
-    if (!capacity.isProbablePrime(100))
+    if (!capacity.isProbablePrime(100)) {
       capacity = capacity.nextProbablePrime();
+    }
+    capacity =
+      capacity.compareTo(maxCapacity) < 0 ? capacity : maxCapacity;
     entries = new Entry[capacity.intValue()];
     this.loadFactor = loadFactor;
     threshold = loadFactor * entries.length;
@@ -235,6 +240,14 @@ import java.math.BigInteger;
 
     BigInteger bigIntNewSize = new BigInteger(String.valueOf(oldSize * 2));
     bigIntNewSize = bigIntNewSize.nextProbablePrime();
+
+    int cmp = bigIntNewSize.compareTo(maxCapacity);
+    if (cmp == 0) {
+      return; // if we're already at maximum capacity, return
+    }
+    else if (cmp > 0) {
+      bigIntNewSize = maxCapacity;
+    }
 
     int newSize = bigIntNewSize.intValue();
     Entry[] newEntries = new Entry[newSize];

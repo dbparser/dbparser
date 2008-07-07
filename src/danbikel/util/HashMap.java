@@ -15,6 +15,8 @@ public class HashMap<K,V> extends AbstractMap<K, V>
   private final static float defaultLoadFactor = 0.75f;
   private final static int defaultInitialCapacity = 11;
   private final static int hashCodeBitmask = 0x7fffffff;
+  protected final static BigInteger maxCapacity =
+    new BigInteger(String.valueOf(Integer.MAX_VALUE));
 
   // inner classes
   class Entry<K,V> implements Map.Entry<K, V> {
@@ -152,8 +154,11 @@ public class HashMap<K,V> extends AbstractMap<K, V>
 
   public HashMap(int initialCapacity, float loadFactor) {
     BigInteger capacity = new BigInteger(String.valueOf(initialCapacity));
-    if (!capacity.isProbablePrime(100))
+    if (!capacity.isProbablePrime(100)) {
       capacity = capacity.nextProbablePrime();
+    }
+    capacity =
+      capacity.compareTo(maxCapacity) < 0 ? capacity : maxCapacity;
     entries = new Entry[capacity.intValue()];
     this.loadFactor = loadFactor;
     threshold = loadFactor * entries.length;
@@ -214,6 +219,14 @@ public class HashMap<K,V> extends AbstractMap<K, V>
 
     BigInteger bigIntNewSize = new BigInteger(String.valueOf(oldSize * 2));
     bigIntNewSize = bigIntNewSize.nextProbablePrime();
+
+    int cmp = bigIntNewSize.compareTo(maxCapacity);
+    if (cmp == 0) {
+      return; // if we're already at maximum capacity, return
+    }
+    else if (cmp > 0) {
+      bigIntNewSize = maxCapacity;
+    }
 
     int newSize = bigIntNewSize.intValue();
     Entry[] newEntries = new Entry[newSize];

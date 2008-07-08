@@ -8,7 +8,7 @@ import java.util.Iterator;
  * A cache for storing arbitrary objects with their probabilities.  This class
  * uses a hash map, and offers several replacement strategies.
  */
-public class ProbabilityCache extends danbikel.util.HashMapDouble {
+public class ProbabilityCache<K> extends danbikel.util.HashMapDouble<K> {
 
   // public constants
   /**
@@ -126,6 +126,8 @@ public class ProbabilityCache extends danbikel.util.HashMapDouble {
    * Sets the strategy for replacement when the size limit of this cache has
    * been reached.
    *
+   * @param strategy the integer id for the caching strategy to set for this
+   *                 cache
    * @return this probability cache object
    *
    * @see #RANDOM
@@ -139,13 +141,14 @@ public class ProbabilityCache extends danbikel.util.HashMapDouble {
     this.strategy = strategy;
     if (strategy == RANDOM)
       rand = new Random(System.currentTimeMillis());
-    
+
     return this;
   }
 
   /**
    * Sets the maximum capacity for this cache.
    *
+   * @param maxCapacity the new maximum capacity of this cache
    * @throws IllegalArgumentException if the specified maximum capacity
    * is zero or negative
    */
@@ -181,7 +184,7 @@ public class ProbabilityCache extends danbikel.util.HashMapDouble {
    * @see #setStrategy(int)
    */
   //public synchronized double put(Object key, double probability) {
-  public double put(Object key, double probability) {
+  public double put(K key, double probability) {
     if (size() >= maxCapacity) {
       switch (strategy) {
       case RANDOM:
@@ -233,7 +236,7 @@ public class ProbabilityCache extends danbikel.util.HashMapDouble {
    * @return the old probability of the specified key, or {@link Double#NaN}
    * if the key did not exist in this map
    */
-  public final double putAndRemove(Object key, double probability) {
+  public final double putAndRemove(K key, double probability) {
     return putAndRemove(key, key.hashCode(), probability);
   }
 
@@ -249,8 +252,7 @@ public class ProbabilityCache extends danbikel.util.HashMapDouble {
    * @return the old probability of the specified key, or {@link Double#NaN}
    * if the key did not exist in this map
    */
-  public final double putAndRemove(Object key, int hash,
-						double probability) {
+  public final double putAndRemove(K key, int hash, double probability) {
     MapToPrimitive.Entry entry = getEntryMRU(key, hash);
     if (entry != null) {
       double oldProb = entry.getDoubleValue();
@@ -287,7 +289,7 @@ public class ProbabilityCache extends danbikel.util.HashMapDouble {
    * if it is not in this cache
    */
   //public synchronized MapToPrimitive.Entry getProb(Object key) {
-  public MapToPrimitive.Entry getProb(Object key) {
+  public MapToPrimitive.Entry getProb(K key) {
     return (strategy == BUCKET_LRU ?
 	    super.getEntryMRU(key) :
 	    super.getEntry(key));

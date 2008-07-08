@@ -4,6 +4,9 @@ import danbikel.util.*;
 import danbikel.lisp.*;
 import java.io.Serializable;
 
+/**
+ * Class to represent a chart item when performing the Inside-Outside algorithm.
+ */
 public class EMItem extends CKYItem.MappedPrevModBaseNPAware {
   /**
    * Holds references to the one or two antecedents that yielded a particular
@@ -76,6 +79,13 @@ public class EMItem extends CKYItem.MappedPrevModBaseNPAware {
    */
   protected int unaryLevel;
 
+  /**
+   * Constructs a new EM (Inside-Outside) chart item, with all data members
+   * set to default values.
+   *
+   * @see #set(Symbol, Word, Subcat, Subcat, CKYItem, SLNode, SLNode, SexpList, SexpList, int, int, boolean, boolean, boolean, int, double)
+   */
+  public EMItem() {}
 
   /**
    * This method simply throws an UnsupportedOperationException,

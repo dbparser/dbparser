@@ -1,7 +1,6 @@
 package danbikel.parser;
 
 import danbikel.util.*;
-import danbikel.lisp.*;
 import java.io.*;
 import java.util.*;
 
@@ -9,7 +8,7 @@ import java.util.*;
  * Provides a mapping between objects and two floating-point (<tt>double</tt>)
  * values that may be incremented or decremented.
  */
-public class BiCountsTable extends danbikel.util.HashMapTwoDoubles {
+public class BiCountsTable<K> extends danbikel.util.HashMapTwoDoubles<K> {
   /**
    * Constructs an empty <code>BiCountsTable</code>.
    */
@@ -53,7 +52,7 @@ public class BiCountsTable extends danbikel.util.HashMapTwoDoubles {
    * @param index the index of the counter to be incremented for the specified
    * key
    */
-  public void add(Object key, int index) {
+  public void add(K key, int index) {
     add(key, index, 1.0);
   }
 
@@ -64,12 +63,12 @@ public class BiCountsTable extends danbikel.util.HashMapTwoDoubles {
    * @return the value at the specified index for the specified key, or
    * <tt>0.0</tt> if the key is not in this map
    */
-  public double count(Object key, int index) {
+  public double count(K key, int index) {
     /*
     if (index < 0 || index > 1)
       throw new IllegalArgumentException();
     */
-    MapToPrimitive.Entry e = getEntry(key);
+    MapToPrimitive.Entry<K> e = getEntry(key);
     return (e == null ? 0.0 : e.getDoubleValue(index));
   }
 
@@ -106,17 +105,15 @@ public class BiCountsTable extends danbikel.util.HashMapTwoDoubles {
    * <tt>IOException</tt> while it is being written to
    */
   public void output(String eventName, Writer writer) throws IOException {
-    Iterator keys = keySet().iterator();
-    while (keys.hasNext()) {
-      Object o = keys.next();
+    for (K key : keySet()) {
       writer.write("(");
       writer.write(eventName);
       writer.write(" ");
-      writer.write(String.valueOf(o));
+      writer.write(String.valueOf(key));
       writer.write(" ");
-      writer.write(String.valueOf(count(o, 0)));
+      writer.write(String.valueOf(count(key, 0)));
       writer.write(" ");
-      writer.write(String.valueOf(count(o, 1)));
+      writer.write(String.valueOf(count(key, 1)));
       writer.write(")\n");
     }
   }

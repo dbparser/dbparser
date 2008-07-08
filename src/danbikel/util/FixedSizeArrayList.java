@@ -3,6 +3,11 @@ package danbikel.util;
 import java.io.*;
 import java.util.*;
 
+/**
+ * A fixed-size list of objects backed by an array.  By providing a
+ * constant-time {@link #shift(Object)} method, this implementation supports
+ * an efficient implementation of a circular buffer.
+ */
 public class FixedSizeArrayList
   extends AbstractFixedSizeList implements Serializable {
   protected Object[] data;

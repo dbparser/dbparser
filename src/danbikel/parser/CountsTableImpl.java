@@ -1,7 +1,6 @@
 package danbikel.parser;
 
 import danbikel.util.*;
-import danbikel.lisp.*;
 import java.io.*;
 import java.util.*;
 
@@ -9,8 +8,8 @@ import java.util.*;
  * Provides a mapping between objects and floating-point (<tt>double</tt>)
  * counts that may be incremented or decremented.
  */
-public class CountsTableImpl
-  extends danbikel.util.HashMapDouble implements CountsTable {
+public class CountsTableImpl<K>
+  extends danbikel.util.HashMapDouble<K> implements CountsTable<K> {
   /**
    * Constructs an empty <code>CountsTable</code>.
    */
@@ -43,32 +42,30 @@ public class CountsTableImpl
     super(initialCapacity, loadFactor);
   }
 
-  public void addAll(CountsTable other) {
-    Iterator it = other.entrySet().iterator();
-    while (it.hasNext()) {
-      MapToPrimitive.Entry entry = (MapToPrimitive.Entry)it.next();
+  public void addAll(CountsTable<K> other) {
+    for (Map.Entry<K,Object> entryObj : other.entrySet()) {
+      MapToPrimitive.Entry<K> entry = (MapToPrimitive.Entry<K>)entryObj;
       this.add(entry.getKey(), entry.getDoubleValue());
     }
   }
 
-  public void putAll(CountsTable other) {
-    Iterator it = other.entrySet().iterator();
-    while (it.hasNext()) {
-      MapToPrimitive.Entry entry = (MapToPrimitive.Entry)it.next();
+  public void putAll(CountsTable<K> other) {
+    for (Map.Entry<K,Object> entryObj : other.entrySet()) {
+      MapToPrimitive.Entry<K> entry = (MapToPrimitive.Entry<K>)entryObj;
       this.put(entry.getKey(), entry.getDoubleValue());
     }
   }
 
-  public void add(Object key) {
+  public void add(K key) {
     add(key, 0, 1.0);
   }
 
-  public double count(Object key) {
-    MapToPrimitive.Entry e = getEntry(key);
+  public double count(K key) {
+    MapToPrimitive.Entry<K> e = getEntry(key);
     return (e == null ? 0 : e.getDoubleValue(0));
   }
 
-  public double count(Object key, int hashCode) {
+  public double count(K key, int hashCode) {
     MapToPrimitive.Entry e = getEntry(key, hashCode);
     return (e == null ? 0 : e.getDoubleValue(0));
   }
@@ -94,15 +91,13 @@ public class CountsTableImpl
    * <pre>(name key value)</pre>
    */
   public void output(String eventName, Writer writer) throws IOException {
-    Iterator keys = keySet().iterator();
-    while (keys.hasNext()) {
-      Object o = keys.next();
+    for (K key : keySet()) {
       writer.write("(");
       writer.write(eventName);
       writer.write(" ");
-      writer.write(String.valueOf(o));
+      writer.write(String.valueOf(key));
       writer.write(" ");
-      writer.write(String.valueOf(count(o)));
+      writer.write(String.valueOf(count(key)));
       writer.write(")\n");
     }
   }

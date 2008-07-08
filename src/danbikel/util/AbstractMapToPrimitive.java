@@ -7,8 +7,8 @@ package danbikel.util;
  * <code>UnsupportedOperationException</code>.  In this way, concrete
  * subclasses need only implement methods for the primitives they support.
  */
-abstract public class AbstractMapToPrimitive
-  extends java.util.AbstractMap implements MapToPrimitive {
+abstract public class AbstractMapToPrimitive<K>
+  extends java.util.AbstractMap<K,Object> implements MapToPrimitive<K> {
 
   /**
    * Provides convenient abstract implementation of the
@@ -18,14 +18,14 @@ abstract public class AbstractMapToPrimitive
    * subclass need only implement methods specific to the primitives it
    * supports.
    */
-  abstract public static class Entry
-  implements MapToPrimitive.Entry, java.io.Serializable {
+  abstract public static class Entry<K>
+  implements MapToPrimitive.Entry<K>, java.io.Serializable {
 
     // data members
     /** The key of this map entry. */
-    transient protected Object key;
+    transient protected K key;
 
-    public Object getKey() { return key; }
+    public K getKey() { return key; }
 
     /**
      * Returns <tt>0</tt>.
@@ -459,7 +459,7 @@ abstract public class AbstractMapToPrimitive
    * @return the map entry for the specified key, or <code>null</code> if no
    * such mapping exists in this map
    */
-  public abstract MapToPrimitive.Entry getEntry(Object key);
+  public abstract MapToPrimitive.Entry getEntry(K key);
 
   /**
    * Gets the map entry for the specified key and, as a side-effect, puts
@@ -471,7 +471,7 @@ abstract public class AbstractMapToPrimitive
    * MRU in its bucket inside the hash map
    * @throws UnsupportedOperationException if this map is not a hash map
    */
-  public abstract MapToPrimitive.Entry getEntryMRU(Object key);
+  public abstract MapToPrimitive.Entry getEntryMRU(K key);
 
   /**
    * Removes a random mapping from this map (optional operation).
@@ -510,10 +510,10 @@ abstract public class AbstractMapToPrimitive
    * @throws UnsupportedOperationException if this map does not map keys
    * to <code>byte</code> values
    */
-  public byte put(Object key, byte value) {
+  public byte put(K key, byte value) {
     throw new UnsupportedOperationException();
   }
-  public byte put(Object key, int index, byte value) {
+  public byte put(K key, int index, byte value) {
     throw new UnsupportedOperationException();
   }
   /**
@@ -528,7 +528,7 @@ abstract public class AbstractMapToPrimitive
    * @param addend the amount by which to increment the <code>byte</code> value
    * for the specified key
    */
-  public void add(Object key, byte addend) {
+  public void add(K key, byte addend) {
     add(key, 0, addend);
   }
   /**
@@ -546,19 +546,19 @@ abstract public class AbstractMapToPrimitive
    * @param addend the amount by which to increment the <code>byte</code> value
    * for the specified key
    */
-  public void add(Object key, int index, byte addend) {
+  public void add(K key, int index, byte addend) {
     throw new UnsupportedOperationException();
   }
-  public char put(Object key, char value) {
+  public char put(K key, char value) {
     return put(key, 0, value);
   }
-  public char put(Object key, int index, char value) {
+  public char put(K key, int index, char value) {
     throw new UnsupportedOperationException();
   }
-  public short put(Object key, short value) {
+  public short put(K key, short value) {
     return put(key, 0, value);
   }
-  public short put(Object key, int index, short value) {
+  public short put(K key, int index, short value) {
     throw new UnsupportedOperationException();
   }
   /**
@@ -573,7 +573,7 @@ abstract public class AbstractMapToPrimitive
    * @param addend the amount by which to increment the <code>short</code> value
    * for the specified key
    */
-  public void add(Object key, short addend) {
+  public void add(K key, short addend) {
     add(key, 0, addend);
   }
   /**
@@ -593,13 +593,13 @@ abstract public class AbstractMapToPrimitive
    *
    * @throws IllegalArgumentException if the index is out of range
    */
-  public void add(Object key, int index, short addend) {
+  public void add(K key, int index, short addend) {
     throw new UnsupportedOperationException();
   }
-  public int put(Object key, int value) {
+  public int put(K key, int value) {
     return put(key, 0, value);
   }
-  public int put(Object key, int index, int value) {
+  public int put(K key, int index, int value) {
     throw new UnsupportedOperationException();
   }
   /**
@@ -614,7 +614,7 @@ abstract public class AbstractMapToPrimitive
    * @param addend the amount by which to increment the <code>int</code> value
    * for the specified key
    */
-  public void add(Object key, int addend) {
+  public void add(K key, int addend) {
     add(key, 0, addend);
   }
   /**
@@ -632,13 +632,13 @@ abstract public class AbstractMapToPrimitive
    * @param addend the amount by which to increment the <code>int</code> value
    * for the specified key
    */
-  public void add(Object key, int index, int addend) {
+  public void add(K key, int index, int addend) {
     throw new UnsupportedOperationException();
   }
-  public long put(Object key, long addend) {
+  public long put(K key, long addend) {
     return put(key, 0, addend);
   }
-  public long put(Object key, int index, long addend) {
+  public long put(K key, int index, long addend) {
     throw new UnsupportedOperationException();
   }
   /**
@@ -653,7 +653,7 @@ abstract public class AbstractMapToPrimitive
    * @param addend the amount by which to increment the <code>long</code> value
    * for the specified key
    */
-  public void add(Object key, long addend) {
+  public void add(K key, long addend) {
     add(key, 0, addend);
   }
   /**
@@ -671,13 +671,13 @@ abstract public class AbstractMapToPrimitive
    * @param addend the amount by which to increment the <code>long</code> value
    * for the specified key
    */
-  public void add(Object key, int index, long addend) {
+  public void add(K key, int index, long addend) {
     throw new UnsupportedOperationException();
   }
-  public float put(Object key, float value) {
+  public float put(K key, float value) {
     return put(key, 0, value);
   }
-  public float put(Object key, int index, float value) {
+  public float put(K key, int index, float value) {
     throw new UnsupportedOperationException();
   }
   /**
@@ -692,7 +692,7 @@ abstract public class AbstractMapToPrimitive
    * @param addend the amount by which to increment the <code>float</code> value
    * for the specified key
    */
-  public void add(Object key, float addend) {
+  public void add(K key, float addend) {
     add(key, 0, addend);
   }
   /**
@@ -710,13 +710,13 @@ abstract public class AbstractMapToPrimitive
    * @param addend the amount by which to increment the <code>float</code> value
    * for the specified key
    */
-  public void add(Object key, int index, float addend) {
+  public void add(K key, int index, float addend) {
     throw new UnsupportedOperationException();
   }
-  public double put(Object key, double value) {
+  public double put(K key, double value) {
     return put(key, 0, value);
   }
-  public double put(Object key, int index, double value) {
+  public double put(K key, int index, double value) {
     throw new UnsupportedOperationException();
   }
   /**
@@ -731,7 +731,7 @@ abstract public class AbstractMapToPrimitive
    * @param addend the amount by which to increment the <code>double</code>
    * value for the specified key
    */
-  public void add(Object key, double addend) {
+  public void add(K key, double addend) {
     add(key, 0, addend);
   }
   /**
@@ -749,7 +749,7 @@ abstract public class AbstractMapToPrimitive
    * @param addend the amount by which to increment the <code>double</code>
    * value for the specified key
    */
-  public void add(Object key, int index, double addend) {
+  public void add(K key, int index, double addend) {
     throw new UnsupportedOperationException();
   }
 

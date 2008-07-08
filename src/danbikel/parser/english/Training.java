@@ -2,6 +2,7 @@ package danbikel.parser.english;
 
 import java.util.*;
 import java.io.*;
+
 import danbikel.parser.Constants;
 import danbikel.parser.HeadFinder;
 import danbikel.parser.Language;
@@ -12,13 +13,12 @@ import danbikel.lisp.*;
 
 /**
  * Provides methods for language-specific processing of training parse trees.
- * Even though this subclass of {@link danbikel.parser.Training} is
- * in the default English language package, its primary purpose is simply
- * to fill in the {@link #argContexts}, {@link #semTagArgStopSet} and
- * {@link #nodesToPrune} data members using a metadata resource.  If this
- * capability is desired in another language package, this class may be
- * subclassed.
- * <p>
+ * Even though this subclass of {@link danbikel.parser.Training} is in the
+ * default English language package, its primary purpose is simply to fill in
+ * the {@link #argContexts}, {@link #semTagArgStopSet} and {@link #nodesToPrune}
+ * data members using a metadata resource.  If this capability is desired in
+ * another language package, this class may be subclassed.
+ * <p/>
  * This class also re-defined the method
  * {@link danbikel.parser.Training#addBaseNPs(Sexp)}, with an important change
  * that is possibly only relevant to the Penn Treebank.
@@ -34,12 +34,11 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
   /**
    * The default constructor, to be invoked by {@link danbikel.parser.Language}.
    * This constructor looks for a resource named by the property
-   * <code>metadataPropertyPrefix + language</code>
-   * where <code>metadataPropertyPrefix</code> is the value of
-   * the constant {@link #metadataPropertyPrefix} and <code>language</code>
-   * is the value of <code>Settings.get(Settings.language)</code>.
-   * For example, the property for English is
-   * <code>&quot;parser.training.metadata.english&quot;</code>.
+   * <code>metadataPropertyPrefix + language</code> where
+   * <code>metadataPropertyPrefix</code> is the value of the constant {@link
+   * #metadataPropertyPrefix} and <code>language</code> is the value of
+   * <code>Settings.get(Settings.language)</code>. For example, the property for
+   * English is <code>&quot;parser.training.metadata.english&quot;</code>.
    */
   public Training() throws FileNotFoundException, IOException {
     String language = Settings.get(Settings.language);
@@ -59,20 +58,6 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
     return tree;
   }
 
-  /*
-  protected void stripAugmentations(Symbol label, Nonterminal nonterminal,
-                                    boolean parseLabel) {
-    if (parseLabel)
-      treebank.parseNonterminal(label, nonterminal);
-    SexpList augmentations = nonterminal.augmentations;
-    // if there's an index, make sure to strip delimeter that precedes it
-    if (nonterminal.index >= 0)
-      augmentations.remove(augmentations.size() - 1);
-    nonterminal.index = -1; // effectively strips off index
-  }
-  */
-
-
   public boolean removeWord(Symbol word, Symbol tag, int idx, SexpList sentence,
 			    SexpList tags, SexpList originalTags,
 			    Set prunedPretermsPosSet,
@@ -90,13 +75,12 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
 
 
   /**
-   * We override {@link
-   * danbikel.parser.Training#relabelSubjectlessSentences(Sexp)} so
-   * that we can make the definition of a subjectless sentence
-   * slightly more restrictive: a subjectless sentence not only must
-   * have a null-element child that is marked with the subject
-   * augmentation, but also its head must be a <tt>VP</tt> (this is
-   * Mike Collins' definition of a subjectless sentence).
+   * We override
+   * {@link danbikel.parser.Training#relabelSubjectlessSentences(Sexp)}
+   * so that we can make the definition of a subjectless sentence slightly more
+   * restrictive: a subjectless sentence not only must have a null-element child
+   * that is marked with the subject augmentation, but also its head must be a
+   * <tt>VP</tt> (this is Mike Collins' definition of a subjectless sentence).
    */
   public Sexp relabelSubjectlessSentences(Sexp tree) {
     if (tree.isSymbol())
@@ -130,7 +114,8 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
 	parsedParent.base = treebank.subjectlessSentenceLabel();
 	treeList.set(0, parsedParent.toSymbol());
       }
-      else */if (treebank.isSentence(parent) &&
+      else */
+      if (treebank.isSentence(parent) &&
 	  treebank.getCanonical(headChildLabel) == VP) {
 	for (int i = 1; i < treeListLen; i++) {
 	  SexpList child = treeList.listAt(i);
@@ -159,9 +144,9 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
   }
 
   /**
-   * De-transforms sentence labels changed by {@link
-   * #relabelSubjectlessSentences(Sexp)} when the subjectless sentence node has
-   * children prior to its head child that are arguments.
+   * De-transforms sentence labels changed by
+   * {@link #relabelSubjectlessSentences(Sexp)} when the subjectless sentence
+   * node has children prior to its head child that are arguments.
    */
   public Sexp fixSubjectlessSentences(Sexp tree) {
     if (treebank.isPreterminal(tree))
@@ -247,7 +232,9 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
    */
   //protected void canonicalizeNonterminals(Sexp tree) {}
 
-  /** Test driver for this class. */
+  /**
+   * Test driver for this class.
+   */
   public static void main(String[] args) {
     String filename = null;
     boolean raisePunc = false, idArgs = false, subjectlessS = false;
@@ -265,8 +252,7 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
 	  stripAug = true;
 	else if (args[i].equals("-n"))
 	  addBaseNPs = true;
-      }
-      else
+      } else
 	filename = args[i];
     }
 
@@ -281,7 +267,7 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
       System.exit(1);
     }
 
-    Training training = (Training)Language.training();
+    Training training = (Training) Language.training();
     training.printMetadata();
 
     try {

@@ -1,10 +1,13 @@
 package danbikel.util;
 
+import java.util.Map;
+import java.util.Set;
+
 /**
  * Specifies methods that allow mappings from arbitrary objects to primitive
  * types that are bundled in the map entries for efficiency.  This interface
  * specifies methods to access map entries directly via a key in the map,
- * (via the {@link #getEntry(Object)} and {@link #getEntryMRU(Object)}
+ * (via the {@link #getEntry} and {@link #getEntryMRU}
  * methods) both to obtain the "canonical" key objects contained in the map,
  * as well as to get at the primitive values for those keys more efficiently.
  * Finally, this interface specifies methods useful to building caches that
@@ -26,14 +29,14 @@ package danbikel.util;
  * exception if the argument is anything other than <tt>0</tt>, as specified
  * in the API documentation for that method).
  */
-public interface MapToPrimitive extends java.util.Map {
+public interface MapToPrimitive<K> extends java.util.Map<K, Object> {
 
   /**
    * Interface that provides methods for all the possible primitive
    * types that could be associated with keys in a <code>MapToPrimitive</code>
    * map.
    */
-  public interface Entry extends java.util.Map.Entry {
+  public interface Entry<K> extends java.util.Map.Entry<K,Object> {
 
     /**
      * Sets the key of this map entry to be the specified key if it is
@@ -47,7 +50,7 @@ public interface MapToPrimitive extends java.util.Map {
      * key and was therefore substituted for the current key, <code>false</code>
      * otherwise
      */
-    boolean replaceKey(Object key);
+    boolean replaceKey(K key);
 
     /**
      * Returns the number of <code>byte</code> values associated with the key
@@ -493,23 +496,27 @@ public interface MapToPrimitive extends java.util.Map {
    * @return the map entry for the specified key, or <code>null</code> if no
    * such mapping exists in this map
    */
-  Entry getEntry(Object key);
+  Entry getEntry(K key);
 
-  Entry getEntry(Object key, int hashCode);
+  Entry getEntry(K key, int hashCode);
 
   /**
-   * Gets the map entry for the specified key and, as a side-effect, puts
-   * the map entry at the front of the bucket list, indicating that it is
-   * the most-recently used entry (useful for caches implementing a
-   * bucket-LRU replacement scheme).  This is an optional operation.
+   * Returns the map entry for the specified key and, as a side-effect, puts the
+   * map entry at the front of the bucket list, indicating that it is the
+   * most-recently used entry (useful for caches implementing a bucket-LRU
+   * replacement scheme).  This is an optional operation.
    *
-   * @param key the key whose map entry is to be retrieved and made the
-   * MRU in its bucket inside the hash map
+   * @param key the key whose map entry is to be retrieved and made the MRU in
+   *            its bucket inside the hash map
+   * @return the map entry for the specified key and, as a side-effect, puts the
+   *         map entry at the front of the bucket list, indicating that it is
+   *         the most-recently used entry
+   *
    * @throws UnsupportedOperationException if this map is not a hash map
    */
-  Entry getEntryMRU(Object key);
+  Entry getEntryMRU(K key);
 
-  Entry getEntryMRU(Object key, int hashCode);
+  Entry getEntryMRU(K key, int hashCode);
 
   /**
    * Removes a random mapping from this map (optional operation).
@@ -546,8 +553,8 @@ public interface MapToPrimitive extends java.util.Map {
    * @throws UnsupportedOperationException if this map does not map keys
    * to <code>byte</code> values
    */
-  byte put(Object key, byte value);
-  byte put(Object key, int index, byte value);
+  byte put(K key, byte value);
+  byte put(K key, int index, byte value);
   /**
    * Adds the specified addend to the <code>byte</code> value (at index 0)
    * associated with the specified key, or if no mapping previously existed
@@ -560,7 +567,7 @@ public interface MapToPrimitive extends java.util.Map {
    * @param addend the amount by which to increment the <code>byte</code> value
    * for the specified key
    */
-  void add(Object key, byte addend);
+  void add(K key, byte addend);
   /**
    * Adds the specified addend to the <code>byte</code> value at the specified
    * index associated with the specified key, or if no mapping previously
@@ -576,11 +583,11 @@ public interface MapToPrimitive extends java.util.Map {
    * @param addend the amount by which to increment the <code>byte</code> value
    * for the specified key
    */
-  void add(Object key, int index, byte addend);
-  char put(Object key, char value);
-  char put(Object key, int index, char value);
-  short put(Object key, short value);
-  short put(Object key, int index, short value);
+  void add(K key, int index, byte addend);
+  char put(K key, char value);
+  char put(K key, int index, char value);
+  short put(K key, short value);
+  short put(K key, int index, short value);
   /**
    * Adds the specified addend to the <code>short</code> value (at index 0)
    * associated with the specified key, or if no mapping previously existed
@@ -593,7 +600,7 @@ public interface MapToPrimitive extends java.util.Map {
    * @param addend the amount by which to increment the <code>short</code> value
    * for the specified key
    */
-  void add(Object key, short addend);
+  void add(K key, short addend);
   /**
    * Adds the specified addend to the <code>short</code> value at the specified
    * index associated with the specified key, or if no mapping previously
@@ -611,9 +618,9 @@ public interface MapToPrimitive extends java.util.Map {
    *
    * @throws IllegalArgumentException if the index is out of range
    */
-  void add(Object key, int index, short addend);
-  int put(Object key, int value);
-  int put(Object key, int index, int value);
+  void add(K key, int index, short addend);
+  int put(K key, int value);
+  int put(K key, int index, int value);
   /**
    * Adds the specified addend to the <code>int</code> value (at index 0)
    * associated with the specified key, or if no mapping previously existed
@@ -626,7 +633,7 @@ public interface MapToPrimitive extends java.util.Map {
    * @param addend the amount by which to increment the <code>int</code> value
    * for the specified key
    */
-  void add(Object key, int addend);
+  void add(K key, int addend);
   /**
    * Adds the specified addend to the <code>int</code> value at the specified
    * index associated with the specified key, or if no mapping previously
@@ -642,9 +649,9 @@ public interface MapToPrimitive extends java.util.Map {
    * @param addend the amount by which to increment the <code>int</code> value
    * for the specified key
    */
-  void add(Object key, int index, int addend);
-  long put(Object key, long addend);
-  long put(Object key, int index, long addend);
+  void add(K key, int index, int addend);
+  long put(K key, long addend);
+  long put(K key, int index, long addend);
   /**
    * Adds the specified addend to the <code>long</code> value (at index 0)
    * associated with the specified key, or if no mapping previously existed
@@ -657,7 +664,7 @@ public interface MapToPrimitive extends java.util.Map {
    * @param addend the amount by which to increment the <code>long</code> value
    * for the specified key
    */
-  void add(Object key, long addend);
+  void add(K key, long addend);
   /**
    * Adds the specified addend to the <code>long</code> value at the specified
    * index associated with the specified key, or if no mapping previously
@@ -673,9 +680,9 @@ public interface MapToPrimitive extends java.util.Map {
    * @param addend the amount by which to increment the <code>long</code> value
    * for the specified key
    */
-  void add(Object key, int index, long addend);
-  float put(Object key, float value);
-  float put(Object key, int index, float value);
+  void add(K key, int index, long addend);
+  float put(K key, float value);
+  float put(K key, int index, float value);
   /**
    * Adds the specified addend to the <code>float</code> value (at index 0)
    * associated with the specified key, or if no mapping previously existed
@@ -688,7 +695,7 @@ public interface MapToPrimitive extends java.util.Map {
    * @param addend the amount by which to increment the <code>float</code> value
    * for the specified key
    */
-  void add(Object key, float addend);
+  void add(K key, float addend);
   /**
    * Adds the specified addend to the <code>float</code> value at the specified
    * index associated with the specified key, or if no mapping previously
@@ -704,9 +711,9 @@ public interface MapToPrimitive extends java.util.Map {
    * @param addend the amount by which to increment the <code>float</code> value
    * for the specified key
    */
-  void add(Object key, int index, float addend);
-  double put(Object key, double value);
-  double put(Object key, int index, double value);
+  void add(K key, int index, float addend);
+  double put(K key, double value);
+  double put(K key, int index, double value);
   /**
    * Adds the specified addend to the <code>double</code> value (at index 0)
    * associated with the specified key, or if no mapping previously existed for
@@ -719,7 +726,7 @@ public interface MapToPrimitive extends java.util.Map {
    * @param addend the amount by which to increment the <code>double</code>
    * value for the specified key
    */
-  void add(Object key, double addend);
+  void add(K key, double addend);
   /**
    * Adds the specified addend to the <code>double</code> value at the specified
    * index associated with the specified key, or if no mapping previously
@@ -735,5 +742,5 @@ public interface MapToPrimitive extends java.util.Map {
    * @param addend the amount by which to increment the <code>double</code>
    * value for the specified key
    */
-  void add(Object key, int index, double addend);
+  void add(K key, int index, double addend);
 }

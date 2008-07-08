@@ -1,14 +1,21 @@
 package danbikel.parser;
 
 import danbikel.switchboard.*;
+
 import java.net.MalformedURLException;
 import java.io.*;
 import java.rmi.*;
 import java.rmi.server.*;
 
+/**
+ * A class for kick-starting a {@link Switchboard} instance when doing the
+ * E-step of the EM algorithm (Inside-Outside) in a distributed-computing
+ * environment.
+ */
 public class StartEMSwitchboard {
 
-  private StartEMSwitchboard() {}
+  private StartEMSwitchboard() {
+  }
 
   // constants
   private static final String outFilenameSuffix = ".parsed";
@@ -47,7 +54,7 @@ public class StartEMSwitchboard {
     "\t\t(defaults to \"<input file>" + outFilenameSuffix + "\")",
     "\t<messages output file> is the output file for switchboard messages",
     "\t\t(defaults to \"directory of <output file>\" + \"" +
-       Switchboard.defaultMessagesFilename + "\")",
+    Switchboard.defaultMessagesFilename + "\")",
   };
 
   private final static void usage() {
@@ -65,57 +72,43 @@ public class StartEMSwitchboard {
 	  if (i + 1 == args.length) {
 	    System.err.println("error: no argument present after " + args[i]);
 	    usage();
-	  }
-	  else
+	  } else
 	    settingsFile = args[++i];
-	}
-	else if (args[i].equals("-p")) {
+	} else if (args[i].equals("-p")) {
 	  if (i + 1 == args.length) {
 	    System.err.println("error: no argument present after -p");
 	    usage();
-	  }
-	  else
+	  } else
 	    portMain = Integer.parseInt(args[++i]);
-	}
-	else if (args[i].equals("-n")) {
+	} else if (args[i].equals("-n")) {
 	  if (i + 1 == args.length) {
 	    System.err.println("error: no argument present after -n");
 	    usage();
-	  }
-	  else
+	  } else
 	    bindingName = args[++i];
-	}
-	else if (args[i].equals("-log")) {
+	} else if (args[i].equals("-log")) {
 	  if (i + 1 == args.length) {
 	    System.err.println("error: no argument present after -log");
 	    usage();
-	  }
-	  else
+	  } else
 	    logFilenameMain = args[++i];
-	}
-	else if (args[i].equals("-o")) {
+	} else if (args[i].equals("-o")) {
 	  if (i + 1 == args.length) {
 	    System.err.println("error: no argument present after -o");
 	    usage();
-	  }
-	  else
+	  } else
 	    outFilenameMain = args[++i];
-	}
-	else if (args[i].equals("-msg")) {
+	} else if (args[i].equals("-msg")) {
 	  if (i + 1 == args.length) {
 	    System.err.println("error: no argument present after -msg");
 	    usage();
-	  }
-	  else
+	  } else
 	    msgFilenameMain = args[++i];
-	}
-	else if (args[i].equals("-rp"))
+	} else if (args[i].equals("-rp"))
 	  reProcessMain = true;
-      }
-      else if (currRequiredArgIdx < requiredArgs.length) {
+      } else if (currRequiredArgIdx < requiredArgs.length) {
 	requiredArgs[currRequiredArgIdx++] = args[i];
-      }
-      else {
+      } else {
 	System.err.println("error: unexpected argument: " + args[i]);
 	usage();
       }
@@ -149,8 +142,8 @@ public class StartEMSwitchboard {
   }
 
   /**
-   * Kick-starts a <code>Switchboard</code> instance, using
-   * <code>Sexp</code> object reader factories.
+   * Kick-starts a <code>Switchboard</code> instance, using <code>Sexp</code>
+   * object reader factories.
    *
    * @see SexpObjectReaderFactory
    * @see SexpNumberedObjectReaderFactory

@@ -3,6 +3,10 @@ package danbikel.parser;
 import danbikel.lisp.Symbol;
 import danbikel.lisp.Sexp;
 
+/**
+ * The default&mdash;and currently only&mdash;implementation of
+ * {@link WordFactory}.  This factory constructed {@link Word} instances.
+ */
 public class DefaultWordFactory implements WordFactory {
 
   /**

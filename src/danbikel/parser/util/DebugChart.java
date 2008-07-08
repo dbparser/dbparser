@@ -3,9 +3,15 @@ package danbikel.parser.util;
 import danbikel.util.*;
 import danbikel.lisp.*;
 import danbikel.parser.*;
+
 import java.io.*;
 import java.util.*;
 
+/**
+ * A class to print to <code>System.err</code> the constituents of a
+ * gold-standard parse tree that were found by the parser, according to its
+ * output chart file.
+ */
 public class DebugChart {
   // data members
   private static Symbol traceTag = Language.training().traceTag();
@@ -15,10 +21,13 @@ public class DebugChart {
 
   public static Filter allPass = new AllPass();
   public static Filter onlyStopped = new Filter() {
-      public boolean pass(Object obj) { return ((CKYItem)obj).stop(); }
-    };
+    public boolean pass(Object obj) {
+      return ((CKYItem) obj).stop();
+    }
+  };
 
-  private DebugChart() {}
+  private DebugChart() {
+  }
 
   /**
    * Prints out to <code>System.err</code> which constituents of the specified
@@ -32,26 +41,28 @@ public class DebugChart {
    * used for off-line debugging (i.e., after a parsing run during which chart
    * object files were created).
    *
-   * @param chartFilename the filename of a parser chart file, which is a
-   * Java object file containing two serialized objects: a <code>Chart</code>
-   * object and a <code>SexpList</code> object
-   * @param goldTree the gold-standard parse tree, as found in the original
-   * <tt>combined</tt> file directory of the Penn Treebank, except with its
-   * outer parentheses removed
+   * @param chartFilename the filename of a parser chart file, which is a Java
+   *                      object file containing two serialized objects: a
+   *                      <code>Chart</code> object and a <code>SexpList</code>
+   *                      object
+   * @param goldTree      the gold-standard parse tree, as found in the original
+   *                      <tt>combined</tt> file directory of the Penn Treebank,
+   *                      except with its outer parentheses removed
    */
   public static void findConstituents(String chartFilename,
 				      Sexp goldTree) {
     try {
       ObjectInputStream ois =
 	new ObjectInputStream(new FileInputStream(chartFilename));
-      Chart chart = (Chart)ois.readObject();
-      CKYItem topRankedItem = (CKYItem)ois.readObject();
-      SexpList sentence = (SexpList)ois.readObject();
-      SexpList origWords = (SexpList)ois.readObject();
+      Chart chart = (Chart) ois.readObject();
+      CKYItem topRankedItem = (CKYItem) ois.readObject();
+      SexpList sentence = (SexpList) ois.readObject();
+      SexpList origWords = (SexpList) ois.readObject();
       Sexp newGoldTree = Language.training().preProcess(goldTree);
       boolean downcaseWords = Settings.getBoolean(Settings.downcaseWords);
-      if (downcaseWords)
+      if (downcaseWords) {
 	downcaseWords(newGoldTree);
+      }
       replaceWords(downcaseWords, newGoldTree, sentence);
       System.err.println(Util.prettyPrint(newGoldTree));
       HeadTreeNode headTree = new HeadTreeNode(newGoldTree);
@@ -82,19 +93,19 @@ public class DebugChart {
    * as that can be separately accomplished during decoding by setting
    * <code>Decoder.debugInit</code> to <code>true</code>.
    *
-   * @param chart the chart of the parser, after processing the sentence
-   * to be analyzed
+   * @param chart    the chart of the parser, after processing the sentence to
+   *                 be analyzed
    * @param goldTree the gold-standard parse tree, as found in the original
-   * <tt>combined</tt> directory of the Penn Treebank, except with its
-   * outer parentheses removed
+   *                 <tt>combined</tt> directory of the Penn Treebank, except
+   *                 with its outer parentheses removed
    */
   public static void findConstituents(boolean downcaseWords,
-                                      Chart chart,
-                                      CKYItem topRankedItem,
-                                      SexpList sentence,
-                                      Sexp goldTree) {
+				      Chart chart,
+				      CKYItem topRankedItem,
+				      SexpList sentence,
+				      Sexp goldTree) {
     findConstituents("", downcaseWords, chart, topRankedItem,
-                     sentence, goldTree);
+		     sentence, goldTree);
   }
 
   /**
@@ -107,23 +118,24 @@ public class DebugChart {
    * as that can be separately accomplished during decoding by setting
    * <code>Decoder.debugInit</code> to <code>true</code>.
    *
-   * @param prefix the prefix string to be output before other information
-   * on lines that don't begin with a tab character
-   * @param chart the chart of the parser, after processing the sentence
-   * to be analyzed
+   * @param prefix   the prefix string to be output before other information on
+   *                 lines that don't begin with a tab character
+   * @param chart    the chart of the parser, after processing the sentence to
+   *                 be analyzed
    * @param goldTree the gold-standard parse tree, as found in the original
-   * <tt>combined</tt> directory of the Penn Treebank, except with its
-   * outer parentheses removed
+   *                 <tt>combined</tt> directory of the Penn Treebank, except
+   *                 with its outer parentheses removed
    */
   public static void findConstituents(String prefix,
-                                      boolean downcaseWords,
+				      boolean downcaseWords,
 				      Chart chart,
-                                      CKYItem topRankedItem,
-                                      SexpList sentence,
-                                      Sexp goldTree) {
+				      CKYItem topRankedItem,
+				      SexpList sentence,
+				      Sexp goldTree) {
     Sexp newGoldTree = Language.training().preProcess(goldTree);
-    if (downcaseWords)
+    if (downcaseWords) {
       downcaseWords(newGoldTree);
+    }
     replaceWords(downcaseWords, newGoldTree, sentence);
     HeadTreeNode headTree = new HeadTreeNode(newGoldTree);
     Set best = collectBest(topRankedItem);
@@ -131,42 +143,46 @@ public class DebugChart {
   }
 
   public static void replaceWords(boolean downcaseWords,
-                                  Sexp tree, SexpList sentence) {
+				  Sexp tree, SexpList sentence) {
     replaceWords(downcaseWords, tree, sentence, 0);
   }
 
   private static int replaceWords(boolean downcaseWords,
-                                  Sexp tree, SexpList sentence, int wordIdx) {
+				  Sexp tree, SexpList sentence, int wordIdx) {
     Treebank treebank = Language.treebank();
-    if (treebank.isPreterminal(tree))
+    if (treebank.isPreterminal(tree)) {
       return wordIdx;
+    }
     if (tree.isList()) {
       SexpList treeList = tree.list();
       int treeListLen = treeList.length();
       for (int i = 1; i < treeListLen; i++) {
-        Sexp currChild = treeList.get(i);
-        if (treebank.isPreterminal(currChild)) {
-          Sexp sentenceElt = sentence.get(wordIdx);
-          boolean isUnknownWord = sentenceElt.isList();
-          if (isUnknownWord) {
-            Word word = Language.treebank().makeWord(currChild);
-            Symbol sentWord = sentenceElt.list().symbolAt(0);
-            if (downcaseWords)
-              sentWord = Symbol.get(sentWord.toString().toLowerCase());
-            Symbol wordFeature = sentenceElt.list().symbolAt(1);
-            if (sentWord == word.word()) {
-              word.setWord(wordFeature);
-              treeList.set(i, treebank.constructPreterminal(word));
-            }
-            else
-              System.err.println("chart debug error: didn't replace " +
-                                 word.word() + " with feature from " +
-                                 sentenceElt);
-          }
-          wordIdx++;
-        }
-        else
-          wordIdx = replaceWords(downcaseWords, currChild, sentence, wordIdx);
+	Sexp currChild = treeList.get(i);
+	if (treebank.isPreterminal(currChild)) {
+	  Sexp sentenceElt = sentence.get(wordIdx);
+	  boolean isUnknownWord = sentenceElt.isList();
+	  if (isUnknownWord) {
+	    Word word = Language.treebank().makeWord(currChild);
+	    Symbol sentWord = sentenceElt.list().symbolAt(0);
+	    if (downcaseWords) {
+	      sentWord = Symbol.get(sentWord.toString().toLowerCase());
+	    }
+	    Symbol wordFeature = sentenceElt.list().symbolAt(1);
+	    if (sentWord == word.word()) {
+	      word.setWord(wordFeature);
+	      treeList.set(i, treebank.constructPreterminal(word));
+	    }
+	    else {
+	      System.err.println("chart debug error: didn't replace " +
+				 word.word() + " with feature from " +
+				 sentenceElt);
+	    }
+	  }
+	  wordIdx++;
+	}
+	else {
+	  wordIdx = replaceWords(downcaseWords, currChild, sentence, wordIdx);
+	}
       }
     }
     return wordIdx;
@@ -178,8 +194,9 @@ public class DebugChart {
 					      Symbol topSym,
 					      double nonTopHighestLogProb,
 					      CKYItem bestDerivationItem) {
-    if (bestDerivationItem == null)
+    if (bestDerivationItem == null) {
       return;
+    }
     // first, get distance (as a log prob addend, or probability factor)
     // of the current item of the best derivation to the top-ranked item
     // for the current item's span
@@ -189,14 +206,16 @@ public class DebugChart {
     boolean nonTopSentSpanItem =
       (bdi.label() != topSym) && ((end + 1 - start) == sentLen);
     double highestLogProb =
-      nonTopSentSpanItem ? nonTopHighestLogProb : chart.getTopLogProb(start, end);
+      nonTopSentSpanItem ? nonTopHighestLogProb :
+	chart.getTopLogProb(start, end);
     double distance = highestLogProb - bdi.logProb();
     distance /= Math.log(10); // put distance in log base 10
     // next, get the current best-derivation item's rank among all items
     // covering its span
     int rank = -1;
-    if (bdi == chart.getTopItem(start, end))
+    if (bdi == chart.getTopItem(start, end)) {
       rank = 0;
+    }
     else {
       sortedItems.clear();
       // add all items to sorted items
@@ -207,7 +226,7 @@ public class DebugChart {
     }
 
     System.err.println(prefix + itemToString(bdi) + ", span=" +
-		       (end + 1 -start) +
+		       (end + 1 - start) +
 		       ", dist=" + distance + ", rank=" + rank + " of " +
 		       chart.numItems(start, end));
 
@@ -217,62 +236,66 @@ public class DebugChart {
     // recurse on left children
     for (SLNode lc = bdi.leftChildren(); lc != null; lc = lc.next())
       printBestDerivationStats(prefix, chart, sentLen, topSym,
-			       nonTopHighestLogProb, (CKYItem)lc.data());
+			       nonTopHighestLogProb, (CKYItem) lc.data());
     // recurse on right children
     for (SLNode rc = bdi.rightChildren(); rc != null; rc = rc.next())
       printBestDerivationStats(prefix, chart, sentLen, topSym,
-			       nonTopHighestLogProb, (CKYItem)rc.data());
+			       nonTopHighestLogProb, (CKYItem) rc.data());
   }
 
   // helper methods
   public static void findConstituents(Chart chart, Set best,
-                                      HeadTreeNode tree) {
+				      HeadTreeNode tree) {
     findConstituents("", chart, best, tree);
   }
 
   public static void findConstituents(String prefix,
 				      Chart chart, Set best,
-                                      HeadTreeNode tree) {
+				      HeadTreeNode tree) {
     if (!tree.isPreterminal()) {
       int start = tree.leftIdx();
       // head tree nodes specify right index as index of rightmost word PLUS 1,
       // but we simply want index of rightmost word
       int end = tree.rightIdx() - 1;
-      Symbol label = (Symbol)tree.label();
+      Symbol label = (Symbol) tree.label();
       Iterator it = chart.get(start, end);
       CKYItem found = null;
       CKYItem foundNoStop = null;
       CKYItem unlexicalizedFound = null;
       CKYItem unlexicalizedFoundNoStop = null;
       while (it.hasNext()) {
-	CKYItem item = (CKYItem)it.next();
+	CKYItem item = (CKYItem) it.next();
 	if (item.label().equals(label)) {
 	  if (item.stop()) {
-            boolean haventPreviouslyFound = unlexicalizedFound == null;
-            if (haventPreviouslyFound || best.contains(item))
+	    boolean haventPreviouslyFound = unlexicalizedFound == null;
+	    if (haventPreviouslyFound || best.contains(item)) {
 	      unlexicalizedFound = item;
+	    }
 	  }
-	  else
+	  else {
 	    unlexicalizedFoundNoStop = item;
+	  }
 	  if (item.headWord().equals(tree.headWord())) {
 	    if (item.stop()) {
 	      System.err.println(prefix + "found " +
-                                 itemToString(item, best));
-              boolean haventPreviouslyFound = found == null;
-              boolean currItemInBest = best.contains(item);
-              if (haventPreviouslyFound || currItemInBest)
-	        found = item;
-              // if we've found a lexicalized nonterminal that covers this
-              // span and is part of the best derivation, end search!
-              if (currItemInBest)
-                break;
+				 itemToString(item, best));
+	      boolean haventPreviouslyFound = found == null;
+	      boolean currItemInBest = best.contains(item);
+	      if (haventPreviouslyFound || currItemInBest) {
+		found = item;
+	      }
+	      // if we've found a lexicalized nonterminal that covers this
+	      // span and is part of the best derivation, end search!
+	      if (currItemInBest) {
+		break;
+	      }
 	    }
 	    else {
 	      foundNoStop = item;
 	    }
 	  }
 	}
-       }
+      }
 
       if (found == null) {
 	System.err.print(prefix + "didn't find " +
@@ -284,18 +307,19 @@ public class DebugChart {
 	  System.err.println(" but found:" +
 			     (unlexicalizedFound != null ?
 			      "\n\t" +
-                              itemToString(unlexicalizedFound, best) : "") +
+			      itemToString(unlexicalizedFound, best) : "") +
 			     (foundNoStop != null ?
 			      "\n\t" +
-                              itemToString(foundNoStop, best) : "") +
+			      itemToString(foundNoStop, best) : "") +
 			     (unlexicalizedFound == null &&
 			      unlexicalizedFoundNoStop != null ?
-			      "\n\t" +
-                              itemToString(unlexicalizedFoundNoStop, best) :
-			      ""));
+			      "\n\t" + itemToString(unlexicalizedFoundNoStop,
+						    best) :
+			       ""));
 	}
-	else
+	else {
 	  System.err.println();
+	}
       }
 
       // recurse on head child
@@ -303,17 +327,18 @@ public class DebugChart {
       // recurse on pre- and post-mods
       it = tree.preMods().iterator();
       while (it.hasNext())
-	findConstituents(prefix, chart, best, (HeadTreeNode)it.next());
+	findConstituents(prefix, chart, best, (HeadTreeNode) it.next());
       it = tree.postMods().iterator();
       while (it.hasNext())
-	findConstituents(prefix, chart, best, (HeadTreeNode)it.next());
+	findConstituents(prefix, chart, best, (HeadTreeNode) it.next());
     }
   }
 
   public static Set collectBest(CKYItem topRanked) {
     best.clear();
-    if (topRanked == null)
+    if (topRanked == null) {
       return best;
+    }
     return collectBest(topRanked, best);
   }
 
@@ -328,22 +353,20 @@ public class DebugChart {
       collectBest(curr.headChild(), best);
       // recurse on left children
       for (SLNode lc = curr.leftChildren(); lc != null; lc = lc.next())
-        collectBest((CKYItem)lc.data(), best);
+	collectBest((CKYItem) lc.data(), best);
       // recurse on right children
       for (SLNode rc = curr.rightChildren(); rc != null; rc = rc.next())
-        collectBest((CKYItem)rc.data(), best);
+	collectBest((CKYItem) rc.data(), best);
     }
     return best;
   }
 
   /**
-   * Returns a string of the form
-   * <tt>[start,end,label&lt;headWord&gt;, &lt;headChild&gt;]</tt>
-   * where <tt>&lt;headWord&gt;</tt> is the head word and
-   * where <tt>&lt;headChild&gt;</tt> is either a string of the form
-   * <tt>[start,end,label]</tt>
-   * or <tt>null</tt> if the specified <code>HeadTreeNode</code> is
-   * a preterminal.
+   * Returns a string of the form <tt>[start,end,label&lt;headWord&gt;,
+   * &lt;headChild&gt;]</tt> where <tt>&lt;headWord&gt;</tt> is the head word
+   * and where <tt>&lt;headChild&gt;</tt> is either a string of the form
+   * <tt>[start,end,label]</tt> or <tt>null</tt> if the specified
+   * <code>HeadTreeNode</code> is a preterminal.
    *
    * @return a string representation of the specified node
    */
@@ -351,67 +374,70 @@ public class DebugChart {
     return ("[" + node.leftIdx() + "," + (node.rightIdx() - 1) + "," +
 	    node.label() + node.headWord() + ", " +
 	    (node.isPreterminal() ? "[null]" :
-	     "[" +
-	     node.headChild().leftIdx() + "," +
-	     (node.headChild().rightIdx() - 1) + "," +
-	     node.headChild().label() +
-	     "]") +
-	    "]");
+	      "[" +
+	      node.headChild().leftIdx() + "," +
+	      (node.headChild().rightIdx() - 1) + "," +
+	      node.headChild().label() +
+	      "]") +
+		   "]");
 
   }
 
   public static String itemToString(CKYItem item, Set best) {
     int numChildren = item.numLeftChildren() + item.numRightChildren();
-    if (!item.isPreterminal())
+    if (!item.isPreterminal()) {
       numChildren++;
+    }
     return ("[" + item.start() + "," + item.end() + "," +
 	    item.label() + item.headWord() + ",stop=" +
 	    (item.stop() ? "t" : "f") + ", best=" +
-            (best.contains(item) ? "t" : "f") + ", " +
+	    (best.contains(item) ? "t" : "f") + ", " +
 	    (item.isPreterminal() ? "[null]" :
-	     "[" +
-	     item.headChild().start() + "," +
-	     item.headChild().end() + "," +
-	     item.headChild().label() +
-	     "]") +
-            ",numKids=" + numChildren +
-	    "]");
+	      "[" +
+	      item.headChild().start() + "," +
+	      item.headChild().end() + "," +
+	      item.headChild().label() +
+	      "]") +
+		   ",numKids=" + numChildren +
+		   "]");
   }
 
   public static String itemToString(CKYItem item) {
     int numChildren = item.numLeftChildren() + item.numRightChildren();
-    if (!item.isPreterminal())
+    if (!item.isPreterminal()) {
       numChildren++;
+    }
     return ("[" + item.start() + "," + item.end() + "," +
 	    item.label() + item.headWord() + ",stop=" +
 	    (item.stop() ? "t" : "f") + ", " +
 	    (item.isPreterminal() ? "[null]" :
-	     "[" +
-	     item.headChild().start() + "," +
-	     item.headChild().end() + "," +
-	     item.headChild().label() +
-	     "]") +
-            ",numKids=" + numChildren +
-	    "]");
+	      "[" +
+	      item.headChild().start() + "," +
+	      item.headChild().end() + "," +
+	      item.headChild().label() +
+	      "]") +
+		   ",numKids=" + numChildren +
+		   "]");
   }
 
   public static void downcaseWords(Sexp tree) {
     Treebank treebank = Language.treebank();
-    if (treebank.isPreterminal(tree))
+    if (treebank.isPreterminal(tree)) {
       return;
+    }
     if (tree.isList()) {
       SexpList treeList = tree.list();
       int treeListLen = treeList.length();
       for (int i = 1; i < treeListLen; i++) {
-        Sexp currChild = treeList.get(i);
-        if (treebank.isPreterminal(currChild)) {
-          Word word = treebank.makeWord(currChild);
-          word.setWord(Symbol.add(word.word().toString().toLowerCase()));
-          treeList.set(i, treebank.constructPreterminal(word));
-        }
-        else {
-          downcaseWords(currChild);
-        }
+	Sexp currChild = treeList.get(i);
+	if (treebank.isPreterminal(currChild)) {
+	  Word word = treebank.makeWord(currChild);
+	  word.setWord(Symbol.add(word.word().toString().toLowerCase()));
+	  treeList.set(i, treebank.constructPreterminal(word));
+	}
+	else {
+	  downcaseWords(currChild);
+	}
       }
     }
   }
@@ -426,41 +452,45 @@ public class DebugChart {
     }
     else {
       downcaseWords(tree.headChild());
-      for (Iterator mods = tree.preMods().iterator(); mods.hasNext(); )
-	downcaseWords((HeadTreeNode)mods.next());
-      for (Iterator mods = tree.postMods().iterator(); mods.hasNext(); )
-	downcaseWords((HeadTreeNode)mods.next());
+      for (Iterator mods = tree.preMods().iterator(); mods.hasNext();)
+	downcaseWords((HeadTreeNode) mods.next());
+      for (Iterator mods = tree.postMods().iterator(); mods.hasNext();)
+	downcaseWords((HeadTreeNode) mods.next());
     }
   }
 
   /**
-   * Removes preterminals from the specified tree that are not found in
-   * the specified list of words.
+   * Removes preterminals from the specified tree that are not found in the
+   * specified list of words.
    *
-   * @param words the words of the sentence that was parsed (meaning that
-   * some of the words of the original sentence may have been pruned)
-   * @param tree the parse tree whose preterminals are to match
-   * <code>words</code>
+   * @param words   the words of the sentence that was parsed (meaning that some
+   *                of the words of the original sentence may have been pruned)
+   * @param tree    the parse tree whose preterminals are to match
+   *                <code>words</code>
    * @param wordIdx the threaded word index; to be <tt>0</tt> for all
-   * non-recursive calls
+   *                non-recursive calls
    * @return the modified tree
    */
   public static Sexp removePreterms(SexpList words, Sexp tree, int wordIdx) {
-    if (Language.treebank().isPreterminal(tree))
+    if (Language.treebank().isPreterminal(tree)) {
       return tree;
+    }
     if (tree.isList()) {
       SexpList treeList = tree.list();
       for (int i = 1; i < treeList.length(); i++) {
 	Sexp currChild = treeList.get(i);
 	if (Language.treebank().isPreterminal(currChild)) {
 	  Word treeWord = Language.treebank().makeWord(currChild);
-	  if (treeWord.word() == words.get(wordIdx))
+	  if (treeWord.word() == words.get(wordIdx)) {
 	    wordIdx++;
-	  else
+	  }
+	  else {
 	    treeList.remove(i--);
+	  }
 	}
-	else
+	else {
 	  removePreterms(words, currChild, wordIdx);
+	}
       }
     }
     return tree;
@@ -474,17 +504,20 @@ public class DebugChart {
    * @return the modified tree
    */
   public static Sexp removeChildlessNodes(Sexp tree) {
-    if (Language.treebank().isPreterminal(tree))
+    if (Language.treebank().isPreterminal(tree)) {
       return tree;
+    }
     if (tree.isList()) {
       SexpList treeList = tree.list();
       for (int i = 1; i < treeList.length(); i++) {
 	Sexp currChild = treeList.get(i);
 	if (!Language.treebank().isPreterminal(tree) &&
-	    currChild.isList() && currChild.list().length() == 1)
+	    currChild.isList() && currChild.list().length() == 1) {
 	  treeList.remove(i--);
-	else
+	}
+	else {
 	  removeChildlessNodes(currChild);
+	}
       }
     }
     return tree;
@@ -497,24 +530,27 @@ public class DebugChart {
   public static void printDerivation(CKYItem item) {
     printDerivation(item, allPass);
   }
+
   public static void printDerivation(CKYItem item, Filter filter) {
     printDerivation(item, filter, 0);
   }
+
   private static void printDerivation(CKYItem item, Filter filter, int level) {
     if (filter.pass(item)) {
       for (int i = 0; i < level; i++)
 	System.err.print("  ");
       System.err.println(item);
-      if (item.headChild() != null)
+      if (item.headChild() != null) {
 	printDerivation(item.headChild(), filter, level + 1);
+      }
       SLNode leftChildren = item.leftChildren();
       while (leftChildren != null) {
-	printDerivation((CKYItem)leftChildren.data(), filter, level + 1);
+	printDerivation((CKYItem) leftChildren.data(), filter, level + 1);
 	leftChildren = leftChildren.next();
       }
       SLNode rightChildren = item.rightChildren();
       while (rightChildren != null) {
-	printDerivation((CKYItem)rightChildren.data(), filter, level + 1);
+	printDerivation((CKYItem) rightChildren.data(), filter, level + 1);
 	rightChildren = rightChildren.next();
       }
     }

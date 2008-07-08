@@ -2,16 +2,24 @@ package danbikel.parser.util;
 
 import danbikel.lisp.*;
 import danbikel.parser.*;
+
 import java.io.*;
 import java.util.*;
 
+/**
+ * Class to provide a <tt>main</tt> method to read Treebank trees and print out
+ * the underlying CFG grammar induced from those trees. Run the <tt>main</tt>
+ * method with the <tt>-v</tt>, <tt>-help</tt> or <tt>-usage</tt> options to
+ * print out usage.
+ */
 public class PrintCFG {
   private static final int bufSize = Constants.defaultFileBufsize;
   private static final Symbol POS = Symbol.add("POS");
 
   private static Treebank treebank = Language.treebank();
 
-  private PrintCFG() {}
+  private PrintCFG() {
+  }
 
   private static String[] usageMsg = {
     "usage: [-v|-help|-usage] [-ct | --convert-tags] [filename]",
@@ -29,9 +37,10 @@ public class PrintCFG {
 
   private static void printCFGExpansions(Writer writer,
 					 Sexp tree, boolean convertTags)
-      throws IOException {
-    if (convertTags)
+    throws IOException {
+    if (convertTags) {
       tree = convertTags(tree);
+    }
     printCFGExpansions(writer, tree);
   }
 
@@ -48,15 +57,16 @@ public class PrintCFG {
 	  word.setTag(POS);
 	  treeList.set(i, treebank.constructPreterminal(word));
 	}
-	else
+	else {
 	  convertTags(currChild);
+	}
       }
     }
     return tree;
   }
 
   private static void printCFGExpansions(Writer writer, Sexp tree)
-      throws IOException {
+    throws IOException {
     if (treebank.isPreterminal(tree)) {
     }
     else if (tree.isList()) {
@@ -67,8 +77,9 @@ public class PrintCFG {
       writer.write(" -> ");
       for (int i = 1; i < treeListLen; i++) {
 	writer.write(treeList.getChildLabel(i).toString());
-	if (i < treeListLen - 1)
+	if (i < treeListLen - 1) {
 	  writer.write(" ");
+	}
       }
       writer.write("\n");
       for (int i = 1; i < treeListLen; i++)
@@ -97,13 +108,15 @@ public class PrintCFG {
       else if (args[i].equals("-ct") || args[i].equals("--convert-tags")) {
 	convertTags = true;
       }
-      else if (!args[i].equals("-"))
+      else if (!args[i].equals("-")) {
 	inFile = args[i];
+      }
     }
     if (inFile != null) {
       try {
 	inStream = new FileInputStream(inFile);
-      } catch (FileNotFoundException fnfe) {
+      }
+      catch (FileNotFoundException fnfe) {
 	System.err.println(fnfe);
 	System.exit(-1);
       }
@@ -117,16 +130,18 @@ public class PrintCFG {
       Writer writer = new BufferedWriter(outStreamWriter, bufSize);
       int sentNum;
       for (sentNum = 0; (curr = Sexp.read(tok)) != null; sentNum++) {
-        if (!Language.training().isValidTree(curr)) {
-          // maybe curr has extra set of parens
-          if (curr.isList()) {
-            curr = curr.list().first();
-          }
-        }
-        if (Language.training().isValidTree(curr))
-          printCFGExpansions(writer, curr, convertTags);
-        else
-          System.err.println("tree No. " + sentNum + " invalid");
+	if (!Language.training().isValidTree(curr)) {
+	  // maybe curr has extra set of parens
+	  if (curr.isList()) {
+	    curr = curr.list().first();
+	  }
+	}
+	if (Language.training().isValidTree(curr)) {
+	  printCFGExpansions(writer, curr, convertTags);
+	}
+	else {
+	  System.err.println("tree No. " + sentNum + " invalid");
+	}
       }
       writer.flush();
       System.err.println("number of sentences processed: " + sentNum);

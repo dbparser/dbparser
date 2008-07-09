@@ -398,9 +398,12 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
   public boolean isValidTree(Sexp tree) {
     // we invalidate top-level "X" sentences, which are not annotated for
     // syntax because they are headers/headlines
+    // we also invalidate any top-level "sentences" that are actually just
+    // preterminals hanging out in no man's land, such as (-NONE- dummy)
     if (tree.isList()) {
       SexpList treeList = tree.list();
-      if (treeList.get(0).isSymbol() && treeList.symbolAt(0) == X)
+      if ((treeList.get(0).isSymbol() && treeList.symbolAt(0) == X) ||
+	  (treeList.length() == 2 && treeList.get(1).isSymbol()))
 	return false;
     }
     return super.isValidTree(tree);

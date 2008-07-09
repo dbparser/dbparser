@@ -234,6 +234,15 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
 
   /**
    * Test driver for this class.
+   *
+   * @param args usage: [-risan] &lt;filename&gt; where
+   *             <table>
+   *             <tr><td>-r</td><td>raise punctuation</td></tr>
+   *             <tr><td>-i</td><td>identify arguments</td></tr>
+   *             <tr><td>-s</td><td>relabel subjectless sentences</td></tr>
+   *             <tr><td>-a</td><td>strip nonterminal augmentations</td></tr>
+   *             <tr><td>-n</td><td>add/relabel base NPs</td></tr>
+   *             </table>
    */
   public static void main(String[] args) {
     String filename = null;

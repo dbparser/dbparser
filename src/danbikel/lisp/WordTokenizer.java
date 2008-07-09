@@ -55,6 +55,7 @@ public class WordTokenizer {
   private Reader inStream;
   private int lastChar;
   private int lineno = 1;
+  private long numCharsRead = 0;
   private int linenoOfLastToken = 0;
   private int lineSepMatchIdx = 0;
   private int currBufChunkSize = initialBufChunkSize;
@@ -235,9 +236,14 @@ public class WordTokenizer {
     inStream.close();
   }
 
+  public long numCharsRead() {
+    return numCharsRead;
+  }
+
   // helper methods
   private final int readChar() throws IOException {
     int ch = inStream.read();
+    numCharsRead++;
 
     // as we read chars, we continuously try to match the line separator
     // string; as soon as a character differs, we reset our match index,

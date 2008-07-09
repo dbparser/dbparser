@@ -1,12 +1,8 @@
 package danbikel.parser.chinese;
 
-import java.util.BitSet;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.StringTokenizer;
+import java.util.*;
+
 import danbikel.lisp.*;
-import danbikel.parser.Language;
 import danbikel.parser.Nonterminal;
 import danbikel.parser.Settings;
 
@@ -54,24 +50,24 @@ public class Treebank extends danbikel.parser.lang.AbstractTreebank {
     {baseNP, NP},
     {subjectlessS, S},
   };
-  private static HashMap canonicalLabelMap =
-    new HashMap(canonicalLabelMapData.length);
+  private static Map<Symbol, Symbol> canonicalLabelMap =
+    new HashMap<Symbol, Symbol>(canonicalLabelMapData.length);
   static {
     for (int i = 0; i < canonicalLabelMapData.length; i++)
       canonicalLabelMap.put(canonicalLabelMapData[i][0],
                             canonicalLabelMapData[i][1]);
   }
 
-  private static String[] puncToRaiseElements = {"PU"};
+  private static String[] puncToRaiseElements = {"PU", "DEG", "DEC"};
 
-  private static Set puncToRaise = new HashSet();
+  private static Set<Symbol> puncToRaise = new HashSet<Symbol>();
   static {
     for (int i = 0; i < puncToRaiseElements.length; i++)
       puncToRaise.add(Symbol.add(puncToRaiseElements[i]));
   }
 
   private static String[] verbTagStrings = {"VA", "VC", "VE", "VV"};
-  private static Set verbTags = new HashSet();
+  private static Set<Symbol> verbTags = new HashSet<Symbol>();
   static {
     for (int i = 0; i < verbTagStrings.length; i++)
       verbTags.add(Symbol.add(verbTagStrings[i]));
@@ -143,7 +139,7 @@ public class Treebank extends danbikel.parser.lang.AbstractTreebank {
    */
   public boolean isPuncToRaise(Sexp preterm) {
     return (isPreterminal(preterm) &&
-	    puncToRaise.contains(preterm.list().first()));
+	    puncToRaise.contains(preterm.list().first().symbol()));
   }
 
   public boolean isPunctuation(Symbol tag) {

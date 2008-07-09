@@ -144,7 +144,7 @@ public class WordTokenizer {
       pushedBack = false;
       return ttype;
     }
-    if (firstCharRead == false) {
+    if (!firstCharRead) {
       lastChar = readChar();  // read the first character
       firstCharRead = true;
     }

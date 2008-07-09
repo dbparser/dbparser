@@ -1,11 +1,8 @@
 package danbikel.parser.chinese;
 
-import java.util.*;
 import java.io.*;
 import danbikel.parser.Constants;
-import danbikel.parser.HeadFinder;
 import danbikel.parser.Language;
-import danbikel.parser.Treebank;
 import danbikel.parser.Settings;
 import danbikel.parser.Nonterminal;
 import danbikel.lisp.*;
@@ -19,13 +16,21 @@ import danbikel.lisp.*;
  */
 public class Training extends danbikel.parser.lang.AbstractTraining {
   // constants
+  @SuppressWarnings({"UnusedDeclaration"})
   private final static String className = Training.class.getName();
+  @SuppressWarnings({"UnusedDeclaration"})
   private final static Symbol argContextsSym = Symbol.add("arg-contexts");
+  @SuppressWarnings({"UnusedDeclaration"})
   private final static Symbol semTagArgStopListSym =
     Symbol.add("sem-tag-arg-stop-list");
+  @SuppressWarnings({"UnusedDeclaration"})
   private final static Symbol nodesToPruneSym = Symbol.add("prune-nodes");
+  @SuppressWarnings({"UnusedDeclaration"})
   private final static Symbol wordsToPruneSym = Symbol.add("prune-words");
   private final static Symbol VP = Symbol.get("VP");
+  private final static Symbol DEG = Symbol.get("DEG");
+  private final static Symbol DEC = Symbol.get("DEC");
+  private final static Symbol DERIGHT = Symbol.get("DERIGHT");
 
   // data members
   private Nonterminal nonterminal = new Nonterminal();
@@ -33,14 +38,15 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
   /**
    * The default constructor, to be invoked by {@link danbikel.parser.Language}.
    * This constructor looks for a resource named by the property
-   * <code>metadataPropertyPrefix + language</code>
-   * where <code>metadataPropertyPrefix</code> is the value of
-   * the constant {@link #metadataPropertyPrefix} and <code>language</code>
-   * is the value of <code>Settings.get(Settings.language)</code>.
-   * For example, the property for English is
-   * <code>&quot;parser.training.metadata.english&quot;</code>.
+   * <code>metadataPropertyPrefix + language</code> where
+   * <code>metadataPropertyPrefix</code> is the value of the constant {@link
+   * #metadataPropertyPrefix} and <code>language</code> is the value of
+   * <code>Settings.get(Settings.language)</code>. For example, the property for
+   * English is <code>&quot;parser.training.metadata.english&quot;</code>.
+   *
+   * @throws IOException if there is a problem reading the metadata resource
    */
-  public Training() throws FileNotFoundException, IOException {
+  public Training() throws IOException {
     String language = Settings.get(Settings.language);
     String metadataResource = Settings.get(metadataPropertyPrefix + language);
     InputStream is = Settings.getFileOrResourceAsStream(this.getClass(),
@@ -49,6 +55,20 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
     SexpTokenizer metadataTok =
       new SexpTokenizer(is, Language.encoding(), bufSize);
     readMetadata(metadataTok);
+  }
+
+  /**
+   * Identical to {@link danbikel.parser.lang.AbstractTraining#preProcess(Sexp)}
+   * except that it also invokes {@link #combineRightSiblingsOfDe5(Sexp)}
+   * afterward.
+   *
+   * @param tree the tree to preprocess
+   * @return the tree, having been modified by this method
+   */
+  @Override
+  public Sexp preProcess(Sexp tree) {
+    super.preProcess(tree);
+    return combineRightSiblingsOfDe5(tree);
   }
 
   /**
@@ -76,6 +96,7 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
       if (headIdx == 0)
 	System.err.println(tree);
       Symbol headChildLabel = treeList.getChildLabel(headIdx);
+      @SuppressWarnings({"UnusedDeclaration"})
       Symbol sg = treebank.subjectlessSentenceLabel();
       /*
       if (treebank.isSentence(parent) &&
@@ -153,8 +174,63 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
     return tree;
   }
 
+  /**
+   * A method to create a new node if a <tt>DEG</tt> or <tt>DEC</tt> preterminal
+   * has more than one right sibling.  The new node will be a new parent to all
+   * the right siblings of that <tt>DEG/DEC</tt> node, and will therefore be the
+   * sole right sibling of that <tt>DEG/DEC</tt> node.
+   *
+   * @param tree the tree in which to combine right siblings of <tt>DEG</tt> or
+   *             <tt>DEC</tt> nodes into a newly-created parent
+   * @return the specified tree, having been modified <i>in situ</i>
+   */
+  protected Sexp combineRightSiblingsOfDe5(Sexp tree) {
+    if (treebank.isPreterminal(tree)) {
+      return tree;
+    }
+    if (tree.isList()) {
+      SexpList treeList = tree.list();
+      for (int i = 1; i < treeList.length() - 1; i++) {
+	Symbol currLabel = treeList.getChildLabel(i);
+	if (currLabel == DEG || currLabel == DEC && treeList.length() > i + 2) {
+	  // create a new node with all right siblings of current node as
+	  // children
+	  SexpList newNode = new SexpList(treeList.length() - i);
+	  newNode.add(DERIGHT);
+	  for (int j = i + 1; j < treeList.length(); j++) {
+	    newNode.add(treeList.get(j));
+	  }
+	  // now remove all right siblings from tree, starting at end of list
+	  // (for efficiency)
+	  for (int j = treeList.length() - 1; j > i; j--) {
+	    treeList.remove(j);
+	  }
+	  // finally, add the new node as the new, sole right sibling of current
+	  // node
+	  treeList.add(newNode);
+	  break;
+	}
+      }
+      // finally, do recursive call
+      for (int i = 1; i < treeList.length(); i++) {
+	combineRightSiblingsOfDe5(treeList.get(i));
+      }
+    }
+    return tree;
+  }
 
-  /** Test driver for this class. */
+  /**
+   * Test driver for this class.
+   *
+   * @param args usage: [-risan] &lt;filename&gt; where
+   *             <table>
+   *             <tr><td>-r</td><td>raise punctuation</td></tr>
+   *             <tr><td>-i</td><td>identify arguments</td></tr>
+   *             <tr><td>-s</td><td>relabel subjectless sentences</td></tr>
+   *             <tr><td>-a</td><td>strip nonterminal augmentations</td></tr>
+   *             <tr><td>-n</td><td>add/relabel base NPs</td></tr>
+   *             </table>
+   */
   public static void main(String[] args) {
     String filename = null;
     boolean raisePunc = false, idArgs = false, subjectlessS = false;
@@ -172,8 +248,7 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
 	  stripAug = true;
 	else if (args[i].equals("-n"))
 	  addBaseNPs = true;
-      }
-      else
+      } else
 	filename = args[i];
     }
 
@@ -188,7 +263,7 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
       System.exit(1);
     }
 
-    Training training = (Training)Language.training();
+    Training training = (Training) Language.training();
     training.printMetadata();
 
     try {

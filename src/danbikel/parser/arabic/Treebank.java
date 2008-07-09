@@ -1,12 +1,11 @@
 package danbikel.parser.arabic;
 
-import java.util.BitSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.StringTokenizer;
+import java.util.Map;
+
 import danbikel.lisp.*;
-import danbikel.parser.Language;
 import danbikel.parser.Nonterminal;
 import danbikel.parser.Settings;
 
@@ -55,12 +54,19 @@ public class Treebank extends danbikel.parser.lang.AbstractTreebank {
   static final Symbol[] nonterminalExceptionArr =
     {lrb, rrb, nonAlpha, nonAlphaPunc};
 
+  private static String[] verbTagStrings = {"VB", "VBD", "VBN", "VBP"};
+  private static Set<Symbol> verbTags = new HashSet<Symbol>();
+  static {
+    for (int i = 0; i < verbTagStrings.length; i++)
+      verbTags.add(Symbol.add(verbTagStrings[i]));
+  }
+
   private static Symbol[][] canonicalLabelMapData = {
     {baseNP, NP},
     {subjectlessS, S},
   };
-  private static HashMap canonicalLabelMap =
-    new HashMap(canonicalLabelMapData.length);
+  private static Map<Symbol, Symbol> canonicalLabelMap =
+    new HashMap<Symbol, Symbol>(canonicalLabelMapData.length);
   static {
     for (int i = 0; i < canonicalLabelMapData.length; i++)
       canonicalLabelMap.put(canonicalLabelMapData[i][0],
@@ -69,7 +75,7 @@ public class Treebank extends danbikel.parser.lang.AbstractTreebank {
 
   private static String[] puncToRaiseElements = {","};
 
-  private static Set puncToRaise = new HashSet();
+  private static Set<Symbol> puncToRaise = new HashSet<Symbol>();
   static {
     for (int i = 0; i < puncToRaiseElements.length; i++)
       puncToRaise.add(Symbol.add(puncToRaiseElements[i]));
@@ -134,7 +140,7 @@ public class Treebank extends danbikel.parser.lang.AbstractTreebank {
    */
   public boolean isPuncToRaise(Sexp preterm) {
     return (isPreterminal(preterm) &&
-	    puncToRaise.contains(preterm.list().first()));
+	    puncToRaise.contains(preterm.list().first().symbol()));
   }
 
   public boolean isPunctuation(Symbol tag) {
@@ -207,7 +213,7 @@ public class Treebank extends danbikel.parser.lang.AbstractTreebank {
   }
 
   public boolean isVerbTag(Symbol tag) {
-    return tag.toString().indexOf("VERB", 1) != -1;
+    return verbTags.contains(tag);
   }
 
   public boolean isComma(Symbol word) {

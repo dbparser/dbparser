@@ -137,7 +137,8 @@ abstract public class Sexp implements Externalizable {
 	  if (tok.ttype == StreamTokenizer.TT_EOF)
 	    throw new IOException(className + ": error: "+
 				  "unexpected end of stream (line " +
-				  tok.lineno() + ")\n\tpartial list: " + list);
+				  tok.lineno() + ", num read " + tok.numCharsRead() +
+				  ")\n\tpartial list: " + list);
 	  tok.pushBack();
 	  Sexp listElement = Sexp.read(tok);
 	  list.add(listElement);
@@ -167,7 +168,8 @@ abstract public class Sexp implements Externalizable {
 	  if (tok.ttype == StreamTokenizer.TT_EOF)
 	    throw new IOException(className + ": error: "+
 				  "unexpected end of stream (line " +
-				  tok.lineno() + ")\n\tpartial list: " + list);
+				  tok.lineno() + ", num read " + tok.numCharsRead() +
+				  ")\n\tpartial list: " + list);
 	  tok.pushBack();
 	  Sexp listElement = Sexp.read(tok, open, close);
 	  list.add(listElement);

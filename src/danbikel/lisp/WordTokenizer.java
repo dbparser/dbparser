@@ -236,6 +236,11 @@ public class WordTokenizer {
     inStream.close();
   }
 
+  /**
+   * Returns the number of characters read from the underlying reader for
+   * this word tokenizer.
+   * @return the number of characters read
+   */
   public long numCharsRead() {
     return numCharsRead;
   }

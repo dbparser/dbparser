@@ -70,7 +70,7 @@ public class WordTokenizer {
   // it is dependent on Sun's implementation of String and StringBuffer;
   // however, it is the only way to avoid an array copy for every single
   // token, since we to create a String object for each token
-  private StringBuffer buf = new StringBuffer(currBufChunkSize);
+  private StringBuilder buf = new StringBuilder(currBufChunkSize);
 
   /**
    * Creates a new tokenizer object.
@@ -164,7 +164,7 @@ public class WordTokenizer {
     if (lastChar == -1) {
       ttype = StreamTokenizer.TT_EOF;
     }
-    else if (ordinary.get(lastChar)) {
+    else if (isOrdinary(lastChar)) {
       ttype = lastChar;
       linenoOfLastToken = lineno;
       lastChar = readChar();
@@ -178,7 +178,7 @@ public class WordTokenizer {
       synchronized (buf) {
 	while (lastChar != -1 &&
 	       !Character.isWhitespace((char)lastChar) &&
-	       !ordinary.get(lastChar)) {
+	       !isOrdinary(lastChar)) {
 	  tokenStartIdx = ensureBufferCapacity(tokenStartIdx);
 	  buf.append((char)lastChar);
 	  lastChar = readChar();
@@ -189,19 +189,23 @@ public class WordTokenizer {
     return ttype;
   }
 
+  private final boolean isOrdinary(int ch) {
+    return ch < Byte.MAX_VALUE && ordinary.get(ch);
+  }
+
   private final int ensureBufferCapacity(int tokenStartIdx) {
     if (buf.capacity() == buf.length()) {
-      StringBuffer old = buf;
+      StringBuilder old = buf;
       // if we're trying to build an exceptionally long token, just keep
       // doubling buf's capacity; otherwise, impose regular maxBufChunkSize
       // limits
       if (tokenStartIdx == 0)
-	buf = new StringBuffer(old.length() * 2);
+	buf = new StringBuilder(old.length() * 2);
       else {
 	int newSize = currBufChunkSize * 2;
 	if (newSize <= maxBufChunkSize)
 	  currBufChunkSize = newSize;
-	buf = new StringBuffer(currBufChunkSize);
+	buf = new StringBuilder(currBufChunkSize);
       }
       buf.append(old.substring(tokenStartIdx, old.length()));
       return 0;

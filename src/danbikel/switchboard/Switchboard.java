@@ -601,6 +601,7 @@ public class Switchboard
       // if reProcess flag is true, also enqueue objects whose processed
       // status is false (i.e., unprocessed) onto beginning of toProcess deque
       currObj = null;
+      int numEnqueued = 0;
       try {
 	for (int num = 0; num <= maxNum; num++) {
 	  currObj = in.readObject();
@@ -630,6 +631,7 @@ public class Switchboard
 	  if (pushObject) {
 	    NumberedObject numObj = new NumberedObject(num, id, false, currObj);
 	    toProcess.addFirst(numObj); // enqueue this object
+	    numEnqueued++;
 	  }
 	} // end for
 
@@ -643,9 +645,10 @@ public class Switchboard
 	  NumberedObject numObj = new NumberedObject(currObjectNum++, id,
 						     false, currObj);
 	  toProcess.addFirst(numObj);
+	  numEnqueued++;
 	}
 
-	numObjectsProcessed = currObjectNum - toProcess.size();
+	numObjectsProcessed = currObjectNum - numEnqueued;
       }
       catch (IOException ioe) {
 	String errMsg = className + ": error: trouble reading from input " +

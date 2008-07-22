@@ -1527,7 +1527,7 @@ public class Switchboard
     this.msgs = msgs;
 
     msgs.println(msgFileHeader);
-    msgs.println(className + ": starting up");
+    msgs.println(className + ": starting up at " + new Date());
 
     tsf = new TimeoutSocketFactory(0, 0);
     //dumpers.setDaemon(true);
@@ -2127,7 +2127,8 @@ public class Switchboard
     IntCounter nextFileId =
       new IntCounter(currFile == null ? firstFileId : currFile.id + 1);
 
-    while ((currFile = (IOData)files.get(nextFileId)) == null &&
+    while (((currFile = (IOData)files.get(nextFileId)) == null ||
+	    !currFile.moreObjectsToRead()) &&
 	   nextFileId.get() < maxFileId) {
       nextFileId.increment();
     }
@@ -2145,9 +2146,11 @@ public class Switchboard
 	}
       }
 
-      if (unopenedFiles.containsKey(nextFileId) == false)
+      if (!unopenedFiles.containsKey(nextFileId)) {
 	logFailure("uh-oh: " + nextFileId.get() +
-		   " should be in unopenedFiles map, but is not");
+		   " should be in unopenedFiles map, but is not" +
+		   " (unopenedFiles.keySet=" + unopenedFiles.keySet() + ")");
+      }
       unopenedFiles.remove(nextFileId);
 
       log("opening file " + currFile + " for processing");
@@ -2174,7 +2177,8 @@ public class Switchboard
       // we've got to grab something from a file
       // if we couldn't grab a next object from the current file
       // (possibly because we haven't even started processing the very first
-      // file), go to the next enqueued file and try to read from it
+      // file, when currFile == null), go to the next enqueued file and try to
+      // read from it
       if ((currFile == null || !currFile.moreObjectsToRead()) &&
 	  unopenedFiles.size() > 0) {
 	gotoNextFile(clientId);

@@ -12,7 +12,6 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntryProperties />
     <javadoc-paths>
-      <root url="file://$MODULE_DIR$/doc" />
       <root url="http://www.cis.upenn.edu/~dbikel/dbparser-doc/" />
     </javadoc-paths>
   </component>

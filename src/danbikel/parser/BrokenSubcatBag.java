@@ -51,11 +51,11 @@ public class BrokenSubcatBag implements Subcat, Externalizable {
   private static int numUids;
 
   // static data members
-  private static Map symbolsToInts = new danbikel.util.HashMap();
+  private static Map<Symbol, Integer> symbolsToInts =
+    new danbikel.util.HashMap<Symbol, Integer>();
   private static Symbol stopSym = Language.training.stopSym();
   private static Symbol[] symbols;
   static {
-    Treebank treebank = Language.treebank();
     Symbol gapAugmentation = Language.training.gapAugmentation();
     Symbol argAugmentation = Language.training.defaultArgAugmentation();
     char delimChar = Language.treebank.canonicalAugDelimiter();
@@ -80,47 +80,37 @@ public class BrokenSubcatBag implements Subcat, Externalizable {
     // add all labels into a set, in case we have two labels that map to the
     // same canonical version (such as "S" and "SG", as shown above); this is
     // just a little bit of (sometimes necessary) defensive programming
-    Set argLabelSet = new HashSet();
+    Set<Symbol> argLabelSet = new HashSet<Symbol>();
     for (int i = 0; i < argLabels.length; i++) {
       String argLabelStr = argLabels[i] + "-A";
       Symbol canonicalArg =
 	Language.training.getCanonicalArg(Symbol.get(argLabelStr));
       argLabelSet.add(canonicalArg);
     }
-    Iterator argLabelIt = argLabelSet.iterator();
-    while (argLabelIt.hasNext()) {
-      Symbol argLabel = (Symbol)argLabelIt.next();
+    for (Symbol argLabel : argLabelSet) {
       symbolsToInts.put(argLabel, new Integer(uid++));
     }
     numUids = uid;
 
     symbols = new Symbol[numUids];
-    Iterator entries = symbolsToInts.entrySet().iterator();
-    while (entries.hasNext()) {
-      Map.Entry entry = (Map.Entry)entries.next();
-      Symbol symbol = (Symbol)entry.getKey();
-      uid = ((Integer)entry.getValue()).intValue();
-      /*
-      // for arg nonterminals, we re-add arg augmentation for output purposes
-      if (uid > gapIdx)
-	symbol = Symbol.get(symbol.toString() + delimChar + argAugmentation);
-      */
+    for (Map.Entry<Symbol, Integer> entry : symbolsToInts.entrySet()) {
+      Symbol symbol = (Symbol) entry.getKey();
+      uid = ((Integer) entry.getValue()).intValue();
       symbols[uid] = symbol;
     }
     symbols[miscIdx] = Symbol.get(stopSym.toString() +
 				  delimChar + argAugmentation);
   }
 
-  private static HashMapInt fastUidMap = new HashMapInt();
+  private static HashMapInt<Symbol> fastUidMap = new HashMapInt<Symbol>();
   private static boolean canUseFastUidMap = false;
 
   public static synchronized void setUpFastUidMap(CountsTable nonterminals) {
     if (canUseFastUidMap)
       return;
     fastUidMap.put(Language.training.gapAugmentation(), gapIdx);
-    Iterator nts = nonterminals.keySet().iterator();
-    while (nts.hasNext()) {
-      Symbol nt = (Symbol)nts.next();
+    for (Object ntObj : nonterminals.keySet()) {
+      Symbol nt = (Symbol)ntObj;
       int uid = getUid(nt);
       fastUidMap.put(nt, uid);
     }
@@ -137,6 +127,9 @@ public class BrokenSubcatBag implements Subcat, Externalizable {
    * {@link Training#isArgumentFast(Symbol)} returns <code>true</code>.
    * A subclass may override this method to allow for new or different
    * valid requirements.
+   *
+   * @param requirement the requirement to test
+   * @return whether the specified requirement is valid
    */
   protected boolean validRequirement(Symbol requirement) {
     return
@@ -264,6 +257,7 @@ public class BrokenSubcatBag implements Subcat, Externalizable {
     // if the uid is of an actual nonterminal (either greater than firstRealUid,
     // which is used for gap requirements, or equal to miscIdx) and if it's not
     // marked as an argument, return false
+    //noinspection SimplifiableIfStatement
     if ((uid == miscIdx || uid > firstRealUid) &&
 	!Language.training.isArgumentFast(requirement))
       return false;
@@ -385,7 +379,7 @@ public class BrokenSubcatBag implements Subcat, Externalizable {
     }
   };
 
-  public Subcat getCanonical(boolean copyInto, Map map) {
+  public Subcat getCanonical(boolean copyInto, Map<Subcat, Subcat> map) {
     Subcat mapElt = (Subcat)map.get(this);
     if (mapElt == null) {
       Subcat putInMap = copyInto ? (Subcat)this.copy() : this;

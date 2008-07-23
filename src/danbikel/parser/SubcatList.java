@@ -52,6 +52,9 @@ public class SubcatList extends SexpList implements Subcat, Externalizable {
    * {@link Training#isArgumentFast(Symbol)} returns <code>true</code>.
    * A subclass may override this method to allow for new or different
    * valid requirements.
+   *
+   * @param requirement the requirement to test
+   * @return whether the specified requirement is valid
    */
   protected boolean validRequirement(Symbol requirement) {
     return
@@ -148,9 +151,7 @@ public class SubcatList extends SexpList implements Subcat, Externalizable {
    * to that of this object, as determined by {@link SexpList#equals(Object)}.
    */
   public boolean equals(Object obj) {
-    if (!(obj instanceof SubcatList))
-      return false;
-    return super.equals(obj);
+    return obj instanceof SubcatList && super.equals(obj);
   }
 
   public Event copy() {
@@ -158,7 +159,7 @@ public class SubcatList extends SexpList implements Subcat, Externalizable {
   }
 
 
-  public Subcat getCanonical(boolean copyInto, Map map) {
+  public Subcat getCanonical(boolean copyInto, Map<Subcat, Subcat> map) {
     Subcat mapElt = (Subcat)map.get(this);
     if (mapElt == null) {
       Subcat putInMap = copyInto ? (Subcat)this.copy() : this;

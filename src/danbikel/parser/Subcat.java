@@ -1,7 +1,6 @@
 package danbikel.parser;
 
 import danbikel.lisp.*;
-import java.io.Serializable;
 import java.util.*;
 
 /**
@@ -86,6 +85,8 @@ public interface Subcat extends MutableEvent, SexpConvertible {
 
   /**
    * Returns the number of required arguments contained in this subcat frame.
+   *
+   * @return the number of required arguments contained in this subcat frame
    */
   public int size();
 
@@ -93,6 +94,8 @@ public interface Subcat extends MutableEvent, SexpConvertible {
    * Returns <code>true</code> if all requirements of this subcat frame have
    * been met.  This method should return <code>true</code> if and only if
    * <code>size()&nbsp;==&nbsp;0</code>.
+   *
+   * @return whether all requirements of this subcat frame have been met
    */
   public boolean empty();
 
@@ -114,6 +117,8 @@ public interface Subcat extends MutableEvent, SexpConvertible {
    * Iterators are only required to return elements in the order in which
    * they were added if the subcat implementation considers order relevant
    * to equality.
+   *
+   * @return an iterator over the requirements contained in this subcat frame
    */
   public Iterator iterator();
 
@@ -142,7 +147,7 @@ public interface Subcat extends MutableEvent, SexpConvertible {
    * into the canonical map
    * @return a canonical instance of this object
    */
-  public Subcat getCanonical(boolean copyInto, Map map);
+  public Subcat getCanonical(boolean copyInto, Map<Subcat, Subcat> map);
 
   /**
    * Returns a list view of the information contained in this subcat,
@@ -157,6 +162,8 @@ public interface Subcat extends MutableEvent, SexpConvertible {
    * Causes this subcat to be equal to the specified subcat by copying the
    * specified subcat's data to this subcat.
    *
+   * @param other the subcat that this subcat is to become
+   * 
    * @throws ClassCastException if the specified subcat is not of the same
    * run-time type as this subcat
    */

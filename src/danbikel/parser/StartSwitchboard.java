@@ -373,6 +373,16 @@ public class StartSwitchboard {
 	}
 	switchboard.cleanupWhenAllFilesAreDone();
       }
+      else {
+	System.err.print("Waiting for 300 seconds...");
+	try {
+	  Thread.sleep(300000);
+	} catch (InterruptedException e) {
+	  e.printStackTrace();
+	}
+	System.err.println("done.\nCleaning up.");
+	switchboard.cleanup();
+      }
     }
     catch (RemoteException re) {
       System.err.println(re);

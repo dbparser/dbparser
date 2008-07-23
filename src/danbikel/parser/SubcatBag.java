@@ -3,6 +3,7 @@ package danbikel.parser;
 import danbikel.util.*;
 import danbikel.lisp.*;
 import java.util.*;
+import java.util.HashMap;
 import java.io.*;
 
 /**
@@ -75,6 +76,9 @@ public class SubcatBag implements Subcat, Externalizable {
   private static Map symbolsToInts = new danbikel.util.HashMap();
   private static Symbol stopSym = Language.training.stopSym();
   private static Symbol[] symbols;
+  private static Nonterminal[] nonterminals;
+  private static Map<Symbol, Nonterminal> symToNt =
+    new HashMap<Symbol, Nonterminal>();
   static {
     Treebank treebank = Language.treebank();
     Symbol gapAugmentation = Language.training.gapAugmentation();
@@ -95,6 +99,7 @@ public class SubcatBag implements Subcat, Externalizable {
     numUids = uid;
 
     symbols = new Symbol[numUids];
+    nonterminals = new Nonterminal[numUids];
     Iterator entries = symbolsToInts.entrySet().iterator();
     while (entries.hasNext()) {
       Map.Entry entry = (Map.Entry)entries.next();
@@ -106,6 +111,7 @@ public class SubcatBag implements Subcat, Externalizable {
 	symbol = Symbol.get(symbol.toString() + delimChar + argAugmentation);
        */
       symbols[uid] = symbol;
+      nonterminals[uid] = Language.treebank().parseNonterminal(symbol);
     }
     symbols[miscIdx] = Symbol.get(stopSym.toString() +
 				  delimChar + argAugmentation);
@@ -233,17 +239,27 @@ public class SubcatBag implements Subcat, Externalizable {
     }
   }
 
-  private static final int getUid(Symbol requirement) {
+  private static int getUid(Symbol requirement) {
     if (canUseFastUidMap) {
       MapToPrimitive.Entry fastUidMapEntry = fastUidMap.getEntry(requirement);
       return fastUidMapEntry == null ? miscIdx : fastUidMapEntry.getIntValue();
     }
-    Integer uidInteger =
-      (Integer)symbolsToInts.get(Language.training.getCanonicalArg(requirement));
-    if (uidInteger == null)
-      return miscIdx;
-    else
-      return uidInteger.intValue();
+    // get Nonterminal for the specified requirement (create if necessary)
+    Nonterminal requirementNt = symToNt.get(requirement);
+    if (requirementNt == null) {
+      requirementNt = Language.treebank().parseNonterminal(requirement);
+      symToNt.put(requirement, requirementNt);
+    }
+    boolean found = false;
+    Nonterminal[] nts = nonterminals;
+    int uid = firstRealUid;
+    for ( ; uid < nts.length; uid++) {
+      if (nts[uid].subsumes(requirementNt)) {
+	found = true;
+	break;
+      }
+    }
+    return found ? uid : miscIdx;
   }
 
   /** Returns the number of requirements contained in this subcat bag. */

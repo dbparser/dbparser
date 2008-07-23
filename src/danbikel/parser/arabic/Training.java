@@ -334,6 +334,34 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
   }
 
   /**
+   * An overridden version of
+   * {@link danbikel.parser.lang.AbstractTraining#createArgNonterminalsSet()}
+   * that adds argument nonterminal patterns, such as <tt>*-SBJ</tt>, to the
+   * set of {@linkplain #argNonterminals argument nonterminals}.
+   */
+  @Override
+  protected void createArgNonterminalsSet() {
+    argNonterminals = new HashSet();
+    Iterator args = argContexts.values().iterator();
+    while (args.hasNext()) {
+      SexpList argList = (SexpList)args.next();
+      Symbol first = argList.symbolAt(0);
+      if (first != headSym && first != headPreSym && first != headPostSym) {
+        int argListLen = argList.length();
+        for (int i = 0; i < argListLen; i++) {
+          Symbol argLabel = argList.symbolAt(i);
+          Nonterminal parsedArgLabel = treebank.parseNonterminal(argLabel);
+	  if (addArgAugmentation(argLabel, parsedArgLabel))
+	    argLabel = parsedArgLabel.toSymbol();
+	  argNonterminals.add(argLabel);
+	}
+      }
+    }
+  }
+
+
+
+  /**
    * Preprocesses the specified test sentence and its coordinated list of
    * part-of-speech tags, leaving the original sentence untouched but providing
    * a modified version of the coordinated list of tags, where each tag has been

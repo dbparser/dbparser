@@ -17,9 +17,10 @@ import java.io.*;
  * danbikel.parser.lang.AbstractTraining#headSym}.  All nonterminal
  * requirements are stripped of any augmentations before being counted in
  * this subcat bag.
- * <p>
- * The comment for the <code>toSexp</code> method describes the way in which
+ * <p/>
+ * The documentation for the {@link #toSexp} method describes the way in which
  * this class represents miscellaneous requirements.
+ * <p/>
  * <b>Bugs</b>:
  * <ol>
  * <li>This class provides special-case bins for counting gap

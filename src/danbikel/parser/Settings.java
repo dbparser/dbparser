@@ -70,7 +70,7 @@ public class Settings implements Serializable {
   /** The official name of this program. */
   public final static String progName = "Parsing Engine";
   /** The official version of this program. */
-  public final static String version = "1.0";
+  public final static String version = "1.1";
   /**
    * The prefix that all properties for this parser should have
    * (to be used when finding system properties that are meant to be included

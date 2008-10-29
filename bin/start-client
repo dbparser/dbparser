@@ -20,6 +20,6 @@ set clientCodebase = "-Djava.rmi.server.codebase=file://$jarFile"
 set disableHttp = "-Djava.rmi.server.disableHttp=true"
 
 # start the parser
-$java -server -cp $classpath -Xms800m -Xmx800m $settingsProp $clientPolicy \
+$java -server -cp $classpath -Xms1g -Xmx2g $settingsProp $clientPolicy \
     $clientCodebase $disableHttp \
     danbikel.parser.Parser $args >& $logDir/$host.log

@@ -45,7 +45,7 @@
 ;;;                    nonterminals specified by <nt>+
 ;;;
 ;(arg-contexts (* (*-SBJ *-OBJ *-DTV *-CLR))
-(arg-contexts (* (*-SBJ *-OBJ))
+(arg-contexts (* (*-SBJ *-TPC *-OBJ))
 	      (VP (SBAR S VP))
 	      (SBAR (S))
 	      (PP (head 1)))

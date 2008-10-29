@@ -815,6 +815,23 @@ public class CKYItem extends Item implements SexpConvertible {
   public int end() { return end; }
 
   /**
+   * Recursively computes the index of the head word of this derivation.
+   * <p/>
+   * <b>Implementation advice</b>: Because chart items do not store or cache the
+   * index returned by this method, it should be used only for debugging.
+   *
+   * @return the index of the head word of this derivation
+   */
+  public int headWordIdx() {
+    if (start() == end()) {
+      return start();
+    }
+    else {
+      return headChild.headWordIdx();
+    }
+  }
+
+  /**
    * Returns whether a verb has been generated anywhere in the surface strings
    * of the left modifiers of the head child.
    * @return whether a verb has been generated anywhere in the surface strings
@@ -1449,7 +1466,9 @@ public class CKYItem extends Item implements SexpConvertible {
       String newLabel =
 	nt.base.toString() +
 	lbracket + Boolean.toString(isHeadChild) +
-	sep + headWord.word() + sep + headWord.tag() + insideProb + rbracket;
+	sep + headWord.word() + sep + headWord.tag() +
+	sep + start() + sep + end() + sep + headWordIdx() +
+	insideProb + rbracket;
       nt.base =	Symbol.add(newLabel);
       return nt.toSymbol();
     }

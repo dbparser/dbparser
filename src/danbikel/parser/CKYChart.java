@@ -2,7 +2,7 @@ package danbikel.parser;
 
 import danbikel.util.*;
 import danbikel.lisp.*;
-import java.io.Serializable;
+
 import java.util.*;
 
 /**
@@ -13,9 +13,10 @@ public class CKYChart extends Chart {
   // constants
   private final static boolean collinsNPPruneHack =
     Settings.getBoolean(Settings.collinsNPPruneHack);
+  private final static int pruneClampSmall = 100;
+  private final static int pruneClampBig = 120;
   private final static double log10 = Math.log(10);
   private final static double log100 = 2 * Math.log(10);
-
   private final static double[] variablePruneFact = new double[200];
 
   private final static double variablePruneFn(int span) {
@@ -30,6 +31,10 @@ public class CKYChart extends Chart {
     }
   }
 
+  // additional data member
+  private double smallPruneFact;
+  private double smallerPruneFact;
+
   // constructors
 
   /**
@@ -37,6 +42,8 @@ public class CKYChart extends Chart {
    */
   public CKYChart() {
     super();
+    smallPruneFact = Math.max(2.0, pruneFact - 2);
+    smallerPruneFact = Math.max(1.0, pruneFact - 3);
   }
   /**
    * Constructs a new chart with the specified chart size.
@@ -45,6 +52,8 @@ public class CKYChart extends Chart {
    */
   public CKYChart(int size) {
     super(size);
+    smallPruneFact = Math.max(2.0, pruneFact - 2);
+    smallerPruneFact = Math.max(1.0, pruneFact - 3);
   }
 
   /**
@@ -59,6 +68,8 @@ public class CKYChart extends Chart {
    */
   public CKYChart(int cellLimit, double pruneFact) {
     super(cellLimit, pruneFact);
+    smallPruneFact = Math.max(2.0, pruneFact - 2);
+    smallerPruneFact = Math.max(1.0, pruneFact - 3);
   }
 
   /**
@@ -74,6 +85,8 @@ public class CKYChart extends Chart {
    */
   public CKYChart(int size, int cellLimit, double pruneFact) {
     super(size, cellLimit, pruneFact);
+    smallPruneFact = Math.max(2.0, pruneFact - 2);
+    smallerPruneFact = Math.max(1.0, pruneFact - 3);
   }
 
   /**
@@ -112,6 +125,9 @@ public class CKYChart extends Chart {
     Symbol label = (Symbol)currItem.label();
     if (currItem.isPreterminal())
       return false;
+
+    int span = currItem.end() - currItem.start();
+
     // if this is an NP or NP-A with more than one child, then we use wider beam
     /*
     if ((currItem.leftChildren() != null || currItem.rightChildren() != null) &&
@@ -120,8 +136,9 @@ public class CKYChart extends Chart {
     if (collinsNPPruneHack &&
 	(currItem.leftChildren() != null || currItem.rightChildren() != null) &&
 	Language.treebank.stripAugmentation(label) ==
-	Language.treebank.NPLabel())
+	Language.treebank.NPLabel()) {
       return item.logProb() < topProb - pruneFact - 3;
+    }
     /*
     else if (currItem.stop()) {
       // much smaller beam for stopped items
@@ -136,6 +153,14 @@ public class CKYChart extends Chart {
       // much wider beam for stopped items
       //return item.logProb() < topProb - pruneFact - 200;
       return false;
+    }
+    else if (span > pruneClampBig) {
+      return item.logProb() < topProb - smallerPruneFact;
+    }
+    else if (span > pruneClampSmall) {
+      // use very tight beam--as low as 10^2.0--when pruning spans that are
+      // greater than pruneClampSmall (i.e., >100)
+      return item.logProb() < topProb - smallPruneFact;
     }
     else
       return item.logProb() < topProb - pruneFact;

@@ -630,7 +630,20 @@ public class Parser
    * it is highly undesirable to lose the work).
    */
   protected void switchboardFailure() {
-    err.println(sent);
+    err.println("Switchboard failure: client " + id + " did not get chance " +
+		"to push most recently-parsed sentence to Switchboard; " +
+		"parsed sentence:\n" + sent);
+    if (Settings.getBoolean(Settings.clientDeathUponSwitchboardDeath)) {
+      System.err.println("client " + id + " committing suicide because " +
+			 Settings.clientDeathUponSwitchboardDeath +
+			 " setting is true");
+      try {
+	die(true);
+      }
+      catch (RemoteException re) {
+	re.printStackTrace();
+      }
+    }
   }
 
   /**

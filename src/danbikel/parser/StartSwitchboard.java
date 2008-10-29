@@ -230,6 +230,21 @@ public class StartSwitchboard {
     inFilenameMain = requiredArgs[0];
     */
 
+    // go through inFilenames, replacing any file of files (.fof) with
+    // the list of files it contains
+    for (int i = 0; i < inFilenames.size(); i++) {
+      File curr = new File((String)inFilenames.get(i));
+      if (curr.toString().endsWith(".fof")) {
+	inFilenames.remove(i);
+	System.err.println("grabbing all files from \"" + curr + "\"");
+	List<File> filesInFof = readFof(curr);
+	for (File fileInFof : filesInFof) {
+	  if (fileInFof.isFile()) {
+	    inFilenames.add(i++, fileInFof.getAbsolutePath());
+	  }
+	}
+      }
+    }
     // go through inFilenames, replacing any directories with list of files
     // within those directories
     for (int i = 0; i < inFilenames.size(); i++) {
@@ -329,6 +344,20 @@ public class StartSwitchboard {
 	msgFileDirname = System.getProperty("user.dir") + File.separator;
       msgFilenameMain = msgFileDirname + Switchboard.defaultMessagesFilename;
     }
+  }
+
+  private static List<File> readFof(File fof) {
+    List<File> filesInFof = new ArrayList<File>();
+    try {
+      BufferedReader br = new BufferedReader(new FileReader(fof));
+      String line;
+      while ((line = br.readLine()) != null) {
+	filesInFof.add(new File(line));
+      }
+    } catch (Exception e) {
+      System.err.println("Error reading \"" + fof + "\".  Skipping.");
+    }
+    return filesInFof;
   }
 
   /**

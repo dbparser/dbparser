@@ -45,6 +45,22 @@ import java.io.*;
  */
 public class Settings implements Serializable {
 
+  /**
+   * An interface by which to notify a class or an instance of a class after one
+   * or more settings have changed.
+   *
+   * @see Settings#register(Class,Settings.Change)
+   * @see Settings#register(Settings.Change)
+   */
+  public static interface Change {
+    /**
+     * Invoked by this class to notify the requesting class that one or more
+     * settings have changed.
+     */
+    void update();
+  }
+
+
   private Settings() {}
 
   // constants
@@ -1322,7 +1338,7 @@ public class Settings implements Serializable {
    * of {@link CKYItem#toSexp()}.
    * <p/>
    * The form of a lexicalized label will be
-   * <pre>NT[isHead/word/tag]</pre>
+   * <pre>NT[isHead/word/tag/startIdx/endIdx/headWordIdx]</pre>
    * where
    * <ul>
    * <li><tt>NT</tt> is the original, unlexicalized nonterminal
@@ -1330,7 +1346,12 @@ public class Settings implements Serializable {
    * indicating whether this node is the head child of its parent
    * <li><tt>word</tt> is the head word
    * <li><tt>tag</tt> is the part-of-speech tag of the head word
+   * <li><tt>startIdx</tt> is the index of the leftmost word of the span
+   * <li><tt>endIdx</tt> is the index of the rightmost word of the span
+   * <li><tt>headWordIdx</tt> is the index of the head word of the span
    * </ul>
+   * where all indices are 0-based.
+   * <p/>
    * The bracket and delimiter characters <tt>'['</tt>, <tt>']'</tt> and
    * <tt>'/'</tt> are determined by the
    * {@link Treebank#nonTreebankLeftBracket()},
@@ -1608,12 +1629,22 @@ public class Settings implements Serializable {
   public final static String serverRetrySleep =
     "parser.switchboardUser.client.serverRetrySleep";
 
+  /**
+   * The property to specify whether parsing clients should commit suicide
+   * when they have detected that the Switchboard has died.  If the value
+   * of this setting is <code>false</code>, then parsing clients will be
+   * tolerant to Switchboard death, meaning they will continue to attempt
+   * to re-register with a Switchboard at the same RMI location as the
+   * Switchboard that died.
+   */
+  public final static String clientDeathUponSwitchboardDeath =
+    "parser.switchboardUser.client.dieUponSwitchboardDeath";
+
   // constants relating to the location of the settings directory and files
   private final static String settingsDirName = ".db-parser";
   private final static String defaultSettingsDirName =
     System.getProperty("user.home") + File.separator + settingsDirName;
   private final static String defaultSettingsFilename = "settings";
-  private final static String dataDirFilename = "data";
   private final static String defaultSettingsFileHeader =
     " This default settings file created automatically by\n" +
     "#     " + progName + " v" + version;
@@ -1644,6 +1675,21 @@ public class Settings implements Serializable {
       return super.put(key, expandedValue);
     }
   };
+
+  /**
+   * A map from {@link Class} objects to {@link Change} instances, to keep track
+   * of classes that need to be notified of settings changes (primarily used by
+   * classes that cache settings as static data members).
+   * <p/>
+   * <b>Implementation note</b>: This is a map and not a list or set because we
+   * want to spit out an error message if the same class registers more than
+   * once.  
+   */
+  private static Map<Class, Change> classChangeRequests =
+    new HashMap<Class, Change>();
+
+  private static Set<Change> instanceChangeRequests =
+    Collections.newSetFromMap(new WeakHashMap<Change, Boolean>());
 
   // static handles onto the settings dir and settings file
   private static File settingsDir = null;
@@ -1694,11 +1740,57 @@ public class Settings implements Serializable {
 			 "default settings");
       throw new RuntimeException(ioe.toString());
     }
-    Iterator systemProps = System.getProperties().keySet().iterator();
-    while (systemProps.hasNext()) {
-      String property = (String)systemProps.next();
+    for (Object o : System.getProperties().keySet()) {
+      String property = (String)o;
       if (property.startsWith(globalPropertyPrefix)) {
-	set(property, System.getProperty(property));
+	setInternal(property, System.getProperty(property));
+      }
+    }
+    processChangeRequests();
+  }
+
+  /**
+   * Registers a class to receive an update when one or more settings have
+   * changed.
+   * @param cl the class registering to receive notifications of changes
+   * @param change the change request for the specified class
+   */
+  public static void register(Class cl, Change change) {
+    synchronized (settings) {
+      if (classChangeRequests.containsKey(cl)) {
+	System.err.println(className + ".register: warning: class " +
+			   cl.getName() + "already registered; overriding with " +
+			 "new registration");
+      }
+      classChangeRequests.put(cl, change);
+    }
+  }
+
+  /**
+   * Registers a particular object implementing the {@link Change} interface
+   * to receive an update when one or more settings have changed.  Typically,
+   * only large, long-lived objects should register for notifications.
+   * 
+   * @param change the change request for the specified object
+   */
+  public static void register(Change change) {
+    synchronized (settings) {
+      if (instanceChangeRequests.contains(change)) {
+	System.err.println(className + ".register: warning: object " +
+			   change + "already registered; overriding with " +
+			   "new registration");
+      }
+      instanceChangeRequests.add(change);
+    }
+  }
+
+  private static void processChangeRequests() {
+    synchronized (settings) {
+      for (Change c : classChangeRequests.values()) {
+	c.update();
+      }
+      for (Change c : instanceChangeRequests) {
+	c.update();
       }
     }
   }
@@ -1774,6 +1866,7 @@ public class Settings implements Serializable {
    * {@link Properties#load(InputStream)}.
    *
    * @param is the input stream containing properties to load
+   * @throws IOException if there is a problem reading from the specified stream
    */
   public static void load(InputStream is) throws IOException {
     settings.load(is);
@@ -1785,6 +1878,7 @@ public class Settings implements Serializable {
    *
    * @param os the output stream to which to write the properties contained in
    * this class
+   * @throws IOException if there is a problem writing to the specified stream
    */
   public static void store(OutputStream os) throws IOException {
     settings.store(os, defaultSettingsFileHeader);
@@ -1874,24 +1968,41 @@ public class Settings implements Serializable {
     throws IOException {
     PrintStream ps = new PrintStream(os);
     SortedMap propMap = new TreeMap();
+    //noinspection unchecked
     propMap.putAll(props);
     ps.println("#" + header);
-    Iterator it = propMap.entrySet().iterator();
-    while (it.hasNext()) {
-      Map.Entry entry = (Map.Entry)it.next();
+    for (Object o : propMap.entrySet()) {
+      Map.Entry entry = (Map.Entry)o;
       ps.println(entry.getKey() + " = " + entry.getValue());
     }
     ps.flush();
   }
 
   /**
-   * Sets the property <code>name</code> to <code>value</code>, using
-   * {@link Properties#setProperty(String,String)}.
+   * Sets the property <code>name</code> to <code>value</code>, using {@link
+   * Properties#setProperty(String,String)}.  As a side effect, all classes that
+   * have registered to receive settings changes will be notified of this
+   * change, via invocations of {@link Settings.Change#update()} on the {@link
+   * Change} instances that were passed either to the {@link
+   * #register(Class,Settings.Change)} method or to the
+   * {@link #register(Settings.Change)} method.
    *
-   * @param name the name of the property to set
+   * @param name  the name of the property to set
    * @param value the value to which to set the property <code>name</code>
    */
   public static void set(String name, String value) {
+    setInternal(name, value);
+    processChangeRequests();
+  }
+
+  /**
+   * Updates the specified setting on the internal {@link Properties} object
+   * without processing change requests.
+   *
+   * @param name  the name of the setting to update
+   * @param value the new value for the specified setting
+   */
+  private static void setInternal(String name, String value) {
     settings.setProperty(name, value);
   }
 
@@ -1905,21 +2016,28 @@ public class Settings implements Serializable {
     return settings.getProperty(name);
   }
 
-  /** Returns a deep copy of the internal <code>Properties</code> object. */
+  /**
+   * Returns a deep copy of the internal <code>Properties</code> object.
+   * @return a deep copy of the internal <code>Properties</code> object
+   */
   public static Properties getSettings() {
     Properties settingsCopy = new Properties();
     settingsCopy.putAll(settings);
     return settingsCopy;
   }
 
-  /** Allows any class to set the settings of this class
-      directly using the specified <code>Properties</code> object. */
+  /**
+   * Allows any class to set the settings of this class directly using the
+   * specified <code>Properties</code> object.
+   *
+   * @param newSettings the new settings to be contained by this class
+   */
   public static void setSettings(Properties newSettings) {
-    Iterator entries = newSettings.entrySet().iterator();
-    while (entries.hasNext()) {
-      Map.Entry entry = (Map.Entry)entries.next();
-      set((String)entry.getKey(), (String)entry.getValue());
+    for (Map.Entry<Object, Object> objectObjectEntry : newSettings.entrySet()) {
+      Map.Entry entry = (Map.Entry) objectObjectEntry;
+      setInternal((String) entry.getKey(), (String) entry.getValue());
     }
+    processChangeRequests();
   }
 
   /**
@@ -1938,6 +2056,7 @@ public class Settings implements Serializable {
    * @param name the name of the file or resource
    * @return an <code>InputStream</code> of the specified file or resource,
    * or <code>null</code> if the file or resource could not be found
+   * @throws FileNotFoundException if the settings file cannot be found
    */
   public final static InputStream getFileOrResourceAsStream(Class cl,
 							    String name)
@@ -1972,8 +2091,13 @@ public class Settings implements Serializable {
   }
 
   /**
-   * Gets the fallback defaults from resource, thowing exception if
-   * resource unavailable (which is a very bad situation).
+   * Gets the fallback defaults from resource, thowing exception if resource
+   * unavailable (which is a very bad situation).
+   *
+   * @return the defaults resource for this class
+   *
+   * @throws FileNotFoundException if the defaults resource stream cannot be
+   *                               found
    */
   public final static InputStream getDefaultsResource()
     throws FileNotFoundException {
@@ -1981,8 +2105,12 @@ public class Settings implements Serializable {
     URL defaultsURL = Settings.class.getResource("default-settings.properties");
     InputStream is = null;
     if (defaultsURL != null) {
-      try { is = defaultsURL.openStream(); }
-      catch (IOException ioe) { is = null; }
+      try {
+	is = defaultsURL.openStream();
+      }
+      catch (IOException ioe) {
+	is = null;
+      }
     }
     if (is == null) {
       System.err.println(className + ": error: couldn't " +
@@ -2000,6 +2128,9 @@ public class Settings implements Serializable {
    * <code>null</code> otherwise.  The location of the file may be changed
    * using {@link #settingsDirOverride} or {@link #settingsFileOverride},
    * where the latter definition takes precedence over the former.
+   *
+   * @return the stream of the settings file
+   * @throws FileNotFoundException if the settings file cannot be found
    */
   private final static InputStream getSettingsStream()
     throws FileNotFoundException {

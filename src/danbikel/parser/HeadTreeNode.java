@@ -242,7 +242,7 @@ public class HeadTreeNode implements Serializable, SexpConvertible {
     }
   }
 
-  private Symbol getHeadWordLabel() {
+  protected Symbol getHeadWordLabel() {
     Treebank treebank = Language.treebank();
     return
       Symbol.get(label().toString() + treebank.nonTreebankLeftBracket() +

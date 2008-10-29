@@ -1,9 +1,7 @@
 package danbikel.parser.arabic;
 
 import danbikel.parser.Constants;
-import danbikel.parser.HeadFinder;
 import danbikel.parser.Language;
-import danbikel.parser.Treebank;
 import danbikel.parser.Settings;
 import danbikel.parser.Nonterminal;
 import danbikel.parser.Word;
@@ -37,6 +35,8 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
    */
   protected final static Symbol tagMapSym = Symbol.add("tag-map");
   private final static Symbol VP = Symbol.get("VP");
+  private final static Nonterminal vpNt =
+    Language.treebank().parseNonterminal(VP);
   private final static Symbol X = Symbol.get("X");
   private final static Symbol punc = Symbol.get("PUNC");
   private final static Symbol nonAlpha = Symbol.get("NON_ALPHABETIC");
@@ -45,6 +45,9 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
   private final static Symbol period = Symbol.get(".");
   private final static Symbol quotePeriod = Symbol.get("\".");
   private final static Symbol comma = Symbol.get(",");
+  private final static Nonterminal subjectNt =
+    Language.treebank().parseNonterminal(Symbol.get("*-SBJ"));
+  private final static Symbol vpSbj = Symbol.get("VP-SBJ");
 
   private final static boolean removeNounSuffix = false;
   private final static boolean removeDetPrefix  = false;
@@ -328,9 +331,37 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
     //relabelSubjectlessSentences(tree);
     removeNullElements(tree);
     raisePunctuation(tree);
+    markSubjectVPs(tree);
     identifyArguments(tree);
     stripAugmentations(tree);
     return tree;
+  }
+
+  private void markSubjectVPs(Sexp tree) {
+    if (treebank.isPreterminal(tree)) {
+      return;
+    }
+    else if (tree.isList()) {
+      SexpList treeList = tree.list();
+      int treeListLen = treeList.length();
+      Nonterminal label = treebank.parseNonterminal(treeList.symbolAt(0));
+      boolean transformed = false;
+      for (int i = 1; i < treeListLen; ++i) {
+	SexpList child = treeList.listAt(i);
+	if (!transformed) {
+	  if (vpNt.subsumes(label)) {
+	    Nonterminal parsedChildLabel =
+	      treebank.parseNonterminal(child.symbolAt(0));
+	    if (subjectNt.subsumes(parsedChildLabel)) {
+	      label.base = vpSbj;
+	      treeList.set(0, label.toSymbol());
+	      transformed = true;
+	    }
+	  }
+	}
+	markSubjectVPs(child);
+      }
+    }
   }
 
   /**

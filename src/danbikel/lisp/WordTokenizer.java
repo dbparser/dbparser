@@ -25,9 +25,7 @@ public class WordTokenizer {
   private final static char[] lineSep =
     System.getProperty("line.separator").toCharArray();
   private final static int lineSepLength = lineSep.length;
-  private final static int initialBufChunkSize = 1024;
-  //private final static int maxBufChunkSize = 1048576;
-  private final static int maxBufChunkSize = 8192;
+  private final static int initialBufSize = 1024;
 
   // data members
 
@@ -58,19 +56,7 @@ public class WordTokenizer {
   private long numCharsRead = 0;
   private int linenoOfLastToken = 0;
   private int lineSepMatchIdx = 0;
-  private int currBufChunkSize = initialBufChunkSize;
-  // by using increasingly larger StringBuffer objects to do buffering,
-  // we hackishly avoid char array copying, since neither the
-  // StringBuffer.toString nor String.substring methods do any copying, but
-  // merely shares the StringBuffer's internal char array with the
-  // newly-created String object; furthermore, as long as the capacity
-  // of the StringBuffer is not exceeded, future append operations will
-  // not cause any copying to occur
-  // this is really a low-level hack, since
-  // it is dependent on Sun's implementation of String and StringBuffer;
-  // however, it is the only way to avoid an array copy for every single
-  // token, since we to create a String object for each token
-  private StringBuilder buf = new StringBuilder(currBufChunkSize);
+  private StringBuilder buf = new StringBuilder(initialBufSize);
 
   /**
    * Creates a new tokenizer object.
@@ -172,46 +158,20 @@ public class WordTokenizer {
     else {
       ttype = StreamTokenizer.TT_WORD;
       linenoOfLastToken = lineno;
-      int tokenStartIdx = buf.length();
-      // we synchronize on buf, so we don't have to re-acquire lock for every
-      // invocation of append
-      synchronized (buf) {
-	while (lastChar != -1 &&
-	       !Character.isWhitespace((char)lastChar) &&
-	       !isOrdinary(lastChar)) {
-	  tokenStartIdx = ensureBufferCapacity(tokenStartIdx);
-	  buf.append((char)lastChar);
-	  lastChar = readChar();
-	}
-	sval = buf.substring(tokenStartIdx, buf.length());
+      buf.setLength(0);
+      while (lastChar != -1 &&
+	     !Character.isWhitespace((char)lastChar) &&
+	     !isOrdinary(lastChar)) {
+	buf.append((char)lastChar);
+	lastChar = readChar();
       }
+      sval = buf.toString();
     }
     return ttype;
   }
 
   private final boolean isOrdinary(int ch) {
     return ch < Byte.MAX_VALUE && ordinary.get(ch);
-  }
-
-  private final int ensureBufferCapacity(int tokenStartIdx) {
-    if (buf.capacity() == buf.length()) {
-      StringBuilder old = buf;
-      // if we're trying to build an exceptionally long token, just keep
-      // doubling buf's capacity; otherwise, impose regular maxBufChunkSize
-      // limits
-      if (tokenStartIdx == 0)
-	buf = new StringBuilder(old.length() * 2);
-      else {
-	int newSize = currBufChunkSize * 2;
-	if (newSize <= maxBufChunkSize)
-	  currBufChunkSize = newSize;
-	buf = new StringBuilder(currBufChunkSize);
-      }
-      buf.append(old.substring(tokenStartIdx, old.length()));
-      return 0;
-    }
-    else
-      return tokenStartIdx;
   }
 
   /**

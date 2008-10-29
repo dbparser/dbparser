@@ -507,7 +507,9 @@ public abstract class AbstractClient
 	System.err.println(className + ": switchboard must have gone down (" +
 			   re + "); " + "\n\twill attempt to re-register");
 	reRegister();
-	System.err.println(className + ": successfully re-registered");
+	if (registered) {
+	  System.err.println(className + ": successfully re-registered");
+	}
       }
     }
   }

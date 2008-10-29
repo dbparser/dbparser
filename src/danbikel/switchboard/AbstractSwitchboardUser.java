@@ -64,7 +64,7 @@ public abstract class AbstractSwitchboardUser
   /**
    * Class to implement a thread that detects whether the switchboard
    * has gone down, by noticing when it has been too long since its
-   * last call to {@link #alive}.
+   * last call to {@link AbstractSwitchboardUser#alive()}.
    */
   protected class Alive implements Runnable {
     protected Alive() {}
@@ -100,8 +100,10 @@ public abstract class AbstractSwitchboardUser
     }
   }
 
-  /** Provides an appropriate overridden definition of {@link Retry#keepTrying}
-      that checks the value of {@link #timeToDie}. */
+  /**
+   * Provides an appropriate overridden definition of {@link Retry#keepTrying}
+   * that checks the value of {@link AbstractSwitchboardUser#timeToDie}.
+   */
   protected static class SBUserRetry extends Retry {
     AbstractSwitchboardUser sbUser;
 
@@ -125,7 +127,6 @@ public abstract class AbstractSwitchboardUser
       return !sbUser.timeToDie;
     }
   }
-
 
 
   /** The name of the runtime type of the subclass, cached here in

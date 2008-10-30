@@ -56,8 +56,15 @@ public class Settings implements Serializable {
     /**
      * Invoked by this class to notify the requesting class that one or more
      * settings have changed.
+     *
+     * @param changedSettings the keys of this map are the settings that have
+     *                        changed since the last time this method was
+     *                        invoked, and the values are the old values for
+     *                        those changed settings
+     * @see Settings#register(Class,Settings.Change,Set)
+     * @see Settings#register(Settings.Change)
      */
-    void update(Map<String,String> changedSettings);
+    void update(Map<String, String> changedSettings);
   }
 
 
@@ -1720,21 +1727,6 @@ public class Settings implements Serializable {
   }
 
   private static ClassCmp classCmp = new ClassCmp();
-
-  // inner class for instanceCmp data member
-  private static class InstanceCmp extends HashMap<Object, Set<Object>>
-    implements Comparator<Object> {
-    public int compare(Object obj1, Object obj2) {
-      Set<Object> beforeObj1 = get(obj1);
-      Set<Object> beforeObj2 = get(obj2);
-      if (beforeObj2 != null && beforeObj2.contains(obj1)) {
-	return -1;
-      } else if (beforeObj1 != null && beforeObj1.contains(obj2)) {
-	return 1;
-      }
-      return System.identityHashCode(obj1) - System.identityHashCode(obj2);
-    }
-  }
 
   /**
    * A sorted map from {@link Class} objects to {@link Change} instances, to

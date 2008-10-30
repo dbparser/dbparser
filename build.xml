@@ -96,7 +96,7 @@
 	     header="Utility Packages"
 	     bottom="Author: &lt;a href=&quot;http://www.cis.upenn.edu/~dbikel/&quot;&gt;Dan Bikel.&lt;/a&gt;"
 	     additionalparam="-breakiterator">
-      <link href="http://java.sun.com/j2se/1.4.2/docs/api"/>
+      <link href="http://java.sun.com/javase/6/docs/api/"/>
       <fileset dir="${src}"/>
     </javadoc>
   </target>
@@ -110,7 +110,7 @@
 	     header="Parsing Engine"
 	     bottom="Author: &lt;a href=&quot;http://www.cis.upenn.edu/~dbikel/&quot;&gt;Dan Bikel.&lt;/a&gt;"
 	     additionalparam="-breakiterator">
-      <link href="http://java.sun.com/j2se/1.4.2/docs/api"/>
+      <link href="http://java.sun.com/javase/6/docs/api/"/>
       <fileset dir="${src}"/>
     </javadoc>
   </target>

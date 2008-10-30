@@ -2,6 +2,8 @@ package danbikel.parser;
 
 import danbikel.lisp.*;
 
+import java.util.Map;
+
 /**
  * A class that provides a static method for mapping nonterminals, {@link
  * #map(Symbol)}.  This class uses an internal {@link NonterminalMapper}
@@ -19,8 +21,10 @@ public class NTMapper {
   private static final String fallbackDefaultClassname =
     IdentityNTMapper.class.getName();
 
-  private static NonterminalMapper mapper;
-  static {
+  private static NonterminalMapper mapper = getMapper();
+
+  private static NonterminalMapper getMapper() {
+    NonterminalMapper mapper;
     String mapperClassStr = Settings.get(Settings.prevModMapperClass);
     if (mapperClassStr != null) {
       try {
@@ -39,6 +43,18 @@ public class NTMapper {
 			 "using " + fallbackDefaultClassname);
       mapper = new IdentityNTMapper();
     }
+    return mapper;
+  }
+
+  static {
+    Settings.Change change = new Settings.Change() {
+      public void update(Map<String, String> changedSettings) {
+	if (changedSettings.containsKey(Settings.prevModMapperClass)) {
+	  mapper = getMapper();
+	}
+      }
+    };
+    Settings.register(NTMapper.class, change, null);
   }
 
   /**

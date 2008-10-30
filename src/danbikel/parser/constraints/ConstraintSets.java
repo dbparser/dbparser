@@ -3,6 +3,8 @@ package danbikel.parser.constraints;
 import danbikel.lisp.*;
 import danbikel.parser.*;
 
+import java.util.Map;
+
 /**
  * Static factory for <code>ConstraintSet</code> objects.  This scheme allows
  * the type of <code>ConstraintSet</code> object to be determined at run-time.
@@ -19,8 +21,8 @@ public class ConstraintSets {
 
   private ConstraintSets() {}
 
-  private static ConstraintSetFactory factory;
-  static {
+  private static ConstraintSetFactory getFactory() {
+    ConstraintSetFactory factory;
     String constraintSetFactStr =
       Settings.get(Settings.constraintSetFactoryClass);
     if (constraintSetFactStr != null) {
@@ -52,6 +54,20 @@ public class ConstraintSets {
 			 "using UnlexTreeConstraintSetFactory");
       factory = new UnlexTreeConstraintSetFactory();
     }
+    return factory;
+  }
+
+  private static ConstraintSetFactory factory = getFactory();
+
+  static {
+    Settings.Change change = new Settings.Change() {
+      public void update(Map<String, String> changedSettings) {
+	if (changedSettings.containsKey(Settings.constraintSetFactoryClass)) {
+	  factory = getFactory();
+	}
+      }
+    };
+    Settings.register(ConstraintSets.class, change, null);
   }
 
   /**

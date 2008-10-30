@@ -22,8 +22,19 @@ public class Treebank extends danbikel.parser.lang.AbstractTreebank {
   // the characters that are delimiters of augmented nonterminal labels
   private final static String augmentationDelimStr = "-+";
 
-  private final static boolean outputLexLabels =
+  // a "mutable" constant
+  private static boolean outputLexLabels =
     Settings.getBoolean(Settings.decoderOutputHeadLexicalizedLabels);
+
+  static {
+    Settings.Change change = new Settings.Change() {
+      public void update(Map<String, String> changedSettings) {
+	outputLexLabels =
+	  Settings.getBoolean(Settings.decoderOutputHeadLexicalizedLabels);
+      }
+    };
+    Settings.register(Treebank.class, change, null);
+  }
 
   // basic nodes in the Arabic Treebank that will be transformed in a
   // preprocessing phase

@@ -2,6 +2,7 @@ package danbikel.parser;
 
 import danbikel.lisp.*;
 import java.io.Serializable;
+import java.util.Map;
 
 /**
  * Static factory for <code>Subcat</code> objects.  This scheme allows
@@ -19,8 +20,10 @@ public class Subcats implements Serializable {
 
   private Subcats() {}
 
-  private static SubcatFactory factory;
-  static {
+  private static SubcatFactory factory = getFactory();
+
+  private static SubcatFactory getFactory() {
+    SubcatFactory factory;
     String subcatFactStr = Settings.get(Settings.subcatFactoryClass);
     if (subcatFactStr != null) {
       try {
@@ -39,6 +42,18 @@ public class Subcats implements Serializable {
 			 "using SubcatBagFactory");
       factory = new SubcatBagFactory();
     }
+    return factory;
+  }
+
+  static {
+    Settings.Change change = new Settings.Change() {
+      public void update(Map<String, String> changedSettings) {
+	if (changedSettings.containsKey(Settings.subcatFactoryClass)) {
+	  factory = getFactory();
+	}
+      }
+    };
+    Settings.register(Subcats.class, change, null);
   }
 
   /**

@@ -3,6 +3,7 @@ package danbikel.parser;
 import danbikel.lisp.*;
 import java.io.*;
 import java.lang.reflect.*;
+import java.util.Map;
 
 /**
  * Abstract class to represent the probability structure&mdash;the entire
@@ -55,15 +56,11 @@ public abstract class ProbabilityStructure implements Serializable {
   protected transient boolean doPruning;
 
   /** The value off the {@link Settings#defaultModelClass} setting. */
-  protected final static String defaultModelClassName =
+  protected static String defaultModelClassName =
     Settings.get(Settings.defaultModelClass);
-  /**
-   * The constructor of the class specified by the
-   * {@link Settings#defaultModelClass} setting, taking a single
-   * {@link ProbabilityStructure} as its only argument.
-   */
-  protected static Constructor defaultModelConstructor = null;
-  static {
+
+  private static Constructor setDefaultModelConstructor() {
+    Constructor defaultModelConstructor = null;
     try {
       Class defaultModelClass = Class.forName(defaultModelClassName);
       Class[] params = {ProbabilityStructure.class};
@@ -75,7 +72,31 @@ public abstract class ProbabilityStructure implements Serializable {
     catch (NoSuchMethodException nsme) {
       System.err.println(nsme);
     }
+    return defaultModelConstructor;
   }
+
+  /**
+   * The constructor of the class specified by the
+   * {@link Settings#defaultModelClass} setting, taking a single
+   * {@link ProbabilityStructure} as its only argument.
+   */
+  protected static Constructor defaultModelConstructor =
+    setDefaultModelConstructor();
+
+  static {
+    Settings.Change change = new Settings.Change() {
+      public void update(Map<String, String> changedSettings) {
+	if (changedSettings.containsKey(Settings.defaultModelClass)) {
+	  defaultModelClassName =
+	    Settings.get(Settings.defaultModelClass);
+	  defaultModelConstructor = setDefaultModelConstructor();
+	}
+      }
+    };
+    Settings.register(ProbabilityStructure.class, change, null);
+  }
+
+
 
   /**
    * A reusable list to enable efficient construction of <code>SexpEvent</code>

@@ -35,7 +35,7 @@ public abstract class AbstractTraining implements Training, Serializable {
    * unnecessary, since head children are already inherently distinct.  This
    * flag should be true when emulating the behavior of Mike Collins' parser.
    */
-  protected static final boolean relabelHeadChildrenAsArgs =
+  protected static boolean relabelHeadChildrenAsArgs =
     Settings.getBoolean(Settings.collinsRelabelHeadChildrenAsArgs);
 
   private static final String className = Training.class.getName();
@@ -43,14 +43,14 @@ public abstract class AbstractTraining implements Training, Serializable {
   /**
    * Caches the boolean value of the property {@link Settings#addGapInfo}.
    */
-  protected static final boolean addGapInfo =
+  protected static boolean addGapInfo =
     Settings.getBoolean(Settings.addGapInfo);
 
   /**
    * Caches the boolean value of the property
    * {@link Settings#collinsRepairBaseNPs}.
    */
-  protected static final boolean repairBaseNPs =
+  protected static boolean repairBaseNPs =
     Settings.getBoolean(Settings.collinsRepairBaseNPs);
 
   // static map for stripping away argument augmentation from nonterminal labels
@@ -108,19 +108,33 @@ public abstract class AbstractTraining implements Training, Serializable {
   protected static synchronized void staticSetUpFastArgMap(CountsTable nonterminals) {
     if (canUseFastArgMap)
       return;
-    Iterator nts = nonterminals.keySet().iterator();
-    while (nts.hasNext()) {
-      Symbol nt = (Symbol)nts.next();
+    for (Object o : nonterminals.keySet()) {
+      Symbol nt = (Symbol)o;
       if (Language.training().isArgument(nt))
 	fastArgMap.put(nt, Language.training().removeArgAugmentation(nt));
     }
     canUseFastArgMap = true;
   }
 
+  static {
+    Settings.Change change = new Settings.Change() {
+      public void update(Map<String, String> changedSettings) {
+	relabelHeadChildrenAsArgs =
+	  Settings.getBoolean(Settings.collinsRelabelHeadChildrenAsArgs);
+	addGapInfo =
+	  Settings.getBoolean(Settings.addGapInfo);
+	repairBaseNPs =
+	  Settings.getBoolean(Settings.collinsRepairBaseNPs);
+      }
+    };
+    Settings.register(AbstractTraining.class, change, null);
+  }
+
   // data members
 
   private Nonterminal nonterminal = new Nonterminal();
   private Nonterminal nonterminal2 = new Nonterminal();
+  @SuppressWarnings({"UnusedDeclaration"})
   private Nonterminal addGapData = new Nonterminal();
 
   /** Holds the value of {@link danbikel.parser.Language#treebank()}. */

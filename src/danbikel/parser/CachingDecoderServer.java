@@ -48,9 +48,16 @@ public class CachingDecoderServer implements DecoderServerRemote {
    */
   public CachingDecoderServer(DecoderServerRemote stub) {
     this.stub = stub;
-    String cacheSizeStr = Settings.get(Settings.decoderLocalCacheSize);
-    int cacheSize = Integer.parseInt(cacheSizeStr);
+    int cacheSize = Settings.getInteger(Settings.decoderLocalCacheSize);
     cache = new ProbabilityCache(cacheSize);
+    Settings.register(new Settings.Change() {
+      public void update(Map<String, String> changedSettings) {
+	int cacheSize = Settings.getInteger(Settings.decoderLocalCacheSize);
+	if (cacheSize > cache.size()) {
+	  cache.setMaxCapacity(cacheSize);
+	}
+      }
+    });
   }
 
   /**

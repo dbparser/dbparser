@@ -27,18 +27,29 @@ import java.lang.reflect.*;
  * @see Decoder
  */
 public class Parser
-  extends AbstractClient implements ParserRemote, Runnable {
+  extends AbstractClient implements ParserRemote, Runnable, Settings.Change {
 
   // private constants
   private final static boolean debug = false;
   private final static boolean debugCacheStats = true;
   private final static String className = Parser.class.getName();
   private final static boolean flushAfterEverySentence = true;
-  private final static String decoderClassName =
+  private static String decoderClassName =
     Settings.get(Settings.decoderClass);
-  private final static String decoderServerClassName =
+  private static String decoderServerClassName =
     Settings.get(Settings.decoderServerClass);
-  
+
+  static {
+    Settings.Change change =
+      new Settings.Change() {
+	public void update(Map<String, String> changedSettings) {
+	  decoderClassName = Settings.get(Settings.decoderClass);
+	  decoderServerClassName = Settings.get(Settings.decoderServerClass);
+	}
+      };
+    Settings.register(Parser.class, change, null);
+  }
+
   protected static String invocationTargetExceptionMsg =
     "ERROR: IT IS LIKELY THAT YOU HAVE ATTEMPTED TO LOAD AN OLD VERSION OF\n" +
     "\tA SERIALIZED JAVA OBJECT; PLEASE RE-TRAIN TO PRODUCE A NEW\n" +
@@ -100,7 +111,7 @@ public class Parser
    * Indicates whether the {@link DecoderServerRemote} instance is local
    * or remote (an RMI stub).
    */
-  protected boolean localServer = false;
+  protected boolean localServer = true;
   // the next two data members are only used when not in stand-alone mode
   // (i.e., when using the switchboard), and when the user has specified
   // an input filename and, optionally, an output filename
@@ -122,6 +133,12 @@ public class Parser
    * printing in the proper character encoding.
    */
   protected PrintWriter err;
+
+  public void update(Map<String, String> changedSettings) {
+    if (changedSettings.containsKey(Settings.decoderClass)) {
+      decoder = getNewDecoder(id, server);
+    }
+  }
 
   /**
    * Constructs a new {@link Parser} instance that will construct an internal
@@ -150,6 +167,7 @@ public class Parser
     server = getNewDecoderServer(derivedDataFilename);
     decoder = getNewDecoder(0, server);
     setUpErrWriter();
+    Settings.register(this);
   }
 
   /**
@@ -162,6 +180,7 @@ public class Parser
     this.server = server;
     decoder = getNewDecoder(0, server);
     setUpErrWriter();
+    Settings.register(this);
   }
 
   /**
@@ -173,6 +192,7 @@ public class Parser
   public Parser(int timeout) throws RemoteException {
     super(timeout);
     setUpErrWriter();
+    Settings.register(this);
   }
   /**
    * Constructs a new parsing client with the specified timeout value for its
@@ -186,6 +206,7 @@ public class Parser
   public Parser(int timeout, int port) throws RemoteException {
     super(timeout, port);
     setUpErrWriter();
+    Settings.register(this);
   }
   /**
    * Constructs a new parsing client with the specified RMI port and
@@ -201,6 +222,7 @@ public class Parser
     throws RemoteException {
     super(port, csf, ssf);
     setUpErrWriter();
+    Settings.register(this);
   }
 
   private void setUpErrWriter() {
@@ -1205,12 +1227,13 @@ public class Parser
 	    }
 	    if (derivedDataFilename != null) {
 	      parser.server = server;
-	      parser.localServer = true;
 	    }
-	    else
+	    else {
+	      parser.localServer = false;
 	      parser.getFaultTolerantServer(getRetries(defaultRetries),
 					    getRetrySleep(defaultRetrySleep),
 					    getFailover(defaultFailover));
+	    }
 	    if (inputFilename != null) {
 	      parser.setInternalFilenames(inputFilename, outputFilename);
 	    }

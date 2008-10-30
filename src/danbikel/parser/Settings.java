@@ -49,7 +49,7 @@ public class Settings implements Serializable {
    * An interface by which to notify a class or an instance of a class after one
    * or more settings have changed.
    *
-   * @see Settings#register(Class,Settings.Change)
+   * @see Settings#register(Class,Settings.Change,Set)
    * @see Settings#register(Settings.Change)
    */
   public static interface Change {
@@ -57,7 +57,7 @@ public class Settings implements Serializable {
      * Invoked by this class to notify the requesting class that one or more
      * settings have changed.
      */
-    void update();
+    void update(Map<String,String> changedSettings);
   }
 
 
@@ -70,7 +70,7 @@ public class Settings implements Serializable {
   /** The official name of this program. */
   public final static String progName = "Parsing Engine";
   /** The official version of this program. */
-  public final static String version = "1.1";
+  public final static String version = "1.2";
   /**
    * The prefix that all properties for this parser should have
    * (to be used when finding system properties that are meant to be included
@@ -1672,21 +1672,81 @@ public class Settings implements Serializable {
       StringBuffer valueBuffer = new StringBuffer((String)value);
       Text.expandVars(this, valueBuffer);
       String expandedValue = valueBuffer.toString();
-      return super.put(key, expandedValue);
+      String previous = (String)super.put(key, expandedValue);
+      if (previous == null || !previous.equals(expandedValue)) {
+	changedSettings.put((String)key, previous);
+      }
+      return previous;
     }
   };
 
   /**
-   * A map from {@link Class} objects to {@link Change} instances, to keep track
-   * of classes that need to be notified of settings changes (primarily used by
-   * classes that cache settings as static data members).
+   * A map where the keys are the settings that have changed, and whose values
+   * are the old values of those changed settings.  This map is guaranteed
+   * to contain all settings changed since the last call to
+   * {@link #processChangeRequests()}.
+   */
+  private static Map<String, String> changedSettings =
+    new HashMap<String, String>();
+
+  // inner class for classCmp data member
+  /**
+   * A comparator that encodes the <i>comes before</i> relation between two
+   * {@link Class} instances, such that if this comparator, which is also a
+   * {@link Map}, contains a map entry for {@link Class} {@code c1}, then the
+   * {@link Set Set&lt;Class&gt;} that is the value of that entry contains all
+   * {@link Class} instances that are strictly less than {@code c1} in the
+   * ordering encoded by this comparator.  If there is no mapping for {@code
+   * c1}, then it has no <i>comes before</i> requirements. If two classes {@code
+   * c1} and {@code c2} are not in the other&rsquo;s <i>comes before</i>
+   * requirements, then they are <i>incommensurate</i> in the partial ordering
+   * encoded by this comparator, and an arbitrary ordering is imposed based on
+   * the hash code of the two class objects.
+   */
+  private static class ClassCmp extends HashMap<Class, Set<Class>>
+    implements Comparator<Class> {
+
+    public int compare(Class c1, Class c2) {
+      Set<Class> beforeC1 = get(c1);
+      Set<Class> beforeC2 = get(c2);
+      if (beforeC2 != null && beforeC2.contains(c1)) {
+	return -1;
+      } else if (beforeC1 != null && beforeC1.contains(c2)) {
+	return 1;
+      }
+      return c1.hashCode() - c2.hashCode();
+    }
+
+  }
+
+  private static ClassCmp classCmp = new ClassCmp();
+
+  // inner class for instanceCmp data member
+  private static class InstanceCmp extends HashMap<Object, Set<Object>>
+    implements Comparator<Object> {
+    public int compare(Object obj1, Object obj2) {
+      Set<Object> beforeObj1 = get(obj1);
+      Set<Object> beforeObj2 = get(obj2);
+      if (beforeObj2 != null && beforeObj2.contains(obj1)) {
+	return -1;
+      } else if (beforeObj1 != null && beforeObj1.contains(obj2)) {
+	return 1;
+      }
+      return System.identityHashCode(obj1) - System.identityHashCode(obj2);
+    }
+  }
+
+  /**
+   * A sorted map from {@link Class} objects to {@link Change} instances, to
+   * keep track of classes that need to be notified of settings changes
+   * (primarily used by classes that cache settings as static data members).
    * <p/>
    * <b>Implementation note</b>: This is a map and not a list or set because we
    * want to spit out an error message if the same class registers more than
-   * once.  
+   * once.
    */
-  private static Map<Class, Change> classChangeRequests =
-    new HashMap<Class, Change>();
+  private static SortedMap<Class, Change> classChangeRequests =
+    new TreeMap<Class, Change>(classCmp);
 
   private static Set<Change> instanceChangeRequests =
     Collections.newSetFromMap(new WeakHashMap<Change, Boolean>());
@@ -1746,21 +1806,32 @@ public class Settings implements Serializable {
 	setInternal(property, System.getProperty(property));
       }
     }
-    processChangeRequests();
+    // we could invoke processChangeRequests here, but we don't bother, since
+    // this is the bootstrap loading of settings, and should therefore come
+    // before other classes are loaded that are dependent on Settings
   }
 
   /**
    * Registers a class to receive an update when one or more settings have
    * changed.
-   * @param cl the class registering to receive notifications of changes
+   *
+   * @param cl     the class registering to receive notifications of changes
    * @param change the change request for the specified class
+   * @param before the set of classes that must be updated before this class, or
+   *               <code>null</code> or {@link java.util.Collections#emptySet()
+   *               Collections.&lt;Class&gt;emptySet()} if no such set exists
    */
-  public static void register(Class cl, Change change) {
+  public static void register(Class cl,
+			      Change change, Set<Class> before) {
     synchronized (settings) {
       if (classChangeRequests.containsKey(cl)) {
 	System.err.println(className + ".register: warning: class " +
-			   cl.getName() + "already registered; overriding with " +
-			 "new registration");
+			   cl.getName() +
+			   "already registered; overriding with " +
+			   "new registration");
+      }
+      if (before != null && !before.isEmpty()) {
+	classCmp.put(cl, before);
       }
       classChangeRequests.put(cl, change);
     }
@@ -1786,13 +1857,18 @@ public class Settings implements Serializable {
 
   private static void processChangeRequests() {
     synchronized (settings) {
-      for (Change c : classChangeRequests.values()) {
-	c.update();
+      if (changedSettings.isEmpty()) {
+	return;
+      }
+      for (Map.Entry<Class, Change> entry : classChangeRequests.entrySet()) {
+	Change c = entry.getValue();
+	c.update(changedSettings);
       }
       for (Change c : instanceChangeRequests) {
-	c.update();
+	c.update(changedSettings);
       }
     }
+    changedSettings.clear();
   }
 
   /**
@@ -1870,6 +1946,7 @@ public class Settings implements Serializable {
    */
   public static void load(InputStream is) throws IOException {
     settings.load(is);
+    processChangeRequests();
   }
 
   /**
@@ -1982,10 +2059,10 @@ public class Settings implements Serializable {
    * Sets the property <code>name</code> to <code>value</code>, using {@link
    * Properties#setProperty(String,String)}.  As a side effect, all classes that
    * have registered to receive settings changes will be notified of this
-   * change, via invocations of {@link Settings.Change#update()} on the {@link
-   * Change} instances that were passed either to the {@link
-   * #register(Class,Settings.Change)} method or to the
-   * {@link #register(Settings.Change)} method.
+   * change, via invocations of {@link Settings.Change#update(Map)} on the
+   * {@link Change} instances that were passed either to the {@link
+   * #register(Class,Settings.Change,Set)} method or to the {@link
+   * #register(Settings.Change)} method.
    *
    * @param name  the name of the property to set
    * @param value the value to which to set the property <code>name</code>

@@ -12,18 +12,16 @@ import java.io.*;
  * Provides probabilities and other resources needed by decoders.
  */
 public class DecoderServer
-  extends AbstractServer implements DecoderServerRemote {
+  extends AbstractServer implements DecoderServerRemote, Settings.Change {
 
   // data members
   /** The model collection used by this decoder server. */
   protected ModelCollection modelCollection;
-  /** The value of {@link Training#topSym()}, cached here for convenience. */
-  protected Symbol topSym = Language.training.topSym();
   /** The value of {@link Training#stopSym()}, cached here for convenience. */
-  protected Word stopWord = Language.training.stopWord();
+  protected Word stopWord = Language.training().stopWord();
   /** The integer value of {@link Settings#unknownWordThreshold}. */
   protected int unknownWordThreshold =
-    Integer.parseInt(Settings.get(Settings.unknownWordThreshold));
+    Settings.getInteger(Settings.unknownWordThreshold);
   /** The boolean value of {@link Settings#downcaseWords}. */
   protected boolean downcaseWords = Settings.getBoolean(Settings.downcaseWords);
 
@@ -34,6 +32,7 @@ public class DecoderServer
   public DecoderServer(String mcFilename)
     throws ClassNotFoundException, IOException, OptionalDataException {
     setModelCollection(mcFilename);
+    Settings.register(this);
   }
 
   /**
@@ -45,6 +44,7 @@ public class DecoderServer
    */
   public DecoderServer(int timeout) throws RemoteException {
     super(timeout);
+    Settings.register(this);
   }
 
   /**
@@ -57,6 +57,7 @@ public class DecoderServer
    */
   public DecoderServer(int timeout, int port) throws RemoteException {
     super(timeout, port);
+    Settings.register(this);
   }
 
   /**
@@ -76,6 +77,7 @@ public class DecoderServer
   public DecoderServer(int maxClients, boolean acceptClientsOnlyByRequest,
 		       int timeout, int port) throws RemoteException {
     super(maxClients, acceptClientsOnlyByRequest, timeout, port);
+    Settings.register(this);
   }
 
   /**
@@ -466,5 +468,12 @@ public class DecoderServer
     catch (ClassNotFoundException cnfe) {
       System.err.println(cnfe);
     }
+  }
+
+  public void update(Map<String, String> changedSettings) {
+    stopWord = Language.training().stopWord();
+    unknownWordThreshold =
+      Settings.getInteger(Settings.unknownWordThreshold);
+    downcaseWords = Settings.getBoolean(Settings.downcaseWords);
   }
 }

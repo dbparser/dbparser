@@ -50,23 +50,23 @@ public class Trainer implements Serializable {
   // constants
   //static boolean secretFlag;
 
+  private final static Symbol collinsTop = Symbol.add("TOP");
   /**
    * One must set the unknownWordThreshold to 1 in order to perfectly emulate
    * Collins' trainer's output file.
    */
-  private final static boolean outputCollins =
+  private static boolean outputCollins =
     Settings.getBoolean(Settings.outputCollins);
-  private final static Symbol collinsTop = Symbol.add("TOP");
   /** This should only be true if training on the 39832 sentences of
       the WSJ Penn Treebank, Sections 02-21 (and if emulation of Mike
       Collins' trainer is desired). */
-  private final static boolean useCollinsSkipArr =
+  private static boolean useCollinsSkipArr =
     Settings.getBoolean(Settings.collinsSkipWSJSentences);
 
-  private final static boolean shareCounts =
+  private static boolean shareCounts =
     Settings.getBoolean(Settings.trainerShareCounts);
 
-  private static final boolean addGapInfo =
+  private static boolean addGapInfo =
     Settings.getBoolean(Settings.addGapInfo);
 
   /** The sentence numbers of sentences that Mike Collins' trainer skips,
@@ -100,28 +100,68 @@ public class Trainer implements Serializable {
 
   // constants for default classname prefixes for ProbabilityStructure
   // subclasses
-  private final static String packagePrefix =
+  private static String packagePrefix =
     Settings.get(Settings.modelStructurePackage) + ".";
-  private final static String lexPriorModelStructureClassnamePrefix =
+  private static String lexPriorModelStructureClassnamePrefix =
     packagePrefix + "LexPriorModelStructure";
-  private final static String nonterminalPriorModelStructureClassnamePrefix =
+  private static String nonterminalPriorModelStructureClassnamePrefix =
     packagePrefix + "NonterminalPriorModelStructure";
-  private final static String topNonterminalModelStructureClassnamePrefix =
+  private static String topNonterminalModelStructureClassnamePrefix =
     packagePrefix + "TopNonterminalModelStructure";
-  private final static String topLexModelStructureClassnamePrefix =
+  private static String topLexModelStructureClassnamePrefix =
     packagePrefix + "TopLexModelStructure";
-  private final static String headModelStructureClassnamePrefix =
+  private static String headModelStructureClassnamePrefix =
     packagePrefix + "HeadModelStructure";
-  private final static String gapModelStructureClassnamePrefix =
+  private static String gapModelStructureClassnamePrefix =
     packagePrefix + "GapModelStructure";
-  private final static String leftSubcatModelStructureClassnamePrefix =
+  private static String leftSubcatModelStructureClassnamePrefix =
     packagePrefix + "LeftSubcatModelStructure";
-  private final static String rightSubcatModelStructureClassnamePrefix =
+  private static String rightSubcatModelStructureClassnamePrefix =
     packagePrefix + "RightSubcatModelStructure";
-  private final static String modNonterminalModelStructureClassnamePrefix =
+  private static String modNonterminalModelStructureClassnamePrefix =
     packagePrefix + "ModNonterminalModelStructure";
-  private final static String modWordModelStructureClassnamePrefix =
+  private static String modWordModelStructureClassnamePrefix =
     packagePrefix + "ModWordModelStructure";
+
+  static {
+    Settings.Change change = new Settings.Change() {
+      public void update(Map<String, String> changedSettings) {
+	outputCollins =
+	  Settings.getBoolean(Settings.outputCollins);
+	useCollinsSkipArr =
+	  Settings.getBoolean(Settings.collinsSkipWSJSentences);
+	shareCounts =
+	  Settings.getBoolean(Settings.trainerShareCounts);
+	addGapInfo =
+	  Settings.getBoolean(Settings.addGapInfo);
+	if (changedSettings.containsKey(Settings.modelStructurePackage)) {
+	  packagePrefix =
+	    Settings.get(Settings.modelStructurePackage) + ".";
+	  lexPriorModelStructureClassnamePrefix =
+	    packagePrefix + "LexPriorModelStructure";
+	  nonterminalPriorModelStructureClassnamePrefix =
+	    packagePrefix + "NonterminalPriorModelStructure";
+	  topNonterminalModelStructureClassnamePrefix =
+	    packagePrefix + "TopNonterminalModelStructure";
+	  topLexModelStructureClassnamePrefix =
+	    packagePrefix + "TopLexModelStructure";
+	  headModelStructureClassnamePrefix =
+	    packagePrefix + "HeadModelStructure";
+	  gapModelStructureClassnamePrefix =
+	    packagePrefix + "GapModelStructure";
+	  leftSubcatModelStructureClassnamePrefix =
+	    packagePrefix + "LeftSubcatModelStructure";
+	  rightSubcatModelStructureClassnamePrefix =
+	    packagePrefix + "RightSubcatModelStructure";
+	  modNonterminalModelStructureClassnamePrefix =
+	    packagePrefix + "ModNonterminalModelStructure";
+	  modWordModelStructureClassnamePrefix =
+	    packagePrefix + "ModWordModelStructure";
+	}
+      }
+    };
+    Settings.register(Trainer.class, change, null);
+  }
 
   // types of events gathered by the trainer (provided as public constants
   // so that users can interpret human-readable trainer output file

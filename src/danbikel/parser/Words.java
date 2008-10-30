@@ -2,6 +2,8 @@ package danbikel.parser;
 
 import danbikel.lisp.*;
 
+import java.util.Map;
+
 /**
  * Provides static methods to create {@link Word} instances via an internal
  * {@link WordFactory} instance.  The static methods of this class have
@@ -16,11 +18,10 @@ public class Words {
 
   private final static String className = Words.class.getName();
 
-  private static WordFactory factory;
+  private static WordFactory factory = getFactory();
 
-  private Words() { }
-
-  static {
+  private static WordFactory getFactory() {
+    WordFactory factory;
     String wordFactStr = Settings.get(Settings.wordFactoryClass);
     if (wordFactStr != null) {
       try {
@@ -39,7 +40,21 @@ public class Words {
 			 "using DefaultWordFactory");
       factory = new DefaultWordFactory();
     }
+    return factory;
   }
+
+  static {
+    Settings.Change change = new Settings.Change() {
+      public void update(Map<String, String> changedSettings) {
+	if (changedSettings.containsKey(Settings.wordFactoryClass)) {
+	  factory = getFactory();
+	}
+      }
+    };
+    Settings.register(Words.class, change, null);
+  }
+
+  private Words() { }
 
   /**
    * Returns a new {@link Word} instance constructed from the specified

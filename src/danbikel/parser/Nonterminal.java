@@ -57,8 +57,8 @@ public class Nonterminal implements Serializable {
    * @return whether this nonterminal subsumes the specified nonterminal
    */
   public boolean subsumes(Nonterminal other) {
-    Symbol thisCanonicalBase = Language.treebank.getCanonical(base);
-    Symbol otherCanonicalBase = Language.treebank.getCanonical(other.base);
+    Symbol thisCanonicalBase = Language.treebank().getCanonical(base);
+    Symbol otherCanonicalBase = Language.treebank().getCanonical(other.base);
     if (thisCanonicalBase != Constants.kleeneStarSym &&
 	thisCanonicalBase != otherCanonicalBase)
       return false;
@@ -67,7 +67,7 @@ public class Nonterminal implements Serializable {
     int thisAugLen = augmentations.length();
     for (int i = 0; i < thisAugLen; i++) {
       Sexp thisAug = augmentations.get(i);
-      if (!Language.treebank.isAugDelim(thisAug) &&
+      if (!Language.treebank().isAugDelim(thisAug) &&
 	  !other.augmentations.contains(thisAug))
 	return false;
     }

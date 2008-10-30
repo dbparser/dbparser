@@ -23,8 +23,18 @@ public class HeadTreeNode implements Serializable, SexpConvertible {
   // constants
   private final static String className = HeadTreeNode.class.getName();
 
-  private final static boolean baseNPsCannotContainVerbs =
+  // "mutable" constant
+  private static boolean baseNPsCannotContainVerbs =
     Settings.getBoolean(Settings.baseNPsCannotContainVerbs);
+
+  static {
+    Settings.register(HeadTreeNode.class, new Settings.Change() {
+      public void update(Map<String,String> changedSettings) {
+	baseNPsCannotContainVerbs =
+	  Settings.getBoolean(Settings.baseNPsCannotContainVerbs);
+      }
+    }, null);
+  }
 
   // data members
 

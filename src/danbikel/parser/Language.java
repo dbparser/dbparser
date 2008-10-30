@@ -2,6 +2,8 @@ package danbikel.parser;
 
 import java.io.*;
 import java.lang.reflect.*;
+import java.util.Map;
+
 import danbikel.lisp.*;
 
 /**
@@ -49,7 +51,8 @@ public class Language implements Serializable {
   /** Gets the <code>Training</code> object for the current language. */
   public final static Training training() { return training; }
 
-  private final static String fileEncodingProperty =
+  // a "mutable" constant
+  private static String fileEncodingProperty =
     Settings.fileEncodingPrefix + Settings.get(Settings.language);
 
   static String encoding;
@@ -77,6 +80,29 @@ public class Language implements Serializable {
 
   static {
     setLanguage();
+    Settings.Change change = new Settings.Change() {
+      public void update(Map<String, String> changedSettings) {
+	if (changedSettings.containsKey(Settings.language) ||
+	    changedSettings.containsKey(Settings.languagePackage)) {
+	  fileEncodingProperty =
+	    Settings.fileEncodingPrefix +
+	    Settings.get(Settings.language);
+	  encoding = Settings.get(fileEncodingProperty);
+	  if (encoding == null)
+	    encoding = System.getProperty("file.encoding");
+	  setLanguage();
+	  System.err.println(Language.class.getName() +
+			     ": language has changed to " + getLanguage() +
+			     ";\n\tnew encoding: " + encoding +
+			     ";\n\tnew language classes:" +
+			     "\n\t\t" + treebank().getClass().getName() +
+			     "\n\t\t" + training().getClass().getName() +
+			     "\n\t\t" + headFinder().getClass().getName() +
+			     "\n\t\t" + wordFeatures().getClass().getName());
+	}
+      }
+    };
+    Settings.register(Language.class, change, null);
   }
 
   /**

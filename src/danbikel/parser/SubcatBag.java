@@ -81,10 +81,11 @@ public class SubcatBag implements Subcat, Externalizable {
   private static Nonterminal[] nonterminals;
   private static Map<Symbol, Nonterminal> symToNt =
     new HashMap<Symbol, Nonterminal>();
-  static {
-    Symbol gapAugmentation = Language.training.gapAugmentation();
-    Symbol argAugmentation = Language.training.defaultArgAugmentation();
-    char delimChar = Language.treebank.canonicalAugDelimiter();
+
+  private static void setUpStaticData() {
+    Symbol gapAugmentation = Language.training().gapAugmentation();
+    Symbol argAugmentation = Language.training().defaultArgAugmentation();
+    char delimChar = Language.treebank().canonicalAugDelimiter();
 
     int uid = gapIdx; // depends on gapIdx being equal to firstRealUid
     // kind of a hack: put an entry for gaps (which are "requirements"
@@ -92,7 +93,7 @@ public class SubcatBag implements Subcat, Externalizable {
     // note that uid of gap is firstRealUid (see comment inside remove method)
     symbolsToInts.put(gapAugmentation, new Integer(uid++));
 
-    for (Object argObj : Language.training.argNonterminals()) {
+    for (Object argObj : Language.training().argNonterminals()) {
       Symbol argLabel = (Symbol)argObj;
       symbolsToInts.put(argLabel, new Integer(uid++));
     }
@@ -108,6 +109,17 @@ public class SubcatBag implements Subcat, Externalizable {
     }
     symbols[miscIdx] = Symbol.get(stopSym.toString() +
 				  delimChar + argAugmentation);
+  }
+
+  static {
+    setUpStaticData();
+    Settings.Change change = new Settings.Change() {
+      public void update(Map<String, String> changedSettings) {
+	setUpStaticData();
+      }
+    };
+    Settings.register(SubcatBag.class, change,
+		      Collections.<Class>singleton(Language.class));
   }
 
   private static HashMapInt<Symbol> fastUidMap = new HashMapInt<Symbol>();

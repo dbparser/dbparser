@@ -63,9 +63,9 @@ public class Model implements Serializable {
   protected final static boolean deleteCountsWhenPrecomputingProbs = true;
   /** The boolean value of {@link Settings#precomputeProbs}, cached here
       for convenience. */
-  protected final static boolean precomputeProbs =
+  protected static boolean precomputeProbs =
     Settings.getBoolean(Settings.precomputeProbs);
-  private final static boolean deficientEstimation =
+  private static boolean deficientEstimation =
     Settings.getBoolean(Settings.collinsDeficientEstimation);
   /**
    * A constant that indicates whether this {@link Model} should perform
@@ -100,13 +100,13 @@ public class Model implements Serializable {
   /**
    * Caches the value of {@link Settings#modelDoPruning}.
    */
-  protected final static boolean globalDoPruning =
+  protected static boolean globalDoPruning =
     Settings.getBoolean(Settings.modelDoPruning);
 
   /**
    * Caches the <tt>double</tt> value of {@link Settings#modelPruningThreshold}.
    */
-  protected final static double pruningThreshold =
+  protected static double pruningThreshold =
     Settings.getDouble(Settings.modelPruningThreshold);
 
   /**
@@ -126,6 +126,19 @@ public class Model implements Serializable {
   static {
     doubleNF.setMinimumFractionDigits(3);
     doubleNF.setMaximumFractionDigits(3);
+    Settings.Change change = new Settings.Change() {
+      public void update(Map<String, String> changedSettings) {
+	precomputeProbs =
+	  Settings.getBoolean(Settings.precomputeProbs);
+	deficientEstimation =
+	  Settings.getBoolean(Settings.collinsDeficientEstimation);
+	globalDoPruning =
+	  Settings.getBoolean(Settings.modelDoPruning);
+	pruningThreshold =
+	  Settings.getDouble(Settings.modelPruningThreshold);
+      }
+    };
+    Settings.register(Model.class, change, null);
   }
 
   // data members

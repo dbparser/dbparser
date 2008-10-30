@@ -3,7 +3,6 @@ package danbikel.parser;
 import danbikel.util.*;
 import danbikel.lisp.*;
 import danbikel.parser.constraints.*;
-import java.io.Serializable;
 import java.util.*;
 import java.text.*;
 
@@ -14,56 +13,98 @@ import java.text.*;
  * @see CKYChart
  */
 public class CKYItem extends Item implements SexpConvertible {
-
+  // "mutable" constants
   /**
    * The value of the {@link Settings#decoderOutputHeadLexicalizedLabels}
    * setting.
    */
-  protected final static boolean outputLexLabels =
+  protected static boolean outputLexLabels =
     Settings.getBoolean(Settings.decoderOutputHeadLexicalizedLabels);
 
   /**
    * The value of the {@link Settings#decoderOutputInsideProbs} setting.
    */
-  protected final static boolean outputInsideProbs =
+  protected static boolean outputInsideProbs =
     Settings.getBoolean(Settings.decoderOutputInsideProbs);
 
   /**
    * The value of {@link Treebank#nonTreebankLeftBracket()}.
    */
-  protected final static char nonTreebankLeftBracket =
+  protected static char nonTreebankLeftBracket =
     Language.treebank().nonTreebankLeftBracket();
 
   /**
    * The value of {@link Treebank#nonTreebankRightBracket()}.
    */
-  protected final static char nonTreebankRightBracket =
+  protected static char nonTreebankRightBracket =
     Language.treebank().nonTreebankRightBracket();
 
   /**
    * The value of {@link Treebank#nonTreebankDelimiter()}.
    */
-  protected final static char nonTreebankDelimiter =
+  protected static char nonTreebankDelimiter =
     Language.treebank().nonTreebankDelimiter();
   
   /**
    * The value of the {@link Settings#baseNPsCannotContainVerbs} setting.
    */
-  protected final static boolean baseNPsCannotContainVerbs =
+  protected static boolean baseNPsCannotContainVerbs =
     Settings.getBoolean(Settings.baseNPsCannotContainVerbs);
 
   /**
    * The value of {@link Training#topSym}, cached for efficiency and
    * convenience.
    */
-  protected final static Symbol topSym = Language.training().topSym();
+  protected static Symbol topSym = Language.training().topSym();
 
   /**
    * The value of {@link Training#stopWord()}, cached here for efficiency
    * and convenience.
    */
-  protected final static Word stopWord = Language.training().stopWord();
+  protected static Word stopWord = Language.training().stopWord();
 
+  /**
+   * The value of the property {@link Settings#numPrevMods}, cached here
+   * for efficiency and convenience.
+   */
+  protected static int numPrevMods =
+    Integer.parseInt(Settings.get(Settings.numPrevMods));
+  /**
+   * The value of the property {@link Settings#numPrevWords}, cached here
+   * for efficiency and convenience.
+   */
+  protected static int numPrevWords =
+    Integer.parseInt(Settings.get(Settings.numPrevWords));
+
+  private static class Change implements Settings.Change {
+    public void update(Map<String, String> changedSettings) {
+      outputLexLabels =
+	Settings.getBoolean(Settings.decoderOutputHeadLexicalizedLabels);
+      outputInsideProbs =
+	Settings.getBoolean(Settings.decoderOutputInsideProbs);
+      nonTreebankLeftBracket =
+	Language.treebank().nonTreebankLeftBracket();
+      nonTreebankRightBracket =
+	Language.treebank().nonTreebankRightBracket();
+      nonTreebankDelimiter =
+	Language.treebank().nonTreebankDelimiter();
+      baseNPsCannotContainVerbs =
+	Settings.getBoolean(Settings.baseNPsCannotContainVerbs);
+      topSym = Language.training().topSym();
+      stopWord = Language.training().stopWord();
+      numPrevMods =
+	Integer.parseInt(Settings.get(Settings.numPrevMods));
+      numPrevWords =
+	Integer.parseInt(Settings.get(Settings.numPrevWords));
+    }
+  }
+
+  static {
+    Settings.register(CKYItem.class, new Change(),
+		      Collections.<Class>singleton(Language.class));
+  }
+
+  // true, immutable constants
   /**
    * One of three possible cached values of this item's &ldquo;contains
    * verb&rdquo; status, indicating that the method {@link #containsVerb()}
@@ -84,19 +125,6 @@ public class CKYItem extends Item implements SexpConvertible {
    * this item does not have a derivation dominating a verb).
    */
   protected final static byte containsVerbFalse = -1;
-
-  /**
-   * The value of the property {@link Settings#numPrevMods}, cached here
-   * for efficiency and convenience.
-   */
-  protected final static int numPrevMods =
-    Integer.parseInt(Settings.get(Settings.numPrevMods));
-  /**
-   * The value of the property {@link Settings#numPrevWords}, cached here
-   * for efficiency and convenience.
-   */
-  protected final static int numPrevWords =
-    Integer.parseInt(Settings.get(Settings.numPrevWords));
 
   /**
    * A base NP&ndash;aware version of {@link CKYItem} that overrides {@link

@@ -1,7 +1,8 @@
 package danbikel.parser;
 
-import danbikel.util.*;
 import danbikel.lisp.*;
+
+import java.util.Map;
 
 /**
  * A class containing only static methods that mirror the signatures of the
@@ -14,10 +15,11 @@ public class Shifter {
   private Shifter() {}
 
   private static final String className = Shifter.class.getName();
-  private static Shift shifter;
+  private static Shift shifter = getShifter();
 
-  static {
-    String shifterStr= Settings.get(Settings.shifterClass);
+  private static Shift getShifter() {
+    Shift shifter;
+    String shifterStr = Settings.get(Settings.shifterClass);
     if (shifterStr != null) {
       try {
 	shifter = (Shift)Class.forName(shifterStr).newInstance();
@@ -35,6 +37,18 @@ public class Shifter {
 			 "using DefaultShifter");
       shifter = new DefaultShifter();
     }
+    return shifter;
+  }
+
+  static {
+    Settings.Change change = new Settings.Change() {
+      public void update(Map<String, String> changedSettings) {
+	if (changedSettings.containsKey(Settings.shifterClass)) {
+	  shifter = getShifter();
+	}
+      }
+    };
+    Settings.register(Shifter.class, change, null);
   }
 
   /**

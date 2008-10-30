@@ -10,13 +10,24 @@ import java.util.*;
  * (CKY) parsing.
  */
 public class CKYChart extends Chart {
-  // constants
-  private final static boolean collinsNPPruneHack =
+  // "mutable" constants
+  private static boolean collinsNPPruneHack =
     Settings.getBoolean(Settings.collinsNPPruneHack);
+
+  static {
+    Settings.register(CKYChart.class,
+		      new Settings.Change() {
+			public void update(Map<String,String> changedSettings) {
+			  collinsNPPruneHack =
+			    Settings.getBoolean(Settings.collinsNPPruneHack);
+			}
+		      },
+		      null);
+  }
+
   private final static int pruneClampSmall = 100;
   private final static int pruneClampBig = 120;
-  private final static double log10 = Math.log(10);
-  private final static double log100 = 2 * Math.log(10);
+  @SuppressWarnings({"MismatchedReadAndWriteOfArray"})
   private final static double[] variablePruneFact = new double[200];
 
   private final static double variablePruneFn(int span) {
@@ -195,10 +206,9 @@ public class CKYChart extends Chart {
 
   protected void reclaimItemCollection(Collection c) {
     if (c.size() > 0) {
-      Iterator it  = c.iterator();
-      while (it.hasNext()) {
-        Item item = (Item)it.next();
-        item.clear();
+      for (Object itemObj : c) {
+	Item item = (Item)itemObj;
+	item.clear();
       }
       itemPool.putBackAll(c);
     }

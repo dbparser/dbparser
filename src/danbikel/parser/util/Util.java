@@ -195,12 +195,12 @@ public class Util {
    * @param key the key in <code>map</code> whose value set is to be updated
    * @param value the value to be added to <code>key</code>'s value set
    */
-  public final static void addToValueSet(Map map,
-					 Object key,
-					 Object value) {
-    Set valueSet = (Set)map.get(key);
+  public final static <K, V> void addToValueSet(Map<K, Set<V>> map,
+						K key,
+						V value) {
+    Set<V> valueSet = map.get(key);
     if (valueSet == null) {
-      valueSet = new HashSet();
+      valueSet = new HashSet<V>();
       map.put(key, valueSet);
     }
     valueSet.add(value);

@@ -13,7 +13,7 @@ import java.rmi.*;
 /**
  * Provides the methods necessary to perform CKY parsing on input sentences.
  */
-public class Decoder implements Serializable {
+public class Decoder implements Serializable, Settings.Change {
 
   // inner class for decoding timeouts
   /**
@@ -61,7 +61,7 @@ public class Decoder implements Serializable {
   private final static boolean debugAnalyzeBestDerivation = false;
   private final static String debugOutputChartProperty =
     "parser.debug.outputChart";
-  private final static boolean debugOutputChart =
+  private static boolean debugOutputChart =
     Settings.getBoolean(debugOutputChartProperty);
   private final static String debugChartFilenamePrefix = "chart";
   private final static boolean debugCommaConstraint = false;
@@ -120,8 +120,9 @@ public class Decoder implements Serializable {
    * contain encoding-specific characters.  The encoding of the writer
    * is {@link Language#encoding()}.
    */
-  protected final static PrintWriter err;
-  static {
+  protected static PrintWriter err = newErrStream();
+
+  private static PrintWriter newErrStream() {
     Writer osw = null;
     try {
       osw = new OutputStreamWriter(System.err, Language.encoding());
@@ -133,7 +134,18 @@ public class Decoder implements Serializable {
                          "; using default encoding instead");
       osw = new OutputStreamWriter(System.err);
     }
-    err = new PrintWriter(osw, true);
+    return new PrintWriter(osw, true);
+  }
+
+  static {
+    Settings.register(Decoder.class,
+		      new Settings.Change() {
+			public void update(Map<String,String> changedSettings) {
+			  if (changedSettings.containsKey(Settings.language)) {
+			    err = newErrStream();
+			  }
+			}
+		      }, Collections.<Class>singleton(Language.class));
   }
 
   /**
@@ -169,8 +181,7 @@ public class Decoder implements Serializable {
    * than this length will be skipped.
    * @see Settings#maxSentLen
    */
-  protected int maxSentLen =
-    Integer.parseInt(Settings.get(Settings.maxSentLen));
+  protected int maxSentLen = Settings.getInteger(Settings.maxSentLen);
   /**
    * The maximum number of top-scoring parses for the various
    * <code>parse</code> methods to return.
@@ -182,8 +193,7 @@ public class Decoder implements Serializable {
    * The timer (used when Settings.maxParseTime is greater than zero).
    * @see Settings#maxParseTime
    */
-  protected final int maxParseTime =
-    Integer.parseInt(Settings.get(Settings.maxParseTime));
+  protected int maxParseTime = Settings.getInteger(Settings.maxParseTime);
   /** An object for keeping track of wall-clock time. */
   protected Time time = new Time();
   /** The parsing chart. */
@@ -345,33 +355,31 @@ decod   * @see DecoderServerRemote#prunedPreterms()
    * The value of {@link Training#startSym()}, cached here for efficiency
    * and convenience.
    */
-  protected Symbol startSym = Language.training.startSym();
+  protected Symbol startSym = Language.training().startSym();
   /**
    * The value of {@link Training#startWord()}, cached here for efficiency
    * and convenience.
    */
-  protected Word startWord = Language.training.startWord();
+  protected Word startWord = Language.training().startWord();
   /**
    * The value of {@link Training#stopSym()}, cached here for efficiency
    * and convenience.
    */
-  protected Symbol stopSym = Language.training.stopSym();
+  protected Symbol stopSym = Language.training().stopSym();
   /**
    * The value of {@link Training#stopWord()}, cached here for efficiency
    * and convenience.
    */
-  protected Word stopWord = Language.training.stopWord();
+  protected Word stopWord = Language.training().stopWord();
   /**
    * The value of {@link Training#topSym()}, cached here for efficiency
    * and convenience.
    */
-  protected Symbol topSym = Language.training.topSym();
+  protected Symbol topSym = Language.training().topSym();
   /** The value of the setting {@link Settings#numPrevMods}. */
-  protected int numPrevMods =
-    Integer.parseInt(Settings.get(Settings.numPrevMods));
+  protected int numPrevMods = Settings.getInteger(Settings.numPrevMods);
   /** The value of the setting {@link Settings#numPrevWords}. */
-  protected int numPrevWords =
-    Integer.parseInt(Settings.get(Settings.numPrevWords));
+  protected int numPrevWords = Settings.getInteger(Settings.numPrevWords);
   // data members used by addUnariesAndStopProbs
   /** One of a pair of lists used by {@link #addUnariesAndStopProbs}. */
   protected List prevItemsAdded = new ArrayList();
@@ -572,6 +580,11 @@ decod   * @see DecoderServerRemote#prunedPreterms()
     if (localCache) {
       wrapCachingServer();
     }
+    constructorHelper(server);
+    Settings.register(this);
+  }
+
+  private void constructorHelper(DecoderServerRemote server) {
     try {
       this.posMap = server.posMap();
       posSet = new HashSet();
@@ -642,9 +655,9 @@ decod   * @see DecoderServerRemote#prunedPreterms()
 
     modNonterminalPSLastLevel = modNonterminalPS.numLevels() - 1;
 
-    boolean useCellLimit = Settings.getBoolean(Settings.decoderUseCellLimit);
-    if (useCellLimit)
-      cellLimit = Integer.parseInt(Settings.get(Settings.decoderCellLimit));
+    if (Settings.getBoolean(Settings.decoderUseCellLimit)) {
+      cellLimit = Settings.getInteger(Settings.decoderCellLimit);
+    }
     boolean usePruneFact = Settings.getBoolean(Settings.decoderUsePruneFactor);
     if (usePruneFact) {
       pruneFact = Math.log(10) *
@@ -665,15 +678,19 @@ decod   * @see DecoderServerRemote#prunedPreterms()
       chart.dontDoPruning();
 
     if (debugAnalyzeChart) {
-      String goldFilename = Settings.get(debugGoldFilenameProperty);
-      if (goldFilename != null) {
-	try {
-	  goldTok = new SexpTokenizer(goldFilename, Language.encoding(),
-				      Constants.defaultFileBufsize);
-	}
-	catch (Exception e) {
-	  throw new RuntimeException(e.toString());
-	}
+      setGoldTok();
+    }
+  }
+
+  private void setGoldTok() {
+    String goldFilename = Settings.get(debugGoldFilenameProperty);
+    if (goldFilename != null) {
+      try {
+	goldTok = new SexpTokenizer(goldFilename, Language.encoding(),
+				    Constants.defaultFileBufsize);
+      }
+      catch (Exception e) {
+	throw new RuntimeException(e.toString());
       }
     }
   }
@@ -2681,5 +2698,39 @@ decod   * @see DecoderServerRemote#prunedPreterms()
 	    (sentence.get(index).isSymbol() ? sentence.symbolAt(index) :
 	     sentence.listAt(index).symbolAt(1)));
 
+  }
+
+  public void update(Map<String, String> changedSettings) {
+    maxSentLen = Settings.getInteger(Settings.maxSentLen);
+    kBest =
+      Math.max(1, Settings.getInteger(Settings.kBest));
+    maxParseTime = Settings.getInteger(Settings.maxParseTime);
+    relaxConstraints =
+      Settings.getBoolean(Settings.decoderRelaxConstraintsAfterBeamWidening);
+    restorePrunedWords =
+      Settings.getBoolean(Settings.restorePrunedWords);
+    downcaseWords = Settings.getBoolean(Settings.downcaseWords);
+    useLowFreqTags =
+      Settings.getBoolean(Settings.useLowFreqTags);
+    substituteWordsForClosedClassTags =
+      Settings.getBoolean(Settings.decoderSubstituteWordsForClosedClassTags);
+    useOnlySuppliedTags =
+      Settings.getBoolean(Settings.decoderUseOnlySuppliedTags);
+    useHeadToParentMap =
+      Settings.getBoolean(Settings.decoderUseHeadToParentMap);
+    useSimpleModNonterminalMap =
+      Settings.getBoolean(Settings.useSimpleModNonterminalMap);
+    numPrevMods = Settings.getInteger(Settings.numPrevMods);
+    numPrevWords = Settings.getInteger(Settings.numPrevWords);
+    keepAllWords = Settings.getBoolean(Settings.keepAllWords);
+    dontPostProcess =
+      Settings.getBoolean(Settings.decoderDontPostProcess) ||
+      Settings.getBoolean(Settings.decoderOutputInsideProbs);
+    constructorHelper(server);
+    startSym = Language.training().startSym();
+    startWord = Language.training().startWord();
+    stopSym = Language.training().stopSym();
+    stopWord = Language.training().stopWord();
+    topSym = Language.training().topSym();
   }
 }

@@ -1,0 +1,367 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project basedir="." default="build" name="dbparser.jpx">
+  <property name="dest" value="classes.ant"/>
+  <property name="src" value="src"/>
+  <property name="deploy" value="deploy"/>
+  <patternset id="src.files">
+    <include name="${src}/**/*.java"/>
+  </patternset>
+  <patternset id="props.files">
+    <include name="${src}/**/*.properties"/>
+  </patternset>
+  <patternset id="lisp.files">
+    <include name="${src}/**/*.lisp"/>
+  </patternset>	   
+  <property name="Generated.Source" value="${dest}/Temporary_Files"/>
+  <path id="project.class.path">
+    <pathelement location="${dest}"/>
+  </path>
+  <!--Patternset to exclude files from the output directory:-->
+  <patternset id="dest.exclude">
+    <exclude name="Temporary_Files/"/>
+    <exclude name="Generated Source/"/>
+    <exclude name="package cache/"/>
+    <exclude name="dependency cache/"/>
+    <exclude name="jsp cache/"/>
+  </patternset>
+  <target depends="init" name="javacompile">
+    <javac debug="true" deprecation="true" destdir="${dest}" nowarn="false">
+      <src path="${src}"/>
+      <src path="${Generated.Source}"/>
+    </javac>
+  </target>
+  <target name="rmi">
+    <rmic base="${dest}"
+          stubversion="1.2"
+          includes="
+	  danbikel/switchboard/Switchboard.class
+	  danbikel/switchboard/AbstractSwitchboardUser.class
+	  danbikel/parser/Parser.class
+	  danbikel/parser/DecoderServer.class"/>
+  </target>
+  <target depends="resource" name="archive">
+    <!--
+    <fail message="The &quot;Include class dependencies&quot; feature of JBuilder archives is not directly supported by Ant.  The JAR created by Ant may not have some required classes."/>
+    -->
+    <jar compress="true" destfile="danbikel.util.jar">
+      <fileset dir="${dest}">
+        <patternset refid="dest.exclude"/>
+        <include name="danbikel/util/*.*"/>
+        <include name="danbikel/util/proxy/*.*"/>
+      </fileset>
+    </jar>
+    <jar compress="true" destfile="dbparser.jar">
+      <fileset dir="${dest}">
+        <patternset refid="dest.exclude"/>
+        <include name="**/*.*"/>
+      </fileset>
+    </jar>
+  </target>
+  <target name="cleanup">
+    <delete file="danbikel.util.jar"/>
+    <delete file="dbparser.jar"/>
+    <delete failonerror="false" includeemptydirs="true">
+      <fileset dir="${dest}"/>
+    </delete>
+  </target>
+  <target name="resource">
+    <copy todir="${dest}">
+      <fileset dir="${src}">
+        <include name="**/*.policy"/>
+        <include name="**/*.lisp"/>
+        <include name="**/*.au"/>
+        <include name="**/*.midi"/>
+        <include name="**/*.gif"/>
+        <include name="**/*.properties"/>
+        <include name="**/*.aiff"/>
+        <include name="**/*.jpe"/>
+        <include name="**/*.jpeg"/>
+        <include name="**/*.rmf"/>
+        <include name="**/*.wav"/>
+        <include name="**/*.mid"/>
+        <include name="**/*.png"/>
+        <include name="**/*.jpg"/>
+        <exclude name="settings/chinese.properties"/>
+        <exclude name="settings/collins.properties"/>
+      </fileset>
+    </copy>
+  </target>
+  <target name="javadoc-util">
+    <javadoc destdir="util-doc"
+             packagenames="danbikel.util,danbikel.util.proxy"
+	     protected="true"
+	     use="true"
+	     windowtitle="Dan Bikel's Utility Packages"
+	     doctitle="Dan Bikel&amp;rsquo;s Utility Packages"
+	     header="Utility Packages"
+	     bottom="Author: &lt;a href=&quot;http://www.cis.upenn.edu/~dbikel/&quot;&gt;Dan Bikel.&lt;/a&gt;"
+	     additionalparam="-breakiterator">
+      <link href="http://java.sun.com/javase/6/docs/api/"/>
+      <fileset dir="${src}"/>
+    </javadoc>
+  </target>
+  <target name="javadoc">
+    <javadoc destdir="doc"
+             protected="true"
+	     use="true"
+	     overview="${src}/overview.html"
+	     windowtitle="Dan Bikel's Parsing Engine"
+	     doctitle="Dan Bikel&amp;rsquo;s Parsing Engine"
+	     header="Parsing Engine"
+	     bottom="Author: &lt;a href=&quot;http://www.cis.upenn.edu/~dbikel/&quot;&gt;Dan Bikel.&lt;/a&gt;"
+	     additionalparam="-breakiterator">
+      <link href="http://java.sun.com/javase/6/docs/api/"/>
+      <fileset dir="${src}"/>
+    </javadoc>
+  </target>
+  <target depends="cleanup" name="clean"/>
+  <target name="precompile"/>
+  <target depends="javacompile" name="compile"/>
+  <target depends="rmi" name="postcompile"/>
+  <target depends="compile,postcompile" name="make"/>
+  <target depends="archive,resource" name="package"/>
+  <target depends="precompile,compile,postcompile,package" name="build"/>
+  <target depends="clean,build" name="rebuild"/>
+  <target name="create_install_header">
+    <loadfile property="license.file" srcFile="${deploy.license}"/>
+    <exec executable="perl"
+          outputproperty="install.script.linecount">
+      <arg value="-e"/>
+      <arg value="while (&lt;&gt;) {} $lines=$.+1;print $lines;"/>
+      <arg value="${deploy.license}"/>
+      <arg value="${deploy.install.header.template}"/>
+    </exec>
+    <copy file="${deploy.install.header.template}"
+          tofile="${deploy.install.header}"
+	  overwrite="true">
+      <filterchain>
+        <replacetokens>
+          <token key="LICENSE" value="${license.file}"/>
+        </replacetokens>
+	<replacetokens>
+          <token key="LINES" value="${install.script.linecount}"/>
+        </replacetokens>
+      </filterchain>
+    </copy>
+  </target>
+  <target name="ln_deploy_readme" unless="readme.ln.present">
+    <echo message="Creating symbolic link from ${deploy.to}/README to ${deploy.to}/userguide/README"/>
+    <exec dir="${deploy.to}" executable="ln">
+	  <arg value="-s"/>
+	  <arg value="userguide/README"/>
+	  <arg value="README"/>
+    </exec>
+  </target>
+  <target name="build_deploy_tasks">
+    <property name="deploy.custom.tasks" value="${deploy}/custom-ant-tasks"/>
+    <property name="deploy.custom.tasks.src"
+              value="${deploy.custom.tasks}/src"/>
+    <property name="deploy.custom.tasks.dest"
+              value="${deploy.custom.tasks}/classes"/>
+    <mkdir dir="${deploy.custom.tasks.dest}"/>
+    <javac debug="true" deprecation="true" destdir="${deploy.custom.tasks.dest}"
+           nowarn="false">
+      <src path="${deploy.custom.tasks.src}"/>
+    </javac>
+  </target>
+  <target name="setup_deploy_properties_common">
+    <patternset id="deploy.bin.files">
+      <include name="bin/addFakePos"/>
+      <include name="bin/internal-server-run"/>
+      <include name="bin/kill-node-procs"/>
+      <include name="bin/parse"/>
+      <include name="bin/prettyPrint"/>
+      <include name="bin/print-node-procs"/>
+      <include name="bin/score"/>
+      <include name="bin/start-client"/>
+      <include name="bin/start-rmiregistry"/>
+      <include name="bin/no-cp-rmiregistry"/>
+      <include name="bin/train"/>
+      <include name="bin/train-from-observed"/>
+      <include name="bin/tag-and-train"/>
+      <include name="bin/wrapper"/>
+      <include name="bin/adwait2bikel.pl"/>
+      <include name="bin/bikel2adwait.pl"/>
+    </patternset>
+    <patternset id="deploy.files">
+      <patternset refid="deploy.bin.files"/>
+      <include name="settings/**"/>
+      <exclude name="settings/broken*"/>
+      <include name="doc/**"/>
+      <include name="userguide/README"/>
+      <include name="userguide/guide.pdf"/>
+      <include name="policy-files/**"/>
+      <include name="scorer/**"/>
+    </patternset>
+    <property name="deploy.short.license" value="${deploy}/short-license"/>
+    <property name="deploy.install.header.template"
+              value="${deploy}/install-header-template"/>
+    <property name="deploy.install.header" value="${deploy}/install-header"/>
+    <property name="deploy.to.tail" value="dbparser"/>
+    <property name="deploy.tgz.tail" value="dbparser.tgz"/>
+  </target>
+  <target depends="setup_deploy_properties_common"
+          name="setup_deploy_properties_academic">
+    <property name="deploy.to" value="${deploy}/academic/${deploy.to.tail}"/>
+    <property name="deploy.tgz" value="${deploy}/academic/${deploy.tgz.tail}"/>
+    <property name="deploy.install.script" value="${deploy.to}/../install.sh"/>
+    <property name="deploy.license" value="${deploy}/LICENSE"/>
+  </target>
+  <target depends="setup_deploy_properties_common"
+          name="setup_deploy_properties_commercial">
+    <property name="deploy.to" value="${deploy}/commercial/${deploy.to.tail}"/>
+    <property name="deploy.tgz" value="${deploy}/commercial/${deploy.tgz.tail}"/>
+    <property name="deploy.install.script"
+              value="${deploy.to}/../install-commercial.sh"/>
+    <property name="deploy.license" value="${deploy}/LICENSE.commercial"/>
+  </target>
+  <target depends="build_deploy_tasks" name="deploy_sources_and_resources">
+    <!-- create versions of short license for inclusion in source code,
+         properties files and lisp files -->
+    <!-- first, copy through prefixlines filter -->
+    <copy file="${deploy.short.license}"
+          tofile="${deploy.short.license}-starred"
+          overwrite="true">
+      <filterchain>
+        <prefixlines prefix=" * "/>
+      </filterchain>
+    </copy>
+    <concat destfile="${deploy.short.license}-src">/*</concat>
+    <concat destfile="${deploy.short.license}-src" append="true">
+       <filelist dir="." files="${deploy.short.license}-starred"/>
+    </concat>
+    <concat destfile="${deploy.short.license}-src" append="true"> */
+    </concat>
+    <copy file="${deploy.short.license}"
+          tofile="${deploy.short.license}-semicolon">
+      <filterchain>
+        <prefixlines prefix="; "/>
+      </filterchain>
+    </copy>
+    <copy file="${deploy.short.license}"
+          tofile="${deploy.short.license}-hashmark">
+      <filterchain>
+        <prefixlines prefix="# "/>
+      </filterchain>
+    </copy>
+    <!-- copy source files, prepending license comment -->
+    <copy todir="${deploy.to}" overwrite="true">
+      <fileset dir=".">
+        <patternset refid="src.files"/>
+      </fileset>
+      <filterchain>
+        <filterreader classname="org.apache.tools.ant.filters.ConcatReader">
+	  <classpath>
+	    <pathelement path="${deploy.custom.tasks.dest}"/>
+	  </classpath>
+	  <param name="before" value="${deploy.short.license}-src"/>
+	</filterreader>
+      </filterchain>
+    </copy>
+    <!-- copy properties files -->
+    <copy todir="${deploy.to}" overwrite="true">
+      <fileset dir=".">
+        <patternset refid="props.files"/>
+      </fileset>
+      <filterchain>
+        <filterreader classname="org.apache.tools.ant.filters.ConcatReader">
+	  <classpath>
+	    <pathelement path="${deploy.custom.tasks.dest}"/>
+	  </classpath>
+	  <param name="before" value="${deploy.short.license}-hashmark"/>
+	</filterreader>
+      </filterchain>
+    </copy>
+    <!-- copy lisp files -->
+    <copy todir="${deploy.to}" overwrite="true">
+      <fileset dir=".">
+        <patternset refid="lisp.files"/>
+      </fileset>
+      <filterchain>
+        <filterreader classname="org.apache.tools.ant.filters.ConcatReader">
+	  <classpath>
+	    <pathelement path="${deploy.custom.tasks.dest}"/>
+	  </classpath>
+	  <param name="before" value="${deploy.short.license}-semicolon"/>
+	</filterreader>
+      </filterchain>
+    </copy>
+    <!-- clean up temporary files -->
+    <delete>
+      <fileset dir=".">
+         <include name="${deploy.short.license}-src"/>
+         <include name="${deploy.short.license}-starred"/>
+         <include name="${deploy.short.license}-semicolon"/>
+         <include name="${deploy.short.license}-hashmark"/>
+      </fileset>
+    </delete>
+  </target>
+  <target depends="build_deploy_tasks" name="setup_deploy">
+    <delete dir="${deploy.to}"/>
+    <mkdir dir="${deploy.to}"/>
+    <copy todir="${deploy.to}" file="dbparser.jar"/>
+    <copy todir="${deploy.to}">
+      <fileset dir=".">
+        <patternset refid="deploy.files"/>
+      </fileset>
+    </copy>
+    <chmod perm="ogu+rx">
+        <fileset dir="${deploy.to}/bin"/>
+    </chmod>
+    <available file="${deploy.to}/README" property="readme.ln.present"/>
+    <copy todir="${deploy.to}" file="${deploy.license}"/>
+  </target>
+  <target name="create_install_script">
+    <!-- Can't use tar task: Ant filesets don't respect symbolic links -->
+    <!--
+    <tar destfile="${deploy.tgz}" basedir="${deploy}" compression="gzip"
+         includes="dbparser/"/>
+    -->
+    <chmod perm="ogu+r">
+        <fileset dir="${deploy.to}"/>
+    </chmod>
+    <exec dir="${deploy.to}/.." executable="tar">
+	  <arg value="zcvf"/>
+	  <arg value="${deploy.tgz.tail}"/>
+	  <arg value="${deploy.to.tail}"/>
+    </exec>
+    <concat binary="yes" destfile="${deploy.install.script}">
+      <filelist dir="."
+	        files="${deploy.install.header} ${deploy.tgz}"/>
+    </concat>
+    <chmod perm="ogu+x" file="${deploy.install.script}"/>
+  </target>
+  <target depends="rebuild,javadoc" name="deploy_rebuild">
+  </target>
+  <target depends="setup_deploy_properties_academic,
+                   setup_deploy,
+		   deploy_sources_and_resources,
+		   ln_deploy_readme,
+		   create_install_header,
+		   create_install_script"
+          name="deploy_academic_depends">
+  </target>
+  <target depends="setup_deploy_properties_commercial,
+                   setup_deploy,
+		   ln_deploy_readme,
+		   create_install_header,
+		   create_install_script"
+          name="deploy_commercial_depends">
+  </target>
+  <target depends="deploy_rebuild,
+                   deploy_academic_depends"
+	  name="deploy_academic">
+  </target>
+  <target depends="deploy_rebuild,
+                   deploy_commercial_depends"
+	  name="deploy_commercial">
+  </target>
+  <target depends="deploy_rebuild" name="deploy">
+    <antcall target="deploy_academic_depends"/>
+    <antcall target="deploy_commercial_depends"/>
+  </target>
+  <target name="init">
+    <mkdir dir="${dest}"/>
+    <mkdir dir="${Generated.Source}"/>
+  </target>
+</project>

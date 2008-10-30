@@ -1,0 +1,33 @@
+#!/bin/sh
+PATH=/usr/bin:/bin
+more <<"EOF"
+@LICENSE@
+EOF
+agreed=
+while [ x$agreed = x ]; do
+    echo
+    echo "Do you agree to the above license terms? [yes or no] "
+    read reply leftover
+    case $reply in
+	y* | Y*)
+	    agreed=1;;
+	n* | N*)
+    echo "If you don't agree to the license you can't install this software";
+    exit 1;;
+    esac
+done
+outname=dbparser.tgz
+trap 'rm -f $outname; exit 1' HUP INT QUIT TERM
+echo "Unpacking..."
+tail -n +@LINES@ $0 > $outname
+if [ -x /bin/tar -o -x /usr/bin/tar ]; then
+    echo "Extracting..."
+    tar zxvf $outname
+    rm -f $outname #we dont need it anymore, so conserve disk space
+    echo "Done."
+else
+    echo "Couldn't find tar; please execute"
+    echo "	tar zxvf $outname"
+    echo "to extract parsing software."
+fi
+exit 0

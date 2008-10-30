@@ -1,0 +1,20 @@
+#!/usr/bin/perl
+
+if (@ARGV < 1) {
+    print "usage: <reestimate.pl log file>\n";
+    exit 1;
+}
+
+$logfile = $ARGV[0];
+
+open(IN, $logfile) or die "file $logfile does not exist";
+
+while (<IN>) {
+    if (m/Beginning iteration No. ([0-9]+)/) {
+	$outFile = "$logfile." . $1;
+	print STDERR "Creating $outFile\n";
+	open (OUT, ">$outFile") or
+	    die "file $outFile couldn't be opened for writing";
+    }
+    print OUT $_;
+}

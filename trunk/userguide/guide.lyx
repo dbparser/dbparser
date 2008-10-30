@@ -1,0 +1,1299 @@
+#LyX 1.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 221
+\textclass article
+\begin_preamble
+\usepackage{txfonts}
+\newcommand{\secsym}\S
+\end_preamble
+\language english
+\inputencoding auto
+\fontscheme default
+\graphics default
+\paperfontsize 11
+\spacing single 
+\papersize letterpaper
+\paperpackage a4
+\use_geometry 1
+\use_amsmath 0
+\use_natbib 0
+\use_numerical_citations 0
+\paperorientation portrait
+\leftmargin 1in
+\topmargin 1in
+\rightmargin 1in
+\bottommargin 1in
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\defskip medskip
+\quotes_language english
+\quotes_times 2
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+
+\layout Title
+
+User Guide
+\layout Author
+
+Dan Bikel
+\layout Date
+
+September 17th, 2003
+\layout Date
+
+
+\begin_inset LatexCommand \tableofcontents{}
+
+\end_inset 
+
+
+\layout Section
+\pagebreak_top 
+
+\begin_inset LatexCommand \label{sec:preliminaries}
+
+\end_inset 
+
+Preliminaries
+\layout Subsection
+
+The right 
+\family typewriter 
+java
+\layout Standard
+
+In theory, the parsing engine software works with any Java2 JVM as of v1.3.x
+ and higher.
+ In practice, I have only tested it with JVM's from IBM and Sun (I typically
+ use Sun's).
+ To use the provided shell scripts to train and run the parser, there is
+ no need to set any environment variables; just make sure a 
+\family typewriter 
+java
+\family default 
+ executable for an appropriate version is in your path.
+ To determine this, when you execute the command
+\layout LyX-Code
+
+java -version
+\layout Standard
+
+you should see a long string that indicates a version of 1.3.x, or preferably
+ 1.4.x.
+ 
+\layout Subsection
+
+Settings files
+\layout Standard
+
+The parser comes with several, crucial settings files, all located in the
+\layout LyX-Code
+
+<parser home>/settings
+\layout Standard
+
+directory.
+ A given training or parsing run needs only a single settings file, which
+ determines, among other things, which language the parser will work in.
+\layout Standard
+
+
+\series bold 
+N.B.
+\series default 
+: Virtually all settings that can appear in a settings file are contained
+ as documented constants in the 
+\family typewriter 
+danbikel.parser.Settings
+\family default 
+ class.
+ Please see that API documentation for this class for information about
+ all possible settings.
+\layout Subsection
+
+Scripts
+\layout Standard
+
+The distribution comes with several shell scripts, all of which are hard-coded
+ to use 
+\family typewriter 
+/bin/tcsh
+\family default 
+.
+ You may need to modify this if 
+\family typewriter 
+tcsh
+\family default 
+ lives in a different place in your environment.
+ As we do not yet use a true installation scheme (such as 
+\family typewriter 
+autoconf
+\family default 
+/
+\family typewriter 
+configure
+\family default 
+), you must make any modifications by hand.
+ This may change in the near future.
+\layout Standard
+
+Most of the provided scripts spit out their usage if they are run with no
+ arguments.
+\layout Subsection
+
+File formats
+\layout Standard
+
+Most I/O of the parsing engine is performed by a Lisp-style S-expression
+ reader/writer written entirely in Java.
+ As such, newlines are generally irrelevant, being treated as just another
+ form of whitespace.
+ The one exception to this is a comment, which consists of a semicolon and
+ anything after that semicolon character to the end of the line (just as
+ in Lisp).
+ 
+\layout Section
+
+Quick Start
+\layout Standard
+
+This section assumes you have already read 
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+secsym
+\end_inset 
+
+
+\begin_inset LatexCommand \ref{sec:preliminaries}
+
+\end_inset 
+
+ and just want to get going parsing English.
+\layout Standard
+
+If you want to parse English sentences using the engine in its 
+\begin_inset Quotes eld
+\end_inset 
+
+Collins emulation mode
+\begin_inset Quotes erd
+\end_inset 
+
+, do the following,
+\layout Itemize
+
+where 
+\family typewriter 
+<dbparser home>
+\family default 
+ is the install directory created by the install script, and
+\layout Itemize
+
+where, if you have a copy of the Penn Treebank, 
+\family typewriter 
+<Penn Treebank home>
+\family default 
+ is the root directory of the Penn Treebank CD-ROM (or the directory to
+ which the CD-ROM's hierarchy has been copied):
+\layout Enumerate
+
+
+\begin_inset LatexCommand \label{enu:quick-start-train}
+
+\end_inset 
+
+Train the parser on Sections 02--21 of the WSJ Penn Treebank in one of the
+ following two ways.
+ One way assumes you have access to the Penn Treebank, while the other does
+ not; both ways assume that 
+\family typewriter 
+<dbparser home>/bin
+\family default 
+ is in your path.
+ The result of either way will be a 
+\begin_inset Quotes eld
+\end_inset 
+
+derived data file
+\begin_inset Quotes erd
+\end_inset 
+
+ called 
+\family typewriter 
+wsj-02-21.obj.gz
+\family default 
+.
+\begin_deeper 
+\layout Enumerate
+
+If you have access to the Penn Treebank, execute the following commands
+ to create the file
+\family typewriter 
+
+\newline 
+/tmp/wsj-02-21.obj.gz
+\family default 
+:
+\begin_deeper 
+\layout Enumerate
+
+
+\family typewriter 
+cd <Penn Treebank home>/combined/wsj
+\layout Enumerate
+
+
+\family typewriter 
+cat 0[2-9]/*.mrg 1[0-9]/*.mrg 2[01]/*.mrg > /tmp/wsj-02-21.mrg
+\layout Enumerate
+
+
+\family typewriter 
+train 800 <dbparser home>/settings/collins.properties 
+\backslash 
+ 
+\newline 
+/tmp/wsj-02-21.mrg
+\end_deeper 
+\layout Enumerate
+
+If you do not have access to the Penn Treebank, do the following to create
+ the file
+\family typewriter 
+
+\newline 
+wsj-02-21.obj.gz
+\family default 
+:
+\begin_deeper 
+\layout Enumerate
+
+Download the observed events file 
+\family typewriter 
+wsj-02-21.observed.gz
+\family default 
+ from Dan Bikel's homepage.
+\layout Enumerate
+
+Execute the command
+\newline 
+
+\family typewriter 
+train-from-observed 400 <dbparser home>/settings/collins.properties 
+\backslash 
+ 
+\newline 
+wsj-02-21.observed.gz
+\end_deeper 
+\end_deeper 
+\layout Enumerate
+
+Copy the file 
+\family typewriter 
+wsj-02-21.obj.gz
+\family default 
+ created by Step 
+\begin_inset LatexCommand \ref{enu:quick-start-train}
+
+\end_inset 
+
+ to a safe place.
+ You will use this file in the next step.
+\layout Enumerate
+
+To parse a file in the format specified in 
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+secsym
+\end_inset 
+
+
+\begin_inset LatexCommand \ref{sec:uniproc-parsing}
+
+\end_inset 
+
+, execute the following command (use 
+\family typewriter 
+<dbparser home>/bin/parse
+\family default 
+ if 
+\family typewriter 
+<dbparser home>/bin
+\family default 
+ is not in your path):
+\newline 
+
+\family typewriter 
+parse 400 <dbparser home>/settings/collins.properties wsj-02-21.obj.gz 
+\backslash 
+
+\newline 
+<input file>
+\layout Section
+
+Training
+\layout Standard
+
+An input file for the trainer must be in the de facto standard format of
+ Penn Treebank 
+\family typewriter 
+.mrg
+\family default 
+ files, which contain trees with part-of-speech tag preterminals and words
+ as leaves.
+ The original Penn Treebank enclosed sentences in an extra set of parentheses;
+ the trainer disregards these parens, if they are present.
+\layout Standard
+
+The easiest way to use the trainer is via the script 
+\family typewriter 
+<parser home>/bin/train
+\family default 
+, which has the following usage:
+\layout LyX-Code
+
+train <max.
+ heap size in megabytes> <settings file> 
+\backslash 
+
+\newline 
+        <parse tree input file>
+\layout Standard
+
+Note that all training trees are expected to be in one file.
+\layout Standard
+
+Training is, for the most part, performed in-memory.
+ This means the heap size for training needs to be rather large; a value
+ in the range of 500-800 is generally required, but this value depends greatly
+ on the number of sentence being fed to the trainer.
+ (The working set is much smaller than the maximum heap size, however.)
+\layout Standard
+
+However, in order to reduce the required memory, the user may use the 
+\family typewriter 
+danbikel.parser.Trainer
+\family default 
+ class with the new 
+\family typewriter 
+-it
+\family default 
+ or 
+\family typewriter 
+--incremental-training
+\family default 
+ options, which allow the trainer to read an observations file (output from
+ a previous training run) in 500,000-event chunks, deriving counts after
+ each reading each chunk (chunk size is controlled via the setting 
+\family typewriter 
+parser.trainer.maxEventChunkSize
+\family default 
+).
+ This prevents the trainer from reading the entire observations file into
+ memory before deriving counts.
+ Type
+\layout LyX-Code
+
+java danbikel.parser.Trainer -help
+\layout Standard
+
+for complete usage information.
+ 
+\layout Subsection*
+
+Example
+\layout Standard
+
+To train on a file 
+\family typewriter 
+wsj-02-21.mrg
+\family default 
+ containing Section 02--21 of the WSJ Penn Treebank data, one would issue
+ the command
+\layout LyX-Code
+
+train 800 <parser home>/settings/collins.properties 
+\backslash 
+
+\newline 
+        wsj-02-21.mrg
+\layout Standard
+
+The train script spits out the actual 
+\family typewriter 
+java
+\family default 
+ command that is doing the training.
+\layout Standard
+
+The trainer outputs two files: an 
+\family typewriter 
+.observed.gz
+\family default 
+ file, containing (a compressed stream of) human-readable, top-level event
+ counts that were derived rather directly from the training trees, and an
+ 
+\family typewriter 
+.obj.gz
+\family default 
+ file, which is a series of serialized Java objects containing the actual,
+ derived counts used by the parser.
+ The 
+\family typewriter 
+.observed.gz
+\family default 
+ file is called the 
+\begin_inset Quotes eld
+\end_inset 
+
+observations file
+\begin_inset Quotes erd
+\end_inset 
+
+ and the 
+\family typewriter 
+.obj.gz
+\family default 
+ file is called 
+\begin_inset Quotes eld
+\end_inset 
+
+derived data file
+\begin_inset Quotes erd
+\end_inset 
+
+, and is the main output file of the trainer.
+\layout Section
+
+Parsing
+\layout Subsection
+
+
+\begin_inset LatexCommand \label{sec:uniproc-parsing}
+
+\end_inset 
+
+Uniprocessor or non--distributed computing environment
+\layout Standard
+
+The easiest way to parse in a non-distributed fashion is to use the 
+\family typewriter 
+<parser\SpecialChar ~
+home>/bin/parse
+\family default 
+ script, the usage of which is:
+\layout LyX-Code
+
+parse <max.
+ heap> <settings> <derived data file> 
+\backslash 
+
+\newline 
+      <input file>
+\layout Standard
+
+The parser does not need as much memory as the trainer; for English, a value
+ less than or equal to 
+\family typewriter 
+500
+\family default 
+ for 
+\family typewriter 
+<max.\SpecialChar ~
+heap>
+\family default 
+ should suffice.
+\layout Standard
+
+The input file should have one of two Lisp-style formats:
+\layout Enumerate
+
+
+\family typewriter 
+((word1 (pos1)) (word2 (pos2)) \SpecialChar \ldots{}
+ (wordN (posN)))
+\layout Enumerate
+
+
+\family typewriter 
+(word1 word2 ...
+ wordN)
+\layout Standard
+
+Format 1 is typically used, where each part of speech was that produced
+ by some (possibly automatic) tagging program.
+\layout Standard
+
+Format 2 is used when it is desirable to have the parser do all its own
+ part of speech tagging as part of the parsing process, but all the provided
+ settings files assume that tagging will be performed as a pre-processing
+ step.
+\layout Standard
+
+A part of speech that is supplied for a word is only used when that word
+ was never observed in training; nevertheless, 
+\emph on 
+every
+\emph default 
+ word must have a non-empty part of speech list; 
+\emph on 
+i.e.
+\emph default 
+, the format 
+\family typewriter 
+((word1 ()) (word2 ()) \SpecialChar \ldots{}
+ (wordN ()))
+\family default 
+ is 
+\emph on 
+not
+\emph default 
+ valid.
+\layout Standard
+
+Here is the first sentence of Section 00 of the WSJ Penn Treebank in Format\SpecialChar ~
+1:
+\layout LyX-Code
+
+((Pierre (NNP)) (Vinken (NNP)) (, (,)) (61 (CD))
+\newline 
+ (years (NNS)) (old (JJ)) (, (,)) (will (MD)) (join (VB))
+\newline 
+ (the (DT)) (board (NN)) (as (IN)) (a (DT))
+\newline 
+ (nonexecutive (JJ)) (director (NN)) (Nov.
+ (NNP))
+\newline 
+ (29 (CD)) (.
+ (.)))
+\layout Subsection
+
+Distributed computing environment
+\layout Subsubsection
+
+Script usage
+\layout Standard
+
+The easiest way to parse in a distributed-computing environment is to use
+ the
+\family typewriter 
+
+\newline 
+<parser home>/bin/internal-server-run
+\family default 
+ script.
+ The usage is:
+\layout LyX-Code
+
+internal-server-run <settings file> <derived data file> 
+\backslash 
+
+\newline 
+        <input file>+
+\layout Standard
+
+Note that you can specify multiple input files.
+ In fact, if any of the input files specified is a directory, the engine
+ will non-recursively get the names of all files contained the directory.
+ For example, suppose you have the following four files to parse:
+\layout Itemize
+
+
+\family typewriter 
+~/data/inputFile1
+\layout Itemize
+
+
+\family typewriter 
+~/data/inputFile2
+\layout Itemize
+
+
+\family typewriter 
+~/data/new/newFile1
+\layout Itemize
+
+
+\family typewriter 
+~/data/new/newFile2
+\layout Standard
+
+The following three input file lists are all treated the same by the 
+\family typewriter 
+internal-server-run
+\family default 
+ script (it's really the Java class 
+\family typewriter 
+danbikel.parser.StartSwitchboard
+\family default 
+ that is performing this magic):
+\layout Itemize
+
+
+\family typewriter 
+~/data/inputFile1 ~/data/inputFile2 ~/data/new/newFile1 ~/data/new/newFile2
+\layout Itemize
+
+
+\family typewriter 
+~/data/inputFile1 ~/data/inputFile2 ~/data/new
+\layout Itemize
+
+
+\family typewriter 
+~/data ~/data/new
+\layout Standard
+
+While this script makes using multiple hosts easy, it may not work out-of-the-bo
+x, requiring a few caveats:
+\layout Enumerate
+
+The script uses the environment variable 
+\family typewriter 
+JAVA_HOME
+\family default 
+ to locate the J2SDK you wish to use, so you must make sure this variable
+ is set in your environment.
+ The two J2SDK executables that are used are 
+\family typewriter 
+$JAVA_HOME/bin/java
+\family default 
+ (by the 
+\family typewriter 
+internal-server-run
+\family default 
+ script) and 
+\family typewriter 
+$JAVA_HOME/bin/rmiregistry
+\family default 
+ (by the 
+\family typewriter 
+no-cp-rmiregistry
+\family default 
+ script, which is called by the 
+\family typewriter 
+start-rmiregistry
+\family default 
+ script, which is in turn called by the 
+\family typewriter 
+internal-server-run
+\family default 
+ script).
+\layout Enumerate
+
+
+\begin_inset LatexCommand \label{enu:reliance-on-dollar-zero}
+
+\end_inset 
+
+Most batch queues copy a batch script before executing it, which breaks
+ any reliance on the 
+\family typewriter 
+$0
+\family default 
+ variable.
+ Accordingly, you may have to modify the script to hard-code paths for the
+ 
+\family typewriter 
+scriptDir
+\family default 
+ variable (near the beginning of the script).
+ Alternatively, you can use the simple wrapper script (called, conveniently
+ enough, 
+\family typewriter 
+wrapper
+\family default 
+) to avoid this problem.
+\layout Enumerate
+
+The script uses 
+\family typewriter 
+ssh
+\family default 
+ for logging into nodes, and assumes that it will not need to enter a password
+ for doing so.
+ The remote shell mechanism of the 
+\family typewriter 
+internal-server-run
+\family default 
+ script, as well as that of a dependent script called 
+\family typewriter 
+start-rmiregistry
+\family default 
+, may be changed by altering the definition of the 
+\family typewriter 
+RSH
+\family default 
+ variable.
+\layout Enumerate
+
+The script assumes the nodes will be provided via whitespace-separated list
+ in a 
+\family typewriter 
+NODES
+\family default 
+ environment variable, and preprends 
+\begin_inset Quotes eld
+\end_inset 
+
+node
+\begin_inset Quotes erd
+\end_inset 
+
+ to every element in this list (appropriate for Clubmask/Beowulf environment
+ at Penn).
+ Please comment out the shell script code that does the prepending if this
+ behavior is not appropriate for your environment.
+\layout Enumerate
+
+The script assumes that the unique identifier for the batch job will be
+ contained in a 
+\family typewriter 
+JOBID
+\family default 
+ environment variable.
+ This job identifier is used only to guarantee that different jobs have
+ distinctly-named experiment directories (see 
+\begin_inset ERT
+status Collapsed
+
+\layout Standard
+
+\backslash 
+S
+\end_inset 
+
+
+\begin_inset LatexCommand \ref{sec:experiment-directory}
+
+\end_inset 
+
+ for more information on experiment directories).
+\layout Enumerate
+
+The script relies on other scripts in its 
+\family typewriter 
+bin
+\family default 
+ directory, and expects the file 
+\family typewriter 
+dbparser.jar
+\family default 
+ to be located in its parent directory.
+ The script finds these relatively-located resources by using the 
+\family typewriter 
+$0
+\family default 
+ variable (see point No.
+ 
+\begin_inset LatexCommand \ref{enu:reliance-on-dollar-zero}
+
+\end_inset 
+
+, above).
+\layout Enumerate
+
+When the reap variable is defined, there is a section of code at the end
+ of the script that logs onto all hosts and uses the 
+\family typewriter 
+killall
+\family default 
+ command to kill all 
+\family typewriter 
+rmiregistry
+\family default 
+ and 
+\family typewriter 
+java
+\family default 
+ processes; this behavior may literally be overkill for your environment,
+ if, for example, you have other, non-parsing 
+\family typewriter 
+java
+\family default 
+ processes that you do not wish to kill.
+ The solution is to comment-out the line in the script reading 
+\family typewriter 
+set reap
+\family default 
+, or to modify the reaping code to be more discriminating in the processes
+ that it kills.
+\layout Standard
+
+In the future, we may customize the 
+\family typewriter 
+internal-server-run
+\family default 
+ script via an installation procedure, instead of forcing you, the user,
+ to perform the customizations directly.
+\layout Subsubsection
+
+
+\begin_inset LatexCommand \label{sec:experiment-directory}
+
+\end_inset 
+
+Experiment directory
+\layout Standard
+
+The script creates an experiment directory whose name is 
+\family typewriter 
+~/experiments/<date>/<time>
+\layout Standard
+
+The experiment directory will contain the following items:
+\layout Enumerate
+
+Log files for all the parsing clients, where each log file has the name
+ 
+\family typewriter 
+<host>-<uid>.log
+\family default 
+, where 
+\family typewriter 
+<host>
+\family default 
+ is the host name on which the client is running and where 
+\family typewriter 
+<uid>
+\family default 
+ is a unique integer, so that two clients running on the same host will
+ have differently-named log files.
+\layout Enumerate
+
+
+\begin_inset LatexCommand \label{enu:exp-dir-log}
+
+\end_inset 
+
+A log file containing the incremental work of the distributed-computing
+ run; this file has the same name as the input file plus a 
+\family typewriter 
+.log
+\family default 
+ extension.
+\layout Enumerate
+
+A file called switchboard.messages, which can be monitored to track the progress
+ of the distributed-computing run, via the command 
+\family typewriter 
+tail -f switchboard.messages
+\layout Enumerate
+
+Finally, the 
+\family typewriter 
+internal-server-run
+\family default 
+ script copies a specialized version of 
+\emph on 
+itself
+\emph default 
+ to the experiment directory, in order to facilitate re-running the experiment,
+ or continuing an experiment that had to be killed before all input sentences
+ were parsed.
+ This latter feature---being able to recover from a previous, incomplete
+ run---can be very useful.
+ Crucially, the ability to re-start an experiment from where it left off
+ makes use of the log file that contains incremental work (list item No.
+ 
+\begin_inset LatexCommand \ref{enu:exp-dir-log}
+
+\end_inset 
+
+, above).
+ 
+\layout Section
+
+Advanced usage
+\layout Standard
+
+It is, of course, possible to call the 
+\family typewriter 
+java
+\family default 
+ process directly for training and parsing.
+ The normal mechanism to specify a settings file is to provide a command-line
+ definition of the 
+\family typewriter 
+parser.settingsFile
+\family default 
+ system property, as follows:
+\layout LyX-Code
+
+java -Dparser.settingsFile=collins.properties ...
+\layout Standard
+
+To avoid specifying the settings file on the command line, you can provide
+ a default settings file: the parsing engine will always check to see if
+ the file 
+\family typewriter 
+~/.db-parser/settings
+\family default 
+ exists (where 
+\family typewriter 
+~
+\family default 
+ is your home directory), and if so, use it if there is no definition of
+ the 
+\family typewriter 
+parser.settingsFile
+\family default 
+ system property.
+ For example, if by default you will be parsing English with the parser
+ in its Collins-emulation mode, you can execute the following commands:
+\layout LyX-Code
+
+mkdir ~/.db-parser
+\layout LyX-Code
+
+cp <parser home>/settings/collins.properties ~/.db-parser/settings
+\layout Subsection
+
+Training
+\layout Standard
+
+The Java class used for training is 
+\family typewriter 
+danbikel.parser.Trainer
+\family default 
+.
+ A typical usage is as follows (assumes you have 
+\family typewriter 
+dbparser.jar
+\family default 
+ in your class path):
+\layout LyX-Code
+
+java -Xms800m -Xmx800m -Dparser.settingsFile=<settings> 
+\backslash 
+
+\newline 
+        danbikel.parser.Trainer -i <training file> 
+\backslash 
+
+\newline 
+        -o <observed file> -od <derived data file>
+\layout Standard
+
+You can see its full usage by executing
+\layout LyX-Code
+
+java danbikel.parser.Trainer -help
+\layout Standard
+
+If either 
+\family typewriter 
+<observed file>
+\family default 
+ or 
+\family typewriter 
+<derived data file>
+\family default 
+ ends with the extension 
+\family typewriter 
+.gz
+\family default 
+ it is automatically compressed before being written to disk.
+\layout LyX-Code
+
+\layout Subsection*
+
+A note on the 
+\family typewriter 
+<observed file>
+\layout Standard
+
+The 
+\family typewriter 
+<observed file>
+\family default 
+ is a human-readable file consisting of the top-level events and counts
+ from which all other events and counts may be derived.
+ As such, training may be performed in two steps, outputting an 
+\family typewriter 
+<observed file>
+\family default 
+ and then reading that file in to produce a 
+\family typewriter 
+<derived data file>
+\family default 
+:
+\layout LyX-Code
+
+java -Xms400m -Xmx400m -Dparser.settingsFile=<settings> 
+\backslash 
+
+\newline 
+        danbikel.parser.Trainer -i <training file> 
+\backslash 
+
+\newline 
+        -o <observed file>
+\newline 
+
+\newline 
+java -Xms400m -Xmx400m -Dparser.settingsFile=<settings> 
+\backslash 
+
+\newline 
+        danbikel.parser.Trainer -it -l <observed file> 
+\backslash 
+
+\newline 
+        -od <derived data file>
+\layout Standard
+
+Note the use of the 
+\family typewriter 
+-it
+\family default 
+ option in the second of the two commands.
+ This indicates to derive counts incrementally from an 
+\family typewriter 
+<observed file>
+\family default 
+, and reduces the RAM footprint considerably (all the heap sizes in this
+ section are applicable when training on the standard Penn Treebank WSJ
+ training set, Sections 02--21).
+\layout Standard
+
+For the curious, incremental training is performed by iteratively reading
+ top-level events and counts from the 
+\family typewriter 
+<observed file>
+\family default 
+ one 
+\begin_inset Quotes eld
+\end_inset 
+
+chunk
+\begin_inset Quotes erd
+\end_inset 
+
+ at a time, additively deriving events and counts after each such 
+\begin_inset Quotes eld
+\end_inset 
+
+chunk
+\begin_inset Quotes erd
+\end_inset 
+
+ read.
+ The number of top-level events read in at each increment is determined
+ via the
+\layout LyX-Code
+
+parser.trainer.maxEventChunkSize
+\layout Standard
+
+setting, the default value for which is 
+\family typewriter 
+500000
+\family default 
+.
+\layout Subsection
+
+Parsing
+\layout Standard
+
+The Java class used for parsing is 
+\family typewriter 
+danbikel.parser.Parser
+\family default 
+.
+ A typical usage is as follows (assumes you have 
+\family typewriter 
+dbparser.jar
+\family default 
+ in your class path):
+\layout LyX-Code
+
+java -Xms400m -Xmx400m -Dparser.settingsFile=<settings> 
+\backslash 
+
+\newline 
+        danbikel.parser.Parser -is <derived data file> 
+\backslash 
+
+\newline 
+        -sa <sentence input file>
+\layout Standard
+
+You can see its full usage by executing
+\layout LyX-Code
+
+java danbikel.parser.Parser -help
+\layout Standard
+
+If 
+\family typewriter 
+<derived data file>
+\family default 
+ ends with the extenson 
+\family typewriter 
+.gz
+\family default 
+ it is automatically decompressed as it is read from disk.
+\layout Subsection
+
+Switchboard
+\layout Standard
+
+The Java class used for starting the switchboard, which is the central component
+ in a distributed-computing run, is 
+\family typewriter 
+danbikel.parser.StartSwitchboard
+\family default 
+.
+ You can see its full usage by executing
+\layout LyX-Code
+
+java danbikel.parser.StartSwitchboard -help
+\layout Standard
+
+Developer-level documentation is available in the 
+\family typewriter 
+<parser home>/doc
+\family default 
+ directory.
+ Currently, not all methods and classes are documented.
+ 
+\layout Subsection
+
+
+\emph on 
+k-
+\emph default 
+best Parsing
+\layout Standard
+
+As of version 0.9.4, there is a hack to do 
+\emph on 
+k
+\emph default 
+-best parsing, where basically dynamic programming is eliminated by having
+ no two chart items be equivalent (thanks to Mike Collins for suggesting
+ this hack).
+ There are three settings one should adjust in order to do 
+\emph on 
+k
+\emph default 
+-best parsing:
+\layout Itemize
+
+
+\family typewriter 
+parser.chart.itemClass=danbikel.parser.CKYItem$KBestHack
+\layout Itemize
+
+
+\family typewriter 
+parser.decoder.kBest=
+\family default 
+\emph on 
+k
+\emph default 
+ (where 
+\emph on 
+k
+\emph default 
+ is the desired maximum number of best parses to output)
+\layout Itemize
+
+
+\family typewriter 
+parser.decoder.pruneFactor=
+\family default 
+<
+\emph on 
+something smaller than 4
+\emph default 
+> (you want to use a small beam to avoid pursuing too many theories---remember,
+ we have simply turned off dynamic programming)
+\layout Standard
+
+The output of the parser is slightly different when 
+\begin_inset Formula $k>1$
+\end_inset 
+
+: in this case, instead of an S-expression representing a tree, it is a
+ list of S-expressions representing trees (a list of lists), in decreasing
+ order of likelihood.
+\layout Subsection
+
+Knesser-Ney Smoothing
+\layout Standard
+
+The type of smoothing used is determined by the type of 
+\family typewriter 
+Model
+\family default 
+ object that a 
+\family typewriter 
+ProbabilityStructure
+\family default 
+ instance wraps itself in, as determined by the method 
+\family typewriter 
+ProbabilityStructure.newModel
+\family default 
+.
+ The default behavior is to create an instance of 
+\family typewriter 
+Model
+\family default 
+, which uses a variant of Witten-Bell smoothing.
+\layout Standard
+
+However, this default behavior can be changed in a concrete subclass of
+ 
+\family typewriter 
+ProbabilityStructure
+\family default 
+ by overriding the 
+\family typewriter 
+newModel
+\family default 
+ method, or by simply using a run-time setting,
+\layout Standard
+
+
+\family typewriter 
+parser.probabilityStructure.defaultModelClass
+\family default 
+.
+\layout Standard
+\noindent 
+The default value for this setting is 
+\family typewriter 
+danbikel.parser.Model
+\family default 
+, but Knesser-Ney smoothing can be used by default by changing this setting
+ to be
+\family typewriter 
+ 
+\layout Standard
+
+
+\family typewriter 
+danbikel.parser.InterpolatedKnesserNeyModel
+\family default 
+.
+\layout Standard
+\noindent 
+For more information on this setting, see the API documentation for the
+ 
+\family typewriter 
+danbikel.parser.Settings
+\family default 
+ class.
+\the_end

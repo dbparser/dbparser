@@ -1,0 +1,17 @@
+bak
+classes
+*.oif
+*.jpx.local
+doc
+util-doc
+classes.ant
+danbikel.util.jar
+exported-build.xml
+userguide/*.ps
+userguide/*.pdf
+userguide/*.tex
+userguide/*.html
+sb-doc
+.#exported-build.xml.1.1
+dbparser.oif
+switchboard.jar

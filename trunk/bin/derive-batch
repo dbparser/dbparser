@@ -1,0 +1,19 @@
+#!/bin/tcsh -f
+
+set settings = $1
+set training = $2
+set filePrefix = $training:r
+
+# turn settings into absolute path, if necessary
+set settingsDir = `dirname $settings`
+set settings = `cd $settingsDir; pwd`/$settings:t
+
+set nodes = ($NODES)
+
+@ i = 1
+foreach dir (0[1-9] [1-9][0-9])
+    ssh -n node$nodes[$i] derive-precomputed -sf $settings -us $cwd/00/smoothing -st $cwd/00/$filePrefix.static.observed.gz $cwd/$dir/$filePrefix.observed.gz >& derive-precomputed.$dir.node$nodes[$i].log &
+    @ i++
+end
+
+wait

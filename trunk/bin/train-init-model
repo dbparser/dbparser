@@ -1,0 +1,56 @@
+#!/bin/tcsh -f
+
+set settingsFile = ~/jbproject/dbparser/settings/em.properties    
+if ($#argv >= 2) then
+  if ("$argv[1]" == "-sf" || "$argv[1]" == "--settings-file") then
+    set settingsFile = $argv[2]
+    shift
+    shift
+  endif
+endif
+
+if ($#argv != 1) then
+    echo "error: missing <training file>"
+    echo "usage: [-sf|--settings-file <settings file>] <training file>"
+    exit 1
+endif
+
+set dir = `dirname $0`
+set scriptDir = `cd $dir  ; echo $cwd`
+
+set derivePrecompScript = $scriptDir/derive-precomputed
+
+set trainingData = $argv[1]
+
+set java = (java -server)
+set mem = (-Xms1600m -Xmx1600m)
+set outputDir = $cwd/00
+set defs = (-Dparser.settingsFile=$settingsFile)
+set class = danbikel.parser.Trainer
+
+set observedDataFile = $outputDir/$trainingData:t:r.observed.gz
+set derivedDataFile = $outputDir/$trainingData:t:r.obj.gz
+
+if (! -d $outputDir) then
+    echo "Creating output directory $outputDir"
+    mkdir -p $outputDir
+endif
+
+set command = ($java $mem $defs $class -i $trainingData \
+               -o $observedDataFile -od $derivedDataFile)
+
+echo Running command
+echo -n "	"
+echo $command
+
+$command
+
+set command = ($derivePrecompScript -sf $settingsFile -os $observedDataFile)
+
+echo ""
+echo Deriving precomputed probabilities for initial model and
+echo outputting smoothing parameters by running command
+echo -n "	"
+echo $command
+
+$command

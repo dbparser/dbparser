@@ -1,0 +1,9 @@
+#!/bin/tcsh -f
+
+set dir = `dirname $0`
+cd $dir
+set containsJavaSrc = $cwd/contains-java-src
+# assumes the directory of this script is a sibling of main src directory
+cd ../src
+find $cwd -type d -exec $containsJavaSrc {} \; -print |& tr '\012' ' '
+echo ""

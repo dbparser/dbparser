@@ -1,0 +1,33 @@
+#!/bin/tcsh -f
+
+set remoteHost = alpha.nlp.liniac
+
+if ($#argv == 1) then
+    set remoteHost = $1
+endif
+
+set noglob
+set localDirs = (~/jbproject/dbparser/src ~/jbproject/dbparser/classes)
+
+unset noglob
+foreach dir ($localDirs)
+    echo "Changing to directory $dir:h and tar'ing up"
+    echo "	directory $dir:t into /tmp/$dir:t.tgz"
+    cd $dir:h
+    tar zcf /tmp/$dir:t.tgz $dir:t
+end
+
+set noglob
+foreach dir ($localDirs)
+    echo "Copying /tmp/$dir:t.tgz to $dir:h on $remoteHost"
+    scp -C /tmp/$dir:t.tgz dbikel@$remoteHost\:$dir:h
+    echo "Unpacking on $remoteHost"
+    ssh $remoteHost "cd $dir:h ; /bin/rm -rf $dir:t-old ; mv $dir:t $dir:t-old ; tar zxf $dir:t.tgz ; /bin/rm -f $dir:t.tgz"
+end
+
+set noglob
+set jarFile = ~/jbproject/dbparser/dbparser.jar
+set jarFileDir = $jarFile:h
+unset noglob
+echo "Copying $jarFile to $jarFileDir on $remoteHost"
+scp -C $jarFile dbikel@$remoteHost\:$jarFileDir

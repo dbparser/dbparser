@@ -1,0 +1,118 @@
+#!/bin/tcsh -f
+
+goto afterUsage
+
+usage:
+echo "usage: [ [-sf <settings file>] | [--settings-file <settings file>] ]"
+echo "	[-os] [-us <dir> [-st <static events>] ] <trainer output file>"
+echo "where"
+echo "	-os indicates to output smoothing parameters"
+echo "	-us <dir> indicates to use the smoothing parameters in <dir>"
+exit 1
+
+afterUsage:
+
+set settingsFile = ~/jbproject/dbparser/settings/collins.properties
+
+if ($#argv < 1) then
+    goto usage
+endif
+
+# process args
+while ("$argv[1]" =~ -*)
+    if ("$argv[1]" == "-sf" || "$argv[1]" == "--settings-file") then
+	shift
+	if ($#argv < 1) then
+	    goto usage
+	endif
+	set settingsFile = $argv[1]
+    else if ("$argv[1]" == "-os") then
+	set outputSmoothing
+    else if ("$argv[1]" == "-us") then
+        shift
+	if ($#argv < 1) then
+	    goto usage
+	endif
+	set useSmoothing
+	set smoothingDir = $argv[1]
+    else if ("$argv[1]" == "-st") then
+	shift
+	if ($#argv < 1 || !($?useSmoothing)) then
+	    goto usage
+	endif
+	set staticData = $argv[1]
+    else
+	echo "unrecognized command-line option:" $argv[1]
+	goto usage
+    endif
+    shift
+end
+
+if ($#argv < 1) then
+    echo "error: did not specify <trainer output file>"
+    goto usage
+else if ($#argv > 1) then
+    echo "error: too many arguments (only need <trainer output file>)"
+    goto usage
+endif
+
+if ($?useSmoothing && !($?staticData)) then
+    echo '*******************'
+    echo -n '* \!\!\! WARNING \!\!\! *'
+    echo "   Using smoothing but did not specify static data"
+    echo '*******************'
+    echo ""
+endif
+
+set trainerOutputFile = $argv[1]
+
+# HotSpot server generates NullPointerException when reading large S-expression
+# files
+#set java = (java -server)
+set java = java
+set mem = (-Xms1600m -Xmx1600m)
+set defs = (-Dparser.settingsFile=$settingsFile \
+	    -Dparser.model.precomputeProbabilities=true)
+set trainerEventsFiles = (-l $trainerOutputFile)
+if ($?staticData) then
+    set trainerEventsFiles = (-l $staticData $trainerEventsFiles)
+endif
+
+if ($?outputSmoothing) then
+    set smoothingDir = `dirname $trainerOutputFile`/smoothing
+    if (! -d $smoothingDir) then
+	echo Creating smoothing directory \"$smoothingDir\".
+	mkdir $smoothingDir
+	if ($status != 0) then
+	    echo Couldn\'t create smoothing directory \"$smoothingDir\".
+	    echo "Exiting."
+	    exit 1
+	endif
+    endif
+    set defs = ($defs \
+		-Dparser.model.smoothingParametersDir=$smoothingDir \
+		-Dparser.model.saveSmoothingParameters=true)
+else if ($?useSmoothing) then
+    set defs = ($defs \
+		-Dparser.model.smoothingParametersDir=$smoothingDir \
+		-Dparser.model.useSmoothingParameters=true)
+endif
+
+set class = danbikel.parser.Trainer
+
+# remove ".gz" if present from trainerOutputFile
+set derivedDataFile = $trainerOutputFile
+if ($derivedDataFile:e == "gz") then
+    set derivedDataFile = $derivedDataFile:r
+endif
+
+set derivedDataFile = $derivedDataFile:r.precomp.obj.gz
+
+set command = ($java $mem $defs $class \
+               -it $trainerEventsFiles -od $derivedDataFile)
+
+echo Running command
+echo -n "	"
+echo $command
+
+exec $command

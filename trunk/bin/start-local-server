@@ -1,0 +1,36 @@
+#!/bin/tcsh -f
+
+if ($#argv < 3) then
+    echo "usage: <class> <settingsFile> <derived data file>"
+    exit 1
+endif
+
+set class = $1
+set settingsFile = $2
+set derivedDataFile = $3
+set args = ($argv[4-$#argv])
+
+set logDir = /tmp
+set logFile = $logDir/server.log
+set pidFile = $logDir/server-pid
+set settingsProp = "-Dparser.settingsFile=$settingsFile"
+
+set mem = (-Xms1200m -Xmx1200m)
+
+set dir = `dirname $0`
+set scriptDir = `cd $dir  ; echo $cwd`
+set parent = $scriptDir:h
+set classes = $parent/classes.ant
+
+set serverPolicy = "-Djava.security.policy=$parent/policy-files/all.policy"
+#set serverCodebase = "-Djava.rmi.server.codebase=file://$classes/"
+set disableHttp = "-Djava.rmi.server.disableHttp=true"
+
+# start the decoder server
+echo log file is $logFile
+echo pid file is $pidFile
+
+java -server $mem $settingsProp $serverPolicy $disableHttp \
+    $class $derivedDataFile $args >& $logFile &
+
+echo $! > $pidFile

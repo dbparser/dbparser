@@ -1,0 +1,12 @@
+#!/bin/tcsh -f
+
+set thisDir = `dirname $0`
+set parent = `cd $thisDir/..; echo $cwd`
+set srcDirs = (`$thisDir/echo-src-dirs`)
+
+set masterProjectFile = $parent/src/project.el
+
+foreach dir ($srcDirs)
+    cd $dir
+    ln -s $masterProjectFile .
+end

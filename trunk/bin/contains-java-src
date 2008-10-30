@@ -1,0 +1,10 @@
+#!/bin/tcsh -f
+
+set dir = $argv[1]
+
+ls $dir/*.java >& /dev/null
+if ($status == 1) then
+	exit 1
+else
+	exit 0
+endif

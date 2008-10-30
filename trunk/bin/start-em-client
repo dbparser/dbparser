@@ -1,0 +1,19 @@
+#!/bin/tcsh -f
+
+set java = $1
+set classpath = $2
+set host = $3
+set logDir = $4
+set args = ($argv[5-$#argv])
+
+set dir = `dirname $0`
+set scriptDir = `cd $dir  ; echo $cwd`
+set parent = $scriptDir:h
+set classes = $parent/classes
+
+set clientPolicy = "-Djava.security.policy=$parent/policy-files/client.policy"
+set clientCodebase = "-Djava.rmi.server.codebase=file://$classes/"
+
+# start the parser
+$java -server -cp $classpath -Xms800m -Xmx800m $clientPolicy $clientCodebase \
+    danbikel.parser.EMParser $args >& $logDir/$host.log

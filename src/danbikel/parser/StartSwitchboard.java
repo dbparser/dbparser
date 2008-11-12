@@ -346,7 +346,7 @@ public class StartSwitchboard {
     }
   }
 
-  private static List<File> readFof(File fof) {
+  public static List<File> readFof(File fof) {
     List<File> filesInFof = new ArrayList<File>();
     try {
       BufferedReader br = new BufferedReader(new FileReader(fof));

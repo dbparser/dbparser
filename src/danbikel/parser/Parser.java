@@ -7,7 +7,6 @@ import danbikel.parser.constraints.*;
 import danbikel.parser.util.*;
 import java.util.*;
 import java.net.*;
-import java.security.*;
 import java.rmi.*;
 import java.rmi.server.*;
 import java.io.*;
@@ -147,7 +146,7 @@ public class Parser
    * @param derivedDataFilename the name of the derived data file to pass to the
    *                            constructor of the {@link DecoderServer} class
    *                            when creating an internal instance
-   * @throws RemoteException
+   * @throws RemoteException if the remote server throws an exception
    * @throws ClassNotFoundException if {@link #getNewDecoderServer(String)}
    *                                throws this exception
    * @throws NoSuchMethodException  if {@link #getNewDecoderServer(String)}
@@ -171,14 +170,30 @@ public class Parser
   }
 
   /**
-   * Constructs a new parsing client where the internal {@link Decoder} will
+   * Constructs a new parsing client where the internal {@link danbikel.parser.Decoder} will
    * use the specified server.
-   * @param server the server for the {@link Decoder} to use
-   * @throws RemoteException
+   * @param server the server for the {@link danbikel.parser.Decoder} to use
+   * @throws RemoteException if the remote server throws an exception
    */
   public Parser(DecoderServerRemote server) throws RemoteException {
+    this(server, 0);
+  }
+
+  /**
+   * Constructs a new parsing client where the internal {@link Decoder} will use
+   * the specified server.
+   *
+   * @param server the server for the {@link danbikel.parser.Decoder} to use
+   * @param id     the unique id of this instance (providing a unique value is
+   *               necessary when constructing multiple {@link Parser} instances
+   *               around the same {@link DecoderServerRemote} instance within
+   *               the same JVM)
+   * @throws RemoteException if the remote server throws an exception
+   */
+  public Parser(DecoderServerRemote server, int id) throws RemoteException {
+    this.id = id;
     this.server = server;
-    decoder = getNewDecoder(0, server);
+    decoder = getNewDecoder(this.id, server);
     setUpErrWriter();
     Settings.register(this);
   }
@@ -187,7 +202,7 @@ public class Parser
    * Constructs a new parsing client with the specified timeout value for its
    * sockets (not needed with recent RMI implementations from Sun).
    * @param timeout the timeout value for RMI client and server sockets
-   * @throws RemoteException
+   * @throws RemoteException if the remote server throws an exception
    */
   public Parser(int timeout) throws RemoteException {
     super(timeout);

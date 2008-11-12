@@ -266,10 +266,15 @@ public class SexpSubcatEvent extends SexpEvent {
       return true;
     if (o instanceof SexpSubcatEvent) {
       SexpSubcatEvent other = (SexpSubcatEvent)o;
-      return this.subcat.equals(other.subcat) && super.equals(o);
+      return subcatsEqual(other) && super.equals(o);
     }
     else
       return this.genericEquals(o);
+  }
+
+  private final boolean subcatsEqual(SexpSubcatEvent other) {
+    return this.subcat == null ? other.subcat == null :
+	   this.subcat.equals(other.subcat);
   }
 
   /**

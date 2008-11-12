@@ -1,9 +1,11 @@
 package danbikel.parser;
 
-import danbikel.util.*;
 import danbikel.lisp.*;
+import static danbikel.parser.SubcatBagInfo.sizeIdx;
+import static danbikel.parser.SubcatBagInfo.miscIdx;
+import static danbikel.parser.SubcatBagInfo.firstRealUid;
+
 import java.util.*;
-import java.util.HashMap;
 import java.io.*;
 
 /**
@@ -50,8 +52,8 @@ import java.io.*;
  * important <i><b>not</b></i> to invoke the
  * {@link Training#setUpFastArgMap(CountsTable)} method during training,
  * when requirements are added individually by {@link #add(Symbol)}, which
- * calls {@link #validRequirement(Symbol)} which in turn invokes
- * {@link Training#isArgumentFast(Symbol)}.
+ * calls {@link SubcatBagInfo#validRequirement(Symbol)} which
+ * in turn invokes {@link Training#isArgumentFast(Symbol)}.
  * <li>This class cannot collect more than 127 total occurrences of
  * requirements.  This is well beyond the number of arguments ever postulated
  * in any human language, but <i>not</i> necessarily beyond the number
@@ -63,116 +65,35 @@ import java.io.*;
  * @see Subcats
  * @see #toSexp()
  */
-public class SubcatBag implements Subcat, Externalizable {
-  // constants
-  // index constants: make sure to update remove method if these change
-  // (if it's necessary: see comment inside remove method code)
-  private final static int sizeIdx = 0;
-  private final static int miscIdx = 1;
-  private final static int firstRealUid = 2; // must be greater than miscIdx!!!
-  private final static int gapIdx = firstRealUid;
-  private static int numUids;
-
-  // static data members
-  private static Map<Symbol,Integer> symbolsToInts =
-    new danbikel.util.HashMap<Symbol, Integer>();
-  private static Symbol stopSym = Language.training.stopSym();
-  private static Symbol[] symbols;
-  private static Nonterminal[] nonterminals;
-  private static Map<Symbol, Nonterminal> symToNt =
-    new HashMap<Symbol, Nonterminal>();
-
-  private static void setUpStaticData() {
-    Symbol gapAugmentation = Language.training().gapAugmentation();
-    Symbol argAugmentation = Language.training().defaultArgAugmentation();
-    char delimChar = Language.treebank().canonicalAugDelimiter();
-
-    int uid = gapIdx; // depends on gapIdx being equal to firstRealUid
-    // kind of a hack: put an entry for gaps (which are "requirements"
-    // that can be thrown into subcats);
-    // note that uid of gap is firstRealUid (see comment inside remove method)
-    symbolsToInts.put(gapAugmentation, new Integer(uid++));
-
-    for (Object argObj : Language.training().argNonterminals()) {
-      Symbol argLabel = (Symbol)argObj;
-      symbolsToInts.put(argLabel, new Integer(uid++));
-    }
-    numUids = uid;
-
-    symbols = new Symbol[numUids];
-    nonterminals = new Nonterminal[numUids];
-    for (Map.Entry<Symbol, Integer> entry : symbolsToInts.entrySet()) {
-      Symbol symbol = (Symbol) entry.getKey();
-      uid = ((Integer) entry.getValue()).intValue();
-      symbols[uid] = symbol;
-      nonterminals[uid] = Language.treebank().parseNonterminal(symbol);
-    }
-    symbols[miscIdx] = Symbol.get(stopSym.toString() +
-				  delimChar + argAugmentation);
-  }
-
-  static {
-    setUpStaticData();
-    Settings.Change change = new Settings.Change() {
-      public void update(Map<String, String> changedSettings) {
-	setUpStaticData();
-      }
-    };
-    Settings.register(SubcatBag.class, change,
-		      Collections.<Class>singleton(Language.class));
-  }
-
-  private static HashMapInt<Symbol> fastUidMap = new HashMapInt<Symbol>();
-  private static boolean canUseFastUidMap = false;
-
-  public static synchronized void setUpFastUidMap(CountsTable nonterminals) {
-    if (canUseFastUidMap)
-      return;
-    fastUidMap.put(Language.training.gapAugmentation(), gapIdx);
-    for (Object ntObj : nonterminals.keySet()) {
-      Symbol nt = (Symbol)ntObj;
-      int uid = getUid(nt);
-      fastUidMap.put(nt, uid);
-    }
-    canUseFastUidMap = true;
-  }
-
-  // data member
+public class SubcatBag implements Subcat, Serializable {
+  // data members
+  private SubcatBagInfo info;
   private byte[] counts;
 
   /**
-   * A method to check if the specified requirement is valid. For this
-   * class, a requirement is valid if it is either
-   * {@link Training#gapAugmentation} or a symbol for which
-   * {@link Training#isArgumentFast(Symbol)} returns <code>true</code>.
-   * A subclass may override this method to allow for new or different
-   * valid requirements.
+   * Constructs an empty subcat.
    *
-   * @param requirement the requirement to test
-   * @return whether the specified requirement is valid
+   * @param info the information necessary for this {@link SubcatBag}&rsquo;s
+   *             operation
    */
-  protected boolean validRequirement(Symbol requirement) {
-    return
-      requirement == Language.training.gapAugmentation() ||
-      Language.training.isArgumentFast(requirement);
-  }
-
-  /** Constructs an empty subcat. */
-  public SubcatBag() {
-    counts = new byte[numUids];
+  public SubcatBag(SubcatBagInfo info) {
+    this.info = info;
+    counts = new byte[info.getNumUids()];
     for (int i = 0; i < counts.length; i++)
       counts[i] = 0;
   }
 
   /**
-   * Constructs a subcat bag containing the number of occurrences of
-   * the symbols of <code>list</code>.
+   * Constructs a subcat bag containing the number of occurrences of the symbols
+   * of <code>list</code>.
    *
+   * @param info the information necessary for this {@link SubcatBag}&rsquo;s
+   *             operation
    * @param list a list of <code>Symbol</code> objects to be added to this
-   * subcat bag
+   *             subcat bag
    */
-  public SubcatBag(SexpList list) {
-    this();
+  public SubcatBag(SubcatBagInfo info, SexpList list) {
+    this(info);
     addAll(list);
   }
 
@@ -188,9 +109,9 @@ public class SubcatBag implements Subcat, Externalizable {
    * @param requirement the requirement to add to this subcat bag
    */
   public Subcat add(Symbol requirement) {
-    if (validRequirement(requirement)) {
+    if (info.validRequirement(requirement)) {
       counts[sizeIdx]++;
-      counts[getUid(requirement)]++;
+      counts[info.getUid(requirement)]++;
     }
     return this;
   }
@@ -227,14 +148,14 @@ public class SubcatBag implements Subcat, Externalizable {
    * @see Training#isArgumentFast(Symbol)
    */
   public boolean remove(Symbol requirement) {
-    int uid = getUid(requirement);
+    int uid = info.getUid(requirement);
 
     // if the uid is of an actual nonterminal (either greater than
     // firstRealUid, which is used for gap requirements, or equal to
     // miscIdx) and if the specified requirement is not marked as an
     // argument, return false
     if ((uid == miscIdx || uid > firstRealUid) &&
-	!Language.training.isArgumentFast(requirement))
+	!info.rt().language().training().isArgumentFast(requirement))
       return false;
 
     if (counts[uid] == 0)
@@ -244,29 +165,6 @@ public class SubcatBag implements Subcat, Externalizable {
       counts[uid]--;
       return true;
     }
-  }
-
-  private static int getUid(Symbol requirement) {
-    if (canUseFastUidMap) {
-      MapToPrimitive.Entry fastUidMapEntry = fastUidMap.getEntry(requirement);
-      return fastUidMapEntry == null ? miscIdx : fastUidMapEntry.getIntValue();
-    }
-    // get Nonterminal for the specified requirement (create if necessary)
-    Nonterminal requirementNt = symToNt.get(requirement);
-    if (requirementNt == null) {
-      requirementNt = Language.treebank().parseNonterminal(requirement);
-      symToNt.put(requirement, requirementNt);
-    }
-    boolean found = false;
-    Nonterminal[] nts = nonterminals;
-    int uid = firstRealUid;
-    for ( ; uid < nts.length; uid++) {
-      if (nts[uid].subsumes(requirementNt)) {
-	found = true;
-	break;
-      }
-    }
-    return found ? uid : miscIdx;
   }
 
   /** Returns the number of requirements contained in this subcat bag. */
@@ -283,13 +181,13 @@ public class SubcatBag implements Subcat, Externalizable {
   }
 
   public boolean contains(Symbol requirement) {
-    int uid = getUid(requirement);
+    int uid = info.getUid(requirement);
     // if the uid is of an actual nonterminal (either greater than firstRealUid,
     // which is used for gap requirements, or equal to miscIdx) and if it's not
     // marked as an argument, return false
     //noinspection SimplifiableIfStatement
     if ((uid == miscIdx || uid > firstRealUid) &&
-	!Language.training.isArgumentFast(requirement)) {
+	!info.rt().language().training().isArgumentFast(requirement)) {
       return false;
     }
     else {
@@ -312,8 +210,8 @@ public class SubcatBag implements Subcat, Externalizable {
    * Returns a deep copy of this subcat bag.
    */
   public Event copy() {
-    SubcatBag subcatCopy = new SubcatBag();
-    subcatCopy.counts = (byte[])this.counts.clone();
+    SubcatBag subcatCopy = new SubcatBag(info);
+    subcatCopy.counts = this.counts.clone();
     return subcatCopy;
   }
 
@@ -369,7 +267,7 @@ public class SubcatBag implements Subcat, Externalizable {
     StringBuffer sb = new StringBuffer(6 * counts.length);
     sb.append("size=").append(counts[sizeIdx]).append(" ");
     for (int i = firstRealUid; i < counts.length; i++)
-      sb.append(symbols[i]).append("=").append(counts[i]).append(" ");
+      sb.append(info.getSymbols()[i]).append("=").append(counts[i]).append(" ");
     sb.append("misc=").append(counts[miscIdx]);
     return sb.toString();
   }
@@ -392,7 +290,7 @@ public class SubcatBag implements Subcat, Externalizable {
       if (counter > 0) {
 	counter--;
 	totalCounter--;
-	return symbols[countIdx];
+	return info.getSymbols()[countIdx];
       }
       // else go hunting for the next place with non-zero counts
       countIdx++;
@@ -403,16 +301,16 @@ public class SubcatBag implements Subcat, Externalizable {
 
       counter = counts[countIdx] - 1;
       totalCounter--;
-      return symbols[countIdx];
+      return info.getSymbols()[countIdx];
     }
 
     public void remove() {
       throw new UnsupportedOperationException();
     }
-  };
+  }
 
   public Subcat getCanonical(boolean copyInto, Map<Subcat, Subcat> map) {
-    Subcat mapElt = (Subcat)map.get(this);
+    Subcat mapElt = map.get(this);
     if (mapElt == null) {
       Subcat putInMap = copyInto ? (Subcat)this.copy() : this;
       map.put(putInMap, putInMap);
@@ -432,9 +330,9 @@ public class SubcatBag implements Subcat, Externalizable {
     return add((Symbol)obj);
   }
   /** This method does nothing and returns. */
-  public void ensureCapacity(int size) { return; }
+  public void ensureCapacity(int size) { }
   /** This method does nothing and returns. */
-  public void ensureCapacity(int type, int size) { return; }
+  public void ensureCapacity(int type, int size) { }
   /**
    * This method returns the one class that <code>Subcat</code> objects
    * need to support: <code>Symbol.class</code>.
@@ -493,7 +391,7 @@ public class SubcatBag implements Subcat, Externalizable {
       index -= counts[countIdx];
     if (countIdx == counts.length)
       countIdx = miscIdx;
-    return symbols[countIdx];
+    return info.getSymbols()[countIdx];
   }
 
   /**
@@ -529,7 +427,7 @@ public class SubcatBag implements Subcat, Externalizable {
     stream.writeByte(size());
     stream.writeInt(counts.length - 1);
     for (int countIdx = 1; countIdx < counts.length; countIdx++) {
-      stream.writeObject(symbols[countIdx]);
+      stream.writeObject(info.getSymbols()[countIdx]);
       stream.writeByte(counts[countIdx]);
     }
   }
@@ -550,12 +448,13 @@ public class SubcatBag implements Subcat, Externalizable {
     int numPairs = stream.readInt();
     for (int i = 0; i < numPairs; i++) {
       Symbol requirement = (Symbol)stream.readObject();
-      counts[getUid(requirement)] = stream.readByte();
+      counts[info.getUid(requirement)] = stream.readByte();
     }
   }
 
   public void become(Subcat other) {
     SubcatBag otherBag = (SubcatBag)other;
+    otherBag.info = info;
     System.arraycopy(otherBag.counts, 0, this.counts, 0,
 		     otherBag.counts.length);
   }

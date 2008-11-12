@@ -137,17 +137,6 @@ public class Decoder implements Serializable, Settings.Change {
     return new PrintWriter(osw, true);
   }
 
-  static {
-    Settings.register(Decoder.class,
-		      new Settings.Change() {
-			public void update(Map<String,String> changedSettings) {
-			  if (changedSettings.containsKey(Settings.language)) {
-			    err = newErrStream();
-			  }
-			}
-		      }, Collections.<Class>singleton(Language.class));
-  }
-
   /**
    * A list containing only {@link Training#startSym()}, which is the
    * type of list that should be used when there are zero real previous
@@ -166,6 +155,8 @@ public class Decoder implements Serializable, Settings.Change {
   protected final WordList startWordList = Trainer.newStartWordList();
 
   // data members
+  /** The runtime instance for this decoder. */
+  protected Runtime rt;
   /** The id of the parsing client that is using this decoder. */
   protected int id;
   /** The server for this decoder. */
@@ -567,21 +558,23 @@ decod   * @see DecoderServerRemote#prunedPreterms()
    * <code>DecoderServer</code> to get all information and probabilities
    * required for decoding (parsing).
    *
+   * @param rt the {@link Runtime} instance for this decoder
    * @param id the id of this parsing client
    * @param  server the <code>DecoderServerRemote</code> implementor
    * (either local or remote) that provides this decoder object with
    * information and probabilities required for decoding (parsing)
    */
-  public Decoder(int id, DecoderServerRemote server) {
+  public Decoder(Runtime rt, int id, DecoderServerRemote server) {
+    this.rt = rt;
     this.id = id;
     this.server = server;
     boolean localCache =
-      Settings.getBoolean(Settings.decoderUseLocalProbabilityCache);
+      rt.settings().getBoolean(Settings.decoderUseLocalProbabilityCache);
     if (localCache) {
       wrapCachingServer();
     }
     constructorHelper(server);
-    Settings.register(this);
+    rt.settings().register(this);
   }
 
   private void constructorHelper(DecoderServerRemote server) {
@@ -607,12 +600,12 @@ decod   * @see DecoderServerRemote#prunedPreterms()
       it = posSet.iterator();
       while (it.hasNext())
 	nonterminalTable.add(it.next());
-      Subcat sampleSubcat = Subcats.get();
+      Subcat sampleSubcat = rt.subcats().get();
       if (sampleSubcat instanceof SubcatBag)
 	SubcatBag.setUpFastUidMap(nonterminalTable);
       if (sampleSubcat instanceof BrokenSubcatBag)
 	BrokenSubcatBag.setUpFastUidMap(nonterminalTable);
-      Language.training().setUpFastArgMap(nonterminalTable);
+      rt.language().training().setUpFastArgMap(nonterminalTable);
       if (useHeadToParentMap) {
 	this.headToParentMap = new HashMap(server.headToParentMap());
 	convertHeadToParentMap();
@@ -630,7 +623,7 @@ decod   * @see DecoderServerRemote#prunedPreterms()
       Set prunedPreterms = server.prunedPreterms();
       it = prunedPreterms.iterator();
       while (it.hasNext()) {
-	Word word = Language.treebank.makeWord((Sexp)it.next());
+	Word word = rt.language().treebank().makeWord((Sexp)it.next());
 	Util.addToValueSet(prunedPretermsPosMap, word.word(), word.tag());
 	prunedPretermsPosSet.add(word.tag());
       }
@@ -640,7 +633,7 @@ decod   * @see DecoderServerRemote#prunedPreterms()
       Set prunedPunctuation = server.prunedPunctuation();
       it = prunedPunctuation.iterator();
       while (it.hasNext()) {
-	Word word = Language.treebank.makeWord((Sexp)it.next());
+	Word word = rt.language().treebank().makeWord((Sexp)it.next());
 	Util.addToValueSet(prunedPunctuationPosMap, word.word(), word.tag());
       }
       if (debugPrunedPunctuationPosMap)
@@ -2700,7 +2693,8 @@ decod   * @see DecoderServerRemote#prunedPreterms()
 
   }
 
-  public void update(Map<String, String> changedSettings) {
+  public void update(Map<String, String> changedSettings,
+		     Settings settings) {
     maxSentLen = Settings.getInteger(Settings.maxSentLen);
     kBest =
       Math.max(1, Settings.getInteger(Settings.kBest));

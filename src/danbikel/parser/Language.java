@@ -1,19 +1,14 @@
 package danbikel.parser;
 
-import java.io.*;
-import java.lang.reflect.*;
+import java.lang.*;
 import java.util.Map;
-
-import danbikel.lisp.*;
 
 /**
  * Provides objects that perform functions specific to a particular language
- * and/or Treebank.  When the static method {@link #setLanguage} is called,
- * several objects from a language package are created and stored statically by
- * this class.  This scheme means that <code>Language.setLanguage</code> should
- * be called before any language-specific resources or methods are required,
- * typically early in the execution of a program.  A language package must
- * provide implementations for the following interfaces:
+ * and/or Treebank.  When the method {@link #setLanguage} is called,
+ * several objects from a language package are created and stored by
+ * this class.  A language package must provide implementations for the
+ * following interfaces:
  * <ul>
  * <li>{@link WordFeatures}
  * <li>{@link Treebank}
@@ -28,39 +23,62 @@ import danbikel.lisp.*;
  * @see Settings
  * @see Settings#language
  * @see Settings#languagePackage */
-public class Language implements Serializable {
-  private Language() {}
-
+public class Language implements Runtime.Language, Settings.Change {
+  // data members
   /** The <code>Wordfeatures</code> object for the current language. */
-  static WordFeatures wordFeatures;
+  private WordFeatures wordFeatures;
   /** The <code>HeadFinder</code> object for the current language. */
-  static HeadFinder headFinder;
+  private HeadFinder headFinder;
   /** The <code>Treebank</code> object for the current language. */
-  static Treebank treebank;
+  private Treebank treebank;
   /** The <code>Training</code> object for the current language. */
-  static Training training;
+  private Training training;
+
+  private String encoding;
+  private String lang;
+  private String langPackage;
+
+
+  public Language(Settings settings) {
+    setEncoding(settings);
+    setLanguage(settings);
+    settings.register(this);
+  }
+  
+  public void update(Map<String, String> changedSettings, Settings settings) {
+    if (changedSettings.containsKey(Settings.language) ||
+	changedSettings.containsKey(Settings.languagePackage)) {
+      setEncoding(settings);
+      setLanguage(settings);
+      System.err.println(Language.class.getName() +
+			 ": language has changed to " + getLanguage() +
+			 ";\n\tnew encoding: " + encoding +
+			 ";\n\tnew language classes:" +
+			 "\n\t\t" + treebank().getClass().getName() +
+			 "\n\t\t" + training().getClass().getName() +
+			 "\n\t\t" + headFinder().getClass().getName() +
+			 "\n\t\t" + wordFeatures().getClass().getName());
+    }
+  }
+
+  private void setEncoding(Settings settings) {
+    String fileEncodingProperty =
+      Settings.fileEncodingPrefix + settings.get(Settings.language);
+    encoding = settings.get(fileEncodingProperty);
+    if (encoding == null)
+      encoding = System.getProperty("file.encoding");
+  }
 
 
   // accesssors for the above static objects (for classes outside this package)
   /** Gets the <code>WordFeatures</code> object for the current language. */
-  public final static WordFeatures wordFeatures() { return wordFeatures; }
+  public WordFeatures wordFeatures() { return wordFeatures; }
   /** Gets the <code>HeadFinder</code> object for the current language. */
-  public final static HeadFinder headFinder() { return headFinder; }
+  public HeadFinder headFinder() { return headFinder; }
   /** Gets the <code>Treebank</code> object for the current language. */
-  public final static Treebank treebank() { return treebank; }
+  public Treebank treebank() { return treebank; }
   /** Gets the <code>Training</code> object for the current language. */
-  public final static Training training() { return training; }
-
-  // a "mutable" constant
-  private static String fileEncodingProperty =
-    Settings.fileEncodingPrefix + Settings.get(Settings.language);
-
-  static String encoding;
-  static {
-    encoding = Settings.get(fileEncodingProperty);
-    if (encoding == null)
-      encoding = System.getProperty("file.encoding");
-  }
+  public Training training() { return training; }
 
   /**
    * Gets the file encoding for the current language.<br>
@@ -73,37 +91,7 @@ public class Language implements Serializable {
    * @see Settings#fileEncodingPrefix
    * @see Settings#language
    */
-  public final static String encoding() { return encoding; }
-
-  private static String lang;
-  private static String langPackage;
-
-  static {
-    setLanguage();
-    Settings.Change change = new Settings.Change() {
-      public void update(Map<String, String> changedSettings) {
-	if (changedSettings.containsKey(Settings.language) ||
-	    changedSettings.containsKey(Settings.languagePackage)) {
-	  fileEncodingProperty =
-	    Settings.fileEncodingPrefix +
-	    Settings.get(Settings.language);
-	  encoding = Settings.get(fileEncodingProperty);
-	  if (encoding == null)
-	    encoding = System.getProperty("file.encoding");
-	  setLanguage();
-	  System.err.println(Language.class.getName() +
-			     ": language has changed to " + getLanguage() +
-			     ";\n\tnew encoding: " + encoding +
-			     ";\n\tnew language classes:" +
-			     "\n\t\t" + treebank().getClass().getName() +
-			     "\n\t\t" + training().getClass().getName() +
-			     "\n\t\t" + headFinder().getClass().getName() +
-			     "\n\t\t" + wordFeatures().getClass().getName());
-	}
-      }
-    };
-    Settings.register(Language.class, change, null);
-  }
+  public String encoding() { return encoding; }
 
   /**
    * Sets the language and language package using the values obtained from the
@@ -112,74 +100,60 @@ public class Language implements Serializable {
    * The language package to be set is determined by the value of the
    * <code>parser.language.package</code> property stored in
    * <code>Settings</code>.
-   * <p>
-   * A language package is required to provide concrete subclasses of
-   * the following abstract classes:
-   * <ol>
-   * <li>{@link WordFeatures}
-   * <li>{@link Treebank}
-   * <li>{@link HeadFinder}
-   * <li>{@link Training}
-   * </ol>
-   * This method will create one object of each of the required language package
-   * classes using the classes' respective default constructors.
-   * The objects are created in the order listed above, so any
-   * dependencies in a language package must be from later-instantiated to
-   * earlier-instantiated classes.
-   * <p>
-   * The class names of the concrete classes in a language package are
-   * assumed to be identical to those listed above, prepended with the
-   * string
+   * <p/>
+   * A language package is required to provide concrete subclasses of the
+   * following abstract classes: <ol> <li>{@link WordFeatures} <li>{@link
+   * Treebank} <li>{@link HeadFinder} <li>{@link Training} </ol> This method
+   * will create one object of each of the required language package classes
+   * using the classes' respective default constructors. The objects are created
+   * in the order listed above, so any dependencies in a language package must
+   * be from later-instantiated to earlier-instantiated classes.
+   * <p/>
+   * The class names of the concrete classes in a language package are assumed
+   * to be identical to those listed above, prepended with the string
    * <pre>Settings.get(Settings.languagePackage)&nbsp;+&nbsp;"."</pre>
-   * If a particular concrete subclass has a different name from the
-   * abstract class it extends, the appropriate {@link Settings}
-   * property must be set containing the <i>fully-qualified</i> version
-   * of the class name:
-   * <ul>
-   * <li>{@link Settings#wordFeaturesClass}
-   * <li>{@link Settings#treebankClass}
-   * <li>{@link Settings#headFinderClass}
-   * <li>{@link Settings#trainingClass}
-   * </ul> */
-  public static void setLanguage() {
-    setLanguagePackage(Settings.get(Settings.language),
-		       Settings.get(Settings.languagePackage));
-  }
-
-  private static void setLanguagePackage(String language,
-					 String languagePackage) {
-    // store the current language setting
-    lang = language;
-    langPackage = languagePackage;
+   * If a particular concrete subclass has a different name from the abstract
+   * class it extends, the appropriate {@link Settings} property must be set
+   * containing the <i>fully-qualified</i> version of the class name: <ul>
+   * <li>{@link Settings#wordFeaturesClass} <li>{@link Settings#treebankClass}
+   * <li>{@link Settings#headFinderClass} <li>{@link Settings#trainingClass}
+   * </ul>
+   *
+   * @param settings the settings to use when setting up this {@link
+   *                 Runtime.Language} instance
+   */
+  protected void setLanguage(Settings settings) {
+    lang = settings.get(Settings.language);
+    langPackage = settings.get(Settings.languagePackage);
 
     // finally, set static language components based on specified language
     try {
 
       // initialize WordFeatures object
-      String wordFeaturesClass = Settings.get(Settings.wordFeaturesClass);
+      String wordFeaturesClass = settings.get(Settings.wordFeaturesClass);
       if (wordFeaturesClass == null)
-	wordFeaturesClass = languagePackage + ".WordFeatures";
+	wordFeaturesClass = langPackage + ".WordFeatures";
       wordFeatures =
 	(WordFeatures)Class.forName(wordFeaturesClass).newInstance();
 
       // initialize Treebank object
-      String treebankClass = Settings.get(Settings.treebankClass);
+      String treebankClass = settings.get(Settings.treebankClass);
       if (treebankClass == null)
-	treebankClass = languagePackage + ".Treebank";
+	treebankClass = langPackage + ".Treebank";
       treebank =
 	(Treebank)Class.forName(treebankClass).newInstance();
 
       // initialize HeadFinder object
-      String headFinderClass = Settings.get(Settings.headFinderClass);
+      String headFinderClass = settings.get(Settings.headFinderClass);
       if (headFinderClass == null)
-	headFinderClass = languagePackage + ".HeadFinder";
+	headFinderClass = langPackage + ".HeadFinder";
       headFinder =
 	(HeadFinder)Class.forName(headFinderClass).newInstance();
 
       // initialize Training object
-      String trainingClass = Settings.get(Settings.trainingClass);
+      String trainingClass = settings.get(Settings.trainingClass);
       if (trainingClass == null)
-	trainingClass = languagePackage + ".Training";
+	trainingClass = langPackage + ".Training";
       training =
 	(Training)Class.forName(trainingClass).newInstance();
     }
@@ -195,7 +169,7 @@ public class Language implements Serializable {
   }
 
   /** Gets the name of the current language. */
-  public final static String getLanguage() { return lang; }
+  public String getLanguage() { return lang; }
   /** Gets the name of the current language package. */
-  public final static String getLanguagePackage() { return langPackage; }
+  public String getLanguagePackage() { return langPackage; }
 }

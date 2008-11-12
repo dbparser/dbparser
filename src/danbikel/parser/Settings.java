@@ -8,9 +8,9 @@ import java.util.*;
 import java.io.*;
 
 /**
- * Provides static settings for this package, primarily via an internal
- * {@link Properties} object.  All recognized properties of this package and
- * the supplied language packages are provided as publicly-accessible constants.
+ * Provides settings for this parsing engine.  All recognized properties of this
+ * package and the supplied language packages are provided as
+ * publicly-accessible constants.
  * <p/>
  * A settings file for a particular language must provide the property
  * <code>headTablePrefix + language</code>.<br> A settings file for a
@@ -43,7 +43,7 @@ import java.io.*;
  * @see #settingsDirOverride
  * @see #settingsFileOverride
  */
-public class Settings implements Serializable {
+public class Settings extends Properties implements Serializable {
 
   /**
    * An interface by which to notify a class or an instance of a class after one
@@ -61,14 +61,14 @@ public class Settings implements Serializable {
      *                        changed since the last time this method was
      *                        invoked, and the values are the old values for
      *                        those changed settings
+     * @param settings	the settings object, having been modified to
+     *                        contain new settings for the keys of the specified
+     *                        {@code changedSettings} map
      * @see Settings#register(Class,Settings.Change,Set)
      * @see Settings#register(Settings.Change)
      */
-    void update(Map<String, String> changedSettings);
+    void update(Map<String, String> changedSettings, Settings settings);
   }
-
-
-  private Settings() {}
 
   // constants
 
@@ -291,7 +291,7 @@ public class Settings implements Serializable {
    * The value of this constant is
    * <code>"parser.parser.decoderServerClass"</code>.
    *
-   * @see Parser#getNewDecoderServer(String)
+   * @see Parser#getNewDecoderServer(Runtime, String)
    */
   public final static String decoderServerClass =
     "parser.parser.decoderServerClass";
@@ -487,7 +487,7 @@ public class Settings implements Serializable {
    *
    * @see Training#addGapInformation(danbikel.lisp.Sexp)
    */
-  public static final String addGapInfo =
+  public final static String addGapInfo =
     "parser.training.addGapInfo";
 
   /**
@@ -500,7 +500,7 @@ public class Settings implements Serializable {
    *
    * @see Training#identifyArguments(danbikel.lisp.Sexp)
    */
-  public static final String collinsRelabelHeadChildrenAsArgs =
+  public final static String collinsRelabelHeadChildrenAsArgs =
     "parser.training.collinsRelabelHeadChildrenAsArgs";
 
   /**
@@ -517,7 +517,7 @@ public class Settings implements Serializable {
    *
    * @see Training#repairBaseNPs(danbikel.lisp.Sexp)
    */
-  public static final String collinsRepairBaseNPs =
+  public final static String collinsRepairBaseNPs =
     "parser.training.collinsRepairBaseNPs";
 
   /**
@@ -1658,43 +1658,10 @@ public class Settings implements Serializable {
   private final static String regularSettingsFileHeaderPrefix =
     " " + progName + " v" + version + " settings\n#";
 
-  // data members
+  // static data members and methods
 
-  private static Properties settings = new Properties() {
-    /**
-     * This overridden definition ensures that variables are always
-     * expanded when new mappings are added.  This means that when properties
-     * are loaded from a file, variable expansion happens correctly:
-     * convenience variables (which are like macro definitions) defined in the
-     * properties file are entered into the property object as they are
-     * discovered, allowing mappings on subsequent lines of the file that rely
-     * on those definitions to be properly expanded.
-     *
-     * @param key the key to be mapped to the specified value in this map
-     * @param value the value to be added to this map for the specified key
-     * @return the previous value of the specified key in this hashtable,
-     *         or <code>null</code> if it did not have one
-     */
-    public synchronized Object put(Object key, Object value) {
-      StringBuffer valueBuffer = new StringBuffer((String)value);
-      Text.expandVars(this, valueBuffer);
-      String expandedValue = valueBuffer.toString();
-      String previous = (String)super.put(key, expandedValue);
-      if (previous == null || !previous.equals(expandedValue)) {
-	changedSettings.put((String)key, previous);
-      }
-      return previous;
-    }
-  };
+  private static Settings bootstrapSettings = new Settings();
 
-  /**
-   * A map where the keys are the settings that have changed, and whose values
-   * are the old values of those changed settings.  This map is guaranteed
-   * to contain all settings changed since the last call to
-   * {@link #processChangeRequests()}.
-   */
-  private static Map<String, String> changedSettings =
-    new HashMap<String, String>();
 
   // inner class for classCmp data member
   /**
@@ -1728,21 +1695,6 @@ public class Settings implements Serializable {
 
   private static ClassCmp classCmp = new ClassCmp();
 
-  /**
-   * A sorted map from {@link Class} objects to {@link Change} instances, to
-   * keep track of classes that need to be notified of settings changes
-   * (primarily used by classes that cache settings as static data members).
-   * <p/>
-   * <b>Implementation note</b>: This is a map and not a list or set because we
-   * want to spit out an error message if the same class registers more than
-   * once.
-   */
-  private static SortedMap<Class, Change> classChangeRequests =
-    new TreeMap<Class, Change>(classCmp);
-
-  private static Set<Change> instanceChangeRequests =
-    Collections.newSetFromMap(new WeakHashMap<Change, Boolean>());
-
   // static handles onto the settings dir and settings file
   private static File settingsDir = null;
   private static File settingsFile = null;
@@ -1774,10 +1726,13 @@ public class Settings implements Serializable {
     // from settings file in default location, then grab system settings
     // with prefix "parser."
     try {
-      load(new BufferedInputStream(getDefaultsResource()));
-      InputStream defaultSettingsStream = getSettingsStream();
-      if (defaultSettingsStream != null)
-	load(new BufferedInputStream(defaultSettingsStream));
+      bootstrapSettings.load(new BufferedInputStream(getDefaultsResource()));
+      InputStream userDefaultSettingsStream = getUserDefaultSettingsStream();
+      if (userDefaultSettingsStream != null) {
+	BufferedInputStream bufferedUserDefaults =
+	  new BufferedInputStream(userDefaultSettingsStream);
+	bootstrapSettings.load(bufferedUserDefaults);
+      }
     }
     catch (FileNotFoundException fnfe) {
       System.err.println(className + ": error: couldn't load bootstrap " +
@@ -1792,15 +1747,94 @@ public class Settings implements Serializable {
 			 "default settings");
       throw new RuntimeException(ioe.toString());
     }
+    bootstrapSettings.setSystemPropertyOverrides();
+    // we could invoke processChangeRequests here, but we don't bother, since
+    // this is the bootstrap loading of settings, and should therefore come
+    // before other classes are loaded that are dependent on Settings
+  }
+
+  private void setSystemPropertyOverrides () {
     for (Object o : System.getProperties().keySet()) {
       String property = (String)o;
       if (property.startsWith(globalPropertyPrefix)) {
 	setInternal(property, System.getProperty(property));
       }
     }
-    // we could invoke processChangeRequests here, but we don't bother, since
-    // this is the bootstrap loading of settings, and should therefore come
-    // before other classes are loaded that are dependent on Settings
+  }
+
+  /**
+   * A map where the keys are the settings that have changed, and whose values
+   * are the old values of those changed settings.  This map is guaranteed
+   * to contain all settings changed since the last call to
+   * {@link #processChangeRequests()}.
+   */
+  private Map<String, String> changedSettings = new HashMap<String, String>();
+
+  /**
+   * A sorted map from {@link Class} objects to {@link Change} instances, to
+   * keep track of classes that need to be notified of settings changes
+   * (primarily used by classes that cache settings as static data members).
+   * <p/>
+   * <b>Implementation note</b>: This is a map and not a list or set because we
+   * want to spit out an error message if the same class registers more than
+   * once.
+   */
+  private SortedMap<Class, Change> classChangeRequests =
+    new TreeMap<Class, Change>(classCmp);
+
+  private Set<Change> instanceChangeRequests =
+    Collections.newSetFromMap(new WeakHashMap<Change, Boolean>());
+
+  // constructors
+  public Settings() {
+    putAll(bootstrapSettings);
+    setSystemPropertyOverrides();
+  }
+
+  public Settings(String settingsFile) throws IOException {
+    super();
+    putAll(bootstrapSettings);
+    load(settingsFile);
+    setSystemPropertyOverrides();
+  }
+
+  public Settings(File settingsFile) throws IOException {
+    super();
+    putAll(bootstrapSettings);
+    load(settingsFile);
+    setSystemPropertyOverrides();
+  }
+
+  public Settings(InputStream is) throws IOException {
+    putAll(bootstrapSettings);
+    load(is);
+    setSystemPropertyOverrides();
+  }
+
+  // the following is a low-level override of this Map's put method
+  /**
+   * This overridden definition ensures that variables are always
+   * expanded when new mappings are added.  This means that when properties
+   * are loaded from a file, variable expansion happens correctly:
+   * convenience variables (which are like macro definitions) defined in the
+   * properties file are entered into the property object as they are
+   * discovered, allowing mappings on subsequent lines of the file that rely
+   * on those definitions to be properly expanded.
+   *
+   * @param key the key to be mapped to the specified value in this map
+   * @param value the value to be added to this map for the specified key
+   * @return the previous value of the specified key in this hashtable,
+   *         or <code>null</code> if it did not have one
+   */
+  public synchronized Object put(Object key, Object value) {
+    StringBuffer valueBuffer = new StringBuffer((String)value);
+    Text.expandVars(this, valueBuffer);
+    String expandedValue = valueBuffer.toString();
+    String previous = (String)super.put(key, expandedValue);
+    if (previous == null || !previous.equals(expandedValue)) {
+      changedSettings.put((String)key, previous);
+    }
+    return previous;
   }
 
   /**
@@ -1813,20 +1847,18 @@ public class Settings implements Serializable {
    *               <code>null</code> or {@link java.util.Collections#emptySet()
    *               Collections.&lt;Class&gt;emptySet()} if no such set exists
    */
-  public static void register(Class cl,
-			      Change change, Set<Class> before) {
-    synchronized (settings) {
-      if (classChangeRequests.containsKey(cl)) {
-	System.err.println(className + ".register: warning: class " +
-			   cl.getName() +
-			   "already registered; overriding with " +
-			   "new registration");
-      }
-      if (before != null && !before.isEmpty()) {
-	classCmp.put(cl, before);
-      }
-      classChangeRequests.put(cl, change);
+  public synchronized void register(Class cl,
+				    Change change, Set<Class> before) {
+    if (classChangeRequests.containsKey(cl)) {
+      System.err.println(className + ".register: warning: class " +
+			 cl.getName() +
+			 "already registered; overriding with " +
+			 "new registration");
     }
+    if (before != null && !before.isEmpty()) {
+      classCmp.put(cl, before);
+    }
+    classChangeRequests.put(cl, change);
   }
 
   /**
@@ -1836,64 +1868,28 @@ public class Settings implements Serializable {
    * 
    * @param change the change request for the specified object
    */
-  public static void register(Change change) {
-    synchronized (settings) {
-      if (instanceChangeRequests.contains(change)) {
-	System.err.println(className + ".register: warning: object " +
-			   change + "already registered; overriding with " +
-			   "new registration");
-      }
-      instanceChangeRequests.add(change);
+  public synchronized void register(Change change) {
+    if (instanceChangeRequests.contains(change)) {
+      System.err.println(className + ".register: warning: object " +
+			 change + "already registered; overriding with " +
+			 "new registration");
     }
+    instanceChangeRequests.add(change);
   }
 
-  private static void processChangeRequests() {
-    synchronized (settings) {
-      if (changedSettings.isEmpty()) {
-	return;
-      }
-      for (Map.Entry<Class, Change> entry : classChangeRequests.entrySet()) {
-	Change c = entry.getValue();
-	c.update(changedSettings);
-      }
-      for (Change c : instanceChangeRequests) {
-	c.update(changedSettings);
-      }
+
+  private synchronized void processChangeRequests() {
+    if (changedSettings.isEmpty()) {
+      return;
+    }
+    for (Map.Entry<Class, Change> entry : classChangeRequests.entrySet()) {
+      Change c = entry.getValue();
+      c.update(changedSettings, this);
+    }
+    for (Change c : instanceChangeRequests) {
+      c.update(changedSettings, this);
     }
     changedSettings.clear();
-  }
-
-  /**
-   * Returns the double value of the specified setting, as determined by
-   * {@link Double#parseDouble(String)}.
-   *
-   * @param setting the setting whose value is to be gotten
-   * @return the double value of the specified setting
-   */
-  public static double getDouble(String setting) {
-    return Double.parseDouble(get(setting));
-  }
-
-  /**
-   * Returns the integer value of the specified setting, as determined by
-   * {@link Integer#parseInt(String)}.
-   *
-   * @param setting the setting whose value is to be gotten
-   * @return the integer value of the specified setting
-   */
-  public static int getInteger(String setting) {
-    return Integer.parseInt(get(setting));
-  }
-
-  /**
-   * Returns the boolean value of the specified setting, as determined by
-   * {@link Boolean#valueOf(String)}.
-   *
-   * @param setting the setting whose value is to be gotten
-   * @return the boolean value of the specified setting
-   */
-  public static boolean getBoolean(String setting) {
-    return Boolean.valueOf(get(setting)).booleanValue();
   }
 
   /**
@@ -1903,7 +1899,7 @@ public class Settings implements Serializable {
    * @param filename the name of the file containing properties to load
    * @throws IOException if {@link #load(File)} throws an <tt>IOException</tt>
    */
-  public static void load(String filename) throws IOException {
+  public void load(String filename) throws IOException {
     System.err.println("Reading settings from\n\t" + filename);
     load(new File(filename));
   }
@@ -1917,7 +1913,7 @@ public class Settings implements Serializable {
    * an <tt>IOException</tt> or if the call to {@link #load(InputStream)}
    * throws an <tt>IOException</tt>
    */
-  public static void load(File file) throws IOException {
+  public void load(File file) throws IOException {
     try {
       BufferedInputStream bis =
 	new BufferedInputStream(new FileInputStream(file));
@@ -1929,15 +1925,8 @@ public class Settings implements Serializable {
     }
   }
 
-  /**
-   * Loads the properties from the specified input stream, using
-   * {@link Properties#load(InputStream)}.
-   *
-   * @param is the input stream containing properties to load
-   * @throws IOException if there is a problem reading from the specified stream
-   */
-  public static void load(InputStream is) throws IOException {
-    settings.load(is);
+  public synchronized void load(InputStream inStream) throws IOException {
+    super.load(inStream);
     processChangeRequests();
   }
 
@@ -1949,8 +1938,8 @@ public class Settings implements Serializable {
    * this class
    * @throws IOException if there is a problem writing to the specified stream
    */
-  public static void store(OutputStream os) throws IOException {
-    settings.store(os, defaultSettingsFileHeader);
+  public void store(OutputStream os) throws IOException {
+    store(os, defaultSettingsFileHeader);
   }
 
   /**
@@ -1964,8 +1953,8 @@ public class Settings implements Serializable {
    * @throws IOException if there is an exception writing to the specified
    * stream
    */
-  public static void store(OutputStream os, String header) throws IOException {
-    settings.store(os, regularSettingsFileHeaderPrefix + header);
+  public void store(OutputStream os, String header) throws IOException {
+    store(os, regularSettingsFileHeaderPrefix + header);
   }
 
   /**
@@ -1975,8 +1964,8 @@ public class Settings implements Serializable {
    * @throws IOException if there is an exception writing to the specified
    * stream
    */
-  public static void store(ObjectOutputStream os) throws IOException {
-    os.writeObject(settings);
+  public void store(ObjectOutputStream os) throws IOException {
+    os.writeObject(this);
   }
 
   /**
@@ -1987,79 +1976,101 @@ public class Settings implements Serializable {
    * @throws IOException if there is a problem writing to the specified
    * output stream
    */
-  public static void storeSorted(OutputStream os) throws IOException {
-    storeSorted(settings, os);
+  public void storeSorted(OutputStream os) throws IOException {
+    storeSorted(bootstrapSettings, os);
   }
 
   /**
-   * Stores a sorted list of the specified property-value pairs to the
-   * specified output stream
-   * @param props a container of property-value pairs
-   * @param os an output stream to which to write a sorted list of the
-   * property-value pairs contained in the specified {@link Properties}
-   * object
-   * @throws IOException if there is a problem writing to the
-   * specified output stream
+   * Gets the value of the specified property.
+   *
+   * @param name the name of the property to get
+   * @return the value of the specified property
    */
-  public static void storeSorted(Properties props, OutputStream os)
-    throws IOException {
-    storeSorted(props, os, defaultSettingsFileHeader);
+  public String get(String name) {
+    return getProperty(name);
+  }
+
+  // the following convenience methods get properties of specific
+  // types and parse them, returning those specific types;
+  // the methods getIntProperty and getBooleanProperty allow the caller
+  // to supply default values to be returned if the specified property does
+  // not exist in this map
+
+  /**
+   * Returns the double value of the specified setting, as determined by
+   * {@link Double#parseDouble(String)}.
+   *
+   * @param setting the setting whose value is to be gotten
+   * @return the double value of the specified setting
+   */
+  public double getDouble(String setting) {
+    return Double.parseDouble(get(setting));
   }
 
   /**
-   * Stores a sorted list of the property-value pairs contained in this class
-   * to the specified output stream using the specified header.
-   * @param os the output stream to which to store a sorted list of the
-   * property-value pairs contained in this class
-   * @param header the header to write to the specified output stream
-   * before writing the sorted list of property-value pairs
-   * @throws IOException if there is a problem writing to the specified
-   * output stream
+   * Returns the integer value of the specified setting, as determined by
+   * {@link Integer#parseInt(String)}.
+   *
+   * @param setting the setting whose value is to be gotten
+   * @return the integer value of the specified setting
    */
-  public static void storeSorted(OutputStream os, String header)
-    throws IOException {
-    storeSorted(settings, os, header);
+  public int getInteger(String setting) {
+    return Integer.parseInt(get(setting));
   }
 
   /**
-   * Stores a sorted list of the specified container of property-value pairs
-   * to the specified output stream using the specified header.
-   * @param props a container of property-value pairs
-   * @param os the output stream to which to store a sorted list of the
-   * specified property-value pairs
-   * @param header the header to write to the specified output stream
-   * before writing the sorted list of property-value pairs
-   * @throws IOException if there is a problem writing to the specified
-   * output stream
+   * Returns the integer value of specified property, or the specified default
+   * value if the specified property does not exist.
+   *
+   * @param property     the property or setting whose value is to be retrieved
+   * @param defaultValue the fallback default value for the specified property
+   * @return the integer value of specified property, or the specified default
+   *         value if the specified property does not exist.
    */
-  public static void storeSorted(Properties props,
-				 OutputStream os, String header)
-    throws IOException {
-    PrintStream ps = new PrintStream(os);
-    SortedMap propMap = new TreeMap();
-    //noinspection unchecked
-    propMap.putAll(props);
-    ps.println("#" + header);
-    for (Object o : propMap.entrySet()) {
-      Map.Entry entry = (Map.Entry)o;
-      ps.println(entry.getKey() + " = " + entry.getValue());
-    }
-    ps.flush();
+  public int getIntProperty(String property, int defaultValue) {
+    String valueStr = get(property);
+    return (valueStr == null) ? defaultValue : getInteger(property);
+  }
+
+  /**
+   * Returns the boolean value of the specified setting, as determined by
+   * {@link Boolean#valueOf(String)}.
+   *
+   * @param setting the setting whose value is to be gotten
+   * @return the boolean value of the specified setting
+   */
+  public boolean getBoolean(String setting) {
+    return Boolean.valueOf(get(setting)).booleanValue();
+  }
+
+  /**
+   * Returns the boolean value of specified property, or the specified default
+   * value if the specified property does not exist.
+   *
+   * @param property     the property or setting whose value is to be retrieved
+   * @param defaultValue the fallback default value for the specified property
+   * @return the boolean value of specified property, or the specified default
+   *         value if the specified property does not exist.
+   */
+  public boolean getBooleanProperty(String property,
+				    boolean defaultValue) {
+    String propStr = get(property);
+    return (propStr == null) ? defaultValue : getBoolean(property);
   }
 
   /**
    * Sets the property <code>name</code> to <code>value</code>, using {@link
    * Properties#setProperty(String,String)}.  As a side effect, all classes that
    * have registered to receive settings changes will be notified of this
-   * change, via invocations of {@link Settings.Change#update(Map)} on the
-   * {@link Change} instances that were passed either to the {@link
+   * change, via invocations of {@link Settings.Change#update(Map,Settings)} on
+   * the {@link Change} instances that were passed either to the {@link
    * #register(Class,Settings.Change,Set)} method or to the {@link
    * #register(Settings.Change)} method.
    *
    * @param name  the name of the property to set
    * @param value the value to which to set the property <code>name</code>
    */
-  public static void set(String name, String value) {
+  public void set(String name, String value) {
     setInternal(name, value);
     processChangeRequests();
   }
@@ -2071,27 +2082,17 @@ public class Settings implements Serializable {
    * @param name  the name of the setting to update
    * @param value the new value for the specified setting
    */
-  private static void setInternal(String name, String value) {
-    settings.setProperty(name, value);
+  private void setInternal(String name, String value) {
+    setProperty(name, value);
   }
 
   /**
-   * Gets the value of the specified property.
-   *
-   * @param name the name of the property to get
-   * @return the value of the specified property
+   * Returns a deep copy of this <code>Properties</code> object.
+   * @return a deep copy of this <code>Properties</code> object
    */
-  public static String get(String name) {
-    return settings.getProperty(name);
-  }
-
-  /**
-   * Returns a deep copy of the internal <code>Properties</code> object.
-   * @return a deep copy of the internal <code>Properties</code> object
-   */
-  public static Properties getSettings() {
+  public Properties getCopy() {
     Properties settingsCopy = new Properties();
-    settingsCopy.putAll(settings);
+    settingsCopy.putAll(this);
     return settingsCopy;
   }
 
@@ -2101,7 +2102,7 @@ public class Settings implements Serializable {
    *
    * @param newSettings the new settings to be contained by this class
    */
-  public static void setSettings(Properties newSettings) {
+  public void setSettings(Properties newSettings) {
     for (Map.Entry<Object, Object> objectObjectEntry : newSettings.entrySet()) {
       Map.Entry entry = (Map.Entry) objectObjectEntry;
       setInternal((String) entry.getKey(), (String) entry.getValue());
@@ -2201,43 +2202,72 @@ public class Settings implements Serializable {
    * @return the stream of the settings file
    * @throws FileNotFoundException if the settings file cannot be found
    */
-  private final static InputStream getSettingsStream()
+  private final static InputStream getUserDefaultSettingsStream()
     throws FileNotFoundException {
     if (settingsFile.exists()) {
       System.err.println("Reading settings from\n\t" + settingsFile);
       return new FileInputStream(settingsFile);
     }
-    else
+    else {
       return null;
+    }
+  }
+
+  // static utility methods
+  /**
+   * Stores a sorted list of the specified property-value pairs to the
+   * specified output stream
+   * @param props a container of property-value pairs
+   * @param os an output stream to which to write a sorted list of the
+   * property-value pairs contained in the specified {@link Properties}
+   * object
+   * @throws IOException if there is a problem writing to the
+   * specified output stream
+   */
+  public static void storeSorted(Properties props, OutputStream os)
+    throws IOException {
+    storeSorted(props, os, defaultSettingsFileHeader);
   }
 
   /**
-   * Returns the integer value of specified property, or the specified default
-   * value if the specified property does not exist.
-   *
-   * @param property     the property or setting whose value is to be retrieved
-   * @param defaultValue the fallback default value for the specified property
-   * @return the integer value of specified property, or the specified default
-   *         value if the specified property does not exist.
+   * Stores a sorted list of the property-value pairs contained in this class
+   * to the specified output stream using the specified header.
+   * @param os the output stream to which to store a sorted list of the
+   * property-value pairs contained in this class
+   * @param header the header to write to the specified output stream
+   * before writing the sorted list of property-value pairs
+   * @throws IOException if there is a problem writing to the specified
+   * output stream
    */
-  public static int getIntProperty(String property, int defaultValue) {
-    String valueStr = get(property);
-    return (valueStr == null) ? defaultValue : getInteger(property);
+  public static void storeSorted(OutputStream os, String header)
+    throws IOException {
+    storeSorted(bootstrapSettings, os, header);
   }
 
   /**
-   * Returns the boolean value of specified property, or the specified default
-   * value if the specified property does not exist.
-   *
-   * @param property     the property or setting whose value is to be retrieved
-   * @param defaultValue the fallback default value for the specified property
-   * @return the boolean value of specified property, or the specified default
-   *         value if the specified property does not exist.
+   * Stores a sorted list of the specified container of property-value pairs
+   * to the specified output stream using the specified header.
+   * @param props a container of property-value pairs
+   * @param os the output stream to which to store a sorted list of the
+   * specified property-value pairs
+   * @param header the header to write to the specified output stream
+   * before writing the sorted list of property-value pairs
+   * @throws IOException if there is a problem writing to the specified
+   * output stream
    */
-  public static boolean getBooleanProperty(String property,
-					   boolean defaultValue) {
-    String propStr = get(property);
-    return (propStr == null) ? defaultValue : getBoolean(property);
+  public static void storeSorted(Properties props,
+				 OutputStream os, String header)
+    throws IOException {
+    PrintStream ps = new PrintStream(os);
+    SortedMap propMap = new TreeMap();
+    //noinspection unchecked
+    propMap.putAll(props);
+    ps.println("#" + header);
+    for (Object o : propMap.entrySet()) {
+      Map.Entry entry = (Map.Entry)o;
+      ps.println(entry.getKey() + " = " + entry.getValue());
+    }
+    ps.flush();
   }
 
   /**

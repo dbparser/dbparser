@@ -11,7 +11,7 @@ import danbikel.lisp.*;
  */
 public class SubcatListFactory implements SubcatFactory {
   /** Constructs a new <code>SubcatListFactory</code>. */
-  public SubcatListFactory() {}
+  public SubcatListFactory(Runtime rt) {}
 
   /** Returns an empty <code>SubcatList</code>. */
   public Subcat get() { return new SubcatList(); }

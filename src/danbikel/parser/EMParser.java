@@ -431,7 +431,7 @@ public class EMParser extends Parser {
       }
     }
     else {
-      setPolicyFile(Settings.getSettings());
+      setPolicyFile(Settings.getCopy());
       // create and install a security manager
       if (System.getSecurityManager() == null)
 	System.setSecurityManager(new RMISecurityManager());
@@ -444,7 +444,7 @@ public class EMParser extends Parser {
 	if (derivedDataFilename != null) {
 	  if (getFile(derivedDataFilename) == null)
 	    return;
-	  server = getNewDecoderServer(derivedDataFilename);
+	  server = getNewDecoderServer(null, derivedDataFilename);
 	}
 
 	for (int i = 0; i < numClients; i++) {

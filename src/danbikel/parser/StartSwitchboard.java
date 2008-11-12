@@ -5,7 +5,6 @@ import java.net.*;
 import java.io.*;
 import java.util.*;
 import java.rmi.*;
-import java.rmi.server.*;
 
 /**
  * A class to kick-start a {@link Switchboard} instance for parsing in a
@@ -369,7 +368,7 @@ public class StartSwitchboard {
    */
   public static void main(String[] args) {
     processArgs(args);
-    Switchboard.setPolicyFile(Settings.getSettings());
+    Switchboard.setPolicyFile(Settings.getCopy());
     //Create and install a security manager
     if (System.getSecurityManager() == null)
       System.setSecurityManager(new RMISecurityManager());
@@ -394,7 +393,7 @@ public class StartSwitchboard {
 						owf, owf,
 						bindingName);
 
-      switchboard.bind(Settings.getSettings(), Language.encoding());
+      switchboard.bind(Settings.getCopy(), Language.encoding());
       if (inFilenameMain != null) {
 	for (int i = 0; i < numFiles; i++) {
 	  switchboard.processFile(inFilenameMain[i], outFilenameMain[i],

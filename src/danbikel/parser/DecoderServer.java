@@ -2,6 +2,10 @@ package danbikel.parser;
 
 import danbikel.lisp.*;
 import danbikel.switchboard.*;
+import static danbikel.parser.Constants.logOfZero;
+import static danbikel.parser.Constants.trueSym;
+import static danbikel.parser.Constants.falseSym;
+
 import java.net.MalformedURLException;
 import java.util.*;
 import java.rmi.*;
@@ -15,120 +19,194 @@ public class DecoderServer
   extends AbstractServer implements DecoderServerRemote, Settings.Change {
 
   // data members
-  /** The model collection used by this decoder server. */
+  /**
+   * The {@link Runtime} instance for this decoder server.
+   */
+  protected Runtime rt;
+  /**
+   * The model collection used by this decoder server.
+   */
   protected ModelCollection modelCollection;
-  /** The value of {@link Training#stopSym()}, cached here for convenience. */
-  protected Word stopWord = Language.training().stopWord();
-  /** The integer value of {@link Settings#unknownWordThreshold}. */
-  protected int unknownWordThreshold =
-    Settings.getInteger(Settings.unknownWordThreshold);
-  /** The boolean value of {@link Settings#downcaseWords}. */
-  protected boolean downcaseWords = Settings.getBoolean(Settings.downcaseWords);
+  /**
+   * The value of {@link Training#stopSym()}, cached here for convenience.
+   */
+  protected Word stopWord;
+  /**
+   * The integer value of {@link Settings#unknownWordThreshold}.
+   */
+  protected int unknownWordThreshold;
+  /**
+   * The boolean value of {@link Settings#downcaseWords}.
+   */
+  protected boolean downcaseWords;
 
 
   /**
    * Constructs a non-exported <code>DecoderServer</code> object.
+   *
+   * @param rt	 the runtime for this decoder server
+   * @param mcFilename the model collection filename
+   * @throws IOException	    if there is a problem reading from the
+   *                                specified model collection file
+   * @throws ClassNotFoundException if a class contained in the model collection
+   *                                file cannot be found
    */
-  public DecoderServer(String mcFilename)
-    throws ClassNotFoundException, IOException, OptionalDataException {
+  public DecoderServer(Runtime rt, String mcFilename)
+    throws ClassNotFoundException, IOException {
+    this.rt = rt;
     setModelCollection(mcFilename);
-    Settings.register(this);
+    init();
+    rt.settings().register(this);
   }
 
   /**
-   * Constructs a new server with the specified timeout value for its
-   * RMI sockets, to receive RMI calls on an anonymous port.
+   * Constructs a new server with the specified timeout value for its RMI
+   * sockets, to receive RMI calls on an anonymous port.
    *
+   * @param rt      the runtime for this decoder server
    * @param timeout the timeout value, in milliseconds, to be used for the
-   * client- and server-side RMI sockets of this object
+   *                client- and server-side RMI sockets of this object
+   * @throws RemoteException if there is a problem exporting this {@link
+   *                         UnicastRemoteObject} instance
    */
-  public DecoderServer(int timeout) throws RemoteException {
+  public DecoderServer(Runtime rt, int timeout) throws RemoteException {
     super(timeout);
-    Settings.register(this);
+    this.rt = rt;
+    init();
+    rt.settings().register(this);
   }
 
   /**
-   * Constructs a new server with the specified timeout value for its
-   * RMI sockets, to receive RMI calls on the specified port.
+   * Constructs a new server with the specified timeout value for its RMI
+   * sockets, to receive RMI calls on the specified port.
    *
+   * @param rt      the runtime for this decoder server
    * @param timeout the timeout value, in milliseconds, to be used for the
-   * client- and server-side RMI sockets of this object
-   * @param port the port on which to receive RMI calls
+   *                client- and server-side RMI sockets of this object
+   * @param port    the port on which to receive RMI calls
+   * @throws RemoteException if there is a problem exporting this {@link
+   *                         UnicastRemoteObject} instance
    */
-  public DecoderServer(int timeout, int port) throws RemoteException {
+  public DecoderServer(Runtime rt, int timeout, int port)
+    throws RemoteException {
     super(timeout, port);
-    Settings.register(this);
+    this.rt = rt;
+    init();
+    rt.settings().register(this);
   }
 
   /**
-   * Constructs a new server that will accept no more than the specified
-   * number of clients, will optionally accept clients only by request,
-   * that will use the specified timeout for its RMI sockets and
-   * will accept RMI calls on the specified port.
+   * Constructs a new server that will accept no more than the specified number
+   * of clients, will optionally accept clients only by request, that will use
+   * the specified timeout for its RMI sockets and will accept RMI calls on the
+   * specified port.
    *
-   * @param maxClients the maximum number of clients this server is
-   * willing to accept
-   * @param acceptClientsOnlyByRequest if <code>true</code>, then
-   * this server will only accept clients that request it specifically
-   * @param timeout the timeout value, in milliseconds, to be used for the
-   * client- and server-side RMI sockets of this object
-   * @param port the port on which to receive RMI calls
+   * @param rt			 the runtime for this decoder server
+   * @param maxClients		 the maximum number of clients this server
+   *                                   is willing to accept
+   * @param acceptClientsOnlyByRequest if <code>true</code>, then this server
+   *                                   will only accept clients that request it
+   *                                   specifically
+   * @param timeout		    the timeout value, in milliseconds, to be
+   *                                   used for the client- and server-side RMI
+   *                                   sockets of this object
+   * @param port		       the port on which to receive RMI calls
+   * @throws RemoteException if there is a problem exporting this {@link
+   *                         UnicastRemoteObject} instance
    */
-  public DecoderServer(int maxClients, boolean acceptClientsOnlyByRequest,
+  public DecoderServer(Runtime rt,
+		       int maxClients, boolean acceptClientsOnlyByRequest,
 		       int timeout, int port) throws RemoteException {
     super(maxClients, acceptClientsOnlyByRequest, timeout, port);
-    Settings.register(this);
+    this.rt = rt;
+    init();
+    rt.settings().register(this);
   }
 
   /**
-   * Constructs a new server that will accept RMI calls on the specified
-   * port, using the specified socket factories to create RMI sockets.
+   * Constructs a new server that will accept RMI calls on the specified port,
+   * using the specified socket factories to create RMI sockets.
    *
+   * @param rt   the runtime for this decoder server
    * @param port the port on which to receive RMI calls
-   * @param csf the factory from which to create client-side RMI sockets
-   * @param ssf the factory from which to create server-side RMI sockets
+   * @param csf  the factory from which to create client-side RMI sockets
+   * @param ssf  the factory from which to create server-side RMI sockets
+   * @throws RemoteException if there is a problem exporting this {@link
+   *                         UnicastRemoteObject} instance
    */
-  public DecoderServer(int port,
+  public DecoderServer(Runtime rt,
+		       int port,
 		       RMIClientSocketFactory csf,
 		       RMIServerSocketFactory ssf)
     throws RemoteException {
     super(port, csf, ssf);
+    this.rt = rt;
+    init();
+    rt.settings().register(this);
   }
 
   /**
-   * Constructs a new server that will accept no more than the specified
-   * number of clients, will optionally accept clients only by request,
-   * will accept RMI calls on the specified port and will use the
-   * specified socket factories to create its RMI sockets.
+   * Constructs a new server that will accept no more than the specified number
+   * of clients, will optionally accept clients only by request, will accept RMI
+   * calls on the specified port and will use the specified socket factories to
+   * create its RMI sockets.
    *
-   * @param maxClients the maximum number of clients this server is
-   * willing to accept
-   * @param acceptClientsOnlyByRequest if <code>true</code>, then
-   * this server will only accept clients that request it specifically
-   * @param port the port on which to receive RMI calls
-   * @param csf the factory from which to create client-side RMI sockets
-   * @param ssf the factory from which to create server-side RMI sockets
+   * @param rt			 the runtime for this decoder server
+   * @param maxClients		 the maximum number of clients this server
+   *                                   is willing to accept
+   * @param acceptClientsOnlyByRequest if <code>true</code>, then this server
+   *                                   will only accept clients that request it
+   *                                   specifically
+   * @param port		       the port on which to receive RMI calls
+   * @param csf			the factory from which to create
+   *                                   client-side RMI sockets
+   * @param ssf			the factory from which to create
+   *                                   server-side RMI sockets
+   * @throws RemoteException if there is a problem exporting this {@link
+   *                         UnicastRemoteObject} instance
    */
-  public DecoderServer(int maxClients,
+  public DecoderServer(Runtime rt,
+		       int maxClients,
 		       boolean acceptClientsOnlyByRequest,
 		       int port,
 		       RMIClientSocketFactory csf,
 		       RMIServerSocketFactory ssf)
     throws RemoteException {
     super(maxClients, acceptClientsOnlyByRequest, port, csf, ssf);
+    this.rt = rt;
+    init();
+    rt.settings().register(this);
   }
 
   /**
-   * Sets the model collection from the specified filename, which should
-   * be the path to a Java object file.
+   * A helper method for all constructors.  Must only be invoked after the
+   * {@link #rt} data member has been set.
+   */
+  private void init() {
+    stopWord = rt.language().training().stopWord();
+    unknownWordThreshold =
+      rt.settings().getInteger(Settings.unknownWordThreshold);
+    downcaseWords = rt.settings().getBoolean(Settings.downcaseWords);
+  }
+
+  /**
+   * Sets the model collection from the specified filename, which should be the
+   * path to a Java object file.
+   *
+   * @param mcFilename the model collection file to load
+   * @throws IOException	    if there is a problem loading the specified
+   *                                model collection file
+   * @throws ClassNotFoundException if a class serialized in the specified model
+   *                                collection file cannot be found
    */
   protected void setModelCollection(String mcFilename)
-    throws ClassNotFoundException, IOException, OptionalDataException {
+    throws ClassNotFoundException, IOException {
     modelCollection = Trainer.loadModelCollection(mcFilename);
   }
 
   /**
    * A flow-through method for {@link ModelCollection#getModelCacheStats()}.
+   *
    * @return the value of {@link ModelCollection#getModelCacheStats()}
    */
   public String getModelCacheStats() {
@@ -141,35 +219,32 @@ public class DecoderServer
     Sexp word = (downcaseWords ?
 		 Symbol.get(originalWord.toString().toLowerCase()) :
 		 originalWord);
-    int freq = (int)vocabCounter.count(word);
+    //noinspection unchecked
+    int freq = (int) vocabCounter.count(word);
     if (freq < unknownWordThreshold) {
       Symbol features =
-	Language.wordFeatures.features(originalWord, index == 0);
+	rt.language().wordFeatures().features(originalWord, index == 0);
       Symbol neverObserved =
-	(freq == 0 ? Constants.trueSym : Constants.falseSym);
-      SexpList wordAndFeatures =
-	new SexpList(3).add(originalWord).add(features).add(neverObserved);
-      return wordAndFeatures;
-    }
-    else {
+	(freq == 0 ? trueSym : falseSym);
+      return new SexpList(3).add(originalWord).add(features).add(neverObserved);
+    } else {
       return originalWord;
     }
   }
 
   /**
-   * Replaces all unknown words in the specified sentence with
-   * three-element lists, where the first element is the word itself, the
-   * second element is a word-feature vector, as determined by the
-   * implementation of {@link WordFeatures#features(Symbol,boolean)}, and
-   * the third element is {@link Constants#trueSym} if this word was never
-   * observed during training or {@link Constants#falseSym} if it was
-   * observed at least once during training.
+   * Replaces all unknown words in the specified sentence with three-element
+   * lists, where the first element is the word itself, the second element is a
+   * word-feature vector, as determined by the implementation of {@link
+   * WordFeatures#features(Symbol,boolean)}, and the third element is {@link
+   * Constants#trueSym} if this word was never observed during training or
+   * {@link Constants#falseSym} if it was observed at least once during
+   * training.
    *
    * @param sentence a list of symbols representing a sentence to be parsed
    */
   public SexpList convertUnknownWords(SexpList sentence)
     throws RemoteException {
-    CountsTable vocabCounter = modelCollection.vocabCounter();
     int sentLen = sentence.length();
     for (int i = 0; i < sentLen; i++) {
       sentence.set(i, convertUnknownWord(sentence.symbolAt(i), i));
@@ -179,8 +254,8 @@ public class DecoderServer
 
   /**
    * Returns the nonterminals <code>CountsTable</code> of the internal
-   * <code>ModelCollection</code> object.  The set of nonterminals
-   * is needed when decoding.
+   * <code>ModelCollection</code> object.  The set of nonterminals is needed
+   * when decoding.
    */
   public CountsTable nonterminals() throws RemoteException {
     return modelCollection.nonterminals();
@@ -188,8 +263,8 @@ public class DecoderServer
 
   /**
    * Returns the map of vocabulary items to possible parts of speech, contained
-   * in the internal <code>ModelCollection</code> object.  This map
-   * is needed when decoding.
+   * in the internal <code>ModelCollection</code> object.  This map is needed
+   * when decoding.
    */
   public Map posMap() throws RemoteException {
     return modelCollection.posMap();
@@ -201,10 +276,9 @@ public class DecoderServer
 
   /**
    * Returns a map of <code>Event</code> objects to <code>Set</code> objects,
-   * where each <code>Event</code> object is the last level of back-off
-   * of the probability structure for left-side subcat generation and the
-   * set contains all possible <code>Subcat</code> objects for that
-   * most-general context.
+   * where each <code>Event</code> object is the last level of back-off of the
+   * probability structure for left-side subcat generation and the set contains
+   * all possible <code>Subcat</code> objects for that most-general context.
    */
   public Map leftSubcatMap() throws RemoteException {
     return modelCollection.leftSubcatMap();
@@ -212,10 +286,9 @@ public class DecoderServer
 
   /**
    * Returns a map of <code>Event</code> objects to <code>Set</code> objects,
-   * where each <code>Event</code> object is the last level of back-off
-   * of the probability structure for right-side subcat generation and the
-   * set contains all possible <code>Subcat</code> objects for that
-   * most-general context.
+   * where each <code>Event</code> object is the last level of back-off of the
+   * probability structure for right-side subcat generation and the set contains
+   * all possible <code>Subcat</code> objects for that most-general context.
    */
   public Map rightSubcatMap() throws RemoteException {
     return modelCollection.rightSubcatMap();
@@ -238,40 +311,42 @@ public class DecoderServer
   }
 
   /**
-   * The probability structure for the submodel that generates subcats
-   * on the left-hand side of head constituents.  This structure is needed
-   * to derive most-general contexts (using the last level of back-off)
-   * in order to determine all possible left-side subcat frames for a given
-   * context, using the {@link #leftSubcatMap()}.
+   * The probability structure for the submodel that generates subcats on the
+   * left-hand side of head constituents.  This structure is needed to derive
+   * most-general contexts (using the last level of back-off) in order to
+   * determine all possible left-side subcat frames for a given context, using
+   * the {@link #leftSubcatMap()}.
    */
   public ProbabilityStructure leftSubcatProbStructure() throws RemoteException {
     return modelCollection.leftSubcatModel().getProbStructure();
   }
 
   /**
-   * The probability structure for the submodel that generates subcats
-   * on the right-hand side of head constituents.  This structure is needed
-   * to derive most-general contexts (using the last level of back-off)
-   * in order to determine all possible left-side subcat frames for a given
-   * context, using the {@link #rightSubcatMap()}.
+   * The probability structure for the submodel that generates subcats on the
+   * right-hand side of head constituents.  This structure is needed to derive
+   * most-general contexts (using the last level of back-off) in order to
+   * determine all possible left-side subcat frames for a given context, using
+   * the {@link #rightSubcatMap()}.
    */
-  public ProbabilityStructure rightSubcatProbStructure() throws RemoteException {
+  public ProbabilityStructure rightSubcatProbStructure()
+    throws RemoteException {
     return modelCollection.rightSubcatModel().getProbStructure();
   }
 
   /**
-   * The probability structure for the submodel that generates modifiers
-   * of head constituents.  This structure is needed to derive most-general
-   * contexts (using the last level of back-off) in order to determine all
-   * possible modifiers for a given context, using the
-   * {@link #modNonterminalMap()}.
+   * The probability structure for the submodel that generates modifiers of head
+   * constituents.  This structure is needed to derive most-general contexts
+   * (using the last level of back-off) in order to determine all possible
+   * modifiers for a given context, using the {@link #modNonterminalMap()}.
    */
   public ProbabilityStructure modNonterminalProbStructure()
-  throws RemoteException {
+    throws RemoteException {
     return modelCollection.modNonterminalModel().getProbStructure();
   }
 
-  /** Returns 1.0. */
+  /**
+   * Returns 1.0.
+   */
   public double testProb() throws RemoteException {
     return 1.0;
   }
@@ -280,38 +355,35 @@ public class DecoderServer
    * Returns the prior probability for the lexicalized nonteminal encoded in the
    * specified <code>TrainerEvent</code>, which should be an instance of
    * <code>HeadEvent</code>.  The prior probability is decomposed into two
-   * parts:<br>
-   * <blockquote>
-   * <i>p(w,t) * p(N | w,t)</i>
-   * </blockquote>
-   * where <i>N</i> is a nonterminal label, <i>w</i> is a word and <i>t</i>
-   * is a part-of-speech tag.
+   * parts:<br> <blockquote> <i>p(w,t) * p(N | w,t)</i> </blockquote> where
+   * <i>N</i> is a nonterminal label, <i>w</i> is a word and <i>t</i> is a
+   * part-of-speech tag.
    */
   public double logPrior(int id, TrainerEvent event) {
     Model lexPriorModel = modelCollection.lexPriorModel();
     Model nonterminalPriorModel = modelCollection.nonterminalPriorModel();
     double lexPriorProb = lexPriorModel.estimateLogProb(id, event);
-    if (lexPriorProb == Constants.logOfZero)
-      return Constants.logOfZero;
+    if (lexPriorProb == logOfZero)
+      return logOfZero;
     double nonterminalPriorProb =
       nonterminalPriorModel.estimateLogProb(id, event);
-    if (nonterminalPriorProb == Constants.logOfZero)
-      return Constants.logOfZero;
+    if (nonterminalPriorProb == logOfZero)
+      return logOfZero;
     return lexPriorProb + nonterminalPriorProb;
   }
 
   public double logProbHeadWithSubcats(int id, TrainerEvent event) {
     double headProb = modelCollection.headModel().estimateLogProb(id, event);
-    if (headProb == Constants.logOfZero)
-      return Constants.logOfZero;
+    if (headProb == logOfZero)
+      return logOfZero;
     double leftSubcatProb =
       modelCollection.leftSubcatModel().estimateLogProb(id, event);
-    if (leftSubcatProb == Constants.logOfZero)
-      return Constants.logOfZero;
+    if (leftSubcatProb == logOfZero)
+      return logOfZero;
     double rightSubcatProb =
       modelCollection.rightSubcatModel().estimateLogProb(id, event);
-    if (rightSubcatProb == Constants.logOfZero)
-      return Constants.logOfZero;
+    if (rightSubcatProb == logOfZero)
+      return logOfZero;
     return headProb + leftSubcatProb + rightSubcatProb;
   }
 
@@ -328,6 +400,7 @@ public class DecoderServer
   }
 
   public double logProbSubcat(int id, TrainerEvent event, boolean side) {
+    //noinspection PointlessBooleanExpression
     return (side == Constants.LEFT ?
 	    modelCollection.leftSubcatModel().estimateLogProb(id, event) :
 	    modelCollection.rightSubcatModel().estimateLogProb(id, event));
@@ -337,11 +410,11 @@ public class DecoderServer
     Model topNTModel = modelCollection.topNonterminalModel();
     Model topLexModel = modelCollection.topLexModel();
     double ntProb = topNTModel.estimateLogProb(id, event);
-    if (ntProb == Constants.logOfZero)
-      return Constants.logOfZero;
+    if (ntProb == logOfZero)
+      return logOfZero;
     double lexProb = topLexModel.estimateLogProb(id, event);
-    if (lexProb == Constants.logOfZero)
-      return Constants.logOfZero;
+    if (lexProb == logOfZero)
+      return logOfZero;
     return ntProb + lexProb;
   }
 
@@ -349,13 +422,13 @@ public class DecoderServer
     Model modNTModel = modelCollection.modNonterminalModel();
     Model modWordModel = modelCollection.modWordModel();
     double modNTProb = modNTModel.estimateLogProb(id, event);
-    if (modNTProb == Constants.logOfZero)
-      return Constants.logOfZero;
+    if (modNTProb == logOfZero)
+      return logOfZero;
     if (stopWord.equals(event.modHeadWord()))
       return modNTProb;
     double modWordProb = modWordModel.estimateLogProb(id, event);
-    if (modWordProb == Constants.logOfZero)
-      return Constants.logOfZero;
+    if (modWordProb == logOfZero)
+      return logOfZero;
     return modNTProb + modWordProb;
   }
 
@@ -372,6 +445,7 @@ public class DecoderServer
   public double probHead(int id, TrainerEvent event) throws RemoteException {
     return modelCollection.headModel().estimateProb(id, event);
   }
+
   public double probMod(int id, TrainerEvent event) throws RemoteException {
     Model modNTModel = modelCollection.modNonterminalModel();
     Model modWordModel = modelCollection.modWordModel();
@@ -385,14 +459,17 @@ public class DecoderServer
       return 0.0;
     return modNTProb * modWordProb;
   }
+
   public double probLeftSubcat(int id, TrainerEvent event)
     throws RemoteException {
     return modelCollection.leftSubcatModel().estimateProb(id, event);
   }
+
   public double probRightSubcat(int id, TrainerEvent event)
     throws RemoteException {
     return modelCollection.rightSubcatModel().estimateProb(id, event);
   }
+
   public double probTop(int id, TrainerEvent event) throws RemoteException {
     Model topNTModel = modelCollection.topNonterminalModel();
     Model topLexModel = modelCollection.topLexModel();
@@ -406,21 +483,13 @@ public class DecoderServer
   }
 
   /**
-   * Obtains the timeout from <code>Settings</code>.
+   * Starts a decoder server and registers it with the switchboard. usage:
+   * [switchboard binding name] &gt;derived data file&gt;
    *
-   * @see Settings#sbUserTimeout
-   */
-  protected static int getTimeout() {
-    String timeoutStr = Settings.get(Settings.sbUserTimeout);
-    return (timeoutStr != null ? Integer.parseInt(timeoutStr) :
-	    defaultTimeout);
-  }
-
-  /**
-   * Starts a decoder server and registers it with the switchboard.
-   * usage: [switchboard binding name] <derived data file>
+   * @param args arguments according to the usage specified above
    */
   public static void main(String[] args) {
+    Runtime rt = new RuntimeImpl();
     String switchboardName = Switchboard.defaultBindingName;
     String derivedDataFilename = null;
     if (args.length != 1 && args.length != 2) {
@@ -440,17 +509,21 @@ public class DecoderServer
       System.setSecurityManager(new RMISecurityManager());
     DecoderServer decoderServer = null;
     try {
-      decoderServer = new DecoderServer(DecoderServer.getTimeout());
+      int timeout =
+	rt.settings().getIntProperty(Settings.sbUserTimeout, defaultTimeout);
+      decoderServer = new DecoderServer(rt, timeout);
       decoderServer.setModelCollection(derivedDataFilename);
       decoderServer.register(switchboardName);
-      Settings.setSettings(decoderServer.switchboard.getSettings());
+      rt.settings().setSettings(decoderServer.switchboard.getSettings());
       decoderServer.startAliveThread();
       decoderServer.unexportWhenDead();
     }
     catch (RemoteException re) {
       System.err.println(re);
       if (decoderServer != null) {
-	try { decoderServer.die(true); }
+	try {
+	  decoderServer.die(true);
+	}
 	catch (RemoteException re2) {
 	  System.err.println("couldn't die! (" + re + ")");
 	}
@@ -470,10 +543,8 @@ public class DecoderServer
     }
   }
 
-  public void update(Map<String, String> changedSettings) {
-    stopWord = Language.training().stopWord();
-    unknownWordThreshold =
-      Settings.getInteger(Settings.unknownWordThreshold);
-    downcaseWords = Settings.getBoolean(Settings.downcaseWords);
+  public void update(Map<String, String> changedSettings,
+		     Settings settings) {
+    init();
   }
 }

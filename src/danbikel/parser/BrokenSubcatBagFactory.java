@@ -11,7 +11,7 @@ import danbikel.lisp.*;
  */
 public class BrokenSubcatBagFactory implements SubcatFactory {
   /** Constructs a new <code>SubcatBagFactory</code>. */
-  public BrokenSubcatBagFactory() {}
+  public BrokenSubcatBagFactory(Runtime rt) {}
 
   /** Returns an empty <code>SubcatBag</code>. */
   public Subcat get() { return new BrokenSubcatBag(); }

@@ -5,7 +5,6 @@ import danbikel.switchboard.*;
 import java.net.MalformedURLException;
 import java.io.*;
 import java.rmi.*;
-import java.rmi.server.*;
 
 /**
  * A class for kick-starting a {@link Switchboard} instance when doing the
@@ -158,7 +157,7 @@ public class StartEMSwitchboard {
     System.setProperty("java.security.policy", policy);
     */
     processArgs(args);
-    Switchboard.setPolicyFile(Settings.getSettings());
+    Switchboard.setPolicyFile(Settings.getCopy());
     //Create and install a security manager
     if (System.getSecurityManager() == null)
       System.setSecurityManager(new RMISecurityManager());
@@ -190,7 +189,7 @@ public class StartEMSwitchboard {
       // of Switchboard may do file-based sorting, somehow
       Settings.set(SwitchboardRemote.sortOutput, "false");
 
-      switchboard.bind(Settings.getSettings(), Language.encoding());
+      switchboard.bind(Settings.getCopy(), Language.encoding());
       //switchboard.processFile(inFilenameMain, outFilenameMain, logFilenameMain);
       EventCountsConsumer consumer = new EventCountsConsumer(true, true);
       consumer.useCountThreshold();

@@ -2901,9 +2901,9 @@ public class Trainer implements Serializable {
 	  System.err.flush();
 	  System.gc();
 	  System.err.println("done");
-	  Runtime runtime = Runtime.getRuntime();
+	  java.lang.Runtime systemRt = java.lang.Runtime.getRuntime();
 	  System.err.println("Memory usage: " +
-			     (runtime.totalMemory() - runtime.freeMemory())+
+			     (systemRt.totalMemory() - systemRt.freeMemory())+
 			     " bytes.");
 	}
 	catch (ClassNotFoundException cnfe) {

@@ -7,7 +7,6 @@ import danbikel.parser.constraints.*;
 import danbikel.parser.util.*;
 import java.util.*;
 import java.net.*;
-import java.security.*;
 import java.rmi.*;
 import java.rmi.server.*;
 import java.io.*;
@@ -34,21 +33,6 @@ public class Parser
   private final static boolean debugCacheStats = true;
   private final static String className = Parser.class.getName();
   private final static boolean flushAfterEverySentence = true;
-  private static String decoderClassName =
-    Settings.get(Settings.decoderClass);
-  private static String decoderServerClassName =
-    Settings.get(Settings.decoderServerClass);
-
-  static {
-    Settings.Change change =
-      new Settings.Change() {
-	public void update(Map<String, String> changedSettings) {
-	  decoderClassName = Settings.get(Settings.decoderClass);
-	  decoderServerClassName = Settings.get(Settings.decoderServerClass);
-	}
-      };
-    Settings.register(Parser.class, change, null);
-  }
 
   protected static String invocationTargetExceptionMsg =
     "ERROR: IT IS LIKELY THAT YOU HAVE ATTEMPTED TO LOAD AN OLD VERSION OF\n" +
@@ -60,15 +44,15 @@ public class Parser
    * <code>String.class</code>. Used for fetching constructors of classes
    * that take a single argument of type <code>String</code>.
    *
-   * @see #getNewParser(String)
-   * @see #getNewDecoderServer(String)
+   * @see #getNewParser(Runtime,String)
+   * @see #getNewDecoderServer(Runtime,String)
    */
   protected final static Class[] stringTypeArr = {String.class};
   /**
    * An array of types containing a single element,
    * <code>Integer.TYPE</code>. Used when fetching the approrpriate constructor
    * of this class in the static &ldquo;named constructor&rdquo; {@link
-   * #getNewParser(int)}.
+   * #getNewParser(Runtime,int)}.
    */
   protected final static Class[] intTypeArr = {Integer.TYPE};
   /**
@@ -76,7 +60,7 @@ public class Parser
    * that takes two arguments of type <code>int</code> and of type
    * <code>DecoderServerRemote</code>.
    *
-   * @see #getNewDecoder(int,DecoderServerRemote)
+   * @see #getNewDecoder(Runtime,int,DecoderServerRemote)
    */
   protected final static Class[] newDecoderTypeArr =
     {Integer.TYPE,DecoderServerRemote.class};
@@ -84,7 +68,7 @@ public class Parser
   // protected constants
   /** Cached value of {@link Settings#keepAllWords}, for efficiency and
       convenience. */
-  protected boolean keepAllWords = Settings.getBoolean(Settings.keepAllWords);
+  protected boolean keepAllWords;
 
   // public constants
   /**
@@ -101,6 +85,8 @@ public class Parser
   protected static Class parserClass = Parser.class;
 
   // data members
+  /** */
+  protected Runtime rt;
   /** The server for the internal {@link Decoder} to use when parsing. */
   protected DecoderServerRemote server;
   /** The current sentence being processed. */
@@ -134,9 +120,10 @@ public class Parser
    */
   protected PrintWriter err;
 
-  public void update(Map<String, String> changedSettings) {
+  public void update(Map<String, String> changedSettings,
+		     Settings settings) {
     if (changedSettings.containsKey(Settings.decoderClass)) {
-      decoder = getNewDecoder(id, server);
+      decoder = getNewDecoder(rt, id, server);
     }
   }
 
@@ -144,95 +131,110 @@ public class Parser
    * Constructs a new {@link Parser} instance that will construct an internal
    * {@link DecoderServer} for its {@link Decoder} to use when parsing.
    *
+   * @param rt the runtime for this parser instance
    * @param derivedDataFilename the name of the derived data file to pass to the
    *                            constructor of the {@link DecoderServer} class
    *                            when creating an internal instance
-   * @throws RemoteException
-   * @throws ClassNotFoundException if {@link #getNewDecoderServer(String)}
+   * @throws RemoteException if the decoder server is remote and throws an exception
+   * @throws ClassNotFoundException if {@link #getNewDecoderServer(Runtime, String)}
    *                                throws this exception
-   * @throws NoSuchMethodException  if {@link #getNewDecoderServer(String)}
+   * @throws NoSuchMethodException  if {@link #getNewDecoderServer(Runtime, String)}
    *                                throws this excception
    * @throws java.lang.reflect.InvocationTargetException
-   *                                if {@link #getNewDecoderServer(String)}
+   *                                if {@link #getNewDecoderServer(Runtime, String)}
    *                                throws this excception
-   * @throws IllegalAccessException if {@link #getNewDecoderServer(String)}
+   * @throws IllegalAccessException if {@link #getNewDecoderServer(Runtime, String)}
    *                                throws this excception
-   * @throws InstantiationException if {@link #getNewDecoderServer(String)}
+   * @throws InstantiationException if {@link #getNewDecoderServer(Runtime, String)}
    *                                throws this excception
    */
-  public Parser(String derivedDataFilename)
+  public Parser(Runtime rt, String derivedDataFilename)
     throws RemoteException, ClassNotFoundException,
 	   NoSuchMethodException, java.lang.reflect.InvocationTargetException,
 	   IllegalAccessException, InstantiationException {
-    server = getNewDecoderServer(derivedDataFilename);
-    decoder = getNewDecoder(0, server);
+    this.rt = rt;
+    keepAllWords = rt.settings().getBoolean(Settings.keepAllWords);
+    server = getNewDecoderServer(null, derivedDataFilename);
+    decoder = getNewDecoder(rt, 0, server);
     setUpErrWriter();
-    Settings.register(this);
+    rt.settings().register(this);
   }
 
   /**
    * Constructs a new parsing client where the internal {@link Decoder} will
    * use the specified server.
+   * @param rt the runtime for this parser instance
    * @param server the server for the {@link Decoder} to use
-   * @throws RemoteException
+   * @throws RemoteException if the decoder server is remote and throws an exception
    */
-  public Parser(DecoderServerRemote server) throws RemoteException {
+  public Parser(Runtime rt, DecoderServerRemote server) throws RemoteException {
+    this.rt = rt;
     this.server = server;
-    decoder = getNewDecoder(0, server);
+    decoder = getNewDecoder(rt, 0, server);
+    keepAllWords = rt.settings().getBoolean(Settings.keepAllWords);
     setUpErrWriter();
-    Settings.register(this);
+    rt.settings().register(this);
   }
 
   /**
    * Constructs a new parsing client with the specified timeout value for its
    * sockets (not needed with recent RMI implementations from Sun).
+   * @param rt the runtime for this parser
    * @param timeout the timeout value for RMI client and server sockets
-   * @throws RemoteException
+   * @throws RemoteException if this parser is remote and an exception is thrown
    */
-  public Parser(int timeout) throws RemoteException {
+  public Parser(Runtime rt, int timeout) throws RemoteException {
     super(timeout);
+    this.rt = rt;
+    keepAllWords = rt.settings().getBoolean(Settings.keepAllWords);
     setUpErrWriter();
-    Settings.register(this);
+    rt.settings().register(this);
   }
   /**
    * Constructs a new parsing client with the specified timeout value for its
    * sockets (not needed with recent RMI implementations from Sun) and with
    * the specified listening port for receiving remote method invocations.
    *
+   * @param rt the runtime for this parser
    * @param timeout the timeout value for RMI client and server sockets
    * @param port the port for this RMI server
-   * @throws RemoteException
+   * @throws RemoteException if this parser is remote and an exception is thrown
    */
-  public Parser(int timeout, int port) throws RemoteException {
+  public Parser(Runtime rt, int timeout, int port) throws RemoteException {
     super(timeout, port);
+    this.rt = rt;
+    keepAllWords = rt.settings().getBoolean(Settings.keepAllWords);
     setUpErrWriter();
-    Settings.register(this);
+    rt.settings().register(this);
   }
   /**
    * Constructs a new parsing client with the specified RMI port and
    * client and server socket factories.
    *
+   * @param rt the runtime for this parser
    * @param port the port on which to receive remote method invocations
    * @param csf the client socket factory for this RMI client
    * @param ssf the server socket factory for this RMI server
-   * @throws RemoteException
+   * @throws RemoteException if this parser is remote and an exception is thrown
    */
-  public Parser(int port,
+  public Parser(Runtime rt, int port,
 		RMIClientSocketFactory csf, RMIServerSocketFactory ssf)
     throws RemoteException {
     super(port, csf, ssf);
+    this.rt = rt;
+    keepAllWords = rt.settings().getBoolean(Settings.keepAllWords);
     setUpErrWriter();
-    Settings.register(this);
+    rt.settings().register(this);
   }
 
   private void setUpErrWriter() {
     OutputStreamWriter errosw = null;
     try {
-      errosw = new OutputStreamWriter(System.err, Language.encoding());
+      errosw = new OutputStreamWriter(System.err, rt.language().encoding());
     }
     catch (UnsupportedEncodingException uee) {
       System.err.println(className + ": error: couldn't create err output " +
-			 "stream using encoding " + Language.encoding() +
+			 "stream using encoding " + rt.language().encoding() +
 			 "(reason: " + uee + ")");
       System.err.println("\tusing default encoding instead");
       errosw = new OutputStreamWriter(System.err);
@@ -245,14 +247,14 @@ public class Parser
     return new Decoder(id, server);
   }
   */
-  protected Decoder getNewDecoder(int id, DecoderServerRemote server) {
+  protected Decoder getNewDecoder(Runtime rt,
+				  int id, DecoderServerRemote server) {
     Decoder decoder = null;
     try {
+      String decoderClassName = rt.settings().get(Settings.decoderClass);
       Class decoderClass = Class.forName(decoderClassName);
-      
       Constructor cons = decoderClass.getConstructor(newDecoderTypeArr);
-      Object[] argArr = new Object[]{new Integer(id), server};
-      decoder = (Decoder)cons.newInstance(argArr);
+      decoder = (Decoder)cons.newInstance(rt, id, server);
     }
     catch (Exception e) {
       throw new RuntimeException(e);
@@ -266,10 +268,10 @@ public class Parser
    * (i.e., a parsing client that creates its own {@link DecoderServerRemote}
    * instance).
    *
+   * @param rt the runtime for the new decoder server returned by this method
    * @param derivedDataFilename the name of the derived data file to pass to the
-   *                            constructor of {@link DecoderServer} that takes
-   *                            this name as an argument
-   * @return a new decoder server for when creating a stand-alone parsing client
+   *                            constructor of {@link danbikel.parser.DecoderServer} that takes
+   *                            this name as an argument @return a new decoder server for when creating a stand-alone parsing client
    *
    * @throws ClassNotFoundException if the class specified by {@link
    *                                Settings#decoderServerClass} cannot be
@@ -290,19 +292,22 @@ public class Parser
    * @throws InstantiationException if there's a problem instantiating a new
    *                                instance of the class specified by {@link
    *                                Settings#decoderServerClass}
+   * @return a new {@link DecoderServer} instance constructed from the specified model object file
    */
-  protected static DecoderServer getNewDecoderServer(String derivedDataFilename)
+  protected static DecoderServer getNewDecoderServer(Runtime rt,
+						     String derivedDataFilename)
     throws ClassNotFoundException,
 	   NoSuchMethodException, java.lang.reflect.InvocationTargetException,
 	   IllegalAccessException, InstantiationException {
 
+    String decoderServerClassName =
+      rt.settings().get(Settings.decoderServerClass);
     Class decoderServerClass = Class.forName(decoderServerClassName);
 
     DecoderServer server = null;
 
     Constructor cons = decoderServerClass.getConstructor(stringTypeArr);
-    Object[] argArr = new Object[]{derivedDataFilename};
-    server = (DecoderServer)cons.newInstance(argArr);
+    server = (DecoderServer) cons.newInstance(rt, derivedDataFilename);
 
     return server;
   }
@@ -338,21 +343,7 @@ public class Parser
   }
 
 
-  /**
-   * We override {@link AbstractClient#cleanup()} here so that it
-   * sets the internal {@link #server} data member to <code>null</code>
-   * only when not debugging cache stats (which is provided as an internal,
-   * compile-time option via a private data member).  The default behavior
-   * of this method, as defined in the superclass' implementation, is simply
-   * to set the server data member to be <code>null</code>.
-   */
-  /*
-  protected void cleanup() {
-    if (debugCacheStats == false)
-      server = null;
-  }
-  */
-
+  @SuppressWarnings({"UnusedDeclaration"})
   private SexpList test(SexpList sent) throws RemoteException {
     double prob = server.testProb();
     if (debug)
@@ -384,14 +375,14 @@ public class Parser
    * @return the parsed version of the specified sentence, or <code>null</code>
    *         if no parse could be produced using the current model
    *
-   * @throws RemoteException
+   * @throws RemoteException if this parser is remote and an exception is thrown
    */
   public Sexp parse(SexpList sent) throws RemoteException {
     if (sentContainsWordsAndTags(sent))
       return decoder.parse(getWords(sent), getTagLists(sent));
     else if (sent.isAllSymbols())
       return decoder.parse(sent);
-    else if (Language.training.isValidTree(sent)) {
+    else if (rt.language().training().isValidTree(sent)) {
       return decoder.parse(getWordsFromTree(sent),
 			   getTagListsFromTree(sent),
 			   getConstraintsFromTree(sent));
@@ -423,8 +414,8 @@ public class Parser
    * @return the specified tree, having been modified in-place
    */
   protected Sexp convertUnknownWords(Sexp tree, IntCounter currWordIdx) {
-    if (Language.treebank().isPreterminal(tree)) {
-      Word wordObj = Language.treebank().makeWord(tree);
+    if (rt.language().treebank().isPreterminal(tree)) {
+      Word wordObj = rt.language().treebank().makeWord(tree);
 
       // change word to unknown, if necessary
       Sexp wordInfo = null;
@@ -451,7 +442,7 @@ public class Parser
 	wordObj.setWord(word);
       }
 
-      tree = Language.treebank().constructPreterminal(wordObj);
+      tree = rt.language().treebank().constructPreterminal(wordObj);
 
       currWordIdx.increment();
     }
@@ -582,8 +573,8 @@ public class Parser
    * so that each word symbol from the specified tree was added to its end
    */
   protected SexpList getWordsFromTree(SexpList wordList, Sexp tree) {
-    if (Language.treebank.isPreterminal(tree)) {
-      Word word = Language.treebank.makeWord(tree);
+    if (rt.language().treebank().isPreterminal(tree)) {
+      Word word = rt.language().treebank().makeWord(tree);
       wordList.add(word.word());
     }
     else {
@@ -640,7 +631,7 @@ public class Parser
    */
   protected Object process(Object obj) throws RemoteException {
     if (decoder == null) {
-      decoder = getNewDecoder(id, server);
+      decoder = getNewDecoder(rt, id, server);
     }
     sent = (SexpList)obj;
     return parse(sent);
@@ -655,7 +646,7 @@ public class Parser
     err.println("Switchboard failure: client " + id + " did not get chance " +
 		"to push most recently-parsed sentence to Switchboard; " +
 		"parsed sentence:\n" + sent);
-    if (Settings.getBoolean(Settings.clientDeathUponSwitchboardDeath)) {
+    if (rt.settings().getBoolean(Settings.clientDeathUponSwitchboardDeath)) {
       System.err.println("client " + id + " committing suicide because " +
 			 Settings.clientDeathUponSwitchboardDeath +
 			 " setting is true");
@@ -669,15 +660,6 @@ public class Parser
   }
 
   /**
-   * Obtains the timeout from <code>Settings</code>.
-   *
-   * @see Settings#sbUserTimeout
-   */
-  protected static int getTimeout() {
-    return Settings.getIntProperty(Settings.sbUserTimeout, defaultTimeout);
-  }
-
-  /**
    * Returns the integer value of {@link Settings#serverMaxRetries}, or the
    * specified fallback default value if that property does not exist.
    *
@@ -686,8 +668,9 @@ public class Parser
    * @return the integer value of {@link Settings#serverMaxRetries}, or the
    *         specified fallback default value if that property does not exist
    */
-  protected static int getRetries(int defaultValue) {
-    return Settings.getIntProperty(Settings.serverMaxRetries, defaultValue);
+  protected int getRetries(int defaultValue) {
+    return rt.settings().getIntProperty(Settings.serverMaxRetries,
+					defaultValue);
   }
 
   /**
@@ -699,8 +682,9 @@ public class Parser
    * @return the integer value of {@link Settings#serverRetrySleep}, or the
    *         specified fallback default value if that property does not exist.
    */
-  protected static int getRetrySleep(int defaultValue) {
-    return Settings.getIntProperty(Settings.serverRetrySleep, defaultValue);
+  protected int getRetrySleep(int defaultValue) {
+    return rt.settings().getIntProperty(Settings.serverRetrySleep,
+					defaultValue);
   }
 
   /**
@@ -712,8 +696,9 @@ public class Parser
    * @return the boolean value of {@link Settings#serverFailover}, or the
    *         specified fallback default value if that property does not exist
    */
-  protected static boolean getFailover(boolean defaultValue) {
-    return Settings.getBooleanProperty(Settings.serverFailover, defaultValue);
+  protected boolean getFailover(boolean defaultValue) {
+    return rt.settings().getBooleanProperty(Settings.serverFailover,
+					    defaultValue);
   }
 
   /**
@@ -777,7 +762,7 @@ public class Parser
     throws IOException {
 
     if (decoder == null) {
-      decoder = getNewDecoder(id, server);
+      decoder = getNewDecoder(rt, id, server);
     }
 
     InputStream in = null;
@@ -796,10 +781,11 @@ public class Parser
 				 (OutputStream)System.out :
 				 new FileOutputStream(outputFilename));
     OutputStreamWriter osw =
-      new OutputStreamWriter(outputStream, Language.encoding());
+      new OutputStreamWriter(outputStream, rt.language().encoding());
     BufferedWriter out = new BufferedWriter(osw, bufSize);
     Sexp sent = null;
-    SexpTokenizer tok = new SexpTokenizer(in, Language.encoding(), bufSize);
+    SexpTokenizer tok =
+      new SexpTokenizer(in, rt.language().encoding(), bufSize);
     Time totalTime = new Time();
     Time time = new Time();
     for (int i = 1; ((sent = Sexp.read(tok)) != null); i++) {
@@ -993,15 +979,16 @@ public class Parser
    *
    * @param sbSettings the settings to compare with the current run-time
    * settings
+   * @param settings the current run-time settings
    */
-  protected static void checkSettings(Properties sbSettings) {
-    Iterator it = sbSettings.entrySet().iterator();
-    while (it.hasNext()) {
-      Map.Entry entry = (Map.Entry)it.next();
-      String sbProp = (String)entry.getKey();
-      String sbVal = (String)entry.getValue();
-      String localVal = Settings.get(sbProp);
-      if (sbVal.equals(localVal) == false) {
+  protected static void checkSettings(Properties sbSettings,
+				      Settings settings) {
+    for (Map.Entry<Object, Object> objectObjectEntry : sbSettings.entrySet()) {
+      Map.Entry entry = (Map.Entry) objectObjectEntry;
+      String sbProp = (String) entry.getKey();
+      String sbVal = (String) entry.getValue();
+      String localVal = settings.get(sbProp);
+      if (!sbVal.equals(localVal)) {
 	System.err.println(className + ": warning: value of property \"" +
 			   sbProp + "\" is\n\t\t\"" + localVal + "\"\n\t" +
 			   "in settings obtained locally but is\n\t\t\"" +
@@ -1015,14 +1002,16 @@ public class Parser
    * Grabs the settings from the {@link Switchboard} instance and sets
    * to be the current run-time settings.
    * @param sb the switchboard from which to grab settings for this client
-   * @throws RemoteException
+   * @param settings the current settings instance against which to check settings and to modify with settings obtained from the switchboard
+   * @throws RemoteException if the switchboard throws an exception
    */
-  public static void setSettingsFromSwitchboard(SwitchboardRemote sb)
+  public static void setSettingsFromSwitchboard(SwitchboardRemote sb,
+						Settings settings)
     throws RemoteException {
     Properties sbSettings = sb.getSettings();
     if (derivedDataFilename != null)
-      checkSettings(sbSettings);
-    Settings.setSettings(sbSettings);
+      checkSettings(sbSettings, settings);
+    settings.setSettings(sbSettings);
   }
 
   /**
@@ -1031,6 +1020,7 @@ public class Parser
    * run-time type of the returned parsing client will be equal to the value of
    * {@link #parserClass} member.
    *
+   * @param rt the runtime instance for the new parser returned by this method
    * @param derivedDataFilename the derived data filename with which to
    *                            construct a new parsing client instance
    * @return a new parsing client with an internal decoder using the derived
@@ -1050,12 +1040,13 @@ public class Parser
    *                                   instance of the class specified by {@link
    *                                   #parserClass}
    */
-  protected static Parser getNewParser(String derivedDataFilename)
+  protected static Parser getNewParser(Runtime rt,
+				       String derivedDataFilename)
     throws NoSuchMethodException, InvocationTargetException,
 	   IllegalAccessException, InstantiationException {
     Parser parser = null;
     Constructor cons = parserClass.getConstructor(stringTypeArr);
-    parser = (Parser)cons.newInstance(new Object[]{derivedDataFilename});
+    parser = (Parser)cons.newInstance(rt, derivedDataFilename);
     return parser;
   }
 
@@ -1065,6 +1056,7 @@ public class Parser
    * run-time type of the returned parsing client will be equal to the value of
    * {@link #parserClass} member.
    *
+   * @param rt the runtime instance for the new parser returned by this method
    * @param timeout the timeout value for the client- and server-side sockets
    * of this RMI object
    * @return a new parsing client that uses the switchboard
@@ -1083,12 +1075,12 @@ public class Parser
    *                                   instance of the class specified by {@link
    *                                   #parserClass}
    */
-  protected static Parser getNewParser(int timeout)
+  protected static Parser getNewParser(Runtime rt, int timeout)
     throws NoSuchMethodException, InvocationTargetException,
 	   IllegalAccessException, InstantiationException {
     Parser parser = null;
     Constructor cons = parserClass.getConstructor(intTypeArr);
-    parser = (Parser)cons.newInstance(new Object[]{new Integer(timeout)});
+    parser = (Parser)cons.newInstance(rt, timeout);
     return parser;
   }
 
@@ -1145,6 +1137,7 @@ public class Parser
    * where each S-expression represents a sentence to be parsed.  There are
    * three acceptable input formats for these S-expressions, described in
    * the documentation for the {@link #parse(SexpList)} method.
+   * @param args the arguments according to the {@link #usage()} of this method
    */
   public static void main(String[] args) {
     if (!processArgs(args))
@@ -1152,17 +1145,19 @@ public class Parser
     Parser parser = null;
     DecoderServer server = null;
     ThreadGroup clientThreads = new ThreadGroup("parser clients");
+
+    Runtime rt;
+
     if (standAlone) {
       try {
 	if (settingsFilename != null) {
 	  if (getFile(settingsFilename) == null)
 	    return;
-	  Settings.load(settingsFilename);
 	}
 	if (getFile(derivedDataFilename) == null)
 	  return;
-	//parser = new Parser(derivedDataFilename);
-	parser = getNewParser(derivedDataFilename);
+	rt = new RuntimeImpl(settingsFilename);
+	parser = getNewParser(rt, derivedDataFilename);
 	parser.processInputFile(inputFilename, outputFilename);
       }
       catch (InstantiationException ie) {
@@ -1186,7 +1181,8 @@ public class Parser
       }
     }
     else {
-      setPolicyFile(Settings.getSettings());
+      rt = new RuntimeImpl();
+      setPolicyFile(rt.settings().getCopy());
       // create and install a security manager
       if (System.getSecurityManager() == null)
 	System.setSecurityManager(new RMISecurityManager());
@@ -1199,7 +1195,7 @@ public class Parser
 	if (derivedDataFilename != null) {
 	  if (getFile(derivedDataFilename) == null)
 	    return;
-	  server = getNewDecoderServer(derivedDataFilename);
+	  server = getNewDecoderServer(null, derivedDataFilename);
 	}
 
 	for (int i = 0; i < numClients; i++) {
@@ -1212,17 +1208,19 @@ public class Parser
 	      AbstractSwitchboardUser.getSwitchboard(switchboardName,
 						     defaultRetries);
 	    if (grabSBSettings && sb != null) {
-	      setSettingsFromSwitchboard(sb);
+	      setSettingsFromSwitchboard(sb, rt.settings());
 	      if (settingsFilename != null)
-		Settings.load(settingsFilename);
+		rt.settings().load(settingsFilename);
 	    }
-	    //parser = new Parser(Parser.getTimeout());
-	    parser = getNewParser(Parser.getTimeout());
+	    int timeout =
+	      rt.settings().getIntProperty(Settings.sbUserTimeout,
+					   defaultTimeout);
+	    parser = getNewParser(rt, timeout);
 	    parser.register(switchboardName);
 	    if (grabSBSettings && sb == null) {
-	      setSettingsFromSwitchboard(parser.switchboard);
+	      setSettingsFromSwitchboard(parser.switchboard, rt.settings());
 	      if (settingsFilename != null) {
-		Settings.load(settingsFilename);
+		rt.settings().load(settingsFilename);
 	      }
 	    }
 	    if (derivedDataFilename != null) {
@@ -1230,9 +1228,12 @@ public class Parser
 	    }
 	    else {
 	      parser.localServer = false;
-	      parser.getFaultTolerantServer(getRetries(defaultRetries),
-					    getRetrySleep(defaultRetrySleep),
-					    getFailover(defaultFailover));
+
+	      int retries = parser.getRetries(defaultRetries);
+	      int retrySleep = parser.getRetrySleep(defaultRetrySleep);
+	      boolean failover = parser.getFailover(defaultFailover);
+
+	      parser.getFaultTolerantServer(retries, retrySleep, failover);
 	    }
 	    if (inputFilename != null) {
 	      parser.setInternalFilenames(inputFilename, outputFilename);
@@ -1287,7 +1288,7 @@ public class Parser
       else if (derivedDataFilename != null) {
 	while (clientThreads.activeCount() > 0) {
 	  try {
-	    Thread.currentThread().sleep(1000);
+	    Thread.sleep(1000);
 	  }
 	  catch (InterruptedException ie) {
 	    System.err.println(ie);
@@ -1299,12 +1300,6 @@ public class Parser
 	System.err.println(className + ": warning: not printing model cache " +
 			   "stats because decoder server is a remote object");
       }
-      /*
-      parser = null;
-      server = null;
-      System.gc();
-      System.runFinalization();
-      */
     }
   }
 }

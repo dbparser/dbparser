@@ -274,4 +274,24 @@ public class Util {
     }
     return sexp;
   }
+
+  public static StringBuilder pennToIbm(Sexp sexp, StringBuilder sb) {
+    if (Language.treebank().isPreterminal(sexp)) {
+      Word word = Language.treebank().makeWord(sexp);
+      sb.append(word.word()).append("_").append(word.tag());
+    }
+    else if (sexp.isList()) {
+      SexpList treeList = sexp.list();
+      int treeListLen = treeList.size();
+      Sexp label = treeList.first();
+      sb.append("[").append(label);
+      for (int i = 1; i < treeListLen; i++) {
+	Sexp child = treeList.get(i);
+	sb.append(" ");
+	pennToIbm(child, sb);
+      }
+      sb.append(" ").append(label).append("]");
+    }
+    return sb;
+  }
 }

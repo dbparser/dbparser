@@ -262,13 +262,18 @@ abstract public class HashMapPrimitive<K>
    * @param loadFactor      the load factor of this map
    */
   public HashMapPrimitive(int initialCapacity, float loadFactor) {
-    BigInteger capacity = new BigInteger(String.valueOf(initialCapacity));
-    if (!capacity.isProbablePrime(100)) {
-      capacity = capacity.nextProbablePrime();
+    if (initialCapacity != defaultInitialCapacity) {
+      BigInteger bigIntCapacity =
+	new BigInteger(String.valueOf(initialCapacity));
+      if (!bigIntCapacity.isProbablePrime(100)) {
+	bigIntCapacity = bigIntCapacity.nextProbablePrime();
+      }
+      bigIntCapacity =
+	bigIntCapacity.compareTo(maxCapacity) < 0 ?
+	bigIntCapacity : maxCapacity;
+      initialCapacity = bigIntCapacity.intValue();
     }
-    capacity =
-      capacity.compareTo(maxCapacity) < 0 ? capacity : maxCapacity;
-    entries = new Entry[capacity.intValue()];
+    entries = new Entry[initialCapacity];
     this.loadFactor = loadFactor;
     threshold = loadFactor * entries.length;
   }

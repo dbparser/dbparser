@@ -86,7 +86,7 @@ public class Parser
 
   // data members
   /** */
-  protected Runtime rt;
+  transient protected Runtime rt;
   /** The server for the internal {@link Decoder} to use when parsing. */
   protected DecoderServerRemote server;
   /** The current sentence being processed. */

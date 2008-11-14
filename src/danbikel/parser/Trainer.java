@@ -2,7 +2,6 @@ package danbikel.parser;
 
 import danbikel.lisp.*;
 import danbikel.util.*;
-import danbikel.util.AbstractMapToPrimitive.*;
 import danbikel.parser.util.Util;
 
 import java.io.*;
@@ -2419,25 +2418,28 @@ public class Trainer implements Serializable {
    * Sets the internal {@link #modelCollection} data member of this class to the
    * object of that type loaded from the specified file.
    *
+   * @param rt		  the {@link Runtime} instance with which to load
+   *                            the specified model collection
    * @param objectInputFilename the object from which to load a {@link
-   *                            ModelCollection}
-   * @throws ClassNotFoundException if the concrete type of {@link
-   *                                ModelCollection} read from the specified
-   *                                file cannot be found
-   * @throws IOException            if there is a problem reading from the
+   *                            danbikel.parser.ModelCollection} @throws
+   *                            ClassNotFoundException if the concrete type of
+   *                            {@link ModelCollection} read from the specified
+   *                            file cannot be found
+   * @throws IOException	    if there is a problem reading from the
    *                                stream of the specified file
-   * @throws OptionalDataException  if there is a problem reading primitive data
-   *                                associated with the {@link ModelCollection}
-   *                                object read from the specified file
+   * @throws ClassNotFoundException if the class of a serialized object cannot
+   *                                be found
    */
-  public void setModelCollection(String objectInputFilename)
-    throws ClassNotFoundException, IOException, OptionalDataException {
-    modelCollection = loadModelCollection(objectInputFilename);
+  public void setModelCollection(Runtime rt, String objectInputFilename)
+    throws ClassNotFoundException, IOException {
+    modelCollection = loadModelCollection(rt, objectInputFilename);
   }
 
   /**
    * Loads the {@link ModelCollection} from the specified file.
    *
+   * @param rt		  the {@link Runtime} instance with which to load
+   *                            the specified model collection
    * @param objectInputFilename the name of the Java serialized object file from
    *                            which to load a {@link ModelCollection}
    *                            instance; the file must contain a series of
@@ -2449,21 +2451,22 @@ public class Trainer implements Serializable {
    *                                ModelCollection} or any of the header
    *                                objects in the specified file cannot be
    *                                found
-   * @throws IOException            if there is a problem reading from the
+   * @throws IOException	    if there is a problem reading from the
    *                                specified file
    * @throws OptionalDataException  if there is a problem reading primitive data
    *                                associated with an object from the object
    *                                input stream created from the specified
    *                                file
    */
-  public static ModelCollection loadModelCollection(String objectInputFilename)
+  public static ModelCollection loadModelCollection(Runtime rt,
+						    String objectInputFilename)
     throws ClassNotFoundException, IOException, OptionalDataException {
     InputStream is = new FileInputStream(objectInputFilename);
     if (objectInputFilename.endsWith(".gz"))
       is = new GZIPInputStream(is);
     int bufSize = Constants.defaultFileBufsize * 10;
     BufferedInputStream bfi = new BufferedInputStream(is, bufSize);
-    ObjectInputStream ois = new ObjectInputStream(bfi);
+    ObjectInputStream ois = new RuntimeObjectInputStream(rt, bfi);
     System.err.println("\nLoading derived counts from object file \"" +
 		       objectInputFilename + "\":");
     return loadModelCollection(ois);
@@ -2511,7 +2514,7 @@ public class Trainer implements Serializable {
    *                                file
    */
   public static ModelCollection loadModelCollection(ObjectInputStream ois)
-    throws ClassNotFoundException, IOException, OptionalDataException {
+    throws ClassNotFoundException, IOException {
     scanModelCollectionObjectFile(ois, System.err);
     return (ModelCollection)ois.readObject();
   }
@@ -2775,16 +2778,18 @@ public class Trainer implements Serializable {
       usage();
     }
 
+    Runtime rt = new RuntimeImpl();
     try {
-      if (settingsFilename != null)
-	Settings.load(settingsFilename);
+      if (settingsFilename != null) {
+	rt.settings().load(settingsFilename);
+      }
     }
     catch (IOException ioe) {
       System.err.println("\nwarning: problem loading settings file \"" +
 			 settingsFilename + "\"\n");
     }
 
-    String encoding = Language.encoding();
+    String encoding = rt.language().encoding();
 
     Trainer trainer = null;
     try {
@@ -2798,7 +2803,7 @@ public class Trainer implements Serializable {
     try {
       if (scanObjectFilename != null) {
 	try {
-	  trainer.scanModelCollectionObjectFile(scanObjectFilename,
+	  Trainer.scanModelCollectionObjectFile(scanObjectFilename,
 						System.err);
 	}
 	catch (ClassNotFoundException cnfe) {
@@ -2854,7 +2859,7 @@ public class Trainer implements Serializable {
       if (outputFilename != null) {
 	OutputStream os =
 	  (outputFilename.equals("-") ?
-	   (OutputStream)System.out : new FileOutputStream(outputFilename));
+	   System.out : new FileOutputStream(outputFilename));
 	if (outputFilename.endsWith(".gz"))
 	  os = new GZIPOutputStream(os);
 	Writer writer = new BufferedWriter(new OutputStreamWriter(os, encoding),
@@ -2895,7 +2900,7 @@ public class Trainer implements Serializable {
 	  System.err.println("Loading derived counts from \"" +
 			     objectInputFilename + "\".");
 	  Time time = new Time();
-	  trainer.setModelCollection(objectInputFilename);
+	  trainer.setModelCollection(rt, objectInputFilename);
 	  System.err.println("Finished loading derived counts in "+ time +".");
 	  System.err.print("gc ... ");
 	  System.err.flush();

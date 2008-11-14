@@ -6,12 +6,14 @@ import danbikel.util.MapToPrimitive;
 
 import java.util.Map;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
+import java.io.Serializable;
 
 /**
-   * A class to represent data common to all {@link danbikel.parser.SubcatBag} instances
- * created by a {@link danbikel.parser.SubcatBagFactory}.
+ * A class to represent data common to all {@link SubcatBag} instances created
+ * by a {@link danbikel.parser.SubcatBagFactory}.
  */
-public class SubcatBagInfo implements Settings.Change {
+public class SubcatBagCommon implements Serializable, Settings.Change {
   // constants
   // index constants: make sure to update remove method if these change
   // (if it's necessary: see comment inside remove method code)
@@ -24,8 +26,10 @@ public class SubcatBagInfo implements Settings.Change {
   public int numUids;
 
   // static data members
-  private Runtime rt;
-  private Map<Symbol,Integer> symbolsToInts =
+  transient private Runtime rt;
+  transient private IdentityHashMap<SubcatBag, Object> serializationData =
+    new IdentityHashMap<SubcatBag, Object>();
+  private Map<Symbol, Integer> symbolsToInts =
     new danbikel.util.HashMap<Symbol, Integer>();
   private Symbol[] symbols;
   private Nonterminal[] nonterminals;
@@ -35,13 +39,16 @@ public class SubcatBagInfo implements Settings.Change {
   private HashMapInt<Symbol> fastUidMap = new HashMapInt<Symbol>();
   private volatile boolean canUseFastUidMap = false;
 
-  public SubcatBagInfo(Runtime rt) {
+  public SubcatBagCommon(Runtime rt) {
     init(rt);
     rt.settings().register(this);
   }
 
   private void init(Runtime rt) {
     this.rt = rt;
+    if (rt == null) {
+      return;
+    }
     Symbol stopSym = rt.language().training().stopSym();
     Symbol gapAugmentation = rt.language().training().gapAugmentation();
     Symbol argAugmentation = rt.language().training().defaultArgAugmentation();
@@ -54,7 +61,7 @@ public class SubcatBagInfo implements Settings.Change {
     symbolsToInts.put(gapAugmentation, uid++);
 
     for (Object argObj : rt.language().training().argNonterminals()) {
-      Symbol argLabel = (Symbol)argObj;
+      Symbol argLabel = (Symbol) argObj;
       symbolsToInts.put(argLabel, uid++);
     }
     numUids = uid;
@@ -76,7 +83,7 @@ public class SubcatBagInfo implements Settings.Change {
       return;
     fastUidMap.put(rt.language().training().gapAugmentation(), gapIdx);
     for (Object ntObj : nonterminals.keySet()) {
-      Symbol nt = (Symbol)ntObj;
+      Symbol nt = (Symbol) ntObj;
       int uid = getUid(nt);
       fastUidMap.put(nt, uid);
     }
@@ -97,7 +104,7 @@ public class SubcatBagInfo implements Settings.Change {
     boolean found = false;
     Nonterminal[] nts = nonterminals;
     int uid = firstRealUid;
-    for ( ; uid < nts.length; uid++) {
+    for (; uid < nts.length; uid++) {
       if (nts[uid].subsumes(requirementNt)) {
 	found = true;
 	break;
@@ -107,12 +114,11 @@ public class SubcatBagInfo implements Settings.Change {
   }
 
   /**
-   * A method to check if the specified requirement is valid. For this
-   * class, a requirement is valid if it is either
-   * {@link danbikel.parser.Training#gapAugmentation} or a symbol for which
-   * {@link danbikel.parser.Training#isArgumentFast(danbikel.lisp.Symbol)} returns <code>true</code>.
-   * A subclass may override this method to allow for new or different
-   * valid requirements.
+   * A method to check if the specified requirement is valid. For this class, a
+   * requirement is valid if it is either {@link danbikel.parser.Training#gapAugmentation}
+   * or a symbol for which {@link danbikel.parser.Training#isArgumentFast(danbikel.lisp.Symbol)}
+   * returns <code>true</code>. A subclass may override this method to allow for
+   * new or different valid requirements.
    *
    * @param requirement the requirement to test
    * @return whether the specified requirement is valid

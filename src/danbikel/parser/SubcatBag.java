@@ -1,9 +1,9 @@
 package danbikel.parser;
 
 import danbikel.lisp.*;
-import static danbikel.parser.SubcatBagInfo.sizeIdx;
-import static danbikel.parser.SubcatBagInfo.miscIdx;
-import static danbikel.parser.SubcatBagInfo.firstRealUid;
+import static danbikel.parser.SubcatBagCommon.sizeIdx;
+import static danbikel.parser.SubcatBagCommon.miscIdx;
+import static danbikel.parser.SubcatBagCommon.firstRealUid;
 
 import java.util.*;
 import java.io.*;
@@ -52,7 +52,7 @@ import java.io.*;
  * important <i><b>not</b></i> to invoke the
  * {@link Training#setUpFastArgMap(CountsTable)} method during training,
  * when requirements are added individually by {@link #add(Symbol)}, which
- * calls {@link SubcatBagInfo#validRequirement(Symbol)} which
+ * calls {@link SubcatBagCommon#validRequirement(Symbol)} which
  * in turn invokes {@link Training#isArgumentFast(Symbol)}.
  * <li>This class cannot collect more than 127 total occurrences of
  * requirements.  This is well beyond the number of arguments ever postulated
@@ -67,18 +67,18 @@ import java.io.*;
  */
 public class SubcatBag implements Subcat, Serializable {
   // data members
-  private SubcatBagInfo info;
+  private SubcatBagCommon common;
   private byte[] counts;
 
   /**
    * Constructs an empty subcat.
    *
-   * @param info the information necessary for this {@link SubcatBag}&rsquo;s
+   * @param common the information necessary for this {@link SubcatBag}&rsquo;s
    *             operation
    */
-  public SubcatBag(SubcatBagInfo info) {
-    this.info = info;
-    counts = new byte[info.getNumUids()];
+  public SubcatBag(SubcatBagCommon common) {
+    this.common = common;
+    counts = new byte[common.getNumUids()];
     for (int i = 0; i < counts.length; i++)
       counts[i] = 0;
   }
@@ -87,13 +87,13 @@ public class SubcatBag implements Subcat, Serializable {
    * Constructs a subcat bag containing the number of occurrences of the symbols
    * of <code>list</code>.
    *
-   * @param info the information necessary for this {@link SubcatBag}&rsquo;s
+   * @param common the information necessary for this {@link SubcatBag}&rsquo;s
    *             operation
    * @param list a list of <code>Symbol</code> objects to be added to this
    *             subcat bag
    */
-  public SubcatBag(SubcatBagInfo info, SexpList list) {
-    this(info);
+  public SubcatBag(SubcatBagCommon common, SexpList list) {
+    this(common);
     addAll(list);
   }
 
@@ -109,9 +109,9 @@ public class SubcatBag implements Subcat, Serializable {
    * @param requirement the requirement to add to this subcat bag
    */
   public Subcat add(Symbol requirement) {
-    if (info.validRequirement(requirement)) {
+    if (common.validRequirement(requirement)) {
       counts[sizeIdx]++;
-      counts[info.getUid(requirement)]++;
+      counts[common.getUid(requirement)]++;
     }
     return this;
   }
@@ -148,14 +148,14 @@ public class SubcatBag implements Subcat, Serializable {
    * @see Training#isArgumentFast(Symbol)
    */
   public boolean remove(Symbol requirement) {
-    int uid = info.getUid(requirement);
+    int uid = common.getUid(requirement);
 
     // if the uid is of an actual nonterminal (either greater than
     // firstRealUid, which is used for gap requirements, or equal to
     // miscIdx) and if the specified requirement is not marked as an
     // argument, return false
     if ((uid == miscIdx || uid > firstRealUid) &&
-	!info.rt().language().training().isArgumentFast(requirement))
+	!common.rt().language().training().isArgumentFast(requirement))
       return false;
 
     if (counts[uid] == 0)
@@ -181,13 +181,13 @@ public class SubcatBag implements Subcat, Serializable {
   }
 
   public boolean contains(Symbol requirement) {
-    int uid = info.getUid(requirement);
+    int uid = common.getUid(requirement);
     // if the uid is of an actual nonterminal (either greater than firstRealUid,
     // which is used for gap requirements, or equal to miscIdx) and if it's not
     // marked as an argument, return false
     //noinspection SimplifiableIfStatement
     if ((uid == miscIdx || uid > firstRealUid) &&
-	!info.rt().language().training().isArgumentFast(requirement)) {
+	!common.rt().language().training().isArgumentFast(requirement)) {
       return false;
     }
     else {
@@ -210,7 +210,7 @@ public class SubcatBag implements Subcat, Serializable {
    * Returns a deep copy of this subcat bag.
    */
   public Event copy() {
-    SubcatBag subcatCopy = new SubcatBag(info);
+    SubcatBag subcatCopy = new SubcatBag(common);
     subcatCopy.counts = this.counts.clone();
     return subcatCopy;
   }
@@ -267,7 +267,7 @@ public class SubcatBag implements Subcat, Serializable {
     StringBuffer sb = new StringBuffer(6 * counts.length);
     sb.append("size=").append(counts[sizeIdx]).append(" ");
     for (int i = firstRealUid; i < counts.length; i++)
-      sb.append(info.getSymbols()[i]).append("=").append(counts[i]).append(" ");
+      sb.append(common.getSymbols()[i]).append("=").append(counts[i]).append(" ");
     sb.append("misc=").append(counts[miscIdx]);
     return sb.toString();
   }
@@ -290,7 +290,7 @@ public class SubcatBag implements Subcat, Serializable {
       if (counter > 0) {
 	counter--;
 	totalCounter--;
-	return info.getSymbols()[countIdx];
+	return common.getSymbols()[countIdx];
       }
       // else go hunting for the next place with non-zero counts
       countIdx++;
@@ -301,7 +301,7 @@ public class SubcatBag implements Subcat, Serializable {
 
       counter = counts[countIdx] - 1;
       totalCounter--;
-      return info.getSymbols()[countIdx];
+      return common.getSymbols()[countIdx];
     }
 
     public void remove() {
@@ -391,7 +391,7 @@ public class SubcatBag implements Subcat, Serializable {
       index -= counts[countIdx];
     if (countIdx == counts.length)
       countIdx = miscIdx;
-    return info.getSymbols()[countIdx];
+    return common.getSymbols()[countIdx];
   }
 
   /**
@@ -427,7 +427,7 @@ public class SubcatBag implements Subcat, Serializable {
     stream.writeByte(size());
     stream.writeInt(counts.length - 1);
     for (int countIdx = 1; countIdx < counts.length; countIdx++) {
-      stream.writeObject(info.getSymbols()[countIdx]);
+      stream.writeObject(common.getSymbols()[countIdx]);
       stream.writeByte(counts[countIdx]);
     }
   }
@@ -448,13 +448,13 @@ public class SubcatBag implements Subcat, Serializable {
     int numPairs = stream.readInt();
     for (int i = 0; i < numPairs; i++) {
       Symbol requirement = (Symbol)stream.readObject();
-      counts[info.getUid(requirement)] = stream.readByte();
+      counts[common.getUid(requirement)] = stream.readByte();
     }
   }
 
   public void become(Subcat other) {
     SubcatBag otherBag = (SubcatBag)other;
-    otherBag.info = info;
+    otherBag.common = common;
     System.arraycopy(otherBag.counts, 0, this.counts, 0,
 		     otherBag.counts.length);
   }

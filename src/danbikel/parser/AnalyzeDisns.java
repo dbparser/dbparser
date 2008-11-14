@@ -716,7 +716,7 @@ public class AnalyzeDisns {
    *
    * @see Trainer
    * @see Trainer#writeModelCollection(ObjectOutputStream,String,String)
-   * @see Trainer#loadModelCollection(String)
+   * @see Trainer#loadModelCollection(Runtime,String)
    */
   public static void main(String[] args) {
     String mcFilename = args[0];
@@ -725,7 +725,8 @@ public class AnalyzeDisns {
     for (int argIdx = 1; argIdx < args.length; argIdx++)
       structureNames.add(args[argIdx]);
     try {
-      ModelCollection mc = Trainer.loadModelCollection(mcFilename);
+      Runtime rt = new RuntimeImpl();
+      ModelCollection mc = Trainer.loadModelCollection(rt, mcFilename);
       Model mwm = mc.modWordModel();
 
       // output all histories

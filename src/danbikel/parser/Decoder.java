@@ -156,7 +156,7 @@ public class Decoder implements Serializable, Settings.Change {
 
   // data members
   /** The runtime instance for this decoder. */
-  protected Runtime rt;
+  transient protected Runtime rt;
   /** The id of the parsing client that is using this decoder. */
   protected int id;
   /** The server for this decoder. */

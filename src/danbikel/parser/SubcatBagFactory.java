@@ -11,19 +11,19 @@ import danbikel.lisp.*;
  */
 public class SubcatBagFactory implements SubcatFactory {
 
-  private SubcatBagInfo subcatBagInfo;
+  private SubcatBagCommon subcatBagCommon;
 
   /**
    * Constructs a new <code>SubcatBagFactory</code>.
    * @param rt the runtime for this subcat factory
    */
   public SubcatBagFactory(Runtime rt) {
-    subcatBagInfo = new SubcatBagInfo(rt);
+    subcatBagCommon = new SubcatBagCommon(rt);
   }
 
   /** Returns an empty <code>SubcatBag</code>. */
   public Subcat get() {
-    return new SubcatBag(subcatBagInfo);
+    return new SubcatBag(subcatBagCommon);
   }
 
   /**
@@ -34,10 +34,10 @@ public class SubcatBagFactory implements SubcatFactory {
    * as requirements to a new <code>SubcatBag</code> instance
    */
   public Subcat get(SexpList list) {
-    return new SubcatBag(subcatBagInfo, list);
+    return new SubcatBag(subcatBagCommon, list);
   }
 
   public void init(CountsTable nonterminals) {
-    subcatBagInfo.setUpFastUidMap(nonterminals);
+    subcatBagCommon.setUpFastUidMap(nonterminals);
   }
 }

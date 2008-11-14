@@ -1891,6 +1891,7 @@ public class Model implements Serializable {
                                 bufSize);
       ObjectInputStream ois = new ObjectInputStream(bis);
       smoothingParams = (CountsTable[])ois.readObject();
+      ois.close();
     }
     catch (FileNotFoundException fnfe) {
       System.err.println(fnfe);

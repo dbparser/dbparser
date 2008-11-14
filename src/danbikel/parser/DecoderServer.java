@@ -22,7 +22,7 @@ public class DecoderServer
   /**
    * The {@link Runtime} instance for this decoder server.
    */
-  protected Runtime rt;
+  transient protected Runtime rt;
   /**
    * The model collection used by this decoder server.
    */
@@ -201,7 +201,7 @@ public class DecoderServer
    */
   protected void setModelCollection(String mcFilename)
     throws ClassNotFoundException, IOException {
-    modelCollection = Trainer.loadModelCollection(mcFilename);
+    modelCollection = Trainer.loadModelCollection(rt, mcFilename);
   }
 
   /**

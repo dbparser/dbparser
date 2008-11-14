@@ -90,8 +90,8 @@ public class PrintDisn {
       // set up data structures
       Set futures = new HashSet();
       Transition tmpTrans = new Transition(null, null);
-
-      ModelCollection mc = Trainer.loadModelCollection(mcFilename);
+      Runtime rt = new RuntimeImpl();
+      ModelCollection mc = Trainer.loadModelCollection(rt, mcFilename);
       Iterator models = mc.modelList().iterator();
       while (models.hasNext()) {
         Model model = (Model)models.next();

@@ -65,12 +65,10 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
    * @param tree the tree to preprocess
    * @return the tree, having been modified by this method
    */
-  /*
   public Sexp preProcess(Sexp tree) {
     super.preProcess(tree);
     return combineRightSiblingsOfDe5(tree);
   }
-  */
 
   /**
    * We override {@link

@@ -58,8 +58,8 @@ public class Treebank extends danbikel.parser.lang.AbstractTreebank {
                             canonicalLabelMapData[i][1]);
   }
 
-  private static String[] puncToRaiseElements = {"PU"};
-  //private static String[] puncToRaiseElements = {"PU", "DEG", "DEC"};
+  //private static String[] puncToRaiseElements = {"PU"};
+  private static String[] puncToRaiseElements = {"PU", "DEG", "DEC"};
 
   private static Set<Symbol> puncToRaise = new HashSet<Symbol>();
   static {

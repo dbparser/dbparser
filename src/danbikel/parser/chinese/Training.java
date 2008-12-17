@@ -270,16 +270,35 @@ public class Training extends danbikel.parser.lang.AbstractTraining {
 					    Constants.defaultFileBufsize);
       Sexp curr = null;
       while ((curr = Sexp.read(tok)) != null) {
-	if (raisePunc)
-	  System.out.println(training.raisePunctuation(curr));
+	if (!curr.isList()) {
+	  System.err.println("error: tree " + curr +
+			     " is not a list ... skipping");
+	  continue;
+	}
+	// automatically determine whether to strip outer parens
+	Sexp tree = curr;
+	if (curr.list().length() == 1 && curr.list().get(0).isList()) {
+	  tree = tree.list().get(0);
+	}
+	String skipStr = training.skip(tree);
+
+	if (skipStr != null) {
+	  System.err.println(skipStr);
+	  continue;
+	}
+	if (raisePunc) {
+	  training.raisePunctuation(tree);
+	  training.combineRightSiblingsOfDe5(tree);
+	  System.out.println(tree);
+	}
 	if (idArgs)
-	  System.out.println(training.identifyArguments(curr));
+	  System.out.println(training.identifyArguments(tree));
 	if (subjectlessS)
-	  System.out.println(training.relabelSubjectlessSentences(curr));
+	  System.out.println(training.relabelSubjectlessSentences(tree));
 	if (stripAug)
-	  System.out.println(training.stripAugmentations(curr));
+	  System.out.println(training.stripAugmentations(tree));
 	if (addBaseNPs)
-	  System.out.println(training.addBaseNPs(curr));
+	  System.out.println(training.addBaseNPs(tree));
       }
       System.out.println("\n\n");
     }
